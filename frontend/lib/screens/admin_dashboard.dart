@@ -1,0 +1,368 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_typography.dart';
+import '../theme/app_spacing.dart';
+import '../utils/platform_helper.dart';
+import 'user_login_screen.dart';
+import 'admin/admin_dashboard_page.dart';
+import 'admin/admin_audio_page.dart';
+import 'admin/admin_video_page.dart';
+import 'admin/admin_posts_page.dart';
+import 'admin/admin_users_page.dart';
+
+/// Main Admin Dashboard Screen with navigation
+class AdminDashboardScreen extends StatefulWidget {
+  const AdminDashboardScreen({super.key});
+
+  @override
+  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _pages = const [
+    AdminDashboardPage(),
+    AdminAudioPage(),
+    AdminVideoPage(),
+    AdminPostsPage(),
+    AdminUsersPage(),
+  ];
+
+  final List<NavigationItem> _navItems = const [
+    NavigationItem(
+      icon: Icons.dashboard_outlined,
+      activeIcon: Icons.dashboard,
+      label: 'Dashboard',
+    ),
+    NavigationItem(
+      icon: Icons.podcasts_outlined,
+      activeIcon: Icons.podcasts,
+      label: 'Audio',
+    ),
+    NavigationItem(
+      icon: Icons.video_library_outlined,
+      activeIcon: Icons.video_library,
+      label: 'Video',
+    ),
+    NavigationItem(
+      icon: Icons.article_outlined,
+      activeIcon: Icons.article,
+      label: 'Posts',
+    ),
+    NavigationItem(
+      icon: Icons.people_outlined,
+      activeIcon: Icons.people,
+      label: 'Users',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final isWeb = PlatformHelper.isWebPlatform();
+
+    if (isWeb) {
+      return _buildWebLayout();
+    } else {
+      return _buildMobileLayout();
+    }
+  }
+
+  Widget _buildWebLayout() {
+    return Scaffold(
+      backgroundColor: AppColors.backgroundPrimary,
+      body: Row(
+        children: [
+          // Side Navigation
+          Container(
+            width: 280,
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              border: Border(
+                right: BorderSide(
+                  color: AppColors.borderPrimary,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Column(
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.large),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryMain,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: AppColors.borderPrimary,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.admin_panel_settings,
+                        color: AppColors.textInverse,
+                        size: AppSpacing.iconSizeLarge,
+                      ),
+                      const SizedBox(width: AppSpacing.small),
+                      Expanded(
+                        child: Text(
+                          'Admin Panel',
+                          style: AppTypography.heading3.copyWith(
+                            color: AppColors.textInverse,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Navigation Items
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.medium,
+                    ),
+                    children: [
+                      for (int i = 0; i < _navItems.length; i++)
+                        _buildNavItem(i, isWeb: true),
+                    ],
+                  ),
+                ),
+
+                // Logout Button
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.medium),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                        color: AppColors.borderPrimary,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _handleLogout,
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Logout'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.errorMain,
+                        side: BorderSide(color: AppColors.errorMain),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.medium,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Main Content
+          Expanded(
+            child: _pages[_currentIndex],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return Scaffold(
+      backgroundColor: AppColors.backgroundPrimary,
+      appBar: AppBar(
+        title: Text(
+          _navItems[_currentIndex].label,
+          style: AppTypography.heading3.copyWith(
+            color: AppColors.textInverse,
+          ),
+        ),
+        backgroundColor: AppColors.primaryMain,
+        foregroundColor: AppColors.textInverse,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _handleLogout,
+            tooltip: 'Logout',
+          ),
+        ],
+      ),
+      body: _pages[_currentIndex],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          border: Border(
+            top: BorderSide(
+              color: AppColors.borderPrimary,
+              width: 1,
+            ),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              offset: const Offset(0, -2),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: SizedBox(
+            height: 70,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                for (int i = 0; i < _navItems.length; i++)
+                  _buildNavItem(i, isWeb: false),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, {required bool isWeb}) {
+    final item = _navItems[index];
+    final isActive = _currentIndex == index;
+
+    if (isWeb) {
+      return InkWell(
+        onTap: () => setState(() => _currentIndex = index),
+        child: Container(
+          margin: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.medium,
+            vertical: AppSpacing.tiny,
+          ),
+          padding: const EdgeInsets.all(AppSpacing.medium),
+          decoration: BoxDecoration(
+            color: isActive
+                ? AppColors.primaryMain.withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+            border: isActive
+                ? Border.all(
+                    color: AppColors.primaryMain,
+                    width: 1,
+                  )
+                : null,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                isActive ? item.activeIcon : item.icon,
+                color: isActive
+                    ? AppColors.primaryMain
+                    : AppColors.textSecondary,
+                size: AppSpacing.iconSizeMedium,
+              ),
+              const SizedBox(width: AppSpacing.medium),
+              Text(
+                item.label,
+                style: AppTypography.body.copyWith(
+                  color: isActive
+                      ? AppColors.primaryMain
+                      : AppColors.textSecondary,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      return Expanded(
+        child: InkWell(
+          onTap: () => setState(() => _currentIndex = index),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isActive ? item.activeIcon : item.icon,
+                color: isActive
+                    ? AppColors.primaryMain
+                    : AppColors.textSecondary,
+                size: AppSpacing.iconSizeMedium,
+              ),
+              const SizedBox(height: AppSpacing.tiny),
+              Text(
+                item.label,
+                style: AppTypography.caption.copyWith(
+                  color: isActive
+                      ? AppColors.primaryMain
+                      : AppColors.textSecondary,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Logout',
+          style: AppTypography.heading3,
+        ),
+        content: Text(
+          'Are you sure you want to logout?',
+          style: AppTypography.body,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: AppTypography.button.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.errorMain,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.logout();
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const UserLoginScreen()),
+          (route) => false,
+        );
+      }
+    }
+  }
+}
+
+class NavigationItem {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+
+  const NavigationItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+  });
+}
