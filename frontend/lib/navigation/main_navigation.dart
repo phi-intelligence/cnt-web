@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import '../utils/platform_utils.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
-import '../screens/mobile/home_screen_mobile.dart';
-import '../screens/mobile/search_screen_mobile.dart';
-import '../screens/mobile/live_screen_mobile.dart';
-import '../screens/mobile/community_screen_mobile.dart';
-import '../screens/mobile/profile_screen_mobile.dart';
+// Web-only deployment - mobile screens not available
+// import '../theme/app_spacing.dart';
+// import '../theme/app_typography.dart';
+// import '../screens/mobile/home_screen_mobile.dart';
+// import '../screens/mobile/search_screen_mobile.dart';
+// import '../screens/mobile/live_screen_mobile.dart';
+// import '../screens/mobile/community_screen_mobile.dart';
+// import '../screens/mobile/profile_screen_mobile.dart';
 
 /// Main Bottom Tab Navigation - Exact replica of React Native implementation
 /// 5 tabs: Home, Search, Live, Community, Profile
@@ -25,11 +26,13 @@ class MainBottomTabNavigation extends StatelessWidget {
       child: Scaffold(
         body: TabBarView(
           children: const [
-            HomeScreenMobile(),
-            SearchScreenMobile(),
-            LiveScreenMobile(),
-            CommunityScreenMobile(),
-            ProfileScreenMobile(),
+            // Web-only deployment - mobile screens not available
+            // Using placeholder widgets instead
+            Center(child: Text('Home - Mobile navigation not available on web')),
+            Center(child: Text('Search - Mobile navigation not available on web')),
+            Center(child: Text('Live - Mobile navigation not available on web')),
+            Center(child: Text('Community - Mobile navigation not available on web')),
+            Center(child: Text('Profile - Mobile navigation not available on web')),
           ],
         ),
         bottomNavigationBar: Container(

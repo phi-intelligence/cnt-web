@@ -90,7 +90,10 @@ class _LiveStreamViewerState extends State<LiveStreamViewer> {
 
   void _setupTrackListener(lk.Room room) {
     room.createListener().on<lk.TrackSubscribedEvent>((event) {
-      if (event.track.kind == lk.TrackType.VIDEO && !event.isLocal) {
+      // Check if this is from a remote participant (not local)
+      final isRemoteParticipant = room.remoteParticipants.values
+          .any((p) => p.trackPublications.values.any((pub) => pub.track == event.track));
+      if (event.track.kind == lk.TrackType.VIDEO && isRemoteParticipant) {
         _updateVideoTrack(room);
       }
     });
@@ -102,7 +105,10 @@ class _LiveStreamViewerState extends State<LiveStreamViewer> {
     });
 
     room.createListener().on<lk.ParticipantConnectedEvent>((event) {
-      if (!event.isLocal) {
+      // Check if this is a remote participant (not the local participant)
+      final isRemoteParticipant = room.remoteParticipants.values
+          .any((p) => p.identity == event.participant.identity);
+      if (isRemoteParticipant) {
         _updateVideoTrack(room);
         _updateViewerCount();
       }

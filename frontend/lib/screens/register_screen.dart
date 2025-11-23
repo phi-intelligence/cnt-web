@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/auth_provider.dart';
-import '../navigation/mobile_navigation.dart';
-import '../utils/platform_helper.dart';
+import '../navigation/web_navigation.dart';
 import 'admin_dashboard.dart';
 import 'user_login_screen.dart';
 
@@ -96,7 +95,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         } else {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (_) => const MobileNavigationLayout(),
+              builder: (_) => const WebNavigationLayout(),
             ),
           );
         }
@@ -126,7 +125,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         } else {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (_) => const MobileNavigationLayout(),
+              builder: (_) => const WebNavigationLayout(),
             ),
           );
         }

@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -27,7 +27,6 @@ class ProfileScreenWeb extends StatefulWidget {
 }
 
 class _ProfileScreenWebState extends State<ProfileScreenWeb> {
-  final ImagePicker _imagePicker = ImagePicker();
   bool _isUploadingAvatar = false;
 
   @override
@@ -51,10 +50,14 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
 
   Future<void> _handleAvatarChange() async {
     try {
-      final XFile? image = await _imagePicker.pickImage(
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
         imageQuality: 85,
       );
+      
       if (image == null) return;
 
       setState(() {

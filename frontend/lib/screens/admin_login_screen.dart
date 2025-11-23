@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../navigation/mobile_navigation.dart';
 import '../navigation/web_navigation.dart';
-import '../utils/platform_helper.dart';
 import 'admin_dashboard.dart';
 
 class AdminLoginScreen extends StatefulWidget {
@@ -43,12 +41,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         if (authProvider.isAdmin) {
           // Replace admin login screen with regular navigation (home screen)
           // Admin can access dashboard from navigation
-          final isWeb = PlatformHelper.isWebPlatform();
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (_) => isWeb 
-                  ? const WebNavigationLayout() 
-                  : const MobileNavigationLayout(),
+              builder: (_) => const WebNavigationLayout(),
             ),
           );
         } else {

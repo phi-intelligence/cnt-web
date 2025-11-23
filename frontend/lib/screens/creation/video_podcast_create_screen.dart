@@ -230,4 +230,3 @@ class VideoPodcastCreateScreen extends StatelessWidget {
     );
   }
 }
-

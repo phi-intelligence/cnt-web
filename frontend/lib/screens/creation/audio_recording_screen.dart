@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:record/record.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import 'audio_preview_screen.dart';
+import '../../utils/web_audio_recorder.dart';
+// Conditional imports - mobile only
+import 'package:record/record.dart' if (dart.library.html) '../../utils/record_stub.dart' as record;
+import 'package:path_provider/path_provider.dart' if (dart.library.html) '../../utils/path_provider_stub.dart' as path;
+import 'dart:io' if (dart.library.html) '../../utils/file_stub.dart' as io;
 
 /// Audio Recording Screen - Record audio podcasts
+/// Supports both web (using MediaRecorder) and mobile (using record package)
 class AudioRecordingScreen extends StatefulWidget {
   const AudioRecordingScreen({super.key});
 
@@ -15,7 +19,7 @@ class AudioRecordingScreen extends StatefulWidget {
 }
 
 class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
-  final AudioRecorder _recorder = AudioRecorder();
+  dynamic _recorder; // WebAudioRecorder on web, AudioRecorder on mobile
   bool _isRecording = false;
   bool _isPaused = false;
   int _recordingDuration = 0;
@@ -26,42 +30,72 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
   @override
   void initState() {
     super.initState();
+    if (kIsWeb) {
+      _recorder = WebAudioRecorder();
+    } else {
+      _recorder = record.AudioRecorder();
+    }
   }
 
   @override
   void dispose() {
-    _recorder.dispose();
+    _recorder?.dispose();
     super.dispose();
   }
 
   Future<void> _startRecording() async {
     try {
-      if (await _recorder.hasPermission()) {
-        final directory = await getApplicationDocumentsDirectory();
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final path = '${directory.path}/recording_$timestamp.m4a';
-        
-        await _recorder.start(
-          const RecordConfig(
-            encoder: AudioEncoder.aacLc,
-            bitRate: 128000,
-            sampleRate: 44100,
-          ),
-          path: path,
-        );
-        
-        setState(() {
-          _isRecording = true;
-          _isPaused = false;
-          _recordingPath = path;
-          _recordingStartTime = DateTime.now();
-        });
-        _updateDuration();
+      if (kIsWeb) {
+        // Web: Use WebAudioRecorder
+        final hasPermission = await _recorder.hasPermission();
+        if (!hasPermission) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Microphone permission denied')),
+            );
+          }
+          return;
+        }
+
+        final path = await _recorder.start();
+        if (path != null) {
+          setState(() {
+            _isRecording = true;
+            _isPaused = false;
+            _recordingPath = path;
+            _recordingStartTime = DateTime.now();
+          });
+          _updateDuration();
+        }
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Microphone permission denied')),
+        // Mobile: Use AudioRecorder package
+        if (await _recorder.hasPermission()) {
+          final directory = await path.getApplicationDocumentsDirectory();
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final filePath = '${directory.path}/recording_$timestamp.m4a';
+          
+          await _recorder.start(
+            const record.RecordConfig(
+              encoder: record.AudioEncoder.aacLc,
+              bitRate: 128000,
+              sampleRate: 44100,
+            ),
+            path: filePath,
           );
+          
+          setState(() {
+            _isRecording = true;
+            _isPaused = false;
+            _recordingPath = filePath;
+            _recordingStartTime = DateTime.now();
+          });
+          _updateDuration();
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Microphone permission denied')),
+            );
+          }
         }
       }
     } catch (e) {
@@ -106,11 +140,27 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
 
   Future<void> _stopAndSave() async {
     try {
-      final path = await _recorder.stop();
+      String? path;
+      int fileSize = 0;
+
+      if (kIsWeb) {
+        // Web: Get blob URL from WebAudioRecorder
+        path = await _recorder.stop();
+        if (path != null) {
+          // Get bytes from blob URL to calculate file size
+          final bytes = await _recorder.getBytes(path);
+          fileSize = bytes?.length ?? 0;
+        }
+      } else {
+        // Mobile: Get file path from AudioRecorder
+        path = await _recorder.stop();
+        if (path != null) {
+          final file = io.File(path);
+          fileSize = await file.length();
+        }
+      }
+
       if (path != null && mounted) {
-        final file = File(path);
-        final fileSize = await file.length();
-        
         setState(() {
           _isRecording = false;
         });
@@ -120,7 +170,7 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => AudioPreviewScreen(
-              audioUri: path,
+              audioUri: path!, // path is non-null here
               source: 'recording',
               duration: _recordingDuration,
               fileSize: fileSize,
@@ -149,6 +199,11 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
       _recordingDuration = 0;
       _pausedDuration = 0;
     });
+    if (kIsWeb) {
+      _recorder?.stop();
+    } else {
+      _recorder?.stop();
+    }
     Navigator.pop(context);
   }
 
@@ -285,4 +340,3 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
     );
   }
 }
-

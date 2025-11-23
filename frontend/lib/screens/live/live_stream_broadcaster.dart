@@ -91,11 +91,9 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
   Future<void> _stopStreaming() async {
     try {
       if (_localVideoTrack != null) {
-        final room = _meetingService.currentRoom;
-        if (room?.localParticipant != null) {
-          await room!.localParticipant!.unpublishTrack(_localVideoTrack!);
-          await _localVideoTrack!.stop();
-        }
+        // Stop the track - room cleanup will handle unpublishing
+        await _localVideoTrack!.stop();
+        _localVideoTrack = null;
       }
       await _meetingService.leaveMeeting();
 
@@ -134,11 +132,9 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
       final isEnabled = _meetingService.isCameraEnabled();
       
       if (!isEnabled && _localVideoTrack != null) {
-        // Camera turned off, unpublish track
-        final room = _meetingService.currentRoom;
-        if (room?.localParticipant != null) {
-          await room!.localParticipant!.unpublishTrack(_localVideoTrack!);
-        }
+        // Camera turned off, stop track
+        await _localVideoTrack!.stop();
+        _localVideoTrack = null;
       } else if (isEnabled && _localVideoTrack == null) {
         // Camera turned on, create and publish track
         final localVideo = await lk.LocalVideoTrack.createCameraTrack();

@@ -277,4 +277,3 @@ class _VideoRecordingScreenState extends State<VideoRecordingScreen> {
     );
   }
 }
-

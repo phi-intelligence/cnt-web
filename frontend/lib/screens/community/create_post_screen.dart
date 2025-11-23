@@ -1,7 +1,10 @@
-import 'dart:io';
+import 'dart:io' show File;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:io' if (dart.library.html) '../../utils/file_stub.dart' as io;
 import '../../providers/community_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
@@ -18,11 +21,13 @@ class CreatePostScreen extends StatefulWidget {
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final _formKey = GlobalKey<FormState>();
   final _captionController = TextEditingController();
-  File? _selectedImage;
+  final ImagePicker _imagePicker = ImagePicker();
+  dynamic _selectedImage; // For mobile (path-based File) or web (not used)
+  Uint8List? _selectedImageBytes; // For web (bytes-based)
+  String? _selectedImageName; // For web filename
   String? _uploadedImageUrl;
   bool _isSubmitting = false;
   bool _isUploadingImage = false;
-  final ImagePicker _imagePicker = ImagePicker();
   String _postType = 'image';  // 'image' or 'text'
 
   @override
@@ -41,10 +46,24 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       );
       
       if (image != null) {
-        setState(() {
-          _selectedImage = File(image.path);
-          _uploadedImageUrl = null; // Reset uploaded URL when new image is selected
-        });
+        if (kIsWeb) {
+          // Web: Read bytes from XFile
+          final bytes = await image.readAsBytes();
+          setState(() {
+            _selectedImage = null;
+            _selectedImageBytes = bytes;
+            _selectedImageName = image.name;
+            _uploadedImageUrl = null;
+          });
+        } else {
+          // Mobile: Use file path
+          setState(() {
+            _selectedImage = kIsWeb ? null : io.File(image.path);
+            _selectedImageBytes = null;
+            _selectedImageName = null;
+            _uploadedImageUrl = null;
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -58,18 +77,33 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   void _removeImage() {
     setState(() {
       _selectedImage = null;
+      _selectedImageBytes = null;
+      _selectedImageName = null;
       _uploadedImageUrl = null;
     });
   }
 
   Future<String?> _uploadImage() async {
-    if (_selectedImage == null) return null;
+    if (_selectedImage == null && _selectedImageBytes == null) return null;
     
     setState(() => _isUploadingImage = true);
     try {
       final apiService = ApiService();
-      final bytes = await _selectedImage!.readAsBytes();
-      final fileName = _selectedImage!.path.split('/').last;
+      List<int> bytes;
+      String fileName;
+      
+      if (_selectedImageBytes != null && _selectedImageName != null) {
+        // Web: Use bytes directly
+        bytes = _selectedImageBytes!;
+        fileName = _selectedImageName!;
+      } else if (_selectedImage != null && !kIsWeb) {
+        // Mobile: Read bytes from file
+        final file = _selectedImage as io.File;
+        bytes = await file.readAsBytes();
+        fileName = file.path.split('/').last;
+      } else {
+        return null;
+      }
       
       // Upload image using the upload/image endpoint
       final response = await apiService.uploadImage(
@@ -94,7 +128,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     // Validate based on post type
     if (_postType == 'image') {
       // For image posts, must have either image or caption
-      if (_selectedImage == null && _captionController.text.trim().isEmpty) {
+      if (_selectedImage == null && _selectedImageBytes == null && _captionController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please add a photo or write a caption')),
         );
@@ -118,7 +152,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       // Upload image only for image posts
       if (_postType == 'image') {
         imageUrl = _uploadedImageUrl;
-        if (_selectedImage != null && imageUrl == null) {
+        if ((_selectedImage != null || _selectedImageBytes != null) && imageUrl == null) {
           imageUrl = await _uploadImage();
           if (imageUrl == null) {
             setState(() => _isSubmitting = false);
@@ -242,11 +276,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
-                      setState(() {
-                        _postType = 'text';
-                        _selectedImage = null;
-                        _uploadedImageUrl = null;
-                      });
+                    setState(() {
+                      _postType = 'text';
+                      _selectedImage = null;
+                      _selectedImageBytes = null;
+                      _selectedImageName = null;
+                      _uploadedImageUrl = null;
+                    });
                     },
                     child: Container(
                       padding: EdgeInsets.symmetric(vertical: AppSpacing.small),
@@ -284,18 +320,24 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             // Image preview section
             Expanded(
               child: GestureDetector(
-                onTap: _selectedImage == null ? _pickImage : null,
+                onTap: (_selectedImage == null && _selectedImageBytes == null) ? _pickImage : null,
                 child: Container(
                   width: double.infinity,
                   color: AppColors.backgroundTertiary,
-                  child: _selectedImage != null
+                  child: (_selectedImage != null || _selectedImageBytes != null)
                       ? Stack(
                           fit: StackFit.expand,
                           children: [
-                            Image.file(
-                              _selectedImage!,
-                              fit: BoxFit.contain,
-                            ),
+                            // Display image from File (mobile) or bytes (web)
+                            _selectedImage != null
+                                ? Image.file(
+                                    _selectedImage!,
+                                    fit: BoxFit.contain,
+                                  )
+                                : Image.memory(
+                                    Uint8List.fromList(_selectedImageBytes!),
+                                    fit: BoxFit.contain,
+                                  ),
                             // Remove button
                             Positioned(
                               top: AppSpacing.small,

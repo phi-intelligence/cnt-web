@@ -7,7 +7,7 @@ import '../../widgets/web/section_container.dart';
 import '../creation/video_podcast_create_screen.dart';
 import '../creation/audio_podcast_create_screen.dart';
 import '../creation/quote_create_screen_web.dart';
-import '../mobile/meeting_options_screen_mobile.dart';
+import 'meeting_options_screen_web.dart';
 import '../live/live_stream_start_screen.dart';
 import '../../utils/responsive_grid_delegate.dart';
 
@@ -50,10 +50,30 @@ class CreateScreenWeb extends StatelessWidget {
         title: 'Meeting',
         icon: Icons.group,
         backgroundColor: AppColors.accentMain,
-        onTap: () => _navigateToScreen(
-          context,
-          MeetingOptionsScreenMobile(),
-        ),
+        onTap: () {
+          // Navigate to meeting options screen
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MeetingOptionsScreenWeb(),
+            ),
+          );
+        },
+      ),
+      _buildOptionCard(
+        context,
+        title: 'Document',
+        icon: Icons.description,
+        backgroundColor: AppColors.accentMain,
+        onTap: () {
+          // Web-only - document feature placeholder
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Document feature is not available on web yet.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        },
       ),
       _buildOptionCard(
         context,

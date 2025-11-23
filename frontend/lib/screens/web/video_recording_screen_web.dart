@@ -459,4 +459,3 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
     );
   }
 }
-
