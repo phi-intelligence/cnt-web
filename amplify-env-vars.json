@@ -1,0 +1,8 @@
+{
+  "API_BASE_URL": "https://api.christnewtabernacle.com/api/v1",
+  "ENVIRONMENT": "production",
+  "LIVEKIT_HTTP_URL": "https://livekit.christnewtabernacle.com",
+  "LIVEKIT_WS_URL": "wss://livekit.christnewtabernacle.com",
+  "MEDIA_BASE_URL": "https://d126sja5o8ue54.cloudfront.net",
+  "WEBSOCKET_URL": "wss://api.christnewtabernacle.com:8000"
+}

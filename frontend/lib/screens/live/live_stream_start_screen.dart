@@ -91,14 +91,43 @@ class _LiveStreamStartScreenState extends State<LiveStreamStartScreen> {
       );
     } catch (e) {
       if (mounted) {
+        String errorMessage;
+        bool isAuthError = false;
+        
+        // Check if it's an authentication error
+        final errorString = e.toString().toLowerCase();
+        if (errorString.contains('session has expired') || 
+            errorString.contains('authentication failed') ||
+            errorString.contains('please log in again')) {
+          errorMessage = 'Your session has expired. Please log in again to start a live stream.';
+          isAuthError = true;
+          
+          // Auto-logout user
+          final authProvider = context.read<AuthProvider>();
+          if (authProvider.isAuthenticated) {
+            await authProvider.logout();
+          }
+        } else {
+          errorMessage = e.toString().replaceAll('Exception: ', '');
+        }
+        
         setState(() {
           _isCreating = false;
-          _errorMessage = e.toString();
+          _errorMessage = errorMessage;
         });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to start live stream: $e'),
+            content: Text(errorMessage),
             backgroundColor: AppColors.errorMain,
+            duration: Duration(seconds: isAuthError ? 5 : 3),
+            action: isAuthError ? SnackBarAction(
+              label: 'Go to Login',
+              textColor: Colors.white,
+              onPressed: () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+            ) : null,
           ),
         );
       }

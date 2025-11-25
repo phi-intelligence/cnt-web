@@ -37,7 +37,7 @@ class ApiService {
   factory ApiService() => _instance;
   ApiService._internal();
   
-  /// Get headers with authentication token
+  /// Get headers with authentication token (checks expiration)
   Future<Map<String, String>> _getHeaders({Map<String, String>? additional}) async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
@@ -46,6 +46,27 @@ class ApiService {
     final authHeaders = await _authService.getAuthHeaders();
     headers.addAll(authHeaders);
     return headers;
+  }
+  
+  /// Handle 401 Unauthorized errors - checks token expiration and throws appropriate error
+  Future<void> _handle401Error(http.Response response) async {
+    final token = await _authService.getToken();
+    if (token != null && AuthService.isTokenExpired(token)) {
+      // Token is expired - clear it
+      await _authService.logout();
+      throw Exception('Your session has expired. Please log in again.');
+    } else {
+      // Token might be invalid for other reasons
+      throw Exception('Authentication failed. Please log in again.');
+    }
+  }
+  
+  /// Check if response is 401 and handle accordingly
+  void _checkResponse(http.Response response) {
+    if (response.statusCode == 401) {
+      // Will be caught by caller and _handle401Error will be called
+      throw http.ClientException('Unauthorized', response.request?.url);
+    }
   }
 
   /// Create a live stream/meeting (returns backend stream object)
@@ -71,27 +92,41 @@ class ApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body) as Map<String, dynamic>;
+      } else if (response.statusCode == 401) {
+        // Handle 401 error (token expired or invalid)
+        await _handle401Error(response);
+        return {}; // Will never reach here, but satisfies return type
       }
       throw Exception('Failed to create stream: HTTP ${response.statusCode} ${response.body}');
     } catch (e) {
+      // Re-throw if it's already our custom exception
+      if (e.toString().contains('session has expired') || e.toString().contains('Authentication failed')) {
+        rethrow;
+      }
       throw Exception('Network error creating stream: $e');
     }
   }
 
   /// List streams (optional helper when joining by room without backend route)
+  /// Note: This endpoint doesn't require authentication, but we include auth headers if available
   Future<List<Map<String, dynamic>>> listStreams({String? status}) async {
     try {
       Uri uri = Uri.parse('$baseUrl/live/streams');
       if (status != null) {
         uri = uri.replace(queryParameters: {'status': status});
       }
+      // Include auth headers if available (optional for this endpoint)
+      final headers = await _getHeaders();
       final response = await http.get(
         uri,
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
       ).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.cast<Map<String, dynamic>>();
+      } else if (response.statusCode == 401) {
+        // Token expired or invalid - try to refresh or re-authenticate
+        throw Exception('Authentication failed. Please log in again.');
       }
       throw Exception('Failed to list streams: HTTP ${response.statusCode}');
     } catch (e) {

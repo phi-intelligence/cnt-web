@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../utils/platform_helper.dart';
@@ -89,10 +90,59 @@ class AuthService {
     return null;
   }
   
-  /// Check if user is authenticated
+  /// Check if JWT token is expired
+  static bool isTokenExpired(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return true;
+      
+      final payload = parts[1];
+      // Base64 decode with padding handling
+      String normalized = payload;
+      switch (payload.length % 4) {
+        case 1:
+          normalized += '===';
+          break;
+        case 2:
+          normalized += '==';
+          break;
+        case 3:
+          normalized += '=';
+          break;
+      }
+      
+      final decoded = base64Decode(normalized);
+      final Map<String, dynamic> json = jsonDecode(utf8.decode(decoded));
+      
+      final exp = json['exp'] as int?;
+      if (exp == null) return true;
+      
+      final expirationDate = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
+      final isExpired = DateTime.now().isAfter(expirationDate);
+      
+      if (isExpired) {
+        print('⚠️ Token expired. Expiration: ${expirationDate.toIso8601String()}, Now: ${DateTime.now().toIso8601String()}');
+      }
+      
+      return isExpired;
+    } catch (e) {
+      print('⚠️ Error checking token expiration: $e');
+      return true; // If we can't decode, assume expired
+    }
+  }
+  
+  /// Check if stored token is expired
+  Future<bool> isStoredTokenExpired() async {
+    final token = await getToken();
+    if (token == null || token.isEmpty) return true;
+    return isTokenExpired(token);
+  }
+  
+  /// Check if user is authenticated (and token is not expired)
   Future<bool> isAuthenticated() async {
     final token = await getToken();
-    return token != null && token.isNotEmpty;
+    if (token == null || token.isEmpty) return false;
+    return !isTokenExpired(token);
   }
   
   /// Check if user is admin
@@ -245,15 +295,23 @@ class AuthService {
     }
   }
   
-  /// Get authorization header
+  /// Get authorization header (checks token expiration)
   Future<Map<String, String>> getAuthHeaders() async {
     final token = await getToken();
-    if (token != null && token.isNotEmpty) {
-      print('🔑 Auth token retrieved: ${token.substring(0, 20)}...');
-      return {'Authorization': 'Bearer $token'};
+    if (token == null || token.isEmpty) {
+      print('⚠️ No auth token found');
+      return {};
     }
-    print('⚠️ No auth token found');
-    return {};
+    
+    // Check if token is expired
+    if (isTokenExpired(token)) {
+      print('⚠️ Token is expired, clearing stored token');
+      await logout(); // Clear expired token
+      return {};
+    }
+    
+    print('🔑 Auth token retrieved: ${token.substring(0, 20)}...');
+    return {'Authorization': 'Bearer $token'};
   }
 
   Future<void> updateStoredUser(Map<String, dynamic> updates) async {

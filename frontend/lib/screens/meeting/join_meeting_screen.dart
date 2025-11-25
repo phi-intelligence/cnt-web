@@ -99,10 +99,40 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
         ),
       );
     } catch (e) {
-      setState(() { _joining = false; _joinError = e.toString(); });
+      String errorMessage;
+      bool isAuthError = false;
+      
+      // Check if it's an authentication error
+      final errorString = e.toString().toLowerCase();
+      if (errorString.contains('session has expired') || 
+          errorString.contains('authentication failed') ||
+          errorString.contains('please log in again') ||
+          errorString.contains('unauthorized')) {
+        errorMessage = 'Your session has expired. Please log in again to join the meeting.';
+        isAuthError = true;
+      } else {
+        errorMessage = e.toString().replaceAll('Exception: ', '');
+      }
+      
+      setState(() { 
+        _joining = false; 
+        _joinError = errorMessage;
+      });
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to join meeting: $e')),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: isAuthError ? Colors.red : null,
+            duration: Duration(seconds: isAuthError ? 5 : 3),
+            action: isAuthError ? SnackBarAction(
+              label: 'Go to Login',
+              textColor: Colors.white,
+              onPressed: () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+            ) : null,
+          ),
         );
       }
     }

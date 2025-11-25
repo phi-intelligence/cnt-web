@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
 import '../services/google_auth_service.dart';
@@ -10,6 +11,7 @@ class AuthProvider extends ChangeNotifier {
   bool _isAuthenticated = false;
   bool _isLoading = false;
   String? _error;
+  Timer? _tokenExpirationTimer;
   
   Map<String, dynamic>? get user => _user;
   bool get isAuthenticated => _isAuthenticated;
@@ -20,6 +22,39 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider() {
     // Start auth check in background - don't block UI
     checkAuthStatus();
+    // Start periodic token expiration check
+    _startTokenExpirationCheck();
+  }
+  
+  /// Start periodic check for token expiration (every 5 minutes)
+  void _startTokenExpirationCheck() {
+    _tokenExpirationTimer?.cancel();
+    _tokenExpirationTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      _checkTokenExpiration();
+    });
+  }
+  
+  /// Check if token is expired and auto-logout if needed
+  Future<void> _checkTokenExpiration() async {
+    if (!_isAuthenticated) return;
+    
+    try {
+      final isExpired = await _authService.isStoredTokenExpired();
+      if (isExpired) {
+        print('⚠️ Token expired, auto-logging out user');
+        await logout();
+        _error = 'Your session has expired. Please log in again.';
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error checking token expiration: $e');
+    }
+  }
+  
+  @override
+  void dispose() {
+    _tokenExpirationTimer?.cancel();
+    super.dispose();
   }
   
   Future<void> checkAuthStatus() async {
@@ -44,15 +79,24 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
       
-      final authenticated = await _authService.isAuthenticated()
-          .timeout(const Duration(milliseconds: 500), onTimeout: () => false);
-      if (authenticated) {
-        _user = await _authService.getUser()
-            .timeout(const Duration(milliseconds: 500), onTimeout: () => null);
-        _isAuthenticated = _user != null;
-      } else {
+      // Check if token is expired
+      final isExpired = await _authService.isStoredTokenExpired();
+      if (isExpired) {
+        print('⚠️ Token expired during auth check');
         _user = null;
         _isAuthenticated = false;
+        await _authService.logout(); // Clear expired token
+      } else {
+        final authenticated = await _authService.isAuthenticated()
+            .timeout(const Duration(milliseconds: 500), onTimeout: () => false);
+        if (authenticated) {
+          _user = await _authService.getUser()
+              .timeout(const Duration(milliseconds: 500), onTimeout: () => null);
+          _isAuthenticated = _user != null;
+        } else {
+          _user = null;
+          _isAuthenticated = false;
+        }
       }
       _error = null;
     } catch (e) {
@@ -99,6 +143,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
+      _tokenExpirationTimer?.cancel();
       await _authService.logout();
       _user = null;
       _isAuthenticated = false;
@@ -109,6 +154,13 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+  
+  /// Force logout due to token expiration
+  Future<void> logoutDueToExpiration() async {
+    await logout();
+    _error = 'Your session has expired. Please log in again.';
+    notifyListeners();
   }
   
   Future<Map<String, String>> getAuthHeaders() async {
