@@ -10,6 +10,11 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/media_utils.dart';
+import '../../widgets/web/styled_page_header.dart';
+import '../../widgets/web/section_container.dart';
+import '../../widgets/web/styled_pill_button.dart';
+import '../../utils/responsive_grid_delegate.dart';
+import '../../models/document_asset.dart';
 
 class AdminDocumentsPage extends StatefulWidget {
   const AdminDocumentsPage({super.key});
@@ -91,101 +96,195 @@ class _AdminDocumentsPageState extends State<AdminDocumentsPage> {
         color: AppColors.primaryMain,
         child: Consumer<DocumentsProvider>(
           builder: (context, provider, child) {
-            if (provider.isLoading && provider.documents.isEmpty) {
-              return const Center(
-                child: CircularProgressIndicator(color: AppColors.primaryMain),
-              );
-            }
+            return Container(
+              padding: ResponsiveGridDelegate.getResponsivePadding(context),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: ResponsiveGridDelegate.getMaxContentWidth(context),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header with Upload Button
+                      Row(
+                        children: [
+                          Expanded(
+                            child: StyledPageHeader(
+                              title: 'Bible Documents',
+                              size: StyledPageHeaderSize.h2,
+                            ),
+                          ),
+                          StyledPillButton(
+                            label: _isUploading ? 'Uploading...' : 'Upload PDF',
+                            icon: Icons.cloud_upload,
+                            onPressed: _isUploading ? null : _handleUpload,
+                            isLoading: _isUploading,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.extraLarge),
 
-            if (provider.documents.isEmpty) {
-              return ListView(
-                padding: EdgeInsets.all(AppSpacing.large),
-                children: [
-                  const SizedBox(height: AppSpacing.extraLarge),
-                  Icon(Icons.menu_book_outlined,
-                      size: 80, color: AppColors.textSecondary.withOpacity(0.5)),
-                  const SizedBox(height: AppSpacing.medium),
-                  Text(
-                    'No documents yet',
-                    textAlign: TextAlign.center,
-                    style: AppTypography.heading3.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.tiny),
-                  Text(
-                    'Upload Bible PDFs or study guides to appear in the Bible Reader.',
-                    textAlign: TextAlign.center,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.textTertiary,
-                    ),
-                  ),
-                ],
-              );
-            }
+                      // Upload Section (if needed for drag-drop in future)
+                      // For now, upload button is in header
 
-            return ListView.builder(
-              padding: EdgeInsets.all(AppSpacing.large),
-              itemCount: provider.documents.length,
-              itemBuilder: (context, index) {
-                final document = provider.documents[index];
-                final downloadUrl = resolveMediaUrl(document.filePath);
-                return Card(
-                  margin: EdgeInsets.only(bottom: AppSpacing.medium),
-                  child: ListTile(
-                    leading: const Icon(Icons.picture_as_pdf, color: AppColors.primaryMain),
-                    title: Text(
-                      document.title,
-                      style: AppTypography.body.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      document.description ?? 'Uploaded ${document.createdAt.toLocal()}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          tooltip: 'Open',
-                          icon: const Icon(Icons.open_in_new),
-                          onPressed: downloadUrl == null
-                              ? null
-                              : () => launchUrl(Uri.parse(downloadUrl)),
-                        ),
-                        IconButton(
-                          tooltip: 'Delete',
-                          icon: const Icon(Icons.delete_outline, color: AppColors.errorMain),
-                          onPressed: () async {
-                            await provider.deleteDocument(document.id);
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('${document.title} deleted')),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
+                      // Documents List
+                      if (provider.isLoading && provider.documents.isEmpty)
+                        SectionContainer(
+                          showShadow: true,
+                          child: const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 40),
+                              child: CircularProgressIndicator(
+                                color: AppColors.primaryMain,
+                              ),
+                            ),
+                          ),
+                        )
+                      else if (provider.documents.isEmpty)
+                        SectionContainer(
+                          showShadow: true,
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 40),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.menu_book_outlined,
+                                    size: 80,
+                                    color: AppColors.textSecondary.withOpacity(0.5),
+                                  ),
+                                  const SizedBox(height: AppSpacing.medium),
+                                  Text(
+                                    'No documents yet',
+                                    textAlign: TextAlign.center,
+                                    style: AppTypography.heading3.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppSpacing.small),
+                                  Text(
+                                    'Upload Bible PDFs or study guides to appear in the Bible Reader.',
+                                    textAlign: TextAlign.center,
+                                    style: AppTypography.body.copyWith(
+                                      color: AppColors.textTertiary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppSpacing.large),
+                                  StyledPillButton(
+                                    label: 'Upload PDF',
+                                    icon: Icons.cloud_upload,
+                                    onPressed: _isUploading ? null : _handleUpload,
+                                    isLoading: _isUploading,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        ...provider.documents.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final document = entry.value;
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: index == provider.documents.length - 1
+                                  ? 0
+                                  : AppSpacing.large,
+                            ),
+                            child: _buildDocumentCard(context, document, provider),
+                          );
+                        }),
+                    ],
                   ),
-                );
-              },
+                ),
+              ),
             );
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isUploading ? null : _handleUpload,
-        icon: _isUploading
-            ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
+    );
+  }
+
+  Widget _buildDocumentCard(
+    BuildContext context,
+    DocumentAsset document,
+    DocumentsProvider provider,
+  ) {
+    final downloadUrl = resolveMediaUrl(document.filePath);
+    return SectionContainer(
+      showShadow: true,
+      child: Row(
+        children: [
+          // PDF Icon
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: AppColors.errorMain.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+            ),
+            child: Icon(
+              Icons.picture_as_pdf,
+              color: AppColors.errorMain,
+              size: 32,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.large),
+          // Document Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  document.title,
+                  style: AppTypography.heading4.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              )
-            : const Icon(Icons.cloud_upload),
-        label: Text(_isUploading ? 'Uploading...' : 'Upload PDF'),
+                const SizedBox(height: AppSpacing.tiny),
+                Text(
+                  document.description ?? 'Uploaded ${document.createdAt.toLocal()}',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.medium),
+          // Actions
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              StyledPillButton(
+                label: 'Open',
+                icon: Icons.open_in_new,
+                variant: StyledPillButtonVariant.outlined,
+                onPressed: downloadUrl == null
+                    ? null
+                    : () => launchUrl(Uri.parse(downloadUrl)),
+              ),
+              const SizedBox(width: AppSpacing.small),
+              StyledPillButton(
+                label: 'Delete',
+                icon: Icons.delete_outline,
+                variant: StyledPillButtonVariant.outlined,
+                onPressed: () async {
+                  await provider.deleteDocument(document.id);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${document.title} deleted')),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

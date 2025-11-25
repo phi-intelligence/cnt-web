@@ -8,6 +8,11 @@ import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/platform_helper.dart';
 import '../../utils/format_utils.dart';
+import '../../widgets/web/styled_page_header.dart';
+import '../../widgets/web/section_container.dart';
+import '../../widgets/web/styled_pill_button.dart';
+import '../../widgets/admin/admin_dashboard_card.dart';
+import '../../utils/responsive_grid_delegate.dart';
 
 class AdminSupportPage extends StatefulWidget {
   const AdminSupportPage({super.key});
@@ -97,9 +102,7 @@ class _AdminSupportPageState extends State<AdminSupportPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Support Inbox'),
-      ),
+      backgroundColor: AppColors.backgroundPrimary,
       body: RefreshIndicator(
         onRefresh: _refresh,
         color: AppColors.primaryMain,
@@ -109,47 +112,81 @@ class _AdminSupportPageState extends State<AdminSupportPage> {
             final isWide = PlatformHelper.isWebPlatform() ||
                 MediaQuery.of(context).size.width > 900;
 
-            return ListView(
-              padding: EdgeInsets.all(AppSpacing.medium),
-              children: [
-                _buildStatsRow(provider),
-                const SizedBox(height: AppSpacing.medium),
-                _buildFilters(),
-                const SizedBox(height: AppSpacing.medium),
-                if (provider.isAdminLoading && messages.isEmpty)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 40),
-                      child: CircularProgressIndicator(
-                        color: AppColors.primaryMain,
+            return Container(
+              padding: ResponsiveGridDelegate.getResponsivePadding(context),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: ResponsiveGridDelegate.getMaxContentWidth(context),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      StyledPageHeader(
+                        title: 'Support Inbox',
+                        size: StyledPageHeaderSize.h2,
                       ),
-                    ),
-                  )
-                else if (messages.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.support_agent,
-                          size: 64,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(height: AppSpacing.small),
-                        Text(
-                          'No support requests found for this filter.',
-                          style: AppTypography.body.copyWith(
-                            color: AppColors.textSecondary,
+                      const SizedBox(height: AppSpacing.extraLarge),
+
+                      // Stats Section
+                      _buildStatsSection(provider),
+                      const SizedBox(height: AppSpacing.extraLarge),
+
+                      // Filters Section
+                      _buildFiltersSection(),
+                      const SizedBox(height: AppSpacing.extraLarge),
+
+                      // Messages Section
+                      if (provider.isAdminLoading && messages.isEmpty)
+                        SectionContainer(
+                          showShadow: true,
+                          child: const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 40),
+                              child: CircularProgressIndicator(
+                                color: AppColors.primaryMain,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  )
-                else if (isWide)
-                  ...messages.map(_buildWideCard)
-                else
-                  ...messages.map(_buildCompactCard),
-              ],
+                        )
+                      else if (messages.isEmpty)
+                        SectionContainer(
+                          showShadow: true,
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 40),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.support_agent,
+                                    size: 64,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  const SizedBox(height: AppSpacing.small),
+                                  Text(
+                                    'No support requests found for this filter.',
+                                    style: AppTypography.body.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        ...messages.map((message) => Padding(
+                              padding: const EdgeInsets.only(bottom: AppSpacing.large),
+                              child: isWide
+                                  ? _buildWideCard(message)
+                                  : _buildCompactCard(message),
+                            )),
+                    ],
+                  ),
+                ),
+              ),
             );
           },
         ),
@@ -157,38 +194,55 @@ class _AdminSupportPageState extends State<AdminSupportPage> {
     );
   }
 
-  Widget _buildStatsRow(SupportProvider provider) {
+  Widget _buildStatsSection(SupportProvider provider) {
     final stats = provider.stats;
-    return Row(
-      children: [
-        Expanded(
-          child: _StatChip(
-            label: 'Total',
-            value: stats?.total.toString() ?? '-',
-            color: AppColors.infoMain,
-          ),
+    return SectionContainer(
+      showShadow: true,
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+          context,
+          desktop: 3,
+          tablet: 3,
+          mobile: 1,
+          childAspectRatio: 2.5,
+          crossAxisSpacing: AppSpacing.large,
+          mainAxisSpacing: AppSpacing.large,
         ),
-        const SizedBox(width: AppSpacing.small),
-        Expanded(
-          child: _StatChip(
-            label: 'Open',
-            value: stats?.openCount.toString() ?? '-',
-            color: AppColors.warningMain,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.small),
-        Expanded(
-          child: _StatChip(
-            label: 'New',
-            value: stats?.unreadAdminCount.toString() ?? '-',
-            color: AppColors.primaryMain,
-          ),
-        ),
-      ],
+        itemCount: 3,
+        itemBuilder: (context, index) {
+          switch (index) {
+            case 0:
+              return AdminDashboardCard(
+                title: 'Total',
+                value: stats?.total.toString() ?? '-',
+                icon: Icons.support_agent,
+                backgroundColor: AppColors.infoMain,
+              );
+            case 1:
+              return AdminDashboardCard(
+                title: 'Open',
+                value: stats?.openCount.toString() ?? '-',
+                icon: Icons.pending_actions,
+                backgroundColor: AppColors.warningMain,
+              );
+            case 2:
+              return AdminDashboardCard(
+                title: 'New',
+                value: stats?.unreadAdminCount.toString() ?? '-',
+                icon: Icons.mark_unread_chat_alt_outlined,
+                backgroundColor: AppColors.primaryMain,
+              );
+            default:
+              return const SizedBox();
+          }
+        },
+      ),
     );
   }
 
-  Widget _buildFilters() {
+  Widget _buildFiltersSection() {
     final filters = <String?, String>{
       null: 'All',
       'open': 'Open',
@@ -196,23 +250,41 @@ class _AdminSupportPageState extends State<AdminSupportPage> {
       'closed': 'Closed',
     };
 
-    return Wrap(
-      spacing: AppSpacing.small,
-      children: filters.entries.map((entry) {
-        final isSelected = _statusFilter == entry.key;
-        return ChoiceChip(
-          label: Text(entry.value),
-          selected: isSelected,
-          onSelected: (_) {
-            setState(() {
-              _statusFilter = entry.key;
-            });
-            context
-                .read<SupportProvider>()
-                .fetchAdminMessages(status: _statusFilter);
-          },
-        );
-      }).toList(),
+    return SectionContainer(
+      showShadow: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Filter by Status',
+            style: AppTypography.heading3.copyWith(
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.large),
+          Wrap(
+            spacing: AppSpacing.medium,
+            runSpacing: AppSpacing.medium,
+            children: filters.entries.map((entry) {
+              final isSelected = _statusFilter == entry.key;
+              return StyledPillButton(
+                label: entry.value,
+                variant: isSelected
+                    ? StyledPillButtonVariant.filled
+                    : StyledPillButtonVariant.outlined,
+                onPressed: () {
+                  setState(() {
+                    _statusFilter = entry.key;
+                  });
+                  context
+                      .read<SupportProvider>()
+                      .fetchAdminMessages(status: _statusFilter);
+                },
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -221,50 +293,56 @@ class _AdminSupportPageState extends State<AdminSupportPage> {
         _replyControllers.putIfAbsent(message.id, () => TextEditingController());
     final isReplying = _isReplying[message.id] ?? false;
 
-    return Card(
-      margin: EdgeInsets.only(bottom: AppSpacing.medium),
-      child: Padding(
-        padding: EdgeInsets.all(AppSpacing.large),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: _SupportMessageMeta(message: message, onMarkRead: _markRead)),
-            const SizedBox(width: AppSpacing.large),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: controller,
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      labelText: 'Reply to ${message.user?.name ?? 'user'}',
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.medium),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: ElevatedButton.icon(
-                      onPressed: isReplying ? null : () => _submitReply(message),
-                      icon: isReplying
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.send_outlined),
-                      label: Text(isReplying ? 'Sending...' : 'Send Reply'),
-                    ),
-                  ),
-                ],
-              ),
+    return SectionContainer(
+      showShadow: true,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              child: _SupportMessageMeta(message: message, onMarkRead: _markRead),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: AppSpacing.extraLarge),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Reply',
+                  style: AppTypography.heading4.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.medium),
+                TextField(
+                  controller: controller,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    labelText: 'Reply to ${message.user?.name ?? 'user'}',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                      borderSide: BorderSide(color: AppColors.borderPrimary),
+                    ),
+                    filled: true,
+                    fillColor: AppColors.backgroundPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.medium),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: StyledPillButton(
+                    label: isReplying ? 'Sending...' : 'Send Reply',
+                    icon: Icons.send_outlined,
+                    onPressed: isReplying ? null : () => _submitReply(message),
+                    isLoading: isReplying,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -274,44 +352,45 @@ class _AdminSupportPageState extends State<AdminSupportPage> {
         _replyControllers.putIfAbsent(message.id, () => TextEditingController());
     final isReplying = _isReplying[message.id] ?? false;
 
-    return Card(
-      margin: EdgeInsets.only(bottom: AppSpacing.medium),
-      child: Padding(
-        padding: EdgeInsets.all(AppSpacing.medium),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _SupportMessageMeta(message: message, onMarkRead: _markRead),
-            const SizedBox(height: AppSpacing.medium),
-            TextField(
-              controller: controller,
-              maxLines: 4,
-              decoration: InputDecoration(
-                labelText: 'Reply',
-                border: const OutlineInputBorder(),
-                isDense: true,
-              ),
+    return SectionContainer(
+      showShadow: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _SupportMessageMeta(message: message, onMarkRead: _markRead),
+          const SizedBox(height: AppSpacing.large),
+          Text(
+            'Reply',
+            style: AppTypography.heading4.copyWith(
+              color: AppColors.textPrimary,
             ),
-            const SizedBox(height: AppSpacing.medium),
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                onPressed: isReplying ? null : () => _submitReply(message),
-                icon: isReplying
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.send),
-                label: Text(isReplying ? 'Sending...' : 'Send Reply'),
+          ),
+          const SizedBox(height: AppSpacing.medium),
+          TextField(
+            controller: controller,
+            maxLines: 4,
+            decoration: InputDecoration(
+              labelText: 'Reply',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderSide: BorderSide(color: AppColors.borderPrimary),
               ),
+              filled: true,
+              fillColor: AppColors.backgroundPrimary,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: AppSpacing.medium),
+          Align(
+            alignment: Alignment.centerRight,
+            child: StyledPillButton(
+              label: isReplying ? 'Sending...' : 'Send Reply',
+              icon: Icons.send_outlined,
+              onPressed: isReplying ? null : () => _submitReply(message),
+              isLoading: isReplying,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -331,6 +410,7 @@ class _SupportMessageMeta extends StatelessWidget {
     final user = message.user;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Row(
           children: [
@@ -352,6 +432,7 @@ class _SupportMessageMeta extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     user?.name ?? 'Unknown User',
@@ -368,10 +449,11 @@ class _SupportMessageMeta extends StatelessWidget {
               ),
             ),
             if (!message.adminSeen)
-              TextButton.icon(
+              StyledPillButton(
+                label: 'Mark read',
+                icon: Icons.mark_email_read_outlined,
+                variant: StyledPillButtonVariant.outlined,
                 onPressed: () => onMarkRead(message),
-                label: const Text('Mark read'),
-                icon: const Icon(Icons.mark_email_read_outlined),
               ),
           ],
         ),
@@ -383,10 +465,14 @@ class _SupportMessageMeta extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.tiny),
-        Text(
-          message.message,
-          style: AppTypography.body.copyWith(
-            color: AppColors.textSecondary,
+        Flexible(
+          child: Text(
+            message.message,
+            style: AppTypography.body.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            maxLines: null,
+            overflow: TextOverflow.visible,
           ),
         ),
         const SizedBox(height: AppSpacing.small),
@@ -394,10 +480,13 @@ class _SupportMessageMeta extends StatelessWidget {
           children: [
             _StatusPill(status: message.status),
             const SizedBox(width: AppSpacing.small),
-            Text(
-              'Created ${FormatUtils.formatRelativeTime(message.createdAt.toLocal())}',
-              style: AppTypography.caption.copyWith(
-                color: AppColors.textSecondary,
+            Flexible(
+              child: Text(
+                'Created ${FormatUtils.formatRelativeTime(message.createdAt.toLocal())}',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -416,6 +505,7 @@ class _SupportMessageMeta extends StatelessWidget {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'Last response',
@@ -424,9 +514,13 @@ class _SupportMessageMeta extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.tiny),
-                Text(
-                  message.adminResponse ?? '',
-                  style: AppTypography.body,
+                Flexible(
+                  child: Text(
+                    message.adminResponse ?? '',
+                    style: AppTypography.body,
+                    maxLines: null,
+                    overflow: TextOverflow.visible,
+                  ),
                 ),
               ],
             ),

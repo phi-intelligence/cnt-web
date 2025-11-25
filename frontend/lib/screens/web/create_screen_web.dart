@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -10,6 +11,8 @@ import '../creation/quote_create_screen_web.dart';
 import 'meeting_options_screen_web.dart';
 import '../live/live_stream_start_screen.dart';
 import '../../utils/responsive_grid_delegate.dart';
+import '../../providers/auth_provider.dart';
+import '../admin/admin_documents_page.dart';
 
 /// Web Create Screen - Full implementation
 class CreateScreenWeb extends StatelessWidget {
@@ -66,13 +69,22 @@ class CreateScreenWeb extends StatelessWidget {
         icon: Icons.description,
         backgroundColor: AppColors.accentMain,
         onTap: () {
-          // Web-only - document feature placeholder
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Document feature is not available on web yet.'),
-              duration: Duration(seconds: 3),
-            ),
-          );
+          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+          if (authProvider.isAdmin) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const AdminDocumentsPage(),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Document upload is only available for administrators.'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
         },
       ),
       _buildOptionCard(

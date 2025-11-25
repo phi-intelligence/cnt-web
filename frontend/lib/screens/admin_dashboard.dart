@@ -23,12 +23,14 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    AdminDashboardPage(),
-    AdminAudioPage(),
-    AdminVideoPage(),
-    AdminPostsPage(),
-    AdminUsersPage(),
+  List<Widget> get _pages => [
+    AdminDashboardPage(
+      onNavigateToPage: (index) => setState(() => _currentIndex = index),
+    ),
+    const AdminAudioPage(),
+    const AdminVideoPage(),
+    const AdminPostsPage(),
+    const AdminUsersPage(),
   ];
 
   final List<NavigationItem> _navItems = const [

@@ -57,12 +57,14 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
     try {
       _player = AudioPlayer();
       
-      // Check if path is network or local file
-      final isNetwork = widget.audioPath.startsWith('http');
+      // Check if path is network URL, blob URL, or local file
+      final isNetwork = widget.audioPath.startsWith('http') || widget.audioPath.startsWith('blob:');
       
-      if (isNetwork) {
+      if (isNetwork || kIsWeb) {
+        // On web or for network URLs, use setUrl
         await _player!.setUrl(widget.audioPath);
       } else {
+        // On mobile, use setFilePath for local files
         await _player!.setFilePath(widget.audioPath);
       }
       
@@ -310,7 +312,18 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
   Future<void> _reloadPlayer(String path) async {
     await _player?.dispose();
     _player = AudioPlayer();
-    await _player!.setFilePath(path);
+    
+    // Check if path is network URL, blob URL, or local file
+    final isNetwork = path.startsWith('http') || path.startsWith('blob:');
+    
+    if (isNetwork || kIsWeb) {
+      // On web or for network URLs, use setUrl
+      await _player!.setUrl(path);
+    } else {
+      // On mobile, use setFilePath for local files
+      await _player!.setFilePath(path);
+    }
+    
     _audioDuration = _player!.duration ?? Duration.zero;
     setState(() {
       _trimEnd = _audioDuration;

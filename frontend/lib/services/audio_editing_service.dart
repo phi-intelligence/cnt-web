@@ -1,7 +1,9 @@
-import 'dart:io';
+import 'dart:io' if (dart.library.html) '../utils/file_stub.dart' as io;
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'api_service.dart';
 import 'package:http/http.dart' as http;
+import 'auth_service.dart';
 
 /// Audio Editing Service
 /// Handles audio editing operations: trim, cut, merge, fade effects
@@ -30,7 +32,15 @@ class AudioEditingService {
         return null;
       }
 
-      // Download the edited audio
+      // On web, return the URL directly
+      if (kIsWeb) {
+        final fullUrl = outputUrl.startsWith('http') 
+            ? outputUrl 
+            : ApiService.mediaBaseUrl + outputUrl;
+        return fullUrl;
+      }
+
+      // On mobile, download the edited audio to a file
       final tempDir = await getTemporaryDirectory();
       final fileName = outputUrl.split('/').last;
       final savePath = '${tempDir.path}/$fileName';
@@ -39,9 +49,17 @@ class AudioEditingService {
           ? outputUrl 
           : ApiService.mediaBaseUrl + outputUrl;
       
-      final response = await http.get(Uri.parse(fullUrl));
+      // Add authentication headers for download
+      final authService = AuthService();
+      final headers = await authService.getAuthHeaders();
+      
+      final response = await http.get(
+        Uri.parse(fullUrl),
+        headers: headers,
+      );
+      
       if (response.statusCode == 200) {
-        final file = File(savePath);
+        final file = io.File(savePath);
         await file.writeAsBytes(response.bodyBytes);
         return savePath;
       }
@@ -79,7 +97,15 @@ class AudioEditingService {
         return null;
       }
 
-      // Download the merged audio
+      // On web, return the URL directly
+      if (kIsWeb) {
+        final fullUrl = outputUrl.startsWith('http') 
+            ? outputUrl 
+            : ApiService.mediaBaseUrl + outputUrl;
+        return fullUrl;
+      }
+
+      // On mobile, download the merged audio to a file
       final tempDir = await getTemporaryDirectory();
       final fileName = outputUrl.split('/').last;
       final savePath = '${tempDir.path}/$fileName';
@@ -88,9 +114,17 @@ class AudioEditingService {
           ? outputUrl 
           : ApiService.mediaBaseUrl + outputUrl;
       
-      final response = await http.get(Uri.parse(fullUrl));
+      // Add authentication headers for download
+      final authService = AuthService();
+      final headers = await authService.getAuthHeaders();
+      
+      final response = await http.get(
+        Uri.parse(fullUrl),
+        headers: headers,
+      );
+      
       if (response.statusCode == 200) {
-        final file = File(savePath);
+        final file = io.File(savePath);
         await file.writeAsBytes(response.bodyBytes);
         return savePath;
       }
@@ -122,7 +156,15 @@ class AudioEditingService {
         return null;
       }
 
-      // Download the edited audio
+      // On web, return the URL directly
+      if (kIsWeb) {
+        final fullUrl = outputUrl.startsWith('http') 
+            ? outputUrl 
+            : ApiService.mediaBaseUrl + outputUrl;
+        return fullUrl;
+      }
+
+      // On mobile, download the edited audio to a file
       final tempDir = await getTemporaryDirectory();
       final fileName = outputUrl.split('/').last;
       final savePath = '${tempDir.path}/$fileName';
@@ -131,9 +173,17 @@ class AudioEditingService {
           ? outputUrl 
           : ApiService.mediaBaseUrl + outputUrl;
       
-      final response = await http.get(Uri.parse(fullUrl));
+      // Add authentication headers for download
+      final authService = AuthService();
+      final headers = await authService.getAuthHeaders();
+      
+      final response = await http.get(
+        Uri.parse(fullUrl),
+        headers: headers,
+      );
+      
       if (response.statusCode == 200) {
-        final file = File(savePath);
+        final file = io.File(savePath);
         await file.writeAsBytes(response.bodyBytes);
         return savePath;
       }
@@ -166,7 +216,15 @@ class AudioEditingService {
         return null;
       }
 
-      // Download the edited audio
+      // On web, return the URL directly
+      if (kIsWeb) {
+        final fullUrl = outputUrl.startsWith('http') 
+            ? outputUrl 
+            : ApiService.mediaBaseUrl + outputUrl;
+        return fullUrl;
+      }
+
+      // On mobile, download the edited audio to a file
       final tempDir = await getTemporaryDirectory();
       final fileName = outputUrl.split('/').last;
       final savePath = '${tempDir.path}/$fileName';
@@ -175,9 +233,17 @@ class AudioEditingService {
           ? outputUrl 
           : ApiService.mediaBaseUrl + outputUrl;
       
-      final response = await http.get(Uri.parse(fullUrl));
+      // Add authentication headers for download
+      final authService = AuthService();
+      final headers = await authService.getAuthHeaders();
+      
+      final response = await http.get(
+        Uri.parse(fullUrl),
+        headers: headers,
+      );
+      
       if (response.statusCode == 200) {
-        final file = File(savePath);
+        final file = io.File(savePath);
         await file.writeAsBytes(response.bodyBytes);
         return savePath;
       }
@@ -212,7 +278,15 @@ class AudioEditingService {
         return null;
       }
 
-      // Download the edited audio
+      // On web, return the URL directly
+      if (kIsWeb) {
+        final fullUrl = outputUrl.startsWith('http') 
+            ? outputUrl 
+            : ApiService.mediaBaseUrl + outputUrl;
+        return fullUrl;
+      }
+
+      // On mobile, download the edited audio to a file
       final tempDir = await getTemporaryDirectory();
       final fileName = outputUrl.split('/').last;
       final savePath = '${tempDir.path}/$fileName';
@@ -221,9 +295,17 @@ class AudioEditingService {
           ? outputUrl 
           : ApiService.mediaBaseUrl + outputUrl;
       
-      final response = await http.get(Uri.parse(fullUrl));
+      // Add authentication headers for download
+      final authService = AuthService();
+      final headers = await authService.getAuthHeaders();
+      
+      final response = await http.get(
+        Uri.parse(fullUrl),
+        headers: headers,
+      );
+      
       if (response.statusCode == 200) {
-        final file = File(savePath);
+        final file = io.File(savePath);
         await file.writeAsBytes(response.bodyBytes);
         return savePath;
       }

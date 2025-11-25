@@ -6,6 +6,10 @@ import '../../theme/app_spacing.dart';
 import '../../widgets/admin/admin_content_card.dart';
 import '../../widgets/admin/admin_button.dart';
 import '../../widgets/shared/empty_state.dart';
+import '../../widgets/web/styled_page_header.dart';
+import '../../widgets/web/section_container.dart';
+import '../../widgets/web/styled_pill_button.dart';
+import '../../utils/responsive_grid_delegate.dart';
 
 /// Posts management page for approving/rejecting community posts
 class AdminPostsPage extends StatefulWidget {
@@ -137,189 +141,212 @@ class _AdminPostsPageState extends State<AdminPostsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Filter and Search Bar
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.medium),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground,
-            border: Border(
-              bottom: BorderSide(
-                color: AppColors.borderPrimary,
-                width: 1,
-              ),
-            ),
+    return Container(
+      padding: ResponsiveGridDelegate.getResponsivePadding(context),
+      child: Column(
+        children: [
+          // Header
+          StyledPageHeader(
+            title: 'Community Posts Management',
+            size: StyledPageHeaderSize.h2,
           ),
-          child: Column(
-            children: [
-              // Search
-              TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search by title or creator...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {});
-                          },
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                    borderSide: BorderSide(color: AppColors.borderPrimary),
+          const SizedBox(height: AppSpacing.extraLarge),
+
+          // Filter and Search Section
+          SectionContainer(
+            showShadow: true,
+            child: Column(
+              children: [
+                // Search
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search by title or creator...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {});
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                      borderSide: BorderSide(color: AppColors.borderPrimary),
+                    ),
+                    filled: true,
+                    fillColor: AppColors.backgroundPrimary,
                   ),
-                  filled: true,
-                  fillColor: AppColors.backgroundPrimary,
+                  onChanged: (_) => setState(() {}),
                 ),
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: AppSpacing.medium),
-              // Actions
-              Row(
-                children: [
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: _loadContent,
-                    tooltip: 'Refresh',
+                const SizedBox(height: AppSpacing.large),
+                // Actions
+                Row(
+                  children: [
+                    const Spacer(),
+                    StyledPillButton(
+                      label: 'Refresh',
+                      icon: Icons.refresh,
+                      variant: StyledPillButtonVariant.outlined,
+                      onPressed: _loadContent,
+                    ),
+                  ],
+                ),
+                // Bulk Actions
+                if (_selectedIndices.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.large),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.medium),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryMain.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                      border: Border.all(
+                        color: AppColors.primaryMain.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          '${_selectedIndices.length} selected',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.primaryMain,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        StyledPillButton(
+                          label: 'Approve Selected',
+                          icon: Icons.check,
+                          variant: StyledPillButtonVariant.outlined,
+                          onPressed: () async {
+                            for (final index in _selectedIndices.toList()) {
+                              await _handleApprove(index);
+                            }
+                            setState(() {
+                              _selectedIndices.clear();
+                            });
+                          },
+                        ),
+                        const SizedBox(width: AppSpacing.small),
+                        StyledPillButton(
+                          label: 'Reject Selected',
+                          icon: Icons.close,
+                          variant: StyledPillButtonVariant.outlined,
+                          onPressed: () async {
+                            for (final index in _selectedIndices.toList()) {
+                              await _handleReject(index);
+                            }
+                            setState(() {
+                              _selectedIndices.clear();
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ),
-              // Bulk Actions
-              if (_selectedIndices.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.medium),
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.small),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryMain.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        '${_selectedIndices.length} selected',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.primaryMain,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const Spacer(),
-                      AdminOutlinedButton(
-                        label: 'Approve Selected',
-                        icon: Icons.check,
-                        borderColor: AppColors.successMain,
-                        textColor: AppColors.successMain,
-                        onPressed: () async {
-                          for (final index in _selectedIndices.toList()) {
-                            await _handleApprove(index);
-                          }
-                          setState(() {
-                            _selectedIndices.clear();
-                          });
-                        },
-                      ),
-                      const SizedBox(width: AppSpacing.small),
-                      AdminOutlinedButton(
-                        label: 'Reject Selected',
-                        icon: Icons.close,
-                        borderColor: AppColors.errorMain,
-                        textColor: AppColors.errorMain,
-                        onPressed: () async {
-                          for (final index in _selectedIndices.toList()) {
-                            await _handleReject(index);
-                          }
-                          setState(() {
-                            _selectedIndices.clear();
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
               ],
-            ],
+            ),
           ),
-        ),
+          const SizedBox(height: AppSpacing.extraLarge),
 
-        // Content List
-        Expanded(
-          child: _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primaryMain,
-                  ),
-                )
-              : _error != null
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: AppColors.errorMain,
-                          ),
-                          const SizedBox(height: AppSpacing.medium),
-                          Text(
-                            'Error loading posts',
-                            style: AppTypography.heading3,
-                          ),
-                          const SizedBox(height: AppSpacing.small),
-                          Text(
-                            _error!,
-                            style: AppTypography.body.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: AppSpacing.large),
-                          AdminPrimaryButton(
-                            label: 'Retry',
-                            icon: Icons.refresh,
-                            onPressed: _loadContent,
-                          ),
-                        ],
-                      ),
-                    )
-                  : _filteredContent.isEmpty
-                      ? const EmptyState(
-                          icon: Icons.article_outlined,
-                          title: 'No posts',
-                          message: 'No community posts found',
-                        )
-                      : RefreshIndicator(
-                          onRefresh: _loadContent,
+          // Content List
+          Expanded(
+            child: _isLoading
+                ? SectionContainer(
+                    showShadow: true,
+                    child: const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: CircularProgressIndicator(
                           color: AppColors.primaryMain,
-                          child: ListView.builder(
-                            padding: const EdgeInsets.all(AppSpacing.medium),
-                            itemCount: _filteredContent.length,
-                            itemBuilder: (context, index) {
-                              final item = _filteredContent[index];
-                              final originalIndex = _content.indexOf(item);
-                              return AdminContentCard(
-                                item: item,
-                                isSelected: _selectedIndices.contains(originalIndex),
-                                onSelectionChanged: (selected) {
-                                  setState(() {
-                                    if (selected) {
-                                      _selectedIndices.add(originalIndex);
-                                    } else {
-                                      _selectedIndices.remove(originalIndex);
-                                    }
-                                  });
-                                },
-                                onApprove: () => _handleApprove(originalIndex),
-                                onReject: () => _handleReject(originalIndex),
-                              );
-                            },
+                        ),
+                      ),
+                    ),
+                  )
+                : _error != null
+                    ? SectionContainer(
+                        showShadow: true,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                size: 64,
+                                color: AppColors.errorMain,
+                              ),
+                              const SizedBox(height: AppSpacing.medium),
+                              Text(
+                                'Error loading posts',
+                                style: AppTypography.heading3,
+                              ),
+                              const SizedBox(height: AppSpacing.small),
+                              Text(
+                                _error!,
+                                style: AppTypography.body.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: AppSpacing.large),
+                              StyledPillButton(
+                                label: 'Retry',
+                                icon: Icons.refresh,
+                                onPressed: _loadContent,
+                              ),
+                            ],
                           ),
                         ),
-        ),
-      ],
+                      )
+                    : _filteredContent.isEmpty
+                        ? SectionContainer(
+                            showShadow: true,
+                            child: const EmptyState(
+                              icon: Icons.article_outlined,
+                              title: 'No posts',
+                              message: 'No community posts found',
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadContent,
+                            color: AppColors.primaryMain,
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              itemCount: _filteredContent.length,
+                              itemBuilder: (context, index) {
+                                final item = _filteredContent[index];
+                                final originalIndex = _content.indexOf(item);
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: index == _filteredContent.length - 1
+                                        ? 0
+                                        : AppSpacing.medium,
+                                  ),
+                                  child: AdminContentCard(
+                                    item: item,
+                                    isSelected: _selectedIndices.contains(originalIndex),
+                                    onSelectionChanged: (selected) {
+                                      setState(() {
+                                        if (selected) {
+                                          _selectedIndices.add(originalIndex);
+                                        } else {
+                                          _selectedIndices.remove(originalIndex);
+                                        }
+                                      });
+                                    },
+                                    onApprove: () => _handleApprove(originalIndex),
+                                    onReject: () => _handleReject(originalIndex),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+          ),
+        ],
+      ),
     );
   }
 }

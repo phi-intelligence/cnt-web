@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:html' if (dart.library.io) '../utils/html_stub.dart' as html;
 import '../models/api_models.dart';
 import '../models/content_item.dart';
 import '../models/support_message.dart';
@@ -1093,6 +1096,97 @@ class ApiService {
     }
   }
 
+  /// Helper function to create MultipartFile from URL or file path
+  /// Handles blob URLs, network URLs, and file paths
+  Future<http.MultipartFile> _createMultipartFileFromSource(
+    String source,
+    String fieldName,
+    String defaultFilename,
+  ) async {
+    // Check if source is a URL
+    if (source.startsWith('http://') || source.startsWith('https://')) {
+      // Network URL - download the file
+      try {
+        final headers = await _getHeaders();
+        // Remove Content-Type for download request
+        headers.remove('Content-Type');
+        
+        final response = await http.get(
+          Uri.parse(source),
+          headers: headers,
+        ).timeout(const Duration(minutes: 5));
+        
+        if (response.statusCode != 200) {
+          throw Exception('Failed to download file from URL: HTTP ${response.statusCode}');
+        }
+        
+        // Extract filename from URL or use default
+        String filename = defaultFilename;
+        try {
+          final uri = Uri.parse(source);
+          final pathSegments = uri.pathSegments;
+          if (pathSegments.isNotEmpty) {
+            final urlFilename = pathSegments.last;
+            if (urlFilename.isNotEmpty && urlFilename.contains('.')) {
+              filename = urlFilename;
+            }
+          }
+        } catch (e) {
+          // Use default filename if extraction fails
+        }
+        
+        return http.MultipartFile.fromBytes(
+          fieldName,
+          response.bodyBytes,
+          filename: filename,
+        );
+      } catch (e) {
+        throw Exception('Error downloading file from URL: $e');
+      }
+    } else if (source.startsWith('blob:')) {
+      // Blob URL - convert to bytes (web only)
+      if (!kIsWeb) {
+        throw Exception('Blob URLs are only supported on web platform');
+      }
+      
+      try {
+        // Use HttpRequest to fetch blob URL
+        final request = await html.HttpRequest.request(
+          source,
+          responseType: 'arraybuffer',
+        );
+        
+        if (request.status != 200) {
+          throw Exception('Failed to fetch blob URL: HTTP ${request.status}');
+        }
+        
+        // Convert ArrayBuffer to Uint8List
+        Uint8List bytes;
+        if (request.response is ByteBuffer) {
+          final buffer = request.response as ByteBuffer;
+          bytes = Uint8List.view(buffer);
+        } else {
+          throw Exception('Unexpected response type from blob URL');
+        }
+        
+        return http.MultipartFile.fromBytes(
+          fieldName,
+          bytes,
+          filename: defaultFilename,
+        );
+      } catch (e) {
+        throw Exception('Error converting blob URL to bytes: $e');
+      }
+    } else {
+      // File path - use fromPath (for mobile)
+      try {
+        return await http.MultipartFile.fromPath(fieldName, source);
+      } catch (e) {
+        throw Exception('Error reading file from path: $e');
+      }
+    }
+  }
+
   /// Video editing endpoints
   Future<Map<String, dynamic>> trimVideo(
     String videoPath,
@@ -1101,11 +1195,23 @@ class ApiService {
     Function(int, int)? onProgress,
   }) async {
     try {
-      final file = await http.MultipartFile.fromPath('video_file', videoPath);
+      // Create multipart file from URL or file path
+      final file = await _createMultipartFileFromSource(
+        videoPath,
+        'video_file',
+        'video.mp4',
+      );
+      
       final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/video-editing/trim'));
       request.files.add(file);
       request.fields['start_time'] = startTime.toString();
       request.fields['end_time'] = endTime.toString();
+      
+      // Add authentication headers
+      final headers = await _getHeaders();
+      // Remove Content-Type as multipart request sets it automatically
+      headers.remove('Content-Type');
+      request.headers.addAll(headers);
       
       final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
       
@@ -1121,9 +1227,21 @@ class ApiService {
 
   Future<Map<String, dynamic>> removeAudio(String videoPath) async {
     try {
-      final file = await http.MultipartFile.fromPath('video_file', videoPath);
+      // Create multipart file from URL or file path
+      final file = await _createMultipartFileFromSource(
+        videoPath,
+        'video_file',
+        'video.mp4',
+      );
+      
       final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/video-editing/remove-audio'));
       request.files.add(file);
+      
+      // Add authentication headers
+      final headers = await _getHeaders();
+      // Remove Content-Type as multipart request sets it automatically
+      headers.remove('Content-Type');
+      request.headers.addAll(headers);
       
       final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
       
@@ -1139,11 +1257,28 @@ class ApiService {
 
   Future<Map<String, dynamic>> addAudio(String videoPath, String audioPath) async {
     try {
-      final videoFile = await http.MultipartFile.fromPath('video_file', videoPath);
-      final audioFile = await http.MultipartFile.fromPath('audio_file', audioPath);
+      // Create multipart files from URLs or file paths
+      final videoFile = await _createMultipartFileFromSource(
+        videoPath,
+        'video_file',
+        'video.mp4',
+      );
+      
+      final audioFile = await _createMultipartFileFromSource(
+        audioPath,
+        'audio_file',
+        'audio.mp3',
+      );
+      
       final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/video-editing/add-audio'));
       request.files.add(videoFile);
       request.files.add(audioFile);
+      
+      // Add authentication headers
+      final headers = await _getHeaders();
+      // Remove Content-Type as multipart request sets it automatically
+      headers.remove('Content-Type');
+      request.headers.addAll(headers);
       
       final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
       
@@ -1190,11 +1325,23 @@ class ApiService {
     double endTime,
   ) async {
     try {
-      final file = await http.MultipartFile.fromPath('audio_file', audioPath);
+      // Create multipart file from URL or file path
+      final file = await _createMultipartFileFromSource(
+        audioPath,
+        'audio_file',
+        'audio.mp3',
+      );
+      
       final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/audio-editing/trim'));
       request.files.add(file);
       request.fields['start_time'] = startTime.toString();
       request.fields['end_time'] = endTime.toString();
+      
+      // Add authentication headers
+      final headers = await _getHeaders();
+      // Remove Content-Type as multipart request sets it automatically
+      headers.remove('Content-Type');
+      request.headers.addAll(headers);
       
       final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
       
@@ -1212,10 +1359,21 @@ class ApiService {
     try {
       final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/audio-editing/merge'));
       
+      // Create multipart files from URLs or file paths
       for (final audioPath in audioPaths) {
-        final file = await http.MultipartFile.fromPath('audio_files', audioPath);
+        final file = await _createMultipartFileFromSource(
+          audioPath,
+          'audio_files',
+          'audio.mp3',
+        );
         request.files.add(file);
       }
+      
+      // Add authentication headers
+      final headers = await _getHeaders();
+      // Remove Content-Type as multipart request sets it automatically
+      headers.remove('Content-Type');
+      request.headers.addAll(headers);
       
       final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
       
@@ -1231,10 +1389,22 @@ class ApiService {
 
   Future<Map<String, dynamic>> fadeInAudio(String audioPath, double fadeDuration) async {
     try {
-      final file = await http.MultipartFile.fromPath('audio_file', audioPath);
+      // Create multipart file from URL or file path
+      final file = await _createMultipartFileFromSource(
+        audioPath,
+        'audio_file',
+        'audio.mp3',
+      );
+      
       final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/audio-editing/fade-in'));
       request.files.add(file);
       request.fields['fade_duration'] = fadeDuration.toString();
+      
+      // Add authentication headers
+      final headers = await _getHeaders();
+      // Remove Content-Type as multipart request sets it automatically
+      headers.remove('Content-Type');
+      request.headers.addAll(headers);
       
       final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
       
@@ -1250,10 +1420,22 @@ class ApiService {
 
   Future<Map<String, dynamic>> fadeOutAudio(String audioPath, double fadeDuration) async {
     try {
-      final file = await http.MultipartFile.fromPath('audio_file', audioPath);
+      // Create multipart file from URL or file path
+      final file = await _createMultipartFileFromSource(
+        audioPath,
+        'audio_file',
+        'audio.mp3',
+      );
+      
       final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/audio-editing/fade-out'));
       request.files.add(file);
       request.fields['fade_duration'] = fadeDuration.toString();
+      
+      // Add authentication headers
+      final headers = await _getHeaders();
+      // Remove Content-Type as multipart request sets it automatically
+      headers.remove('Content-Type');
+      request.headers.addAll(headers);
       
       final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
       
@@ -1273,11 +1455,23 @@ class ApiService {
     double fadeOutDuration,
   ) async {
     try {
-      final file = await http.MultipartFile.fromPath('audio_file', audioPath);
+      // Create multipart file from URL or file path
+      final file = await _createMultipartFileFromSource(
+        audioPath,
+        'audio_file',
+        'audio.mp3',
+      );
+      
       final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/audio-editing/fade-in-out'));
       request.files.add(file);
       request.fields['fade_in_duration'] = fadeInDuration.toString();
       request.fields['fade_out_duration'] = fadeOutDuration.toString();
+      
+      // Add authentication headers
+      final headers = await _getHeaders();
+      // Remove Content-Type as multipart request sets it automatically
+      headers.remove('Content-Type');
+      request.headers.addAll(headers);
       
       final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
       

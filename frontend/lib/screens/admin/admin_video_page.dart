@@ -6,6 +6,10 @@ import '../../theme/app_spacing.dart';
 import '../../widgets/admin/admin_content_card.dart';
 import '../../widgets/admin/admin_button.dart';
 import '../../widgets/shared/empty_state.dart';
+import '../../widgets/web/styled_page_header.dart';
+import '../../widgets/web/section_container.dart';
+import '../../widgets/web/styled_pill_button.dart';
+import '../../utils/responsive_grid_delegate.dart';
 
 /// Video management page for approving/rejecting video podcasts and movies
 class AdminVideoPage extends StatefulWidget {
@@ -176,25 +180,30 @@ class _AdminVideoPageState extends State<AdminVideoPage> with SingleTickerProvid
       onRefresh: _loadContent,
       color: AppColors.primaryMain,
       child: ListView.builder(
-        padding: const EdgeInsets.all(AppSpacing.medium),
+        padding: EdgeInsets.zero,
         itemCount: filtered.length,
         itemBuilder: (context, index) {
           final item = filtered[index];
           final originalIndex = content.indexOf(item);
-          return AdminContentCard(
-            item: item,
-            isSelected: selectedIndices.contains(originalIndex),
-            onSelectionChanged: (selected) {
-              setState(() {
-                if (selected) {
-                  selectedIndices.add(originalIndex);
-                } else {
-                  selectedIndices.remove(originalIndex);
-                }
-              });
-            },
-            onApprove: () => _handleApprove(type, originalIndex),
-            onReject: () => _handleReject(type, originalIndex),
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: index == filtered.length - 1 ? 0 : AppSpacing.medium,
+            ),
+            child: AdminContentCard(
+              item: item,
+              isSelected: selectedIndices.contains(originalIndex),
+              onSelectionChanged: (selected) {
+                setState(() {
+                  if (selected) {
+                    selectedIndices.add(originalIndex);
+                  } else {
+                    selectedIndices.remove(originalIndex);
+                  }
+                });
+              },
+              onApprove: () => _handleApprove(type, originalIndex),
+              onReject: () => _handleReject(type, originalIndex),
+            ),
           );
         },
       ),
@@ -203,150 +212,170 @@ class _AdminVideoPageState extends State<AdminVideoPage> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Filter and Search Bar
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.medium),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground,
-            border: Border(
-              bottom: BorderSide(
-                color: AppColors.borderPrimary,
-                width: 1,
-              ),
+    return Container(
+      padding: ResponsiveGridDelegate.getResponsivePadding(context),
+      child: Column(
+        children: [
+          // Header
+          StyledPageHeader(
+            title: 'Video Content Management',
+            size: StyledPageHeaderSize.h2,
+          ),
+          const SizedBox(height: AppSpacing.extraLarge),
+
+          // Filter and Search Section
+          SectionContainer(
+            showShadow: true,
+            child: Column(
+              children: [
+                // Search
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search by title or creator...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {});
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                      borderSide: BorderSide(color: AppColors.borderPrimary),
+                    ),
+                    filled: true,
+                    fillColor: AppColors.backgroundPrimary,
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: AppSpacing.large),
+                // Status Filter
+                Row(
+                  children: [
+                    Text(
+                      'Status:',
+                      style: AppTypography.label.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.medium),
+                    Expanded(
+                      child: SegmentedButton<String>(
+                        segments: const [
+                          ButtonSegment(value: 'All', label: Text('All')),
+                          ButtonSegment(value: 'Pending', label: Text('Pending')),
+                          ButtonSegment(value: 'Approved', label: Text('Approved')),
+                          ButtonSegment(value: 'Rejected', label: Text('Rejected')),
+                        ],
+                        selected: {_selectedStatus},
+                        onSelectionChanged: (Set<String> newSelection) {
+                          setState(() {
+                            _selectedStatus = newSelection.first;
+                          });
+                          _loadContent();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.medium),
+                    StyledPillButton(
+                      label: 'Refresh',
+                      icon: Icons.refresh,
+                      variant: StyledPillButtonVariant.outlined,
+                      onPressed: _loadContent,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          child: Column(
-            children: [
-              // Search
-              TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search by title or creator...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {});
-                          },
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                    borderSide: BorderSide(color: AppColors.borderPrimary),
-                  ),
-                  filled: true,
-                  fillColor: AppColors.backgroundPrimary,
+          const SizedBox(height: AppSpacing.large),
+
+          // Tabs
+          SectionContainer(
+            showShadow: true,
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                TabBar(
+                  controller: _tabController,
+                  labelColor: AppColors.primaryMain,
+                  unselectedLabelColor: AppColors.textSecondary,
+                  indicatorColor: AppColors.primaryMain,
+                  labelStyle: AppTypography.button,
+                  unselectedLabelStyle: AppTypography.button,
+                  tabs: const [
+                    Tab(text: 'Video Podcasts', icon: Icon(Icons.video_library)),
+                    Tab(text: 'Movies', icon: Icon(Icons.movie)),
+                  ],
                 ),
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: AppSpacing.medium),
-              // Status Filter
-              Row(
-                children: [
-                  Text(
-                    'Status:',
-                    style: AppTypography.label.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.small),
-                  Expanded(
-                    child: SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(value: 'All', label: Text('All')),
-                        ButtonSegment(value: 'Pending', label: Text('Pending')),
-                        ButtonSegment(value: 'Approved', label: Text('Approved')),
-                        ButtonSegment(value: 'Rejected', label: Text('Rejected')),
-                      ],
-                      selected: {_selectedStatus},
-                      onSelectionChanged: (Set<String> newSelection) {
-                        setState(() {
-                          _selectedStatus = newSelection.first;
-                        });
-                        _loadContent();
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.small),
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: _loadContent,
-                    tooltip: 'Refresh',
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+          const SizedBox(height: AppSpacing.extraLarge),
 
-        // Tabs
-        Container(
-          color: AppColors.cardBackground,
-          child: TabBar(
-            controller: _tabController,
-            labelColor: AppColors.primaryMain,
-            unselectedLabelColor: AppColors.textSecondary,
-            indicatorColor: AppColors.primaryMain,
-            tabs: const [
-              Tab(text: 'Video Podcasts', icon: Icon(Icons.video_library)),
-              Tab(text: 'Movies', icon: Icon(Icons.movie)),
-            ],
-          ),
-        ),
-
-        // Content
-        Expanded(
-          child: _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primaryMain,
-                  ),
-                )
-              : _error != null
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+          // Content
+          Expanded(
+            child: _isLoading
+                ? SectionContainer(
+                    showShadow: true,
+                    child: const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: CircularProgressIndicator(
+                          color: AppColors.primaryMain,
+                        ),
+                      ),
+                    ),
+                  )
+                : _error != null
+                    ? SectionContainer(
+                        showShadow: true,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                size: 64,
+                                color: AppColors.errorMain,
+                              ),
+                              const SizedBox(height: AppSpacing.medium),
+                              Text(
+                                'Error loading content',
+                                style: AppTypography.heading3,
+                              ),
+                              const SizedBox(height: AppSpacing.small),
+                              Text(
+                                _error!,
+                                style: AppTypography.body.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: AppSpacing.large),
+                              StyledPillButton(
+                                label: 'Retry',
+                                icon: Icons.refresh,
+                                onPressed: _loadContent,
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : TabBarView(
+                        controller: _tabController,
                         children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: AppColors.errorMain,
-                          ),
-                          const SizedBox(height: AppSpacing.medium),
-                          Text(
-                            'Error loading content',
-                            style: AppTypography.heading3,
-                          ),
-                          const SizedBox(height: AppSpacing.small),
-                          Text(
-                            _error!,
-                            style: AppTypography.body.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: AppSpacing.large),
-                          AdminPrimaryButton(
-                            label: 'Retry',
-                            icon: Icons.refresh,
-                            onPressed: _loadContent,
-                          ),
+                          _buildContentList('podcast', _videoPodcasts, _selectedPodcastIndices),
+                          _buildContentList('movie', _movies, _selectedMovieIndices),
                         ],
                       ),
-                    )
-                  : TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _buildContentList('podcast', _videoPodcasts, _selectedPodcastIndices),
-                        _buildContentList('movie', _movies, _selectedMovieIndices),
-                      ],
-                    ),
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
