@@ -1,4 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
+import '../utils/responsive_grid_delegate.dart';
+import '../widgets/web/styled_page_header.dart';
+import '../widgets/web/section_container.dart';
+import '../widgets/web/styled_pill_button.dart';
+import 'live/live_stream_viewer.dart';
 // TODO: Consider Jitsi Meet integration for live streaming if needed
 
 class LiveStreamingScreen extends StatefulWidget {
@@ -8,103 +17,199 @@ class LiveStreamingScreen extends StatefulWidget {
   State<LiveStreamingScreen> createState() => _LiveStreamingScreenState();
 }
 
-class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
+class _LiveStreamingScreenState extends State<LiveStreamingScreen> with SingleTickerProviderStateMixin {
   int _selectedTab = 0;
+  late TabController _tabController;
   // TODO: Add participant list when implementing live streaming
   final List<dynamic> _participants = [];
   bool _isHost = false;
 
   @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Live Streams'),
-        actions: [
-          ElevatedButton.icon(
-            onPressed: () => _showCreateStreamDialog(context),
-            icon: const Icon(Icons.videocam),
-            label: const Text('Go Live'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
+    if (kIsWeb) {
+      // Web version with design system
+      return Scaffold(
+        backgroundColor: AppColors.backgroundPrimary,
+        body: Container(
+          padding: ResponsiveGridDelegate.getResponsivePadding(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  StyledPageHeader(
+                    title: 'Live Streams',
+                    size: StyledPageHeaderSize.h1,
+                  ),
+                  StyledPillButton(
+                    label: 'Go Live',
+                    icon: Icons.videocam,
+                    onPressed: () => _showCreateStreamDialog(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.large),
+              
+              // Tabs
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.backgroundSecondary,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  onTap: (index) => setState(() => _selectedTab = index),
+                  labelColor: AppColors.primaryMain,
+                  unselectedLabelColor: AppColors.textSecondary,
+                  indicatorColor: AppColors.primaryMain,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  tabs: const [
+                    Tab(text: 'Live Now'),
+                    Tab(text: 'Upcoming'),
+                    Tab(text: 'Past'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.large),
+              
+              // Content based on selected tab
+              Expanded(
+                child: IndexedStack(
+                  index: _selectedTab,
+                  children: [
+                    _buildLiveNowTab(),
+                    _buildUpcomingTab(),
+                    _buildPastTab(),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Tabs
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: TabBar(
-              controller: TabController(length: 3, vsync: ScrollableState()),
-              onTap: (index) => setState(() => _selectedTab = index),
-              labelColor: Colors.red,
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: Colors.red,
-              tabs: const [
-                Tab(text: 'Live Now'),
-                Tab(text: 'Upcoming'),
-                Tab(text: 'Past'),
-              ],
+        ),
+      );
+    } else {
+      // Mobile version (original design)
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Live Streams'),
+          actions: [
+            ElevatedButton.icon(
+              onPressed: () => _showCreateStreamDialog(context),
+              icon: const Icon(Icons.videocam),
+              label: const Text('Go Live'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
             ),
-          ),
-          
-          // Content based on selected tab
-          Expanded(
-            child: IndexedStack(
-              index: _selectedTab,
-              children: [
-                _buildLiveNowTab(),
-                _buildUpcomingTab(),
-                _buildPastTab(),
-              ],
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: Column(
+          children: [
+            // Tabs
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: TabBar(
+                controller: _tabController,
+                onTap: (index) => setState(() => _selectedTab = index),
+                labelColor: Colors.red,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: Colors.red,
+                tabs: const [
+                  Tab(text: 'Live Now'),
+                  Tab(text: 'Upcoming'),
+                  Tab(text: 'Past'),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
+            
+            // Content based on selected tab
+            Expanded(
+              child: IndexedStack(
+                index: _selectedTab,
+                children: [
+                  _buildLiveNowTab(),
+                  _buildUpcomingTab(),
+                  _buildPastTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Widget _buildLiveNowTab() {
+    final isWeb = kIsWeb;
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isWeb ? 0 : AppSpacing.medium),
       itemCount: 3, // Sample data
       itemBuilder: (context, index) {
-        return _StreamCard(
+        final card = _StreamCard(
           title: 'Sunday Service ${index + 1}',
           host: 'Pastor John',
           viewerCount: 120 + index * 15,
           isLive: true,
           onTap: () => _joinStream(context, index),
         );
+        if (isWeb) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: AppSpacing.medium),
+            child: card,
+          );
+        }
+        return card;
       },
     );
   }
 
   Widget _buildUpcomingTab() {
+    final isWeb = kIsWeb;
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isWeb ? 0 : AppSpacing.medium),
       itemCount: 5,
       itemBuilder: (context, index) {
-        return _StreamCard(
+        final card = _StreamCard(
           title: 'Upcoming Event ${index + 1}',
           host: 'Speaker Name',
           scheduledTime: DateTime.now().add(Duration(days: index + 1)),
           isLive: false,
           onTap: () => _setReminder(context),
         );
+        if (isWeb) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: AppSpacing.medium),
+            child: card,
+          );
+        }
+        return card;
       },
     );
   }
 
   Widget _buildPastTab() {
+    final isWeb = kIsWeb;
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isWeb ? 0 : AppSpacing.medium),
       itemCount: 10,
       itemBuilder: (context, index) {
-        return _StreamCard(
+        final card = _StreamCard(
           title: 'Past Stream ${index + 1}',
           host: 'Speaker Name',
           isLive: false,
@@ -112,6 +217,13 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> {
           duration: const Duration(hours: 1, minutes: 30),
           onTap: () => _watchReplay(context),
         );
+        if (isWeb) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: AppSpacing.medium),
+            child: card,
+          );
+        }
+        return card;
       },
     );
   }
@@ -170,90 +282,128 @@ class _StreamCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final isWeb = kIsWeb;
+    final cardContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Thumbnail
+        Stack(
           children: [
-            // Thumbnail
-            Stack(
-              children: [
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.videocam, size: 60, color: Colors.grey),
+            Container(
+              height: isWeb ? 250 : 200,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.backgroundTertiary,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(isWeb ? AppSpacing.radiusLarge : 4),
+                  topRight: Radius.circular(isWeb ? AppSpacing.radiusLarge : 4),
                 ),
-                if (isLive)
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'LIVE',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            
-            // Info
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    host,
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                  if (viewerCount != null)
-                    Text('$viewerCount viewers'),
-                  if (scheduledTime != null)
-                    Text('Starts: ${scheduledTime!.toString().split('.')[0]}'),
-                  if (duration != null)
-                    Text('Duration: ${duration!.inHours}h ${duration!.inMinutes.remainder(60)}m'),
-                ],
               ),
+              child: Icon(Icons.videocam, size: 60, color: AppColors.textTertiary),
             ),
+            if (isLive)
+              Positioned(
+                top: 12,
+                left: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'LIVE',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
-      ),
+        
+        // Info
+        Padding(
+          padding: EdgeInsets.all(isWeb ? AppSpacing.medium : 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: AppTypography.heading4.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.tiny),
+              Text(
+                host,
+                style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+              ),
+              if (viewerCount != null) ...[
+                const SizedBox(height: AppSpacing.tiny),
+                Text(
+                  '$viewerCount viewers',
+                  style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+                ),
+              ],
+              if (scheduledTime != null) ...[
+                const SizedBox(height: AppSpacing.tiny),
+                Text(
+                  'Starts: ${scheduledTime!.toString().split('.')[0]}',
+                  style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+                ),
+              ],
+              if (duration != null) ...[
+                const SizedBox(height: AppSpacing.tiny),
+                Text(
+                  'Duration: ${duration!.inHours}h ${duration!.inMinutes.remainder(60)}m',
+                  style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
+
+    if (isWeb) {
+      return MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: SectionContainer(
+          showShadow: true,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+            child: cardContent,
+          ),
+        ),
+      );
+    } else {
+      return Card(
+        margin: const EdgeInsets.only(bottom: 16),
+        child: InkWell(
+          onTap: onTap,
+          child: cardContent,
+        ),
+      );
+    }
   }
 }
 
@@ -261,53 +411,93 @@ class _CreateStreamDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      backgroundColor: AppColors.backgroundSecondary,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+      ),
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(AppSpacing.extraLarge),
         constraints: const BoxConstraints(maxWidth: 500),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Create Live Stream',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+              style: AppTypography.heading3.copyWith(
+                color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.large),
             
-            const TextField(
+            TextField(
+              style: AppTypography.body.copyWith(color: AppColors.textPrimary),
               decoration: InputDecoration(
                 labelText: 'Stream Title',
-                border: OutlineInputBorder(),
+                labelStyle: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                filled: true,
+                fillColor: AppColors.backgroundPrimary,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderSide: BorderSide(color: AppColors.primaryMain, width: 2),
+                ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.medium),
             
-            const TextField(
+            TextField(
               maxLines: 3,
+              style: AppTypography.body.copyWith(color: AppColors.textPrimary),
               decoration: InputDecoration(
                 labelText: 'Description',
-                border: OutlineInputBorder(),
+                labelStyle: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                filled: true,
+                fillColor: AppColors.backgroundPrimary,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderSide: BorderSide(color: AppColors.primaryMain, width: 2),
+                ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.large),
             
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text(
+                    'Cancel',
+                    style: AppTypography.button.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ),
-                const SizedBox(width: 16),
-                ElevatedButton(
+                const SizedBox(width: AppSpacing.medium),
+                StyledPillButton(
+                  label: 'Start Stream',
+                  icon: Icons.videocam,
                   onPressed: () {
                     Navigator.pop(context);
                     // TODO: Create stream
                   },
-                  child: const Text('Start Stream'),
+                  variant: StyledPillButtonVariant.filled,
                 ),
               ],
             ),

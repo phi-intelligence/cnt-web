@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
+import '../../utils/responsive_grid_delegate.dart';
+import '../../widgets/web/styled_page_header.dart';
+import '../../widgets/web/section_container.dart';
+import '../../widgets/web/styled_pill_button.dart';
 import 'meeting_room_screen.dart';
 import '../../services/livekit_meeting_service.dart';
 import 'prejoin_screen.dart';
@@ -121,161 +126,315 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
     final bool canJoin = _meetingIdController.text.trim().isNotEmpty ||
         _meetingLinkController.text.trim().isNotEmpty;
 
-    return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      appBar: AppBar(
+    if (kIsWeb) {
+      // Web version with web design system
+      return Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: _handleBack,
-        ),
-        title: Text(
-          'Join Meeting',
-          style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
-        ),
-        centerTitle: true,
-        actions: [
-          const SizedBox(width: 40),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.large),
-          child: Column(
-            children: [
-              // Join Icon
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: AppColors.backgroundSecondary,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+        body: Container(
+          padding: ResponsiveGridDelegate.getResponsivePadding(context),
+          child: Center(
+            child: SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: ResponsiveGridDelegate.getMaxContentWidth(context),
                 ),
-                child: const Icon(
-                  Icons.login,
-                  size: 48,
-                  color: AppColors.primaryMain,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.extraLarge),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                  // Header with back button
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                        onPressed: _handleBack,
+                      ),
+                      Expanded(
+                        child: StyledPageHeader(
+                          title: 'Join Meeting',
+                          size: StyledPageHeaderSize.h2,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.extraLarge),
 
-              Text(
-                'Enter Meeting Details',
-                style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
-              ),
-              const SizedBox(height: AppSpacing.tiny),
-              Text(
-                'Enter the meeting ID or paste the meeting link to join',
-                style: AppTypography.body.copyWith(color: AppColors.textSecondary),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.extraLarge),
+                  // Join Form Section
+                  SectionContainer(
+                    showShadow: true,
+                    child: Column(
+                      children: [
+                        // Join Icon
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryMain.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.login,
+                            size: 48,
+                            color: AppColors.primaryMain,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.large),
 
-              // Meeting ID Input
-              _buildTextField(
-                label: 'Meeting ID',
-                controller: _meetingIdController,
-                hint: 'Enter meeting ID',
-              ),
-              const SizedBox(height: AppSpacing.large),
+                        Text(
+                          'Enter Meeting Details',
+                          style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: AppSpacing.small),
+                        Text(
+                          'Enter the meeting ID or paste the meeting link to join',
+                          style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppSpacing.extraLarge),
 
-              // Divider
-              Row(
-                children: [
-                  Expanded(child: Divider(color: AppColors.borderPrimary)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.medium),
-                    child: Text(
-                      'OR',
-                      style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                        // Meeting ID Input
+                        _buildTextField(
+                          label: 'Meeting ID',
+                          controller: _meetingIdController,
+                          hint: 'Enter meeting ID',
+                        ),
+                        const SizedBox(height: AppSpacing.large),
+
+                        // Divider
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: AppColors.borderPrimary)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.medium),
+                              child: Text(
+                                'OR',
+                                style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                              ),
+                            ),
+                            Expanded(child: Divider(color: AppColors.borderPrimary)),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.large),
+
+                        // Meeting Link Input
+                        _buildTextField(
+                          label: 'Meeting Link',
+                          controller: _meetingLinkController,
+                          hint: 'Paste meeting link here',
+                          maxLines: 2,
+                        ),
+                        const SizedBox(height: AppSpacing.large),
+
+                        // Scan QR Code Button
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: InkWell(
+                            onTap: _handleScanQR,
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: AppSpacing.medium),
+                              decoration: BoxDecoration(
+                                color: AppColors.backgroundSecondary,
+                                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                border: Border.all(color: AppColors.primaryMain),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.qr_code_scanner, color: AppColors.primaryMain),
+                                  const SizedBox(width: AppSpacing.small),
+                                  Text(
+                                    'Scan QR Code',
+                                    style: AppTypography.body.copyWith(
+                                      color: AppColors.primaryMain,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Expanded(child: Divider(color: AppColors.borderPrimary)),
+                  const SizedBox(height: AppSpacing.extraLarge),
+
+                  // Join Meeting Button
+                  StyledPillButton(
+                    label: 'Join Meeting',
+                    icon: Icons.login,
+                    onPressed: canJoin && !_joining ? _handleJoinMeeting : null,
+                    isLoading: _joining,
+                    width: double.infinity,
+                  ),
+                  const SizedBox(height: AppSpacing.extraLarge),
                 ],
-              ),
-              const SizedBox(height: AppSpacing.large),
-
-              // Meeting Link Input
-              _buildTextField(
-                label: 'Meeting Link',
-                controller: _meetingLinkController,
-                hint: 'Paste meeting link here',
-                maxLines: 2,
-              ),
-              const SizedBox(height: AppSpacing.extraLarge),
-
-              // Scan QR Code Button
-              InkWell(
-                onTap: _handleScanQR,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.medium),
-                  decoration: BoxDecoration(
-                    color: AppColors.backgroundSecondary,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                    border: Border.all(color: AppColors.primaryMain),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.qr_code_scanner, color: AppColors.primaryMain),
-                      const SizedBox(width: AppSpacing.small),
-                      Text(
-                        'Scan QR Code',
-                        style: AppTypography.body.copyWith(
-                          color: AppColors.primaryMain,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.extraLarge),
-
-              // Join Meeting Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: canJoin ? _handleJoinMeeting : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryMain,
-                    disabledBackgroundColor: AppColors.textSecondary.withOpacity(0.6),
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.large),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.login, color: Colors.white),
-                      const SizedBox(width: AppSpacing.small),
-                      Text(
-                        'Join Meeting',
-                        style: AppTypography.body.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    } else {
+      // Mobile version (original design)
+      return Scaffold(
+        backgroundColor: AppColors.backgroundPrimary,
+        appBar: AppBar(
+          backgroundColor: AppColors.backgroundPrimary,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+            onPressed: _handleBack,
+          ),
+          title: Text(
+            'Join Meeting',
+            style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+          ),
+          centerTitle: true,
+          actions: [
+            const SizedBox(width: 40),
+          ],
+        ),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.large),
+            child: Column(
+              children: [
+                // Join Icon
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundSecondary,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.login,
+                    size: 48,
+                    color: AppColors.primaryMain,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.extraLarge),
+
+                Text(
+                  'Enter Meeting Details',
+                  style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: AppSpacing.tiny),
+                Text(
+                  'Enter the meeting ID or paste the meeting link to join',
+                  style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.extraLarge),
+
+                // Meeting ID Input
+                _buildTextField(
+                  label: 'Meeting ID',
+                  controller: _meetingIdController,
+                  hint: 'Enter meeting ID',
+                ),
+                const SizedBox(height: AppSpacing.large),
+
+                // Divider
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: AppColors.borderPrimary)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.medium),
+                      child: Text(
+                        'OR',
+                        style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: AppColors.borderPrimary)),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.large),
+
+                // Meeting Link Input
+                _buildTextField(
+                  label: 'Meeting Link',
+                  controller: _meetingLinkController,
+                  hint: 'Paste meeting link here',
+                  maxLines: 2,
+                ),
+                const SizedBox(height: AppSpacing.extraLarge),
+
+                // Scan QR Code Button
+                InkWell(
+                  onTap: _handleScanQR,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.medium),
+                    decoration: BoxDecoration(
+                      color: AppColors.backgroundSecondary,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                      border: Border.all(color: AppColors.primaryMain),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.qr_code_scanner, color: AppColors.primaryMain),
+                        const SizedBox(width: AppSpacing.small),
+                        Text(
+                          'Scan QR Code',
+                          style: AppTypography.body.copyWith(
+                            color: AppColors.primaryMain,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.extraLarge),
+
+                // Join Meeting Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: canJoin && !_joining ? _handleJoinMeeting : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryMain,
+                      disabledBackgroundColor: AppColors.textSecondary.withOpacity(0.6),
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.large),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                      ),
+                    ),
+                    child: _joining
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.login, color: Colors.white),
+                              const SizedBox(width: AppSpacing.small),
+                              Text(
+                                'Join Meeting',
+                                style: AppTypography.body.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildTextField({
@@ -289,15 +448,19 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
       children: [
         Text(
           label,
-          style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w500,
+          ),
         ),
-        const SizedBox(height: AppSpacing.tiny),
+        const SizedBox(height: AppSpacing.small),
         TextField(
           controller: controller,
           maxLines: maxLines,
+          style: AppTypography.body.copyWith(color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: AppColors.textSecondary),
+            hintStyle: AppTypography.body.copyWith(color: AppColors.textTertiary),
             filled: true,
             fillColor: AppColors.backgroundSecondary,
             border: OutlineInputBorder(
@@ -308,7 +471,11 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
               borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
               borderSide: BorderSide(color: AppColors.borderPrimary),
             ),
-            contentPadding: const EdgeInsets.all(AppSpacing.medium),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderSide: BorderSide(color: AppColors.primaryMain, width: 2),
+            ),
+            contentPadding: EdgeInsets.all(AppSpacing.medium),
           ),
           onChanged: (_) => setState(() {}),
         ),

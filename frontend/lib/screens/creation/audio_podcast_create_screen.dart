@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
+import '../../utils/responsive_grid_delegate.dart';
+import '../../widgets/web/styled_page_header.dart';
+import '../../widgets/web/section_container.dart';
 import 'audio_recording_screen.dart';
 import 'audio_preview_screen.dart';
 import 'package:file_picker/file_picker.dart';
@@ -54,82 +57,84 @@ class AudioPodcastCreateScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final List<Map<String, dynamic>> options = [
+      {
+        'icon': Icons.mic,
+        'title': 'Record Audio',
+        'description': 'Start recording your podcast with the microphone',
+        'onTap': () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const AudioRecordingScreen(),
+            ),
+          );
+        },
+      },
+      {
+        'icon': Icons.audiotrack,
+        'title': 'Upload Audio',
+        'description': 'Select an existing audio file from your device',
+        'onTap': () => _selectAudioFile(context),
+      },
+    ];
+
     return Scaffold(
+      backgroundColor: AppColors.backgroundPrimary,
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.primaryMain,
-              AppColors.accentMain,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: EdgeInsets.all(AppSpacing.large),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    Text(
-                      'Create Audio Podcast',
-                      style: AppTypography.heading4.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const Spacer(),
-                    const SizedBox(width: 40),
-                  ],
+        padding: ResponsiveGridDelegate.getResponsivePadding(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with back button
+            Row(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                  onPressed: () => Navigator.pop(context),
                 ),
-              ),
-              
-              // Content
-              Expanded(
+                Expanded(
+                  child: StyledPageHeader(
+                    title: 'Create Audio Podcast',
+                    size: StyledPageHeaderSize.h2,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.extraLarge),
+            
+            // Options Grid
+            Expanded(
+              child: SectionContainer(
+                showShadow: true,
                 child: Padding(
                   padding: EdgeInsets.all(AppSpacing.large),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Record Audio Option
-                      _buildOptionCard(
+                  child: GridView.builder(
+                    gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+                      context,
+                      desktop: 2,
+                      tablet: 2,
+                      mobile: 1,
+                      childAspectRatio: 1.5,
+                      crossAxisSpacing: AppSpacing.large,
+                      mainAxisSpacing: AppSpacing.large,
+                    ),
+                    itemCount: options.length,
+                    itemBuilder: (context, index) {
+                      final option = options[index];
+                      return _buildOptionCard(
                         context,
-                        icon: Icons.mic,
-                        title: 'Record Audio',
-                        description: 'Start recording your podcast with the microphone',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const AudioRecordingScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      
-                      const SizedBox(height: AppSpacing.extraLarge),
-                      
-                      // Upload Audio Option
-                      _buildOptionCard(
-                        context,
-                        icon: Icons.audiotrack,
-                        title: 'Upload Audio',
-                        description: 'Select an existing audio file from your device',
-                        onTap: () => _selectAudioFile(context),
-                      ),
-                    ],
+                        icon: option['icon'] as IconData,
+                        title: option['title'] as String,
+                        description: option['description'] as String,
+                        onTap: option['onTap'] as VoidCallback,
+                      );
+                    },
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -142,54 +147,66 @@ class AudioPodcastCreateScreen extends StatelessWidget {
     required String description,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.all(AppSpacing.extraLarge),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.2),
-            width: 1,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.backgroundSecondary,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+            border: Border.all(
+              color: AppColors.borderPrimary,
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primaryMain.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle,
+          padding: EdgeInsets.all(AppSpacing.extraLarge),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryMain.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: AppColors.primaryMain,
+                  size: 40,
+                ),
               ),
-              child: Icon(
-                icon,
-                color: Colors.white,
-                size: 48,
+              const SizedBox(height: AppSpacing.medium),
+              Text(
+                title,
+                style: AppTypography.heading3.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: AppSpacing.large),
-            Text(
-              title,
-              style: AppTypography.heading3.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+              const SizedBox(height: AppSpacing.small),
+              Text(
+                description,
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.small),
-            Text(
-              description,
-              style: AppTypography.body.copyWith(
-                color: Colors.white.withOpacity(0.8),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
-

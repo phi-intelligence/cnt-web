@@ -437,335 +437,389 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
             ),
             const SizedBox(height: AppSpacing.extraLarge),
 
-            // Video Player Section
+            // Main Content: Horizontal Layout
             Expanded(
-              flex: 2,
-              child: SectionContainer(
-                      showShadow: true,
-                      child: _isInitializing
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  CircularProgressIndicator(
-                                    color: AppColors.primaryMain,
-                                  ),
-                                  const SizedBox(height: AppSpacing.medium),
-                                  Text(
-                                    'Loading video...',
-                                    style: AppTypography.body.copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : _hasError
-                              ? Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.error_outline,
-                                        size: 64,
-                                        color: AppColors.errorMain,
-                                      ),
-                                      const SizedBox(height: AppSpacing.medium),
-                                      Text(
-                                        'Error loading video',
-                                        style: AppTypography.heading3.copyWith(
-                                          color: AppColors.textPrimary,
-                                        ),
-                                      ),
-                                      if (_errorMessage != null) ...[
-                                        const SizedBox(height: AppSpacing.small),
-                                        Padding(
-                                          padding: EdgeInsets.all(AppSpacing.medium),
-                                          child: Text(
-                                            _errorMessage!,
-                                            style: AppTypography.body.copyWith(
-                                              color: AppColors.textSecondary,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                )
-                              : _controller != null && _controller!.value.isInitialized
-                                  ? MouseRegion(
-                                      onEnter: (_) => _onMouseEnter(),
-                                      onExit: (_) => _onMouseExit(),
-                                      onHover: (_) => _onMouseMove(),
-                                      child: GestureDetector(
-                                        onTap: _handlePlayPause,
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-                                          child: AspectRatio(
-                                            aspectRatio: _controller!.value.aspectRatio,
-                                            child: Stack(
-                                              fit: StackFit.expand,
-                                              children: [
-                                                // Video Player
-                                                VideoPlayer(_controller!),
-                                                
-                                                // Controls Overlay
-                                                AnimatedOpacity(
-                                                  opacity: _showControls ? 1.0 : 0.0,
-                                                  duration: const Duration(milliseconds: 300),
-                                                  child: Container(
-                                                    decoration: BoxDecoration(
-                                                      gradient: LinearGradient(
-                                                        begin: Alignment.topCenter,
-                                                        end: Alignment.bottomCenter,
-                                                        colors: [
-                                                          Colors.transparent,
-                                                          Colors.black.withOpacity(0.3),
-                                                          Colors.black.withOpacity(0.7),
-                                                        ],
-                                                        stops: const [0.0, 0.6, 1.0],
-                                                      ),
-                                                    ),
-                                                    child: Stack(
-                                                      children: [
-                                                        // Top Bar
-                                                        Positioned(
-                                                          top: 0,
-                                                          left: 0,
-                                                          right: 0,
-                                                          child: Container(
-                                                            padding: EdgeInsets.all(AppSpacing.medium),
-                                                            child: Row(
-                                                              children: [
-                                                                IconButton(
-                                                                  icon: Icon(
-                                                                    Icons.arrow_back,
-                                                                    color: Colors.white,
-                                                                  ),
-                                                                  onPressed: _handleBack,
-                                                                  tooltip: 'Back',
-                                                                ),
-                                                                const Spacer(),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        
-                                                        // Center Play/Pause Button
-                                                        if (!_controller!.value.isPlaying || _isMouseOverVideo)
-                                                          Center(
-                                                            child: MouseRegion(
-                                                              cursor: SystemMouseCursors.click,
-                                                              child: GestureDetector(
-                                                                onTap: _handlePlayPause,
-                                                                child: Container(
-                                                                  width: 80,
-                                                                  height: 80,
-                                                                  decoration: BoxDecoration(
-                                                                    color: AppColors.primaryMain.withOpacity(0.9),
-                                                                    shape: BoxShape.circle,
-                                                                    boxShadow: [
-                                                                      BoxShadow(
-                                                                        color: Colors.black.withOpacity(0.3),
-                                                                        blurRadius: 12,
-                                                                        offset: const Offset(0, 4),
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                                  child: Icon(
-                                                                    _controller!.value.isPlaying
-                                                                        ? Icons.pause
-                                                                        : Icons.play_arrow,
-                                                                    color: Colors.white,
-                                                                    size: 48,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        
-                                                        // Bottom Controls
-                                                        Positioned(
-                                                          bottom: 0,
-                                                          left: 0,
-                                                          right: 0,
-                                                          child: Container(
-                                                            padding: EdgeInsets.all(AppSpacing.medium),
-                                                            child: Column(
-                                                              mainAxisSize: MainAxisSize.min,
-                                                              children: [
-                                                                // Progress Bar
-                                                                Row(
-                                                                  children: [
-                                                                    SizedBox(
-                                                                      width: 60,
-                                                                      child: Text(
-                                                                        _formatTime((_isScrubbing
-                                                                                ? _scrubValue.toInt()
-                                                                                : _controller!.value.position.inSeconds)),
-                                                                        style: AppTypography.bodySmall.copyWith(
-                                                                          color: Colors.white,
-                                                                          fontWeight: FontWeight.w500,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                    Expanded(
-                                                                      child: SliderTheme(
-                                                                        data: SliderTheme.of(context).copyWith(
-                                                                          trackHeight: 4,
-                                                                          thumbShape: const RoundSliderThumbShape(
-                                                                            enabledThumbRadius: 8,
-                                                                          ),
-                                                                          overlayShape: const RoundSliderOverlayShape(
-                                                                            overlayRadius: 16,
-                                                                          ),
-                                                                        ),
-                                                                        child: Slider(
-                                                                          value: _isScrubbing
-                                                                              ? _scrubValue
-                                                                              : _controller!.value.position.inSeconds.toDouble(),
-                                                                          min: 0,
-                                                                          max: _controller!.value.duration.inSeconds.toDouble(),
-                                                                          activeColor: AppColors.primaryMain,
-                                                                          inactiveColor: Colors.white.withOpacity(0.3),
-                                                                          thumbColor: AppColors.primaryMain,
-                                                                          onChangeStart: (value) {
-                                                                            setState(() {
-                                                                              _isScrubbing = true;
-                                                                              _scrubValue = value;
-                                                                              _wasPlayingBeforeScrub = _controller!.value.isPlaying;
-                                                                            });
-                                                                            _controller!.pause();
-                                                                          },
-                                                                          onChanged: (value) {
-                                                                            setState(() {
-                                                                              _scrubValue = value;
-                                                                            });
-                                                                          },
-                                                                          onChangeEnd: (value) async {
-                                                                            await _controller!.seekTo(Duration(seconds: value.toInt()));
-                                                                            setState(() {
-                                                                              _isScrubbing = false;
-                                                                            });
-                                                                            if (_wasPlayingBeforeScrub) {
-                                                                              _controller!.play();
-                                                                              _startControlsTimer();
-                                                                            }
-                                                                          },
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                    SizedBox(
-                                                                      width: 60,
-                                                                      child: Text(
-                                                                        _formatTime(_controller!.value.duration.inSeconds),
-                                                                        style: AppTypography.bodySmall.copyWith(
-                                                                          color: Colors.white,
-                                                                          fontWeight: FontWeight.w500,
-                                                                        ),
-                                                                        textAlign: TextAlign.right,
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  : Center(
-                                      child: CircularProgressIndicator(
-                                        color: AppColors.primaryMain,
-                                      ),
-                                    ),
-              ),
-            ),
-            
-            const SizedBox(height: AppSpacing.extraLarge),
-            
-            // Form Section
-            Expanded(
-              flex: 1,
-              child: SectionContainer(
-                showShadow: true,
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Podcast Details',
-                        style: AppTypography.heading3.copyWith(
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.large),
-                      
-                      // Title
-                      TextField(
-                        controller: _titleController,
-                        decoration: InputDecoration(
-                          labelText: 'Title',
-                          hintText: 'Enter podcast title',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // On smaller screens, stack vertically; on larger screens, use horizontal layout
+                  final useHorizontalLayout = constraints.maxWidth > 1024;
+                  
+                  if (useHorizontalLayout) {
+                    // Horizontal Layout: Video on left, controls on right
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Video Player Section (Left - 60-70%)
+                        Expanded(
+                          flex: 3,
+                          child: SectionContainer(
+                            showShadow: true,
+                            padding: EdgeInsets.zero,
+                            child: _buildVideoPlayer(),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.medium),
-                      
-                      // Description
-                      TextField(
-                        controller: _descriptionController,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          labelText: 'Description',
-                          hintText: 'Enter podcast description',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                        SizedBox(width: AppSpacing.large),
+                        // Controls & Form Section (Right - 30-40%)
+                        Expanded(
+                          flex: 2,
+                          child: SectionContainer(
+                            showShadow: true,
+                            child: _buildControlsAndForm(),
                           ),
                         ),
+                      ],
+                    );
+                  } else {
+                    // Vertical Layout for smaller screens
+                    return SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SectionContainer(
+                            showShadow: true,
+                            padding: EdgeInsets.zero,
+                            child: _buildVideoPlayer(),
+                          ),
+                          const SizedBox(height: AppSpacing.large),
+                          SectionContainer(
+                            showShadow: true,
+                            child: _buildControlsAndForm(),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: AppSpacing.medium),
-                      
-                      // Thumbnail Selection
-                      ThumbnailSelector(
-                        isVideo: true,
-                        videoUrl: _videoUrl ?? widget.videoUri,
-                        onThumbnailSelected: (thumbnailUrl) {
-                          setState(() {
-                            _selectedThumbnail = thumbnailUrl;
-                          });
-                        },
-                        initialThumbnail: _selectedThumbnail,
-                      ),
-                      const SizedBox(height: AppSpacing.large),
-                      
-                      // Publish Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: StyledPillButton(
-                          label: _isLoading ? 'Publishing...' : 'Publish Podcast',
-                          onPressed: _isLoading ? null : _handlePublish,
-                          variant: StyledPillButtonVariant.filled,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                    );
+                  }
+                },
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildVideoPlayer() {
+    return _isInitializing
+        ? Container(
+            height: 400,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    color: AppColors.primaryMain,
+                  ),
+                  const SizedBox(height: AppSpacing.medium),
+                  Text(
+                    'Loading video...',
+                    style: AppTypography.body.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        : _hasError
+            ? Container(
+                height: 400,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: AppColors.errorMain,
+                      ),
+                      const SizedBox(height: AppSpacing.medium),
+                      Text(
+                        'Error loading video',
+                        style: AppTypography.heading3.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: AppSpacing.small),
+                        Padding(
+                          padding: EdgeInsets.all(AppSpacing.medium),
+                          child: Text(
+                            _errorMessage!,
+                            style: AppTypography.body.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              )
+            : _controller != null && _controller!.value.isInitialized
+                ? MouseRegion(
+                    onEnter: (_) => _onMouseEnter(),
+                    onExit: (_) => _onMouseExit(),
+                    onHover: (_) => _onMouseMove(),
+                    child: GestureDetector(
+                      onTap: _handlePlayPause,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                        child: AspectRatio(
+                          aspectRatio: _controller!.value.aspectRatio,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              // Video Player
+                              VideoPlayer(_controller!),
+                              
+                              // Controls Overlay
+                              AnimatedOpacity(
+                                opacity: _showControls ? 1.0 : 0.0,
+                                duration: const Duration(milliseconds: 300),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black.withOpacity(0.3),
+                                        Colors.black.withOpacity(0.7),
+                                      ],
+                                      stops: const [0.0, 0.6, 1.0],
+                                    ),
+                                  ),
+                                  child: Stack(
+                                    children: [
+                                      // Center Play/Pause Button
+                                      if (!_controller!.value.isPlaying || _isMouseOverVideo)
+                                        Center(
+                                          child: MouseRegion(
+                                            cursor: SystemMouseCursors.click,
+                                            child: GestureDetector(
+                                              onTap: _handlePlayPause,
+                                              child: Container(
+                                                width: 80,
+                                                height: 80,
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.primaryMain.withOpacity(0.9),
+                                                  shape: BoxShape.circle,
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.black.withOpacity(0.3),
+                                                      blurRadius: 12,
+                                                      offset: const Offset(0, 4),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: Icon(
+                                                  _controller!.value.isPlaying
+                                                      ? Icons.pause
+                                                      : Icons.play_arrow,
+                                                  color: Colors.white,
+                                                  size: 48,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      
+                                      // Bottom Controls
+                                      Positioned(
+                                        bottom: 0,
+                                        left: 0,
+                                        right: 0,
+                                        child: Container(
+                                          padding: EdgeInsets.all(AppSpacing.medium),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              // Progress Bar
+                                              Row(
+                                                children: [
+                                                  SizedBox(
+                                                    width: 60,
+                                                    child: Text(
+                                                      _formatTime((_isScrubbing
+                                                              ? _scrubValue.toInt()
+                                                              : _controller!.value.position.inSeconds)),
+                                                      style: AppTypography.bodySmall.copyWith(
+                                                        color: Colors.white,
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Expanded(
+                                                    child: SliderTheme(
+                                                      data: SliderTheme.of(context).copyWith(
+                                                        trackHeight: 4,
+                                                        thumbShape: const RoundSliderThumbShape(
+                                                          enabledThumbRadius: 8,
+                                                        ),
+                                                        overlayShape: const RoundSliderOverlayShape(
+                                                          overlayRadius: 16,
+                                                        ),
+                                                      ),
+                                                      child: Slider(
+                                                        value: _isScrubbing
+                                                            ? _scrubValue
+                                                            : _controller!.value.position.inSeconds.toDouble(),
+                                                        min: 0,
+                                                        max: _controller!.value.duration.inSeconds.toDouble(),
+                                                        activeColor: AppColors.primaryMain,
+                                                        inactiveColor: Colors.white.withOpacity(0.3),
+                                                        thumbColor: AppColors.primaryMain,
+                                                        onChangeStart: (value) {
+                                                          setState(() {
+                                                            _isScrubbing = true;
+                                                            _scrubValue = value;
+                                                            _wasPlayingBeforeScrub = _controller!.value.isPlaying;
+                                                          });
+                                                          _controller!.pause();
+                                                        },
+                                                        onChanged: (value) {
+                                                          setState(() {
+                                                            _scrubValue = value;
+                                                          });
+                                                        },
+                                                        onChangeEnd: (value) async {
+                                                          await _controller!.seekTo(Duration(seconds: value.toInt()));
+                                                          setState(() {
+                                                            _isScrubbing = false;
+                                                          });
+                                                          if (_wasPlayingBeforeScrub) {
+                                                            _controller!.play();
+                                                            _startControlsTimer();
+                                                          }
+                                                        },
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  SizedBox(
+                                                    width: 60,
+                                                    child: Text(
+                                                      _formatTime(_controller!.value.duration.inSeconds),
+                                                      style: AppTypography.bodySmall.copyWith(
+                                                        color: Colors.white,
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                      textAlign: TextAlign.right,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : Container(
+                    height: 400,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryMain,
+                      ),
+                    ),
+                  );
+  }
+
+  Widget _buildControlsAndForm() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Action Buttons
+          Row(
+            children: [
+              Expanded(
+                child: StyledPillButton(
+                  label: 'Edit',
+                  icon: Icons.edit,
+                  onPressed: _handleEdit,
+                  variant: StyledPillButtonVariant.outlined,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.small),
+              Expanded(
+                child: StyledPillButton(
+                  label: 'Captions',
+                  icon: Icons.closed_caption,
+                  onPressed: _handleAddCaptions,
+                  variant: StyledPillButtonVariant.outlined,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.large),
+          
+          Text(
+            'Podcast Details',
+            style: AppTypography.heading3.copyWith(
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.large),
+          
+          // Title
+          TextField(
+            controller: _titleController,
+            decoration: InputDecoration(
+              labelText: 'Title',
+              hintText: 'Enter podcast title',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.medium),
+          
+          // Description
+          TextField(
+            controller: _descriptionController,
+            maxLines: 3,
+            decoration: InputDecoration(
+              labelText: 'Description',
+              hintText: 'Enter podcast description',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.medium),
+          
+          // Thumbnail Selection
+          ThumbnailSelector(
+            isVideo: true,
+            videoUrl: _videoUrl ?? widget.videoUri,
+            onThumbnailSelected: (thumbnailUrl) {
+              setState(() {
+                _selectedThumbnail = thumbnailUrl;
+              });
+            },
+            initialThumbnail: _selectedThumbnail,
+          ),
+          const SizedBox(height: AppSpacing.large),
+          
+          // Publish Button
+          SizedBox(
+            width: double.infinity,
+            child: StyledPillButton(
+              label: _isLoading ? 'Publishing...' : 'Publish Podcast',
+              onPressed: _isLoading ? null : _handlePublish,
+              variant: StyledPillButtonVariant.filled,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' if (dart.library.html) '../../utils/file_stub.dart' as io;
 import 'package:file_picker/file_picker.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
+import '../../utils/responsive_grid_delegate.dart';
+import '../../widgets/web/styled_page_header.dart';
+import '../../widgets/web/section_container.dart';
+import '../../widgets/web/styled_pill_button.dart';
 import '../../services/audio_editing_service.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -338,34 +343,113 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      appBar: AppBar(
+    if (kIsWeb) {
+      // Web version with design system
+      return Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Edit Audio',
-          style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
-        ),
-        actions: [
-          if (_editedAudioPath != null)
-            TextButton(
-              onPressed: _handleExport,
-              child: Text(
-                'Export',
-                style: AppTypography.body.copyWith(
-                  color: AppColors.primaryMain,
-                  fontWeight: FontWeight.w600,
-                ),
+        body: Container(
+          padding: ResponsiveGridDelegate.getResponsivePadding(context),
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: ResponsiveGridDelegate.getMaxContentWidth(context),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header with back button
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      Expanded(
+                        child: StyledPageHeader(
+                          title: widget.title ?? 'Edit Audio',
+                          size: StyledPageHeaderSize.h2,
+                        ),
+                      ),
+                      if (_editedAudioPath != null)
+                        StyledPillButton(
+                          label: 'Export',
+                          icon: Icons.download,
+                          onPressed: _handleExport,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.extraLarge),
+                  
+                  // Content
+                  if (_isInitializing)
+                    SectionContainer(
+                      showShadow: true,
+                      child: const Center(child: CircularProgressIndicator()),
+                    )
+                  else if (_hasError)
+                    SectionContainer(
+                      showShadow: true,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.error_outline, size: 64, color: AppColors.errorMain),
+                            const SizedBox(height: AppSpacing.large),
+                            Text(
+                              'Error loading audio',
+                              style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+                            ),
+                            if (_errorMessage != null)
+                              Padding(
+                                padding: EdgeInsets.all(AppSpacing.medium),
+                                child: Text(
+                                  _errorMessage!,
+                                  style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    _buildWebContent(),
+                ],
               ),
             ),
-          const SizedBox(width: 16),
-        ],
-      ),
+          ),
+        ),
+      );
+    } else {
+      // Mobile version (original design)
+      return Scaffold(
+        backgroundColor: AppColors.backgroundPrimary,
+        appBar: AppBar(
+          backgroundColor: AppColors.backgroundPrimary,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            'Edit Audio',
+            style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+          ),
+          actions: [
+            if (_editedAudioPath != null)
+              TextButton(
+                onPressed: _handleExport,
+                child: Text(
+                  'Export',
+                  style: AppTypography.body.copyWith(
+                    color: AppColors.primaryMain,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            const SizedBox(width: 16),
+          ],
+        ),
       body: _isInitializing
           ? const Center(child: CircularProgressIndicator())
           : _hasError
@@ -676,6 +760,276 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
                     ),
                   ),
                 ),
+      );
+    }
+  }
+
+  Widget _buildWebContent() {
+    return Column(
+      children: [
+        // Audio Player Section
+        SectionContainer(
+          showShadow: true,
+          child: Column(
+            children: [
+              Icon(Icons.audiotrack, size: 64, color: AppColors.primaryMain),
+              const SizedBox(height: AppSpacing.medium),
+              Text(
+                widget.title ?? 'Audio File',
+                style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: AppSpacing.small),
+              Text(
+                _formatDuration(_audioDuration),
+                style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: AppSpacing.medium),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.play_arrow, color: AppColors.primaryMain),
+                    onPressed: () => _player?.play(),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.pause, color: AppColors.primaryMain),
+                    onPressed: () => _player?.pause(),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.stop, color: AppColors.primaryMain),
+                    onPressed: () => _player?.stop(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.large),
+
+        // Trim Section
+        SectionContainer(
+          showShadow: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Trim Audio',
+                style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: AppSpacing.large),
+              
+              // Trim Start
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Start: ${_formatDuration(_trimStart)}',
+                    style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                  ),
+                  Slider(
+                    value: _trimStart.inSeconds.toDouble(),
+                    min: 0,
+                    max: _audioDuration.inSeconds.toDouble(),
+                    activeColor: AppColors.primaryMain,
+                    onChanged: (value) {
+                      setState(() {
+                        _trimStart = Duration(seconds: value.toInt());
+                        if (_trimStart >= _trimEnd) {
+                          _trimEnd = Duration(seconds: (value + 1).toInt());
+                        }
+                      });
+                    },
+                  ),
+                ],
+              ),
+              
+              // Trim End
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'End: ${_formatDuration(_trimEnd)}',
+                    style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                  ),
+                  Slider(
+                    value: _trimEnd.inSeconds.toDouble(),
+                    min: 0,
+                    max: _audioDuration.inSeconds.toDouble(),
+                    activeColor: AppColors.primaryMain,
+                    onChanged: (value) {
+                      setState(() {
+                        _trimEnd = Duration(seconds: value.toInt());
+                        if (_trimEnd <= _trimStart) {
+                          _trimStart = Duration(seconds: (value - 1).toInt());
+                        }
+                      });
+                    },
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: AppSpacing.medium),
+              StyledPillButton(
+                label: _isEditing ? 'Trimming...' : 'Apply Trim',
+                icon: Icons.content_cut,
+                onPressed: _isEditing ? null : _applyTrim,
+                isLoading: _isEditing,
+                width: double.infinity,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.large),
+
+        // Merge Section
+        SectionContainer(
+          showShadow: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Merge Audio Files',
+                style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: AppSpacing.medium),
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: StyledPillButton(
+                      label: 'Select Files',
+                      icon: Icons.file_upload,
+                      onPressed: _selectAudioFiles,
+                    ),
+                  ),
+                  if (_filesToMerge.isNotEmpty) ...[
+                    const SizedBox(width: AppSpacing.medium),
+                    Expanded(
+                      child: StyledPillButton(
+                        label: _isEditing ? 'Merging...' : 'Merge',
+                        icon: Icons.merge_type,
+                        onPressed: _isEditing ? null : _mergeAudioFiles,
+                        isLoading: _isEditing,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              
+              if (_filesToMerge.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.small),
+                  child: Text(
+                    '${_filesToMerge.length} file(s) selected',
+                    style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.large),
+
+        // Fade Effects Section
+        SectionContainer(
+          showShadow: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Fade Effects',
+                style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: AppSpacing.large),
+              
+              // Fade In
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Fade In: ${_fadeInDuration.inSeconds}s',
+                    style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                  ),
+                  Slider(
+                    value: _fadeInDuration.inSeconds.toDouble(),
+                    min: 0,
+                    max: 10,
+                    divisions: 20,
+                    activeColor: AppColors.primaryMain,
+                    onChanged: (value) {
+                      setState(() {
+                        _fadeInDuration = Duration(seconds: value.toInt());
+                      });
+                    },
+                  ),
+                ],
+              ),
+              
+              // Fade Out
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Fade Out: ${_fadeOutDuration.inSeconds}s',
+                    style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                  ),
+                  Slider(
+                    value: _fadeOutDuration.inSeconds.toDouble(),
+                    min: 0,
+                    max: 10,
+                    divisions: 20,
+                    activeColor: AppColors.primaryMain,
+                    onChanged: (value) {
+                      setState(() {
+                        _fadeOutDuration = Duration(seconds: value.toInt());
+                      });
+                    },
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: AppSpacing.medium),
+              Row(
+                children: [
+                  Expanded(
+                    child: StyledPillButton(
+                      label: 'Fade In',
+                      icon: Icons.trending_up,
+                      onPressed: _isEditing || _fadeInDuration == Duration.zero
+                          ? null
+                          : _applyFadeIn,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.small),
+                  Expanded(
+                    child: StyledPillButton(
+                      label: 'Fade Out',
+                      icon: Icons.trending_down,
+                      onPressed: _isEditing || _fadeOutDuration == Duration.zero
+                          ? null
+                          : _applyFadeOut,
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: AppSpacing.small),
+              
+              StyledPillButton(
+                label: _isEditing ? 'Applying...' : 'Apply Both',
+                icon: Icons.swap_horiz,
+                onPressed: _isEditing ||
+                        _fadeInDuration == Duration.zero ||
+                        _fadeOutDuration == Duration.zero
+                    ? null
+                    : _applyFadeInOut,
+                isLoading: _isEditing,
+                width: double.infinity,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.extraLarge),
+      ],
     );
   }
 }

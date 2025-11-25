@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import '../config/app_config.dart';
 
 class WebSocketService {
   static final WebSocketService _instance = WebSocketService._internal();
@@ -24,13 +25,10 @@ class WebSocketService {
   Future<void> connect() async {
     if (_isConnected) return;
     try {
-      // Use API_BASE environment variable if provided, otherwise default to emulator IP
-      final baseUrl = const String.fromEnvironment(
-        'API_BASE',
-        defaultValue: 'http://10.0.2.2:8002/api/v1',
-      );
-      // Extract base URL without /api/v1
-      final url = baseUrl.replaceAll('/api/v1', '');
+      // Use AppConfig to get the base API URL (works for both web and mobile)
+      // Extract base URL without /api/v1 for Socket.io connection
+      final apiBaseUrl = AppConfig.apiBaseUrl;
+      final url = apiBaseUrl.replaceAll('/api/v1', '').replaceAll('/api', '');
       _socket = IO.io(url, <String, dynamic>{
         'path': '/socket.io/',
         'transports': ['websocket'],

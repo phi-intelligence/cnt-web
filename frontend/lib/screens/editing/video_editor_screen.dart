@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' if (dart.library.html) '../../utils/file_stub.dart' as io;
 import 'dart:math' as math;
 import 'package:path/path.dart' as path;
 import '../../theme/app_colors.dart';
@@ -10,6 +11,7 @@ import '../../models/text_overlay.dart';
 import 'package:video_player/video_player.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
+import '../web/video_editor_screen_web.dart';
 
 /// Video Editor Screen - Professional Video Editing UI
 /// Features: Multi-track timeline, text overlays, trimming, filters, audio tracks
@@ -95,7 +97,16 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> with SingleTicker
       if (isNetwork) {
         _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoPath));
       } else {
-        _controller = VideoPlayerController.file(File(widget.videoPath));
+        // On web, use network URL even for local paths (blob URLs)
+        // On mobile, use file controller with dart:io File
+        if (kIsWeb) {
+          _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoPath));
+        } else {
+          // On mobile, use file controller - cast to dynamic to avoid type issues
+          // This is safe because we're in !kIsWeb block
+          final file = io.File(widget.videoPath);
+          _controller = VideoPlayerController.file(file as dynamic);
+        }
       }
       
       await _controller!.initialize();
@@ -497,7 +508,16 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> with SingleTicker
 
   Future<void> _reloadPlayer(String path) async {
     await _controller?.dispose();
-    _controller = VideoPlayerController.file(File(path));
+    // On web, use network URL even for local paths (blob URLs)
+    // On mobile, use file controller with dart:io File
+    if (kIsWeb) {
+      _controller = VideoPlayerController.networkUrl(Uri.parse(path));
+    } else {
+      // On mobile, use file controller - cast to dynamic to avoid type issues
+      // This is safe because we're in !kIsWeb block
+      final file = io.File(path);
+      _controller = VideoPlayerController.file(file as dynamic);
+    }
     await _controller!.initialize();
     _controller!.addListener(_videoListener);
     setState(() {});
@@ -538,6 +558,15 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    // On web, use the web version
+    if (kIsWeb) {
+      return VideoEditorScreenWeb(
+        videoPath: widget.videoPath,
+        title: widget.title,
+      );
+    }
+
+    // Mobile version
     if (_isInitializing) {
       return Scaffold(
         backgroundColor: AppColors.backgroundPrimary,

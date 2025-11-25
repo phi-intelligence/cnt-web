@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io' if (dart.library.html) '../../utils/file_stub.dart' as io;
 import '../../providers/community_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -173,10 +174,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       );
       
       if (!mounted) return;
+      
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final isAdmin = authProvider.isAdmin;
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Post submitted! It will be reviewed by an admin.'),
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: Text(isAdmin 
+              ? 'Post published successfully!' 
+              : 'Post submitted! It will be reviewed by an admin.'),
+          duration: const Duration(seconds: 3),
         ),
       );
       Navigator.pop(context, true);

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:camera/camera.dart';
-import 'dart:io';
+import 'dart:io' if (dart.library.html) '../../utils/file_stub.dart' as io;
 import '../../theme/app_spacing.dart';
 import 'video_preview_screen.dart';
+import '../web/video_preview_screen_web.dart';
 
 /// Video Recording Screen - Record video podcasts
 class VideoRecordingScreen extends StatefulWidget {
@@ -65,31 +67,40 @@ class _VideoRecordingScreenState extends State<VideoRecordingScreen> {
 
       final video = await _controller!.stopVideoRecording();
       
-      // Verify the video file exists
-      final file = File(video.path);
-      if (!await file.exists()) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Video file not found')),
-          );
+      // Get file size (on web, video.path is a blob URL, so we can't check file existence)
+      int fileSize = 0;
+      if (!kIsWeb) {
+        // Verify the video file exists (mobile only)
+        final file = io.File(video.path);
+        if (!await file.exists()) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Video file not found')),
+            );
+          }
+          return;
         }
-        return;
+        fileSize = await file.length();
       }
-
-      // Get actual file size
-      final fileSize = await file.length();
       
-      // Navigate to video preview screen
+      // Navigate to video preview screen (web or mobile version)
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => VideoPreviewScreen(
-              videoUri: video.path,
-              source: 'camera',
-              duration: _recordingDuration,
-              fileSize: fileSize,
-            ),
+            builder: (context) => kIsWeb
+                ? VideoPreviewScreenWeb(
+                    videoUri: video.path,
+                    source: 'camera',
+                    duration: _recordingDuration,
+                    fileSize: fileSize,
+                  )
+                : VideoPreviewScreen(
+                    videoUri: video.path,
+                    source: 'camera',
+                    duration: _recordingDuration,
+                    fileSize: fileSize,
+                  ),
           ),
         );
       }

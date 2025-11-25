@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:livekit_client/livekit_client.dart' as lk;
 import '../../services/livekit_meeting_service.dart';
 import '../../widgets/meeting/video_track_view.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/app_typography.dart';
+import '../../utils/responsive_grid_delegate.dart';
 
 /// Live Stream Broadcaster Screen - Go live and broadcast using LiveKit
 class LiveStreamBroadcaster extends StatefulWidget {
@@ -196,15 +199,15 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
           else
             Container(
               color: Colors.black,
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.videocam_off, color: Colors.white70, size: 64),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Text(
                       'Camera is off',
-                      style: TextStyle(color: Colors.white70),
+                      style: AppTypography.body.copyWith(color: Colors.white70),
                     ),
                   ],
                 ),
@@ -212,18 +215,19 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
             ),
 
           // Top bar with streaming info
-          SafeArea(
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
             child: Container(
-              padding: const EdgeInsets.all(AppSpacing.medium),
+              padding: EdgeInsets.only(
+                top: kIsWeb ? AppSpacing.medium : 0,
+                left: kIsWeb ? ResponsiveGridDelegate.getResponsivePadding(context).horizontal : AppSpacing.medium,
+                right: kIsWeb ? ResponsiveGridDelegate.getResponsivePadding(context).horizontal : AppSpacing.medium,
+                bottom: AppSpacing.medium,
+              ),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.8),
-                    Colors.transparent,
-                  ],
-                ),
+                color: Colors.black.withOpacity(0.8),
               ),
               child: Row(
                 children: [
@@ -251,17 +255,21 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
                     const SizedBox(width: 4),
                     Text(
                       '$_viewerCount',
-                      style: const TextStyle(color: Colors.white70),
+                      style: AppTypography.bodySmall.copyWith(color: Colors.white70),
                     ),
                     const SizedBox(width: AppSpacing.medium),
                     Text(
                       _getStreamingDuration(),
-                      style: const TextStyle(color: Colors.white70),
+                      style: AppTypography.bodySmall.copyWith(color: Colors.white70),
                     ),
                   ] else ...[
-                    Text(
-                      widget.streamTitle,
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                    Expanded(
+                      child: Text(
+                        widget.streamTitle,
+                        style: AppTypography.body.copyWith(color: Colors.white),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                   const Spacer(),
@@ -281,71 +289,73 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
             left: 0,
             right: 0,
             child: Container(
-              padding: const EdgeInsets.all(AppSpacing.large),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.8),
-                    Colors.transparent,
-                  ],
-                ),
+              padding: EdgeInsets.only(
+                left: kIsWeb ? ResponsiveGridDelegate.getResponsivePadding(context).horizontal : AppSpacing.large,
+                right: kIsWeb ? ResponsiveGridDelegate.getResponsivePadding(context).horizontal : AppSpacing.large,
+                top: AppSpacing.large,
+                bottom: kIsWeb ? AppSpacing.large : 0,
               ),
-              child: SafeArea(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    // Toggle camera
-                    IconButton(
-                      icon: Icon(_isCameraOn ? Icons.videocam : Icons.videocam_off),
-                      iconSize: 32,
-                      color: Colors.white,
-                      onPressed: _toggleCamera,
-                    ),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Toggle camera
+                  IconButton(
+                    icon: Icon(_isCameraOn ? Icons.videocam : Icons.videocam_off),
+                    iconSize: 32,
+                    color: Colors.white,
+                    onPressed: _toggleCamera,
+                  ),
 
-                    // Start/Stop streaming
-                    _isStreaming
-                        ? ElevatedButton(
-                            onPressed: _stopStreaming,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.all(AppSpacing.medium),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(50),
-                              ),
-                            ),
-                            child: const Text(
-                              'End Stream',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          )
-                        : ElevatedButton(
-                            onPressed: _startStreaming,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.all(AppSpacing.medium),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(50),
-                              ),
-                            ),
-                            child: const Text(
-                              'Go Live',
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                  // Start/Stop streaming
+                  _isStreaming
+                      ? ElevatedButton(
+                          onPressed: _stopStreaming,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.all(AppSpacing.medium),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(50),
                             ),
                           ),
+                          child: Text(
+                            'End Stream',
+                            style: AppTypography.body.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        )
+                      : ElevatedButton(
+                          onPressed: _startStreaming,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.all(AppSpacing.medium),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                          ),
+                          child: Text(
+                            'Go Live',
+                            style: AppTypography.body.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
 
-                    // Toggle mute
-                    IconButton(
-                      icon: Icon(_isMuted ? Icons.mic_off : Icons.mic),
-                      iconSize: 32,
-                      color: _isMuted ? Colors.red : Colors.white,
-                      onPressed: _toggleMute,
-                    ),
-                  ],
-                ),
+                  // Toggle mute
+                  IconButton(
+                    icon: Icon(_isMuted ? Icons.mic_off : Icons.mic),
+                    iconSize: 32,
+                    color: _isMuted ? Colors.red : Colors.white,
+                    onPressed: _toggleMute,
+                  ),
+                ],
               ),
             ),
           ),

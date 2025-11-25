@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/community_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -60,11 +61,16 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
 
       if (!mounted) return;
 
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final isAdmin = authProvider.isAdmin;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Quote submitted! It will be reviewed by an admin.'),
+        SnackBar(
+          content: Text(isAdmin 
+              ? 'Quote published successfully!' 
+              : 'Quote submitted! It will be reviewed by an admin.'),
           backgroundColor: AppColors.successMain,
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
         ),
       );
 
@@ -92,7 +98,7 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth >= 1024;
+    final maxContentWidth = ResponsiveGridDelegate.getMaxContentWidth(context);
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
@@ -102,7 +108,7 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
           child: SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: isDesktop ? 800 : 600,
+                maxWidth: maxContentWidth,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

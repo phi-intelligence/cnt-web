@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
+import '../../utils/responsive_grid_delegate.dart';
+import '../../widgets/web/styled_page_header.dart';
+import '../../widgets/web/section_container.dart';
+import '../../widgets/web/styled_pill_button.dart';
 import '../../services/livekit_meeting_service.dart';
 import 'meeting_room_screen.dart';
 import '../../providers/user_provider.dart';
@@ -80,107 +85,240 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      appBar: AppBar(
+    if (kIsWeb) {
+      // Web version with web design system
+      return Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Check Your Setup',
-          style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
-        ),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(AppSpacing.large),
+        body: Container(
+          padding: ResponsiveGridDelegate.getResponsivePadding(context),
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: ResponsiveGridDelegate.getMaxContentWidth(context),
+              ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-            const SizedBox(height: AppSpacing.extraLarge),
-            // Preview placeholder
-            Container(
-              height: 300,
-              decoration: BoxDecoration(
-                color: AppColors.backgroundSecondary,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-                border: Border.all(color: AppColors.borderPrimary),
-              ),
-                      alignment: Alignment.center,
-              child: cameraEnabled
-                  ? Icon(Icons.videocam, size: 80, color: AppColors.primaryMain)
-                  : Icon(Icons.videocam_off, size: 80, color: AppColors.textSecondary),
-                  ),
-            const SizedBox(height: AppSpacing.extraLarge),
-            Text(
-              'Room: ${widget.roomName}',
-              style: AppTypography.body.copyWith(color: AppColors.textSecondary),
-                  ),
-            const SizedBox(height: AppSpacing.medium),
-            // Camera toggle
-            ListTile(
-              leading: Icon(
-                cameraEnabled ? Icons.videocam : Icons.videocam_off,
-                color: cameraEnabled ? AppColors.primaryMain : AppColors.textSecondary,
-              ),
-              title: Text(
-                cameraEnabled ? 'Camera On' : 'Camera Off',
-                style: AppTypography.body.copyWith(color: AppColors.textPrimary),
-              ),
-              trailing: Switch(
-                value: cameraEnabled,
-                onChanged: (value) {
-                  setState(() {
-                    cameraEnabled = value;
-                  });
-                },
-              ),
-            ),
-            // Microphone toggle
-            ListTile(
-              leading: Icon(
-                micEnabled ? Icons.mic : Icons.mic_off,
-                color: micEnabled ? AppColors.primaryMain : AppColors.textSecondary,
-              ),
-              title: Text(
-                micEnabled ? 'Microphone On' : 'Microphone Off',
-                style: AppTypography.body.copyWith(color: AppColors.textPrimary),
-              ),
-              trailing: Switch(
-                value: micEnabled,
-                onChanged: (value) {
-                  setState(() {
-                    micEnabled = value;
-                  });
-                        },
+                  // Header with back button
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                        onPressed: () => Navigator.pop(context),
                       ),
+                      Expanded(
+                        child: StyledPageHeader(
+                          title: 'Check Your Setup',
+                          size: StyledPageHeaderSize.h2,
+                        ),
+                      ),
+                    ],
                   ),
-            const Spacer(),
-            // Join button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                icon: const Icon(Icons.meeting_room, color: Colors.white),
-                label: const Text(
-                  'Join Meeting',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
-                ),
-                      onPressed: _onJoin,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryMain,
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.large),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-                  ),
-                ),
+                  const SizedBox(height: AppSpacing.extraLarge),
+
+                  // Preview Section
+                  SectionContainer(
+                    showShadow: true,
+                    child: Column(
+                      children: [
+                        // Preview placeholder
+                        Container(
+                          height: 300,
+                          decoration: BoxDecoration(
+                            color: AppColors.backgroundSecondary,
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                            border: Border.all(color: AppColors.borderPrimary),
+                          ),
+                          alignment: Alignment.center,
+                          child: cameraEnabled
+                              ? Icon(Icons.videocam, size: 80, color: AppColors.primaryMain)
+                              : Icon(Icons.videocam_off, size: 80, color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: AppSpacing.large),
+                        Text(
+                          'Room: ${widget.roomName}',
+                          style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                        ),
+                      ],
                     ),
-            ),
-            const SizedBox(height: AppSpacing.medium),
+                  ),
+                  const SizedBox(height: AppSpacing.large),
+
+                  // Device Settings Section
+                  SectionContainer(
+                    showShadow: true,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Device Settings',
+                          style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: AppSpacing.medium),
+                        // Camera toggle
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(
+                            cameraEnabled ? Icons.videocam : Icons.videocam_off,
+                            color: cameraEnabled ? AppColors.primaryMain : AppColors.textSecondary,
+                          ),
+                          title: Text(
+                            cameraEnabled ? 'Camera On' : 'Camera Off',
+                            style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                          ),
+                          trailing: Switch(
+                            value: cameraEnabled,
+                            onChanged: (value) {
+                              setState(() {
+                                cameraEnabled = value;
+                              });
+                            },
+                          ),
+                        ),
+                        Divider(color: AppColors.borderPrimary),
+                        // Microphone toggle
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(
+                            micEnabled ? Icons.mic : Icons.mic_off,
+                            color: micEnabled ? AppColors.primaryMain : AppColors.textSecondary,
+                          ),
+                          title: Text(
+                            micEnabled ? 'Microphone On' : 'Microphone Off',
+                            style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                          ),
+                          trailing: Switch(
+                            value: micEnabled,
+                            onChanged: (value) {
+                              setState(() {
+                                micEnabled = value;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.extraLarge),
+
+                  // Join button
+                  StyledPillButton(
+                    label: 'Join Meeting',
+                    icon: Icons.meeting_room,
+                    onPressed: _onJoin,
+                    width: double.infinity,
+                  ),
+                  const SizedBox(height: AppSpacing.extraLarge),
                 ],
               ),
             ),
-    );
+          ),
+        ),
+      );
+    } else {
+      // Mobile version (original design)
+      return Scaffold(
+        backgroundColor: AppColors.backgroundPrimary,
+        appBar: AppBar(
+          backgroundColor: AppColors.backgroundPrimary,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            'Check Your Setup',
+            style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+          ),
+          centerTitle: true,
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(AppSpacing.large),
+          child: Column(
+            children: [
+              const SizedBox(height: AppSpacing.extraLarge),
+              // Preview placeholder
+              Container(
+                height: 300,
+                decoration: BoxDecoration(
+                  color: AppColors.backgroundSecondary,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                  border: Border.all(color: AppColors.borderPrimary),
+                ),
+                alignment: Alignment.center,
+                child: cameraEnabled
+                    ? Icon(Icons.videocam, size: 80, color: AppColors.primaryMain)
+                    : Icon(Icons.videocam_off, size: 80, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: AppSpacing.extraLarge),
+              Text(
+                'Room: ${widget.roomName}',
+                style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: AppSpacing.medium),
+              // Camera toggle
+              ListTile(
+                leading: Icon(
+                  cameraEnabled ? Icons.videocam : Icons.videocam_off,
+                  color: cameraEnabled ? AppColors.primaryMain : AppColors.textSecondary,
+                ),
+                title: Text(
+                  cameraEnabled ? 'Camera On' : 'Camera Off',
+                  style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                ),
+                trailing: Switch(
+                  value: cameraEnabled,
+                  onChanged: (value) {
+                    setState(() {
+                      cameraEnabled = value;
+                    });
+                  },
+                ),
+              ),
+              // Microphone toggle
+              ListTile(
+                leading: Icon(
+                  micEnabled ? Icons.mic : Icons.mic_off,
+                  color: micEnabled ? AppColors.primaryMain : AppColors.textSecondary,
+                ),
+                title: Text(
+                  micEnabled ? 'Microphone On' : 'Microphone Off',
+                  style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                ),
+                trailing: Switch(
+                  value: micEnabled,
+                  onChanged: (value) {
+                    setState(() {
+                      micEnabled = value;
+                    });
+                  },
+                ),
+              ),
+              const Spacer(),
+              // Join button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.meeting_room, color: Colors.white),
+                  label: const Text(
+                    'Join Meeting',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+                  ),
+                  onPressed: _onJoin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryMain,
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.large),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.medium),
+            ],
+          ),
+        ),
+      );
+    }
   }
 }

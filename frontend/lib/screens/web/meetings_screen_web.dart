@@ -4,6 +4,9 @@ import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/shared/loading_shimmer.dart';
 import '../../widgets/shared/empty_state.dart';
+import '../../widgets/web/styled_page_header.dart';
+import '../../widgets/web/section_container.dart';
+import '../../widgets/web/styled_pill_button.dart';
 import '../../services/api_service.dart';
 import '../../screens/meeting/meeting_room_screen.dart';
 import '../../utils/responsive_grid_delegate.dart';
@@ -70,22 +73,16 @@ class _MeetingsScreenWebState extends State<MeetingsScreenWeb> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Meetings',
-                  style: AppTypography.heading1.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                StyledPageHeader(
+                  title: 'Meetings',
+                  size: StyledPageHeaderSize.h1,
                 ),
-                ElevatedButton.icon(
+                StyledPillButton(
+                  label: 'Create Meeting',
+                  icon: Icons.add,
                   onPressed: () {
                     Navigator.pushNamed(context, '/create-meeting');
                   },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Create Meeting'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryMain,
-                    foregroundColor: Colors.white,
-                  ),
                 ),
               ],
             ),
@@ -104,54 +101,90 @@ class _MeetingsScreenWebState extends State<MeetingsScreenWeb> {
                       },
                     )
                   : _meetings.isEmpty
-                      ? const EmptyState(
-                          icon: Icons.calendar_today,
-                          title: 'No Meetings',
-                          message: 'Create a meeting to get started',
+                      ? SectionContainer(
+                          showShadow: true,
+                          child: const EmptyState(
+                            icon: Icons.calendar_today,
+                            title: 'No Meetings',
+                            message: 'Create a meeting to get started',
+                          ),
                         )
                       : ListView.builder(
                           itemCount: _meetings.length,
                           itemBuilder: (context, index) {
                             final meeting = _meetings[index];
-                            return Card(
-                              margin: EdgeInsets.only(bottom: AppSpacing.medium),
-                              child: ListTile(
-                                leading: Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryMain.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(
-                                    Icons.video_call,
-                                    color: AppColors.primaryMain,
-                                    size: 30,
-                                  ),
-                                ),
-                                title: Text(
-                                  meeting['title'] ?? 'Untitled Meeting',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(meeting['description'] ?? ''),
-                                    if (meeting['scheduled_start'] != null)
-                                      Text(
-                                        'Scheduled: ${meeting['scheduled_start']}',
-                                        style: TextStyle(
-                                          color: AppColors.textSecondary,
-                                          fontSize: 12,
-                                        ),
+                            return Padding(
+                              padding: EdgeInsets.only(bottom: AppSpacing.medium),
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: SectionContainer(
+                                  showShadow: true,
+                                  child: InkWell(
+                                    onTap: () => _joinMeeting(meeting),
+                                    borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                                    child: Padding(
+                                      padding: EdgeInsets.all(AppSpacing.medium),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 60,
+                                            height: 60,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primaryMain.withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                            ),
+                                            child: Icon(
+                                              Icons.video_call,
+                                              color: AppColors.primaryMain,
+                                              size: 30,
+                                            ),
+                                          ),
+                                          const SizedBox(width: AppSpacing.medium),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  meeting['title'] ?? 'Untitled Meeting',
+                                                  style: AppTypography.heading4.copyWith(
+                                                    color: AppColors.textPrimary,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                if (meeting['description'] != null && meeting['description'].toString().isNotEmpty) ...[
+                                                  const SizedBox(height: AppSpacing.tiny),
+                                                  Text(
+                                                    meeting['description'],
+                                                    style: AppTypography.body.copyWith(
+                                                      color: AppColors.textSecondary,
+                                                    ),
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ],
+                                                if (meeting['scheduled_start'] != null) ...[
+                                                  const SizedBox(height: AppSpacing.tiny),
+                                                  Text(
+                                                    'Scheduled: ${meeting['scheduled_start']}',
+                                                    style: AppTypography.bodySmall.copyWith(
+                                                      color: AppColors.textTertiary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: AppSpacing.medium),
+                                          StyledPillButton(
+                                            label: 'Join',
+                                            icon: Icons.login,
+                                            onPressed: () => _joinMeeting(meeting),
+                                          ),
+                                        ],
                                       ),
-                                  ],
+                                    ),
+                                  ),
                                 ),
-                                trailing: ElevatedButton(
-                                  onPressed: () => _joinMeeting(meeting),
-                                  child: const Text('Join'),
-                                ),
-                                onTap: () => _joinMeeting(meeting),
                               ),
                             );
                           },

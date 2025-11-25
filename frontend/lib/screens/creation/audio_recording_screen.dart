@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/app_typography.dart';
+import '../../utils/responsive_grid_delegate.dart';
+import '../../widgets/web/styled_page_header.dart';
+import '../../widgets/web/section_container.dart';
 import 'audio_preview_screen.dart';
 import '../../utils/web_audio_recorder.dart';
 // Conditional imports - mobile only
@@ -228,115 +232,259 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      appBar: AppBar(
+    if (kIsWeb) {
+      // Web version with web design system
+      return Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text('Record Audio'),
-      ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Timer display
-          Text(
-            _formatDuration(_recordingDuration),
-            style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: AppSpacing.medium),
-
-          // Recording indicator
-          if (_isRecording)
-            Container(
-              width: 16,
-              height: 16,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.red,
-              ),
-            ),
-          const SizedBox(height: AppSpacing.extraLarge),
-
-          // Waveform visualization (placeholder)
-          Container(
-            width: double.infinity,
-            height: 100,
-            margin: EdgeInsets.symmetric(horizontal: AppSpacing.large),
-            decoration: BoxDecoration(
-              color: AppColors.backgroundSecondary,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-            ),
-            child: Center(
-              child: Icon(
-                Icons.graphic_eq,
-                size: 48,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: AppSpacing.extraLarge),
-
-          // Control buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+        body: Container(
+          padding: ResponsiveGridDelegate.getResponsivePadding(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (!_isRecording)
-                IconButton(
-                  iconSize: 64,
-                  icon: Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.successMain,
-                    ),
-                    child: const Icon(Icons.mic, color: Colors.white),
-                  ),
-                  onPressed: _startRecording,
-                )
-              else ...[
-                if (_isPaused)
+              // Header with back button
+              Row(
+                children: [
                   IconButton(
-                    iconSize: 48,
-                    icon: const Icon(Icons.play_arrow, color: AppColors.primaryMain),
-                    onPressed: _resumeRecording,
-                  )
-                else
-                  IconButton(
-                    iconSize: 48,
-                    icon: const Icon(Icons.pause, color: AppColors.primaryMain),
-                    onPressed: _pauseRecording,
+                    icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                const SizedBox(width: AppSpacing.medium),
-                IconButton(
-                  iconSize: 64,
-                  icon: Container(
-                    width: 64,
-                    height: 64,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.successMain,
+                  Expanded(
+                    child: StyledPageHeader(
+                      title: 'Record Audio Podcast',
+                      size: StyledPageHeaderSize.h2,
                     ),
-                    child: const Icon(Icons.check, color: Colors.white),
                   ),
-                  onPressed: _stopAndSave,
+                ],
+              ),
+              const SizedBox(height: AppSpacing.extraLarge),
+
+              // Recording Section
+              Expanded(
+                child: SectionContainer(
+                  showShadow: true,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Timer display
+                      Text(
+                        _formatDuration(_recordingDuration),
+                        style: AppTypography.heading1.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.medium),
+
+                      // Recording indicator
+                      if (_isRecording)
+                        Container(
+                          width: 16,
+                          height: 16,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.errorMain,
+                          ),
+                        ),
+                      const SizedBox(height: AppSpacing.extraLarge),
+
+                      // Waveform visualization (placeholder)
+                      Container(
+                        width: double.infinity,
+                        height: 100,
+                        margin: EdgeInsets.symmetric(horizontal: AppSpacing.large),
+                        decoration: BoxDecoration(
+                          color: AppColors.backgroundSecondary,
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                          border: Border.all(
+                            color: AppColors.borderPrimary,
+                            width: 1,
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.graphic_eq,
+                            size: 48,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: AppSpacing.extraLarge),
+
+                      // Control buttons
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (!_isRecording)
+                            IconButton(
+                              iconSize: 64,
+                              icon: Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.successMain,
+                                ),
+                                child: const Icon(Icons.mic, color: Colors.white),
+                              ),
+                              onPressed: _startRecording,
+                            )
+                          else ...[
+                            if (_isPaused)
+                              IconButton(
+                                iconSize: 48,
+                                icon: const Icon(Icons.play_arrow, color: AppColors.primaryMain),
+                                onPressed: _resumeRecording,
+                              )
+                            else
+                              IconButton(
+                                iconSize: 48,
+                                icon: const Icon(Icons.pause, color: AppColors.primaryMain),
+                                onPressed: _pauseRecording,
+                              ),
+                            const SizedBox(width: AppSpacing.medium),
+                            IconButton(
+                              iconSize: 64,
+                              icon: Container(
+                                width: 64,
+                                height: 64,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.successMain,
+                                ),
+                                child: const Icon(Icons.check, color: Colors.white),
+                              ),
+                              onPressed: _stopAndSave,
+                            ),
+                            const SizedBox(width: AppSpacing.medium),
+                            IconButton(
+                              iconSize: 48,
+                              icon: const Icon(Icons.delete, color: AppColors.errorMain),
+                              onPressed: _discardRecording,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: AppSpacing.medium),
-                IconButton(
-                  iconSize: 48,
-                  icon: const Icon(Icons.delete, color: AppColors.errorMain),
-                  onPressed: _discardRecording,
-                ),
-              ],
+              ),
             ],
           ),
-        ],
-      ),
-    );
+        ),
+      );
+    } else {
+      // Mobile version (original design)
+      return Scaffold(
+        backgroundColor: AppColors.backgroundPrimary,
+        appBar: AppBar(
+          backgroundColor: AppColors.backgroundPrimary,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text('Record Audio'),
+        ),
+        body: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Timer display
+            Text(
+              _formatDuration(_recordingDuration),
+              style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: AppSpacing.medium),
+
+            // Recording indicator
+            if (_isRecording)
+              Container(
+                width: 16,
+                height: 16,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.red,
+                ),
+              ),
+            const SizedBox(height: AppSpacing.extraLarge),
+
+            // Waveform visualization (placeholder)
+            Container(
+              width: double.infinity,
+              height: 100,
+              margin: EdgeInsets.symmetric(horizontal: AppSpacing.large),
+              decoration: BoxDecoration(
+                color: AppColors.backgroundSecondary,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.graphic_eq,
+                  size: 48,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: AppSpacing.extraLarge),
+
+            // Control buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (!_isRecording)
+                  IconButton(
+                    iconSize: 64,
+                    icon: Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.successMain,
+                      ),
+                      child: const Icon(Icons.mic, color: Colors.white),
+                    ),
+                    onPressed: _startRecording,
+                  )
+                else ...[
+                  if (_isPaused)
+                    IconButton(
+                      iconSize: 48,
+                      icon: const Icon(Icons.play_arrow, color: AppColors.primaryMain),
+                      onPressed: _resumeRecording,
+                    )
+                  else
+                    IconButton(
+                      iconSize: 48,
+                      icon: const Icon(Icons.pause, color: AppColors.primaryMain),
+                      onPressed: _pauseRecording,
+                    ),
+                  const SizedBox(width: AppSpacing.medium),
+                  IconButton(
+                    iconSize: 64,
+                    icon: Container(
+                      width: 64,
+                      height: 64,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.successMain,
+                      ),
+                      child: const Icon(Icons.check, color: Colors.white),
+                    ),
+                    onPressed: _stopAndSave,
+                  ),
+                  const SizedBox(width: AppSpacing.medium),
+                  IconButton(
+                    iconSize: 48,
+                    icon: const Icon(Icons.delete, color: AppColors.errorMain),
+                    onPressed: _discardRecording,
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      );
+    }
   }
 }

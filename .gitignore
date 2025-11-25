@@ -41,3 +41,7 @@ docker-compose*.yml
 scripts/
 cnt.pem
 
+# Local SQLite database
+backend/local.db
+backend/*.db
+

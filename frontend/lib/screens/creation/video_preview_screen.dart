@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:video_player/video_player.dart';
-import 'dart:io';
+import 'dart:io' if (dart.library.html) '../../utils/file_stub.dart' as io;
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../utils/bank_details_helper.dart';
+import '../../utils/responsive_grid_delegate.dart';
+import '../../widgets/web/styled_page_header.dart';
+import '../../widgets/web/section_container.dart';
+import '../../widgets/web/styled_pill_button.dart';
+import '../../theme/app_typography.dart';
 import '../editing/video_editor_screen.dart';
+import '../web/video_editor_screen_web.dart';
+import '../web/video_preview_screen_web.dart';
 
 /// Video Preview Screen
 /// Shows recorded/uploaded video with playback and controls
@@ -55,17 +63,26 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
           ),
         );
       } else {
-        // Verify local file exists before initializing player
-        final file = File(widget.videoUri);
-        if (!await file.exists()) {
-          setState(() {
-            _hasError = true;
-            _errorMessage = 'Video file not found at path: ${widget.videoUri}';
-            _isInitializing = false;
-          });
-          return;
+        // For web, videoUri might be a blob URL or local path
+        // For mobile, verify local file exists before initializing player
+        if (kIsWeb) {
+          // On web, use network URL (blob URLs or local paths work as network URLs)
+          _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUri));
+        } else {
+          // Verify local file exists before initializing player (mobile only)
+          final file = io.File(widget.videoUri);
+          if (!await file.exists()) {
+            setState(() {
+              _hasError = true;
+              _errorMessage = 'Video file not found at path: ${widget.videoUri}';
+              _isInitializing = false;
+            });
+            return;
+          }
+          // On mobile, use file controller - cast to dynamic to avoid type issues
+          // This is safe because we're in !kIsWeb block
+          _controller = VideoPlayerController.file(file as dynamic);
         }
-        _controller = VideoPlayerController.file(file);
       }
       
       await _controller!.initialize();
@@ -111,13 +128,17 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   }
 
   void _handleEdit() async {
-    // Navigate to VideoEditorScreen
+    // Navigate to VideoEditorScreen (web or mobile version)
     final editedPath = await Navigator.push<String>(
       context,
       MaterialPageRoute(
-        builder: (context) => VideoEditorScreen(
-          videoPath: widget.videoUri,
-        ),
+        builder: (context) => kIsWeb
+            ? VideoEditorScreenWeb(
+                videoPath: widget.videoUri,
+              )
+            : VideoEditorScreen(
+                videoPath: widget.videoUri,
+              ),
       ),
     );
 
@@ -226,6 +247,17 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // On web, use the web version
+    if (kIsWeb) {
+      return VideoPreviewScreenWeb(
+        videoUri: widget.videoUri,
+        source: widget.source,
+        duration: widget.duration,
+        fileSize: widget.fileSize,
+      );
+    }
+    
+    // Mobile version (original design with gradient)
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(

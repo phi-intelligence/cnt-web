@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../services/livekit_meeting_service.dart';
@@ -6,6 +7,10 @@ import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
+import '../../utils/responsive_grid_delegate.dart';
+import '../../widgets/web/styled_page_header.dart';
+import '../../widgets/web/section_container.dart';
+import '../../widgets/web/styled_pill_button.dart';
 import '../meeting/prejoin_screen.dart';
 
 /// Live Stream Start Screen
@@ -93,7 +98,7 @@ class _LiveStreamStartScreenState extends State<LiveStreamStartScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to start live stream: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.errorMain,
           ),
         );
       }
@@ -102,93 +107,185 @@ class _LiveStreamStartScreenState extends State<LiveStreamStartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      body: SafeArea(
-        child: Center(
-          child: _isCreating
-              ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const CircularProgressIndicator(
-                      color: AppColors.primaryMain,
-                    ),
-                    const SizedBox(height: AppSpacing.large),
-                    Text(
-                      'Starting Live Stream...',
-                      style: AppTypography.heading3,
-                    ),
-                    const SizedBox(height: AppSpacing.small),
-                    Text(
-                      'Please wait',
-                      style: AppTypography.body.copyWith(
-                        color: AppColors.textSecondary,
+    if (kIsWeb) {
+      // Web version with web design system
+      return Scaffold(
+        backgroundColor: AppColors.backgroundPrimary,
+        body: Container(
+          padding: ResponsiveGridDelegate.getResponsivePadding(context),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: ResponsiveGridDelegate.getMaxContentWidth(context),
+              ),
+              child: _isCreating
+                  ? SectionContainer(
+                      showShadow: true,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(
+                            color: AppColors.primaryMain,
+                          ),
+                          const SizedBox(height: AppSpacing.large),
+                          Text(
+                            'Starting Live Stream...',
+                            style: AppTypography.heading3.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.small),
+                          Text(
+                            'Please wait',
+                            style: AppTypography.body.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : SectionContainer(
+                      showShadow: true,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: AppColors.errorMain,
+                          ),
+                          const SizedBox(height: AppSpacing.large),
+                          Text(
+                            'Failed to Start Stream',
+                            style: AppTypography.heading3.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          if (_errorMessage != null) ...[
+                            const SizedBox(height: AppSpacing.medium),
+                            Text(
+                              _errorMessage!,
+                              style: AppTypography.body.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                          const SizedBox(height: AppSpacing.extraLarge),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              StyledPillButton(
+                                label: 'Go Back',
+                                icon: Icons.arrow_back,
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                },
+                              ),
+                              const SizedBox(width: AppSpacing.medium),
+                              StyledPillButton(
+                                label: 'Try Again',
+                                icon: Icons.refresh,
+                                onPressed: _startLiveStream,
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: Colors.red,
-                    ),
-                    const SizedBox(height: AppSpacing.large),
-                    Text(
-                      'Failed to Start Stream',
-                      style: AppTypography.heading3,
-                    ),
-                    if (_errorMessage != null) ...[
-                      const SizedBox(height: AppSpacing.medium),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.extraLarge,
-                        ),
-                        child: Text(
-                          _errorMessage!,
-                          style: AppTypography.body.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                          textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    } else {
+      // Mobile version (original design)
+      return Scaffold(
+        backgroundColor: AppColors.backgroundPrimary,
+        body: SafeArea(
+          child: Center(
+            child: _isCreating
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CircularProgressIndicator(
+                        color: AppColors.primaryMain,
+                      ),
+                      const SizedBox(height: AppSpacing.large),
+                      Text(
+                        'Starting Live Stream...',
+                        style: AppTypography.heading3,
+                      ),
+                      const SizedBox(height: AppSpacing.small),
+                      Text(
+                        'Please wait',
+                        style: AppTypography.body.copyWith(
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ],
-                    const SizedBox(height: AppSpacing.extraLarge),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryMain,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.extraLarge,
-                          vertical: AppSpacing.medium,
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red,
+                      ),
+                      const SizedBox(height: AppSpacing.large),
+                      Text(
+                        'Failed to Start Stream',
+                        style: AppTypography.heading3,
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: AppSpacing.medium),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.extraLarge,
+                          ),
+                          child: Text(
+                            _errorMessage!,
+                            style: AppTypography.body.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.extraLarge),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryMain,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.extraLarge,
+                            vertical: AppSpacing.medium,
+                          ),
+                        ),
+                        child: Text(
+                          'Go Back',
+                          style: AppTypography.button.copyWith(
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                      child: Text(
-                        'Go Back',
-                        style: AppTypography.button.copyWith(
-                          color: Colors.white,
+                      const SizedBox(height: AppSpacing.medium),
+                      TextButton(
+                        onPressed: _startLiveStream,
+                        child: Text(
+                          'Try Again',
+                          style: AppTypography.button.copyWith(
+                            color: AppColors.primaryMain,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.medium),
-                    TextButton(
-                      onPressed: _startLiveStream,
-                      child: Text(
-                        'Try Again',
-                        style: AppTypography.button.copyWith(
-                          color: AppColors.primaryMain,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 }
-

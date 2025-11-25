@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:livekit_client/livekit_client.dart' as lk;
 import '../../services/livekit_meeting_service.dart';
 import '../../widgets/meeting/video_track_view.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/app_typography.dart';
+import '../../utils/responsive_grid_delegate.dart';
+import '../../widgets/web/styled_page_header.dart';
 
 /// Live Stream Viewer Screen - Watch live streams using LiveKit
 class LiveStreamViewer extends StatefulWidget {
@@ -203,45 +207,160 @@ class _LiveStreamViewerState extends State<LiveStreamViewer> {
     }
 
     if (!_isConnected) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        appBar: AppBar(
-          backgroundColor: Colors.black,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.white),
-                const SizedBox(height: AppSpacing.large),
-                const Text(
-                  'Failed to connect to stream',
-                  style: TextStyle(color: Colors.white, fontSize: 18),
-                ),
-                const SizedBox(height: AppSpacing.medium),
-                ElevatedButton(
-                  onPressed: _connectToStream,
-                  child: const Text('Retry'),
-                ),
-              ],
+      if (kIsWeb) {
+        // Web version with design system
+        return Scaffold(
+          backgroundColor: AppColors.backgroundPrimary,
+          body: Container(
+            padding: ResponsiveGridDelegate.getResponsivePadding(context),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 64, color: AppColors.errorMain),
+                  const SizedBox(height: AppSpacing.large),
+                  Text(
+                    'Failed to connect to stream',
+                    style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+                  ),
+                  const SizedBox(height: AppSpacing.medium),
+                  ElevatedButton(
+                    onPressed: _connectToStream,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryMain,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      );
+        );
+      } else {
+        // Mobile version
+        return Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.white),
+                  const SizedBox(height: AppSpacing.large),
+                  const Text(
+                    'Failed to connect to stream',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                  const SizedBox(height: AppSpacing.medium),
+                  ElevatedButton(
+                    onPressed: _connectToStream,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
     }
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
+      body: kIsWeb ? Column(
+        children: [
+          // Header with title and viewer count (web version)
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: ResponsiveGridDelegate.getResponsivePadding(context).horizontal,
+              vertical: AppSpacing.medium,
+            ),
+            color: Colors.black.withOpacity(0.8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.red,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.small),
+                      const Text(
+                        'LIVE',
+                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                      const SizedBox(width: AppSpacing.small),
+                      Expanded(
+                        child: Text(
+                          widget.streamTitle,
+                          style: AppTypography.body.copyWith(color: Colors.white),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Row(
+                  children: [
+                    const Icon(Icons.remove_red_eye, color: Colors.white70, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$_viewerCount',
+                      style: AppTypography.bodySmall.copyWith(color: Colors.white70),
+                    ),
+                    const SizedBox(width: AppSpacing.medium),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      color: Colors.white,
+                      onPressed: _leaveStream,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Video player area
+          Expanded(
+            child: _remoteVideoTrack != null
+                ? VideoTrackView(track: _remoteVideoTrack!, isLocal: false)
+                : Container(
+                    color: Colors.black,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.videocam_off, size: 80, color: Colors.white38),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Waiting for broadcaster...',
+                            style: AppTypography.body.copyWith(color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+      ) : SafeArea(
         child: Column(
           children: [
-            // Header with title and viewer count
+            // Header with title and viewer count (mobile version)
             Container(
               padding: const EdgeInsets.all(AppSpacing.medium),
               color: Colors.black.withOpacity(0.8),

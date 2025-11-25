@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../theme/app_colors.dart';
@@ -12,7 +11,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
+import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_grid_delegate.dart';
+import 'video_preview_screen_web.dart';
 
 /// Web Video Editor Screen - Professional Video Editing UI for Web
 /// Features: Multi-track timeline, text overlays, trimming, filters, audio tracks
@@ -55,11 +56,6 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   bool _audioRemoved = false;
   String? _audioFilePath;
   
-  // Filter values
-  double _brightness = 0.0;
-  double _contrast = 1.0;
-  double _saturation = 1.0;
-  
   // Text overlays
   List<TextOverlay> _textOverlays = [];
   TextOverlay? _selectedTextOverlay;
@@ -79,7 +75,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this); // 5 tabs: Edit, Music, Text, Filters, Adjust
+    _tabController = TabController(length: 3, vsync: this); // 3 tabs: Trim, Music, Text
     _initializePlayer();
   }
 
@@ -442,8 +438,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       _hasError = false;
     });
 
+    final inputPath = _editedVideoPath ?? widget.videoPath;
     final outputPath = await _editingService.trimVideo(
-      widget.videoPath,
+      inputPath,
       _trimStart,
       _trimEnd,
       onProgress: (progress) {},
@@ -579,57 +576,6 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     }
   }
 
-  Future<void> _applyFilters() async {
-    final inputPath = _editedVideoPath ?? widget.videoPath;
-    
-    if (_brightness == 0.0 && _contrast == 1.0 && _saturation == 1.0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('No filters to apply'),
-          backgroundColor: AppColors.infoMain,
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isEditing = true;
-      _hasError = false;
-    });
-
-    final filters = <String, double>{};
-    if (_brightness != 0.0) filters['brightness'] = _brightness;
-    if (_contrast != 1.0) filters['contrast'] = _contrast;
-    if (_saturation != 1.0) filters['saturation'] = _saturation;
-
-    final outputPath = await _editingService.applyFilters(
-      inputPath,
-      filters,
-      onProgress: (progress) {},
-      onError: (error) {
-        setState(() {
-          _isEditing = false;
-          _hasError = true;
-          _errorMessage = error;
-        });
-      },
-    );
-
-    if (outputPath != null) {
-      setState(() {
-        _editedVideoPath = outputPath;
-        _isEditing = false;
-      });
-      await _reloadPlayer(outputPath);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Filters applied successfully'),
-          backgroundColor: AppColors.successMain,
-        ),
-      );
-    }
-  }
-
   Future<void> _reloadPlayer(String path) async {
     await _controller?.dispose();
     
@@ -661,20 +607,100 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     setState(() {});
   }
 
-  void _handleExport() {
-    if (_editedVideoPath == null && _textOverlays.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('No edits to export'),
-          backgroundColor: AppColors.infoMain,
-        ),
-      );
-      return;
-    }
+  Future<void> _handleSave() async {
+    setState(() {
+      _isEditing = true;
+      _hasError = false;
+    });
 
-    // TODO: Apply text overlays to video
-    // For now, just return edited video path
-    Navigator.pop(context, _editedVideoPath ?? widget.videoPath);
+    try {
+      // Get the final video path (edited or original)
+      String finalVideoPath = _editedVideoPath ?? widget.videoPath;
+
+      // If there are pending edits that haven't been applied, apply them
+      // Check if trim needs to be applied
+      if (_trimStart > Duration.zero || _trimEnd < _videoDuration) {
+        if (_editedVideoPath == null || _trimStart > Duration.zero || _trimEnd < _videoDuration) {
+          // Apply trim
+          final trimmedPath = await _editingService.trimVideo(
+            finalVideoPath,
+            _trimStart,
+            _trimEnd,
+            onProgress: (progress) {},
+            onError: (error) {
+              setState(() {
+                _isEditing = false;
+                _hasError = true;
+                _errorMessage = error;
+              });
+            },
+          );
+          if (trimmedPath != null) {
+            finalVideoPath = trimmedPath;
+          }
+        }
+      }
+
+      // On web, the video is already at a URL, so we can navigate directly
+      // On mobile, we would save to device storage here
+      if (kIsWeb) {
+        // For web, we use the URL directly
+        // The video is already available at the URL, no need to download
+        setState(() {
+          _isEditing = false;
+        });
+
+        // Navigate to publish page
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => VideoPreviewScreenWeb(
+                videoUri: finalVideoPath,
+                source: 'editor',
+                duration: _videoDuration.inSeconds,
+                fileSize: 0,
+              ),
+            ),
+          );
+        }
+      } else {
+        // For mobile, save to device storage
+        // TODO: Implement mobile save functionality if needed
+        setState(() {
+          _isEditing = false;
+        });
+
+        // Navigate to publish page
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => VideoPreviewScreenWeb(
+                videoUri: finalVideoPath,
+                source: 'editor',
+                duration: _videoDuration.inSeconds,
+                fileSize: 0,
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isEditing = false;
+        _hasError = true;
+        _errorMessage = e.toString();
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving video: $e'),
+            backgroundColor: AppColors.errorMain,
+          ),
+        );
+      }
+    }
   }
 
   String _formatDuration(Duration duration) {
@@ -802,9 +828,6 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             // Playback Controls
             _buildPlaybackControls(),
             
-            // Timeline
-            _buildTimeline(),
-            
             // Bottom Toolbar
             _buildBottomToolbar(),
           ],
@@ -850,10 +873,15 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             );
           },
         ),
-        // Share/Export button
-        IconButton(
-          icon: Icon(Icons.share, color: AppColors.primaryMain),
-          onPressed: _handleExport,
+        // Save button
+        Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: StyledPillButton(
+            label: 'Save',
+            icon: Icons.save,
+            onPressed: _isEditing ? null : _handleSave,
+            isLoading: _isEditing,
+          ),
         ),
       ],
     );
@@ -1214,9 +1242,17 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: AppColors.borderSecondary),
               ),
-              child: CustomPaint(
-                painter: WaveformPainter(),
-                child: const SizedBox.expand(),
+              child: Center(
+                child: Text(
+                  _audioFilePath != null 
+                      ? 'Audio track loaded' 
+                      : _audioRemoved 
+                          ? 'Audio removed' 
+                          : 'No audio track',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ),
             ),
           ),
@@ -1241,8 +1277,6 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                 _buildEditPanel(),
                 _buildMusicPanel(),
                 _buildTextPanel(),
-                _buildFiltersPanel(),
-                _buildAdjustPanel(),
               ],
             ),
           ),
@@ -1260,11 +1294,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               labelColor: AppColors.primaryMain,
               unselectedLabelColor: AppColors.textSecondary,
               tabs: const [
-                Tab(icon: Icon(Icons.content_cut), text: 'Edit'),
+                Tab(icon: Icon(Icons.content_cut), text: 'Trim'),
                 Tab(icon: Icon(Icons.music_note), text: 'Music'),
                 Tab(icon: Icon(Icons.text_fields), text: 'Text'),
-                Tab(icon: Icon(Icons.filter), text: 'Filters'),
-                Tab(icon: Icon(Icons.tune), text: 'Adjust'),
               ],
             ),
           ),
@@ -1427,156 +1459,5 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     );
   }
 
-  Widget _buildFiltersPanel() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Filters',
-            style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
-          ),
-          const SizedBox(height: 12),
-          
-          // Brightness
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Brightness: ${_brightness.toStringAsFixed(2)}',
-                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
-              ),
-              Slider(
-                value: _brightness,
-                min: -1.0,
-                max: 1.0,
-                divisions: 40,
-                activeColor: AppColors.primaryMain,
-                onChanged: (value) {
-                  setState(() {
-                    _brightness = value;
-                  });
-                },
-              ),
-            ],
-          ),
-          
-          // Contrast
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Contrast: ${_contrast.toStringAsFixed(2)}',
-                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
-              ),
-              Slider(
-                value: _contrast,
-                min: 0.0,
-                max: 2.0,
-                divisions: 40,
-                activeColor: AppColors.primaryMain,
-                onChanged: (value) {
-                  setState(() {
-                    _contrast = value;
-                  });
-                },
-              ),
-            ],
-          ),
-          
-          // Saturation
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Saturation: ${_saturation.toStringAsFixed(2)}',
-                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
-              ),
-              Slider(
-                value: _saturation,
-                min: 0.0,
-                max: 3.0,
-                divisions: 40,
-                activeColor: AppColors.primaryMain,
-                onChanged: (value) {
-                  setState(() {
-                    _saturation = value;
-                  });
-                },
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: _isEditing ? null : _applyFilters,
-            icon: const Icon(Icons.check),
-            label: const Text('Apply Filters'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryMain,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAdjustPanel() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Adjustments',
-            style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Adjustments feature coming soon'),
-                  backgroundColor: AppColors.infoMain,
-                ),
-              );
-            },
-            icon: const Icon(Icons.tune),
-            label: const Text('Adjust Settings'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryMain,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Placeholder waveform painter
-class WaveformPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.textSecondary
-      ..strokeWidth = 2;
-    
-    // Draw simple waveform pattern
-    for (double x = 0; x < size.width; x += 4) {
-      final height = (20 + math.sin(x * 0.1) * 15).abs();
-      canvas.drawLine(
-        Offset(x, size.height / 2 - height / 2),
-        Offset(x, size.height / 2 + height / 2),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
