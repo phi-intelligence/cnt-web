@@ -101,7 +101,18 @@ class ApiService {
 
   /// Get full media URL for audio/image files
   String getMediaUrl(String? path) {
-    if (path == null) return '';
+    if (path == null || path.isEmpty) return '';
+    
+    // Trim whitespace
+    path = path.trim();
+    if (path.isEmpty) return '';
+    
+    // If path is already a full URL (http:// or https://), return as-is
+    // This prevents double-prefixing of CloudFront URLs
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    
     // Remove leading slash if present to avoid double slashes
     String cleanPath = path.startsWith('/') ? path.substring(1) : path;
     
