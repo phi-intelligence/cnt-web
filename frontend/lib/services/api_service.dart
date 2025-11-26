@@ -143,9 +143,17 @@ class ApiService {
     if (path.isEmpty) return '';
     
     // If path is already a full URL (http:// or https://), return as-is
-    // This prevents double-prefixing of CloudFront URLs
+    // This prevents double-prefixing of CloudFront URLs and other absolute URLs
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return path;
+    }
+    
+    // Check if path contains CloudFront domain (might be stored without protocol)
+    // This handles cases where backend returns URLs without http:// prefix
+    final mediaBase = mediaBaseUrl.replaceAll('https://', '').replaceAll('http://', '');
+    if (path.contains(mediaBase)) {
+      // Path already contains CloudFront domain, return with https:// prefix
+      return path.startsWith('http') ? path : 'https://$path';
     }
     
     // Remove leading slash if present to avoid double slashes
