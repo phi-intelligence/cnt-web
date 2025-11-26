@@ -142,6 +142,7 @@ class _InstagramPostCardState extends State<InstagramPostCard>
     final userAvatar = widget.post['user_avatar'];
     final content = widget.post['content'] ?? widget.post['title'] ?? '';
     final imageUrl = widget.post['image_url'];
+    final postType = widget.post['post_type'] ?? 'image'; // 'text' or 'image'
     final createdAt = widget.post['created_at'];
     final commentsCount = widget.post['comments_count'] ?? 0;
     final DateTime? createdDate = createdAt != null
@@ -149,6 +150,10 @@ class _InstagramPostCardState extends State<InstagramPostCard>
             ? createdAt
             : DateTime.tryParse(createdAt.toString()))
         : null;
+    
+    // For text posts, don't show image even if image_url exists (image is for carousel only)
+    final isTextPost = postType == 'text';
+    final shouldShowImage = !isTextPost && imageUrl != null && imageUrl.toString().isNotEmpty;
 
     return Container(
       margin: EdgeInsets.only(bottom: AppSpacing.small),
@@ -210,8 +215,8 @@ class _InstagramPostCardState extends State<InstagramPostCard>
             ),
           ),
 
-          // Image section
-          if (imageUrl != null && imageUrl.toString().isNotEmpty)
+          // Content section: Image for image posts, Text for text posts
+          if (shouldShowImage)
             ClipRRect(
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(20),
@@ -285,6 +290,40 @@ class _InstagramPostCardState extends State<InstagramPostCard>
                       ),
                   ],
                 ),
+              ),
+            )
+          else if (isTextPost)
+            // Text post content (Facebook-style) - show text prominently
+            Container(
+              padding: EdgeInsets.all(AppSpacing.large),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title (if different from content)
+                  if (widget.post['title'] != null && 
+                      widget.post['title'].toString().trim().isNotEmpty &&
+                      widget.post['title'] != content)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: AppSpacing.medium),
+                      child: Text(
+                        widget.post['title'].toString(),
+                        style: AppTypography.heading3.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  // Content text (quote)
+                  Text(
+                    content,
+                    style: AppTypography.body.copyWith(
+                      fontSize: 18,
+                      height: 1.6,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
 

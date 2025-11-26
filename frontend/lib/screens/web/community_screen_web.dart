@@ -235,6 +235,7 @@ class _CommunityScreenWebState extends State<CommunityScreenWeb> {
                                       'title': post.title,
                                       'content': post.content,
                                       'image_url': post.image_url,
+                                      'post_type': post.post_type ?? 'image', // Include post_type
                                       'category': post.category,
                                       'likes_count': post.likes_count,
                                       'comments_count': post.comments_count,
