@@ -55,9 +55,13 @@ class LiveKitMeetingService {
         isHost: isHost,
       );
       
+      // Always use frontend's configured LiveKit URL (ignores backend's ws_url which is internal Docker URL)
+      final frontendUrl = _apiService.getLiveKitUrl();
+      print('🎥 LiveKit Meeting: Using frontend URL: $frontendUrl (ignoring backend URL: ${response['ws_url']})');
+      
       return MeetingJoinResponse(
         token: response['token'] as String,
-        url: response['ws_url'] as String,
+        url: frontendUrl, // Use frontend's configured URL, not backend's internal URL
         roomName: response['room_name'] as String,
       );
     } catch (e) {
@@ -83,9 +87,13 @@ class LiveKitMeetingService {
         isHost: isHost,
       );
       
+      // Always use frontend's configured LiveKit URL (ignores backend's ws_url which is internal Docker URL)
+      final frontendUrl = _apiService.getLiveKitUrl();
+      print('🎥 LiveKit Meeting: Using frontend URL: $frontendUrl (ignoring backend URL: ${response['ws_url']})');
+      
       return MeetingJoinResponse(
         token: response['token'] as String,
-        url: response['ws_url'] as String,
+        url: frontendUrl, // Use frontend's configured URL, not backend's internal URL
         roomName: response['room_name'] as String,
       );
     } catch (e) {
@@ -105,11 +113,19 @@ class LiveKitMeetingService {
     String? wsUrl,
   }) async {
     try {
-      // Normalize URL - replace localhost with platform-specific host for mobile
-      String url = wsUrl ?? _apiService.getLiveKitUrl();
-      if (url.contains('localhost') || url.contains('127.0.0.1')) {
-        // Replace localhost with platform-appropriate URL
-        url = _apiService.getLiveKitUrl(); // This already handles platform detection
+      // Always use frontend's configured LiveKit URL (ignores backend's ws_url which may be internal Docker URL)
+      // Also replace any localhost/internal URLs with the configured external URL
+      String url = _apiService.getLiveKitUrl();
+      if (wsUrl != null && (wsUrl.contains('localhost') || wsUrl.contains('127.0.0.1') || wsUrl.contains('livekit-server'))) {
+        // Backend provided internal URL - ignore it and use frontend's configured URL
+        print('🎥 LiveKit Meeting: Ignoring internal URL from backend: $wsUrl, using: $url');
+      } else if (wsUrl != null && !wsUrl.contains('localhost') && !wsUrl.contains('127.0.0.1') && !wsUrl.contains('livekit-server')) {
+        // Backend provided external URL - use it (but this shouldn't happen in production)
+        url = wsUrl;
+        print('🎥 LiveKit Meeting: Using provided URL: $url');
+      } else {
+        // Use frontend's configured URL (default)
+        print('🎥 LiveKit Meeting: Using frontend configured URL: $url');
       }
       
       final roomOptions = lk.RoomOptions(
