@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:html' if (dart.library.io) '../utils/html_stub.dart' as html;
 import '../models/api_models.dart';
@@ -829,7 +828,7 @@ class ApiService {
             'file',
             bytes,
             filename: fileName,
-            contentType: MediaType('application', 'pdf'),
+            contentType: 'application/pdf',
           ),
         );
       } else if (filePath != null) {
