@@ -15,6 +15,9 @@ class WebVideoRecorder {
   Completer<XFile>? _stopCompleter;
   String? _currentDeviceId;
   String _facingMode = 'user'; // 'user' for front, 'environment' for back
+  DateTime? _recordingStartTime;
+  static const int _minRecordingDurationMs = 500; // Minimum 500ms recording
+  static const int _minBlobSizeBytes = 1024; // Minimum 1KB for valid video
 
   /// Get video element for preview
   html.VideoElement? get videoElement => _videoElement;
@@ -295,6 +298,30 @@ class WebVideoRecorder {
           return;
         }
 
+        // Check minimum blob size for valid video
+        if (totalSize < _minBlobSizeBytes) {
+          if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
+            _stopCompleter!.completeError(Exception(
+              'Recorded video is too small ($totalSize bytes) - recording may have been stopped too quickly. '
+              'Please record for at least ${_minRecordingDurationMs}ms.'
+            ));
+          }
+          return;
+        }
+
+        // Check minimum recording duration
+        if (_recordingStartTime != null) {
+          final duration = DateTime.now().difference(_recordingStartTime!);
+          if (duration.inMilliseconds < _minRecordingDurationMs) {
+            if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
+              _stopCompleter!.completeError(Exception(
+                'Recording duration too short (${duration.inMilliseconds}ms) - please record for at least ${_minRecordingDurationMs}ms'
+              ));
+            }
+            return;
+          }
+        }
+
         // Create blob and convert
         final blob = html.Blob(_recordedChunks, mimeType ?? 'video/webm');
         print('📹 Created blob from ${_recordedChunks.length} chunks, total size: ${totalSize} bytes');
@@ -311,6 +338,8 @@ class WebVideoRecorder {
       // Start recording with timeslice to get data chunks
       _mediaRecorder!.start(100); // Request data every 100ms
       _isRecording = true;
+      _recordingStartTime = DateTime.now();
+      print('📹 Recording started at ${_recordingStartTime}');
     } catch (e) {
       print('Error starting video recording: $e');
       _isRecording = false;
@@ -328,6 +357,19 @@ class WebVideoRecorder {
     // Validate blob size before attempting conversion
     if (blob.size == 0) {
       final error = Exception('Blob is empty - no video data was recorded');
+      print('❌ $error');
+      if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
+        _stopCompleter!.completeError(error);
+      }
+      return;
+    }
+
+    // Check minimum blob size for valid video
+    if (blob.size < _minBlobSizeBytes) {
+      final error = Exception(
+        'Blob is too small (${blob.size} bytes) - recording may have been stopped before any valid video frames were captured. '
+        'Minimum size required: $_minBlobSizeBytes bytes'
+      );
       print('❌ $error');
       if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
         _stopCompleter!.completeError(error);
@@ -365,12 +407,34 @@ class WebVideoRecorder {
               ));
             }
           } else {
-            // Unknown type - provide more context
-            if (!completer.isCompleted) {
-              completer.completeError(Exception(
-                'Unexpected FileReader result type: ${result.runtimeType}. '
-                'Expected ByteBuffer. This may indicate the blob contains no valid video data.'
-              ));
+            // Unknown type - provide more context and try to handle gracefully
+            print('⚠️ FileReader returned unexpected type: ${result.runtimeType}');
+            // Try to convert to string and check if it's an error message
+            try {
+              final resultStr = result.toString();
+              if (resultStr.contains('error') || resultStr.contains('invalid')) {
+                if (!completer.isCompleted) {
+                  completer.completeError(Exception(
+                    'FileReader encountered an error reading the blob. The video data may be corrupted or invalid. '
+                    'Please try recording again.'
+                  ));
+                }
+              } else {
+                if (!completer.isCompleted) {
+                  completer.completeError(Exception(
+                    'Unexpected FileReader result type: ${result.runtimeType}. '
+                    'Expected ByteBuffer. This may indicate the blob contains no valid video data. '
+                    'Please try recording again and ensure you record for at least ${_minRecordingDurationMs}ms.'
+                  ));
+                }
+              }
+            } catch (e) {
+              if (!completer.isCompleted) {
+                completer.completeError(Exception(
+                  'Failed to process video data. The recording may have been stopped too quickly or the video data is invalid. '
+                  'Please try recording again and ensure you record for at least ${_minRecordingDurationMs}ms.'
+                ));
+              }
             }
           }
         } catch (e) {
@@ -448,6 +512,17 @@ class WebVideoRecorder {
     // Validate that recording actually started
     if (_mediaRecorder!.state == 'inactive') {
       throw Exception('Recording was never started or already stopped');
+    }
+
+    // Check minimum recording duration
+    if (_recordingStartTime != null) {
+      final duration = DateTime.now().difference(_recordingStartTime!);
+      if (duration.inMilliseconds < _minRecordingDurationMs) {
+        throw Exception(
+          'Recording duration too short (${duration.inMilliseconds}ms). '
+          'Please record for at least ${_minRecordingDurationMs}ms before stopping.'
+        );
+      }
     }
 
     try {
@@ -528,6 +603,7 @@ class WebVideoRecorder {
     _isPaused = false;
     _stopCompleter = null;
     _currentDeviceId = null;
+    _recordingStartTime = null;
   }
 
   /// Get recording state
