@@ -49,11 +49,14 @@ class WebSocketService {
       // Reconstruct URL to ensure no port 0 issues
       // If port is 0 or missing, don't include port (let browser use defaults)
       String finalUrl;
-      if (uri.hasPort && uri.port != 0) {
-        // Valid port specified, use as-is
+      // Check port directly - if it's 0 or default port, reconstruct without explicit port
+      // Default ports: 80 for http/ws, 443 for https/wss
+      final defaultPort = (uri.scheme == 'https' || uri.scheme == 'wss') ? 443 : 80;
+      if (uri.port != 0 && uri.port != defaultPort) {
+        // Valid non-default port specified, use as-is
         finalUrl = url;
       } else {
-        // No port or port is 0 - reconstruct without port (browser will use default: 80 for ws, 443 for wss)
+        // No port, port is 0, or default port - reconstruct without port (browser will use default)
         finalUrl = '${uri.scheme}://${uri.host}';
         if (uri.path.isNotEmpty && uri.path != '/') {
           finalUrl += uri.path;

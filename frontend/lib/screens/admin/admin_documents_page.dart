@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -47,7 +48,13 @@ class _AdminDocumentsPageState extends State<AdminDocumentsPage> {
       final selected = result.files.single;
       final fileName = selected.name;
       final Uint8List? bytes = selected.bytes;
-      final path = selected.path;
+      
+      // On web, path is not available - only use bytes
+      // On mobile, we can use path if bytes is null
+      String? path;
+      if (!kIsWeb) {
+        path = selected.path;
+      }
 
       if (bytes == null && path == null) {
         ScaffoldMessenger.of(context).showSnackBar(
