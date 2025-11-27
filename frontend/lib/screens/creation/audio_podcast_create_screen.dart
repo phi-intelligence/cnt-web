@@ -122,11 +122,16 @@ class AudioPodcastCreateScreen extends StatelessWidget {
                     itemCount: options.length,
                     itemBuilder: (context, index) {
                       final option = options[index];
+                      // Alternate hover colors: orange for odd (1), brown for even (2)
+                      final hoverColors = index % 2 == 0
+                          ? [AppColors.accentMain, AppColors.accentDark] // Orange
+                          : [AppColors.warmBrown, AppColors.primaryMain]; // Brown
                       return _buildOptionCard(
                         context,
                         icon: option['icon'] as IconData,
                         title: option['title'] as String,
                         description: option['description'] as String,
+                        hoverColors: hoverColors,
                         onTap: option['onTap'] as VoidCallback,
                       );
                     },
@@ -145,29 +150,88 @@ class AudioPodcastCreateScreen extends StatelessWidget {
     required IconData icon,
     required String title,
     required String description,
+    required List<Color> hoverColors,
     required VoidCallback onTap,
   }) {
+    return _OptionCard(
+      icon: icon,
+      title: title,
+      description: description,
+      hoverColors: hoverColors,
+      onTap: onTap,
+    );
+  }
+}
+
+class _OptionCard extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String description;
+  final List<Color> hoverColors;
+  final VoidCallback onTap;
+
+  const _OptionCard({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.hoverColors,
+    required this.onTap,
+  });
+
+  @override
+  State<_OptionCard> createState() => _OptionCardState();
+}
+
+class _OptionCardState extends State<_OptionCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
-        onTap: onTap,
-        child: Container(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
           decoration: BoxDecoration(
-            color: AppColors.backgroundSecondary,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: _isHovered
+                  ? widget.hoverColors
+                  : [
+                      AppColors.cardBackground,
+                      AppColors.backgroundSecondary,
+                    ],
+            ),
             borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
             border: Border.all(
-              color: AppColors.borderPrimary,
-              width: 1,
+              color: _isHovered
+                  ? widget.hoverColors.first
+                  : AppColors.borderPrimary,
+              width: _isHovered ? 2 : 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryMain.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            boxShadow: _isHovered
+                ? [
+                    BoxShadow(
+                      color: widget.hoverColors.first.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
           ),
-          padding: EdgeInsets.all(AppSpacing.extraLarge),
+          padding: const EdgeInsets.all(AppSpacing.extraLarge),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -175,34 +239,69 @@ class AudioPodcastCreateScreen extends StatelessWidget {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryMain.withOpacity(0.1),
+                  color: _isHovered
+                      ? Colors.white.withOpacity(0.2)
+                      : AppColors.warmBrown.withOpacity(0.1),
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _isHovered
+                        ? Colors.white.withOpacity(0.3)
+                        : AppColors.warmBrown.withOpacity(0.3),
+                    width: 1,
+                  ),
                 ),
                 child: Icon(
-                  icon,
-                  color: AppColors.primaryMain,
+                  widget.icon,
+                  color: _isHovered
+                      ? Colors.white
+                      : AppColors.warmBrown,
                   size: 40,
                 ),
               ),
               const SizedBox(height: AppSpacing.medium),
               Text(
-                title,
+                widget.title,
                 style: AppTypography.heading3.copyWith(
-                  color: AppColors.textPrimary,
+                  color: _isHovered
+                      ? Colors.white
+                      : AppColors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.small),
               Text(
-                description,
+                widget.description,
                 style: AppTypography.body.copyWith(
-                  color: AppColors.textSecondary,
+                  color: _isHovered
+                      ? Colors.white.withOpacity(0.9)
+                      : AppColors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
+              if (_isHovered) ...[
+                const SizedBox(height: AppSpacing.medium),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Get Started',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.small),
+                    Icon(
+                      Icons.arrow_forward,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

@@ -13,25 +13,18 @@ import '../../providers/user_provider.dart';
 import '../../providers/playlist_provider.dart';
 import '../../models/content_item.dart';
 import '../../models/api_models.dart';
-import '../../utils/format_utils.dart';
-import '../../widgets/video_player.dart';
 import '../video/video_player_full_screen.dart';
 import '../../widgets/hero_carousel_widget.dart';
-import '../../utils/platform_helper.dart';
 import '../../utils/responsive_grid_delegate.dart';
-import '../../utils/dimension_utils.dart';
-import '../audio/audio_player_full_screen_new.dart';
-import '../movie_detail_screen.dart';
-import 'movie_detail_screen_web.dart';
-import 'video_podcast_detail_screen_web.dart';
-import 'audio_player_full_screen_web.dart';
-import '../../widgets/voice/voice_bubble.dart';
-import 'voice_agent_screen_web.dart';
+import '../../utils/platform_helper.dart';
 import '../../widgets/bible/bible_reader_section.dart';
 import '../../models/document_asset.dart';
 import 'community_screen_web.dart';
 import '../../widgets/web/welcome_section_web.dart';
-import 'podcasts_screen_web.dart';
+import 'movie_detail_screen_web.dart';
+import 'video_podcast_detail_screen_web.dart';
+import 'audio_player_full_screen_web.dart';
+import '../audio/audio_player_full_screen_new.dart';
 
 /// Web Home Screen - Real data integration matching mobile
 class HomeScreenWeb extends StatefulWidget {
@@ -745,25 +738,35 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
 
 
   Widget _buildHeroSection() {
-    // Hero Carousel Widget for Web (web-optimized size)
-    // Wrapped in Container to match other sections' styling
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.backgroundSecondary, // Cream/beige background
         borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
         child: HeroCarouselWidget(
           onItemTap: (postId) {
-            // Navigate to community page with postId (web navigation)
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => CommunityScreenWeb(postId: postId),
               ),
             );
           },
-          height: MediaQuery.of(context).size.height * 0.3, // 30% of screen height for web
+          height: isMobile 
+              ? screenHeight * 0.35 
+              : screenHeight * 0.5,
         ),
       ),
     );

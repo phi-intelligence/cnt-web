@@ -28,11 +28,11 @@ class StyledFilterChip extends StatelessWidget {
       selected: selected,
       onSelected: onSelected,
       selectedColor: selectedColor ?? AppColors.warmBrown,
-      backgroundColor: unselectedColor ?? Colors.transparent,
+      backgroundColor: unselectedColor ?? AppColors.backgroundSecondary,
       labelStyle: AppTypography.bodyMedium.copyWith(
         color: selected
             ? Colors.white
-            : (unselectedColor ?? AppColors.textSecondary),
+            : AppColors.textPrimary,
         fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
       ),
       shape: RoundedRectangleBorder(
@@ -40,8 +40,8 @@ class StyledFilterChip extends StatelessWidget {
         side: BorderSide(
           color: selected
               ? (selectedColor ?? AppColors.warmBrown)
-              : AppColors.borderPrimary.withOpacity(0.5),
-          width: selected ? 0 : 1,
+              : AppColors.borderPrimary,
+          width: 1,
         ),
       ),
       padding: EdgeInsets.symmetric(

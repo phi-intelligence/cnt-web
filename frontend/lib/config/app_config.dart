@@ -4,7 +4,7 @@ class AppConfig {
   // API Configuration
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://api.yourdomain.com/api/v1',
+    defaultValue: 'https://https://9b6e75b4bb03.ngrok-free.app/api/v1',
   );
   
   // Media Configuration
@@ -27,7 +27,7 @@ class AppConfig {
   // WebSocket Configuration
   static const String websocketUrl = String.fromEnvironment(
     'WEBSOCKET_URL',
-    defaultValue: 'wss://api.yourdomain.com',
+    defaultValue: 'wss://https://9b6e75b4bb03.ngrok-free.app',
   );
   
   // Environment

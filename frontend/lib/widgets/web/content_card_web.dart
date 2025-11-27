@@ -99,6 +99,7 @@ class _ContentCardWebState extends State<ContentCardWeb> {
                 ),
                 // Content Info
                 Container(
+                  width: double.infinity,
                   decoration: BoxDecoration(
                     color: AppColors.warmBrown.withOpacity(0.95),
                     borderRadius: const BorderRadius.vertical(
@@ -112,31 +113,38 @@ class _ContentCardWebState extends State<ContentCardWeb> {
                       ),
                     ],
                   ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.item.title,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textInverse,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: Text(
+                            widget.item.title,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textInverse,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.item.creator,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textInverse.withOpacity(0.8),
+                        const SizedBox(height: 4),
+                        SizedBox(
+                          width: double.infinity,
+                          child: Text(
+                            widget.item.creator,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textInverse.withOpacity(0.8),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
                       if (widget.item.duration != null ||
                           widget.item.plays > 0) ...[
                         const SizedBox(height: 8),

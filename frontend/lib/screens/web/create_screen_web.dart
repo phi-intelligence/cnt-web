@@ -27,12 +27,104 @@ class CreateScreenWeb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> optionCards = [
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
+    return Scaffold(
+      backgroundColor: AppColors.backgroundPrimary,
+      body: Container(
+        padding: ResponsiveGridDelegate.getResponsivePadding(context),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              StyledPageHeader(
+                title: 'Create Content',
+                size: StyledPageHeaderSize.h2,
+              ),
+              const SizedBox(height: AppSpacing.extraLarge * 2),
+              
+              // Main Content Section
+              SectionContainer(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Section Title
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.small),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.warmBrown.withOpacity(0.2),
+                                AppColors.accentMain.withOpacity(0.15),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                            border: Border.all(
+                              color: AppColors.warmBrown.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.add_circle_outline,
+                            color: AppColors.warmBrown,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.medium),
+                        Text(
+                          'Choose Content Type',
+                          style: AppTypography.heading2.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.extraLarge * 2),
+                    
+                    // Options Grid
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+                        context,
+                        desktop: 3,
+                        tablet: 2,
+                        mobile: 1,
+                        childAspectRatio: isMobile ? 2.5 : 1.3,
+                        crossAxisSpacing: AppSpacing.extraLarge,
+                        mainAxisSpacing: AppSpacing.extraLarge,
+                      ),
+                      itemCount: _getOptionCards(context).length,
+                      itemBuilder: (context, index) => _getOptionCards(context)[index],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _getOptionCards(BuildContext context) {
+    // Orange hover colors (accent colors) - for odd cards (1, 3, 5)
+    final orangeHover = [AppColors.accentMain, AppColors.accentDark];
+    // Brown hover colors (warm brown/primary) - for even cards (2, 4, 6)
+    final brownHover = [AppColors.warmBrown, AppColors.primaryMain];
+    
+    return [
       _buildOptionCard(
         context,
-        title: 'Video',
+        title: 'Video Podcast',
+        description: 'Create and upload video content',
         icon: Icons.videocam,
-        backgroundColor: AppColors.primaryMain,
+        hoverColors: orangeHover, // 1 - orange
         onTap: () => _navigateToScreen(
           context,
           const VideoPodcastCreateScreen(),
@@ -40,9 +132,10 @@ class CreateScreenWeb extends StatelessWidget {
       ),
       _buildOptionCard(
         context,
-        title: 'Audio',
+        title: 'Audio Podcast',
+        description: 'Record and share audio content',
         icon: Icons.mic,
-        backgroundColor: AppColors.accentDark,
+        hoverColors: brownHover, // 2 - brown
         onTap: () => _navigateToScreen(
           context,
           const AudioPodcastCreateScreen(),
@@ -50,11 +143,22 @@ class CreateScreenWeb extends StatelessWidget {
       ),
       _buildOptionCard(
         context,
+        title: 'Live Stream',
+        description: 'Start a live streaming session',
+        icon: Icons.live_tv,
+        hoverColors: orangeHover, // 3 - orange
+        onTap: () => _navigateToScreen(
+          context,
+          const LiveStreamStartScreen(),
+        ),
+      ),
+      _buildOptionCard(
+        context,
         title: 'Meeting',
+        description: 'Schedule or start a meeting',
         icon: Icons.group,
-        backgroundColor: AppColors.accentMain,
+        hoverColors: brownHover, // 4 - brown
         onTap: () {
-          // Navigate to meeting options screen
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -65,9 +169,21 @@ class CreateScreenWeb extends StatelessWidget {
       ),
       _buildOptionCard(
         context,
+        title: 'Quote',
+        description: 'Share inspirational quotes',
+        icon: Icons.format_quote,
+        hoverColors: orangeHover, // 5 - orange
+        onTap: () => _navigateToScreen(
+          context,
+          const QuoteCreateScreenWeb(),
+        ),
+      ),
+      _buildOptionCard(
+        context,
         title: 'Document',
+        description: 'Upload and manage documents',
         icon: Icons.description,
-        backgroundColor: AppColors.accentMain,
+        hoverColors: brownHover, // 6 - brown
         onTap: () {
           final authProvider = Provider.of<AuthProvider>(context, listen: false);
           if (authProvider.isAdmin) {
@@ -87,110 +203,169 @@ class CreateScreenWeb extends StatelessWidget {
           }
         },
       ),
-      _buildOptionCard(
-        context,
-        title: 'Live Stream',
-        icon: Icons.live_tv,
-        backgroundColor: AppColors.warmBrown,
-        onTap: () => _navigateToScreen(
-          context,
-          const LiveStreamStartScreen(),
-        ),
-      ),
-      _buildOptionCard(
-        context,
-        title: 'Quote',
-        icon: Icons.format_quote,
-        backgroundColor: AppColors.accentMain,
-        onTap: () => _navigateToScreen(
-          context,
-          const QuoteCreateScreenWeb(),
-        ),
-      ),
     ];
-
-    return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      body: Container(
-        padding: ResponsiveGridDelegate.getResponsivePadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            StyledPageHeader(
-              title: 'Create Content',
-              size: StyledPageHeaderSize.h2,
-            ),
-            const SizedBox(height: AppSpacing.extraLarge),
-            
-            // Options Grid
-            Expanded(
-              child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
-                context,
-                desktop: 5,
-                tablet: 3,
-                mobile: 2,
-                childAspectRatio: 1.2,
-                crossAxisSpacing: AppSpacing.large,
-                mainAxisSpacing: AppSpacing.large,
-              ),
-              itemCount: optionCards.length,
-              itemBuilder: (context, index) => optionCards[index],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildOptionCard(
     BuildContext context, {
     required String title,
+    required String description,
     required IconData icon,
+    required List<Color> hoverColors,
     required VoidCallback onTap,
-    Color backgroundColor = AppColors.warmBrown,
   }) {
+    return _OptionCard(
+      title: title,
+      description: description,
+      icon: icon,
+      hoverColors: hoverColors,
+      onTap: onTap,
+    );
+  }
+}
+
+class _OptionCard extends StatefulWidget {
+  final String title;
+  final String description;
+  final IconData icon;
+  final List<Color> hoverColors;
+  final VoidCallback onTap;
+
+  const _OptionCard({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.hoverColors,
+    required this.onTap,
+  });
+
+  @override
+  State<_OptionCard> createState() => _OptionCardState();
+}
+
+class _OptionCardState extends State<_OptionCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
-        onTap: onTap,
-        child: Container(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
           decoration: BoxDecoration(
-            color: backgroundColor.withOpacity(0.95),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: backgroundColor.withOpacity(0.25),
-                blurRadius: 18,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: _isHovered
+                  ? widget.hoverColors
+                  : [
+                      AppColors.cardBackground,
+                      AppColors.backgroundSecondary,
+                    ],
+            ),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+            border: Border.all(
+              color: _isHovered
+                  ? widget.hoverColors.first
+                  : AppColors.borderPrimary,
+              width: _isHovered ? 2 : 1,
+            ),
+            boxShadow: _isHovered
+                ? [
+                    BoxShadow(
+                      color: widget.hoverColors.first.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
           ),
-          padding: EdgeInsets.all(AppSpacing.extraLarge),
+          padding: const EdgeInsets.all(AppSpacing.extraLarge),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.all(AppSpacing.small),
+                padding: const EdgeInsets.all(AppSpacing.medium),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: _isHovered
+                      ? Colors.white.withOpacity(0.2)
+                      : AppColors.warmBrown.withOpacity(0.1),
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: _isHovered
+                        ? Colors.white.withOpacity(0.3)
+                        : AppColors.warmBrown.withOpacity(0.3),
+                    width: 1,
+                  ),
                 ),
-                child: Icon(icon, color: AppColors.textInverse, size: 36),
-              ),
-              const Spacer(),
-              Text(
-                title,
-                style: AppTypography.heading3.copyWith(
-                  color: AppColors.textInverse,
-                  fontWeight: FontWeight.w700,
-                  height: 1.1,
+                child: Icon(
+                  widget.icon,
+                  color: _isHovered
+                      ? Colors.white
+                      : AppColors.warmBrown,
+                  size: 40,
                 ),
               ),
+              const SizedBox(height: AppSpacing.large),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.title,
+                    style: AppTypography.heading3.copyWith(
+                      color: _isHovered
+                          ? Colors.white
+                          : AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.small),
+                  Text(
+                    widget.description,
+                    style: AppTypography.body.copyWith(
+                      color: _isHovered
+                          ? Colors.white.withOpacity(0.9)
+                          : AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+              if (_isHovered) ...[
+                const SizedBox(height: AppSpacing.medium),
+                Row(
+                  children: [
+                    Text(
+                      'Get Started',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.small),
+                    Icon(
+                      Icons.arrow_forward,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

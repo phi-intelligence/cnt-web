@@ -46,9 +46,16 @@ class GlobalAudioPlayer extends StatelessWidget {
         }
       },
       child: Container(
-        padding: EdgeInsets.all(AppSpacing.medium),
+        padding: const EdgeInsets.all(AppSpacing.medium),
         decoration: BoxDecoration(
-          color: AppColors.backgroundSecondary,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.cardBackground,
+              AppColors.backgroundSecondary,
+            ],
+          ),
           border: const Border(
             top: BorderSide(
               color: AppColors.borderPrimary,
@@ -57,190 +64,309 @@ class GlobalAudioPlayer extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.textPrimary.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 15,
+              offset: const Offset(0, -4),
+              spreadRadius: 2,
             ),
           ],
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Album Art
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: (audioPlayer.currentTrack!.coverImage != null)
-                ? Image.network(
-                    audioPlayer.currentTrack!.coverImage!,
-                    width: 56,
-                    height: 56,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 56,
-                        height: 56,
-                        color: AppColors.backgroundTertiary,
-                        child: Icon(Icons.music_note, color: AppColors.textTertiary),
-                      );
-                    },
-                  )
-                : Container(
-                    width: 56,
-                    height: 56,
-                    color: AppColors.backgroundTertiary,
-                    child: Icon(Icons.music_note, color: AppColors.textTertiary),
+            // Main Row: Track Details (left), Controls (center), Close (right)
+            Row(
+              children: [
+                // Track Details on the left
+                Expanded(
+                  child: Row(
+                    children: [
+                      // Thumbnail
+                      GestureDetector(
+                        onTap: () {}, // Consume tap
+                        child: Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.warmBrown.withOpacity(0.2),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                            child: (audioPlayer.currentTrack!.coverImage != null)
+                                ? Image.network(
+                                    audioPlayer.currentTrack!.coverImage!,
+                                    width: 60,
+                                    height: 60,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return _buildPlaceholderArt();
+                                    },
+                                  )
+                                : _buildPlaceholderArt(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.medium),
+                      
+                      // Title and Artist
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              audioPlayer.currentTrack!.title,
+                              style: AppTypography.body.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                                fontSize: 14,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              audioPlayer.currentTrack!.creator,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+                
+                // Controls in the center
+                GestureDetector(
+                  onTap: () {}, // Consume tap
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ControlButton(
+                        icon: Icons.skip_previous,
+                        onPressed: audioPlayer.queue.isNotEmpty && audioPlayer.currentTrack != null
+                            ? () => audioPlayer.previous()
+                            : null,
+                      ),
+                      const SizedBox(width: AppSpacing.small),
+                      _PlayPauseButton(
+                        isPlaying: audioPlayer.isPlaying,
+                        isLoading: audioPlayer.isLoading,
+                        onPressed: () => audioPlayer.togglePlayPause(),
+                      ),
+                      const SizedBox(width: AppSpacing.small),
+                      _ControlButton(
+                        icon: Icons.skip_next,
+                        onPressed: audioPlayer.queue.isNotEmpty && audioPlayer.currentTrack != null
+                            ? () => audioPlayer.next()
+                            : null,
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Close button on the right
+                if (PlatformHelper.isWebPlatform())
+                  GestureDetector(
+                    onTap: () {}, // Consume tap
+                    child: Container(
+                      margin: const EdgeInsets.only(left: AppSpacing.medium),
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: AppColors.errorMain.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.close, size: 18),
+                        color: AppColors.errorMain,
+                        tooltip: 'Close player',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 24,
+                          minHeight: 24,
+                        ),
+                        onPressed: () {
+                          audioPlayer.stop();
+                        },
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(width: 16),
+            const SizedBox(height: AppSpacing.small),
             
-            // Track Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+            // Timeline/Progress Bar
+            GestureDetector(
+              onTap: () {}, // Consume tap
+              child: Row(
                 children: [
                   Text(
-                    audioPlayer.currentTrack!.title,
-                    style: AppTypography.body.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    audioPlayer.currentTrack!.creator,
+                    _formatDuration(audioPlayer.position),
                     style: AppTypography.bodySmall.copyWith(
                       color: AppColors.textSecondary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  // Progress Bar (stop propagation to prevent opening full screen)
-                  GestureDetector(
-                    onTap: () {}, // Consume tap to prevent parent GestureDetector from firing
-                    child: Row(
-                      children: [
-                        Text(
-                          _formatDuration(audioPlayer.position),
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                            fontSize: 10,
-                          ),
-                        ),
-                        Expanded(
-                          child: Slider(
-                            value: audioPlayer.duration.inSeconds > 0
-                                ? audioPlayer.position.inSeconds / audioPlayer.duration.inSeconds
-                                : 0.0,
-                            onChanged: audioPlayer.isLoading
-                                ? null
-                                : (value) {
-                                    final newPosition = Duration(
-                                      seconds: (value * audioPlayer.duration.inSeconds).toInt(),
-                                    );
-                                    audioPlayer.seek(newPosition);
-                                  },
-                            activeColor: AppColors.primaryMain,
-                            inactiveColor: AppColors.borderPrimary,
-                          ),
-                        ),
-                        Text(
-                          _formatDuration(audioPlayer.duration),
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ],
-              ),
-            ),
-          
-            // Controls (stop propagation to prevent opening full screen)
-            GestureDetector(
-              onTap: () {}, // Consume tap to prevent parent GestureDetector from firing
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.skip_previous),
-                    color: AppColors.textPrimary,
-                    onPressed: audioPlayer.queue.isNotEmpty && audioPlayer.currentTrack != null
-                        ? () => audioPlayer.previous()
-                        : null,
-                  ),
-                  IconButton(
-                    icon: audioPlayer.isLoading
-                        ? SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.primaryMain,
-                            ),
-                          )
-                        : Icon(
-                            audioPlayer.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                            size: 48,
-                            color: AppColors.primaryMain,
-                          ),
-                    onPressed: () => audioPlayer.togglePlayPause(),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.skip_next),
-                    color: AppColors.textPrimary,
-                    onPressed: audioPlayer.queue.isNotEmpty && audioPlayer.currentTrack != null
-                        ? () => audioPlayer.next()
-                        : null,
-                  ),
-                ],
-              ),
-            ),
-            
-            // Volume (stop propagation to prevent opening full screen)
-            GestureDetector(
-              onTap: () {}, // Consume tap to prevent parent GestureDetector from firing
-              child: SizedBox(
-                width: 100,
-                child: Row(
-                  children: [
-                    Icon(Icons.volume_up, size: 20, color: AppColors.textSecondary),
-                    Expanded(
+                  const SizedBox(width: AppSpacing.small),
+                  Expanded(
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        trackHeight: 4,
+                        thumbShape: const RoundSliderThumbShape(
+                          enabledThumbRadius: 6,
+                        ),
+                        overlayShape: const RoundSliderOverlayShape(
+                          overlayRadius: 12,
+                        ),
+                      ),
                       child: Slider(
-                        value: audioPlayer.volume,
-                        onChanged: (value) => audioPlayer.setVolume(value),
-                        activeColor: AppColors.primaryMain,
+                        value: audioPlayer.duration.inSeconds > 0
+                            ? audioPlayer.position.inSeconds / audioPlayer.duration.inSeconds
+                            : 0.0,
+                        onChanged: audioPlayer.isLoading
+                            ? null
+                            : (value) {
+                                final newPosition = Duration(
+                                  seconds: (value * audioPlayer.duration.inSeconds).toInt(),
+                                );
+                                audioPlayer.seek(newPosition);
+                              },
+                        activeColor: AppColors.warmBrown,
                         inactiveColor: AppColors.borderPrimary,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: AppSpacing.small),
+                  Text(
+                    _formatDuration(audioPlayer.duration),
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
-            
-            // Close button (only on web)
-            if (PlatformHelper.isWebPlatform()) ...[
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () {}, // Consume tap to prevent parent GestureDetector from firing
-                child: IconButton(
-                  icon: const Icon(Icons.close, size: 20),
-                  color: AppColors.textSecondary,
-                  tooltip: 'Close player',
-                  onPressed: () {
-                    audioPlayer.stop();
-                  },
-                ),
-              ),
-            ],
           ],
         ),
       ),
     );
   }
+
+  Widget _buildPlaceholderArt() {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.warmBrown.withOpacity(0.2),
+            AppColors.accentMain.withOpacity(0.1),
+          ],
+        ),
+      ),
+      child: Icon(
+        Icons.music_note,
+        color: AppColors.warmBrown,
+        size: 28,
+      ),
+    );
+  }
 }
 
+class _PlayPauseButton extends StatelessWidget {
+  final bool isPlaying;
+  final bool isLoading;
+  final VoidCallback onPressed;
+
+  const _PlayPauseButton({
+    required this.isPlaying,
+    required this.isLoading,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.warmBrown, AppColors.accentMain],
+        ),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.warmBrown.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: IconButton(
+        icon: isLoading
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Icon(
+                isPlaying ? Icons.pause : Icons.play_arrow,
+                color: Colors.white,
+                size: 24,
+              ),
+        onPressed: onPressed,
+        padding: const EdgeInsets.all(8),
+      ),
+    );
+  }
+}
+
+class _ControlButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  const _ControlButton({
+    required this.icon,
+    this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.warmBrown.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+        border: Border.all(
+          color: AppColors.warmBrown.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: IconButton(
+        icon: Icon(icon, size: 20),
+        color: onPressed != null ? AppColors.warmBrown : AppColors.textTertiary,
+        onPressed: onPressed,
+        padding: const EdgeInsets.all(6),
+        constraints: const BoxConstraints(
+          minWidth: 36,
+          minHeight: 36,
+        ),
+      ),
+    );
+  }
+}

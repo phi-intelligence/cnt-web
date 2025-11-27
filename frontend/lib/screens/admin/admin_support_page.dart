@@ -8,10 +8,8 @@ import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/platform_helper.dart';
 import '../../utils/format_utils.dart';
-import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
-import '../../widgets/admin/admin_dashboard_card.dart';
 import '../../utils/responsive_grid_delegate.dart';
 
 class AdminSupportPage extends StatefulWidget {
@@ -114,21 +112,15 @@ class _AdminSupportPageState extends State<AdminSupportPage> {
 
             return Container(
               padding: ResponsiveGridDelegate.getResponsivePadding(context),
+              width: double.infinity,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: ResponsiveGridDelegate.getMaxContentWidth(context),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header
-                      StyledPageHeader(
-                        title: 'Support Inbox',
-                        size: StyledPageHeaderSize.h2,
-                      ),
-                      const SizedBox(height: AppSpacing.extraLarge),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    _buildHeader(),
+                    const SizedBox(height: AppSpacing.extraLarge),
 
                       // Stats Section
                       _buildStatsSection(provider),
@@ -183,8 +175,7 @@ class _AdminSupportPageState extends State<AdminSupportPage> {
                                   ? _buildWideCard(message)
                                   : _buildCompactCard(message),
                             )),
-                    ],
-                  ),
+                  ],
                 ),
               ),
             );
@@ -194,50 +185,197 @@ class _AdminSupportPageState extends State<AdminSupportPage> {
     );
   }
 
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.large),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.cardBackground,
+            AppColors.backgroundSecondary,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        border: Border.all(
+          color: AppColors.borderPrimary,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.medium),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.warmBrown.withOpacity(0.2),
+                  AppColors.accentMain.withOpacity(0.1),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              border: Border.all(
+                color: AppColors.warmBrown.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              Icons.support_agent,
+              color: AppColors.warmBrown,
+              size: 32,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.large),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Support Inbox',
+                  style: AppTypography.heading1.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.tiny),
+                Text(
+                  'Manage and respond to user support requests',
+                  style: AppTypography.body.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStatsSection(SupportProvider provider) {
     final stats = provider.stats;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    
     return SectionContainer(
       showShadow: true,
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
-          context,
-          desktop: 3,
-          tablet: 3,
-          mobile: 1,
-          childAspectRatio: 2.5,
-          crossAxisSpacing: AppSpacing.large,
-          mainAxisSpacing: AppSpacing.large,
+      child: isMobile
+          ? Column(
+              children: [
+                _buildStatCard(
+                  'Total',
+                  stats?.total.toString() ?? '-',
+                  Icons.support_agent,
+                  AppColors.infoMain,
+                ),
+                const SizedBox(height: AppSpacing.medium),
+                _buildStatCard(
+                  'Open',
+                  stats?.openCount.toString() ?? '-',
+                  Icons.pending_actions,
+                  AppColors.warningMain,
+                ),
+                const SizedBox(height: AppSpacing.medium),
+                _buildStatCard(
+                  'New',
+                  stats?.unreadAdminCount.toString() ?? '-',
+                  Icons.mark_unread_chat_alt_outlined,
+                  AppColors.primaryMain,
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    'Total',
+                    stats?.total.toString() ?? '-',
+                    Icons.support_agent,
+                    AppColors.infoMain,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.medium),
+                Expanded(
+                  child: _buildStatCard(
+                    'Open',
+                    stats?.openCount.toString() ?? '-',
+                    Icons.pending_actions,
+                    AppColors.warningMain,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.medium),
+                Expanded(
+                  child: _buildStatCard(
+                    'New',
+                    stats?.unreadAdminCount.toString() ?? '-',
+                    Icons.mark_unread_chat_alt_outlined,
+                    AppColors.primaryMain,
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.large),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withOpacity(0.1),
+            color.withOpacity(0.05),
+          ],
         ),
-        itemCount: 3,
-        itemBuilder: (context, index) {
-          switch (index) {
-            case 0:
-              return AdminDashboardCard(
-                title: 'Total',
-                value: stats?.total.toString() ?? '-',
-                icon: Icons.support_agent,
-                backgroundColor: AppColors.infoMain,
-              );
-            case 1:
-              return AdminDashboardCard(
-                title: 'Open',
-                value: stats?.openCount.toString() ?? '-',
-                icon: Icons.pending_actions,
-                backgroundColor: AppColors.warningMain,
-              );
-            case 2:
-              return AdminDashboardCard(
-                title: 'New',
-                value: stats?.unreadAdminCount.toString() ?? '-',
-                icon: Icons.mark_unread_chat_alt_outlined,
-                backgroundColor: AppColors.primaryMain,
-              );
-            default:
-              return const SizedBox();
-          }
-        },
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        border: Border.all(
+          color: color.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.medium),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(width: AppSpacing.medium),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: AppTypography.heading2.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.tiny),
+                Text(
+                  label,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -255,11 +393,29 @@ class _AdminSupportPageState extends State<AdminSupportPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Filter by Status',
-            style: AppTypography.heading3.copyWith(
-              color: AppColors.textPrimary,
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.small),
+                decoration: BoxDecoration(
+                  color: AppColors.accentMain.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                ),
+                child: Icon(
+                  Icons.filter_list,
+                  color: AppColors.accentMain,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.medium),
+              Text(
+                'Filter by Status',
+                style: AppTypography.heading3.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.large),
           Wrap(
@@ -567,48 +723,6 @@ class _StatusPill extends StatelessWidget {
           color: color,
           fontWeight: FontWeight.w600,
         ),
-      ),
-    );
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-
-  const _StatChip({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.medium),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: AppTypography.caption.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.tiny),
-          Text(
-            value,
-            style: AppTypography.heading3.copyWith(
-              color: color,
-            ),
-          ),
-        ],
       ),
     );
   }

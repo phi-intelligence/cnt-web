@@ -173,39 +173,79 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
                   // Sidebar Navigation
                   Container(
                     width: 280,
-                    color: AppColors.backgroundPrimary,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.cardBackground,
+                          AppColors.backgroundSecondary,
+                        ],
+                      ),
+                      border: Border(
+                        right: BorderSide(
+                          color: AppColors.borderPrimary,
+                          width: 1,
+                        ),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(2, 0),
+                        ),
+                      ],
+                    ),
                     child: Column(
                       children: [
                         // App Logo/Title
                         Container(
                           padding: EdgeInsets.all(AppSpacing.large * 1.5),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                AppColors.warmBrown.withOpacity(0.1),
+                                AppColors.accentMain.withOpacity(0.05),
+                              ],
+                            ),
+                            border: Border(
+                              bottom: BorderSide(
+                                color: AppColors.borderPrimary,
+                                width: 1,
+                              ),
+                            ),
+                          ),
                           child: Row(
                             children: [
                               // Logo Image (same as login screen)
                               Container(
-                                width: 40,
-                                height: 40,
+                                width: 50,
+                                height: 50,
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
+                                  gradient: LinearGradient(
+                                    colors: [AppColors.warmBrown, AppColors.accentMain],
+                                  ),
+                                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 4,
+                                      color: AppColors.warmBrown.withOpacity(0.3),
+                                      blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     ),
                                   ],
                                 ),
                                 child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
                                   child: Image.asset(
                                     'assets/images/ChatGPT Image Nov 18, 2025, 07_33_01 PM.png',
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) {
-                                      // Fallback to icon if image fails to load
                                       return Icon(
-                                Icons.church,
-                                size: 32,
-                                color: AppColors.warmBrown,
+                                        Icons.church,
+                                        size: 32,
+                                        color: Colors.white,
                                       );
                                     },
                                   ),
@@ -227,6 +267,7 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
                                       'Christian Media Platform',
                                       style: AppTypography.bodySmall.copyWith(
                                         color: AppColors.textSecondary,
+                                        fontSize: 11,
                                       ),
                                     ),
                                   ],
@@ -235,80 +276,27 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
                             ],
                           ),
                         ),
-                        Divider(
-                          height: 1,
-                          color: AppColors.borderPrimary,
-                          thickness: 1,
-                        ),
                         // Navigation Items
                         Expanded(
                           child: ListView.builder(
-                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.small),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.small,
+                              vertical: AppSpacing.tiny,
+                            ),
                             itemCount: navigationItems.length,
                             itemBuilder: (context, index) {
                               final item = navigationItems[index];
                               final isSelected = _selectedIndex == index;
                               
-                              return InkWell(
+                              return _NavItemWidget(
+                                item: item,
+                                isSelected: isSelected,
+                                unreadCount: authProvider.isAdmin &&
+                                        item.route == 'profile' &&
+                                        unreadAdmin > 0
+                                    ? unreadAdmin
+                                    : null,
                                 onTap: () => _navigateToScreen(index),
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.medium,
-                                    vertical: AppSpacing.small,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? AppColors.primaryMain.withOpacity(0.1)
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        item.icon,
-                                        size: 24,
-                                        color: isSelected
-                                            ? AppColors.primaryMain
-                                            : AppColors.textSecondary,
-                                      ),
-                                      const SizedBox(width: AppSpacing.medium),
-                                      Expanded(
-                                        child: Text(
-                                          item.label,
-                                          style: AppTypography.body.copyWith(
-                                            fontWeight: isSelected
-                                                ? FontWeight.w600
-                                                : FontWeight.normal,
-                                            color: isSelected
-                                                ? AppColors.primaryMain
-                                                : AppColors.textPrimary,
-                                          ),
-                                        ),
-                                      ),
-                                      if (authProvider.isAdmin &&
-                                          item.route == 'profile' &&
-                                          unreadAdmin > 0)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.errorMain,
-                                            borderRadius: BorderRadius.circular(999),
-                                          ),
-                                          child: Text(
-                                            unreadAdmin > 99 ? '99+' : '$unreadAdmin',
-                                            style: AppTypography.caption.copyWith(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
                               );
                             },
                           ),
@@ -316,6 +304,14 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
                         // Sidebar Action Boxes (shown on all pages)
                         Container(
                           padding: EdgeInsets.all(AppSpacing.medium),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              top: BorderSide(
+                                color: AppColors.borderPrimary,
+                                width: 1,
+                              ),
+                            ),
+                          ),
                           child: Column(
                             children: [
                               // Start Live Stream Box
@@ -375,5 +371,168 @@ class NavigationItem {
     required this.label,
     required this.route,
   });
+}
+
+class _NavItemWidget extends StatefulWidget {
+  final NavigationItem item;
+  final bool isSelected;
+  final int? unreadCount;
+  final VoidCallback onTap;
+
+  const _NavItemWidget({
+    required this.item,
+    required this.isSelected,
+    this.unreadCount,
+    required this.onTap,
+  });
+
+  @override
+  State<_NavItemWidget> createState() => _NavItemWidgetState();
+}
+
+class _NavItemWidgetState extends State<_NavItemWidget> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          margin: const EdgeInsets.only(bottom: 2),
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.small,
+            vertical: AppSpacing.small - 2,
+          ),
+          decoration: BoxDecoration(
+            gradient: widget.isSelected
+                ? LinearGradient(
+                    colors: [
+                      AppColors.warmBrown.withOpacity(0.15),
+                      AppColors.accentMain.withOpacity(0.1),
+                    ],
+                  )
+                : _isHovered
+                    ? LinearGradient(
+                        colors: [
+                          AppColors.warmBrown.withOpacity(0.08),
+                          AppColors.accentMain.withOpacity(0.05),
+                        ],
+                      )
+                    : null,
+            color: widget.isSelected || _isHovered
+                ? null
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+            border: widget.isSelected
+                ? Border.all(
+                    color: AppColors.warmBrown.withOpacity(0.3),
+                    width: 1,
+                  )
+                : null,
+            boxShadow: widget.isSelected
+                ? [
+                    BoxShadow(
+                      color: AppColors.warmBrown.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  gradient: widget.isSelected
+                      ? LinearGradient(
+                          colors: [AppColors.warmBrown, AppColors.accentMain],
+                        )
+                      : _isHovered
+                          ? LinearGradient(
+                              colors: [
+                                AppColors.warmBrown.withOpacity(0.2),
+                                AppColors.accentMain.withOpacity(0.1),
+                              ],
+                            )
+                          : null,
+                  color: widget.isSelected || _isHovered
+                      ? null
+                      : AppColors.warmBrown.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                  border: widget.isSelected
+                      ? Border.all(
+                          color: AppColors.warmBrown.withOpacity(0.3),
+                          width: 1,
+                        )
+                      : null,
+                ),
+                child: Icon(
+                  widget.item.icon,
+                  size: 16,
+                  color: widget.isSelected
+                      ? Colors.white
+                      : _isHovered
+                          ? AppColors.warmBrown
+                          : AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.small),
+              Expanded(
+                child: Text(
+                  widget.item.label,
+                  style: AppTypography.bodySmall.copyWith(
+                    fontWeight: widget.isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                    color: widget.isSelected
+                        ? AppColors.warmBrown
+                        : _isHovered
+                            ? AppColors.textPrimary
+                            : AppColors.textPrimary,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              if (widget.unreadCount != null && widget.unreadCount! > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.errorMain, AppColors.errorMain.withOpacity(0.8)],
+                    ),
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.errorMain.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    widget.unreadCount! > 99 ? '99+' : '${widget.unreadCount}',
+                    style: AppTypography.caption.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/api_service.dart';
 import '../config/app_config.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 /// Widget for selecting thumbnails for audio/video podcasts
@@ -161,14 +164,34 @@ class _ThumbnailSelectorState extends State<ThumbnailSelector> {
         if (widget.isVideo) ...[
           ElevatedButton.icon(
             onPressed: _isGenerating ? null : _generateFromVideo,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.warmBrown,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.large,
+                vertical: AppSpacing.medium,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              ),
+              elevation: 2,
+            ),
             icon: _isGenerating
-                ? const SizedBox(
+                ? SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
                   )
                 : const Icon(Icons.image),
-            label: Text(_isGenerating ? 'Generating...' : 'Generate from Video'),
+            label: Text(
+              _isGenerating ? 'Generating...' : 'Generate from Video',
+              style: AppTypography.button.copyWith(
+                color: Colors.white,
+              ),
+            ),
           ),
           const SizedBox(height: 8),
         ],
@@ -222,8 +245,25 @@ class _ThumbnailSelectorState extends State<ThumbnailSelector> {
         // Upload custom thumbnail button
         ElevatedButton.icon(
           onPressed: _uploadCustomThumbnail,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.warmBrown,
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSpacing.large,
+              vertical: AppSpacing.medium,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+            ),
+            elevation: 2,
+          ),
           icon: const Icon(Icons.upload),
-          label: const Text('Upload Custom Thumbnail'),
+          label: Text(
+            'Upload Custom Thumbnail',
+            style: AppTypography.button.copyWith(
+              color: Colors.white,
+            ),
+          ),
         ),
 
         // Error message

@@ -408,9 +408,16 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
                   selected: isSelected,
                   label: Text(genre),
                   selectedColor: AppColors.warmBrown,
+                  backgroundColor: AppColors.backgroundSecondary,
                   labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : AppColors.textSecondary,
+                    color: isSelected ? Colors.white : AppColors.textPrimary,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                  side: BorderSide(
+                    color: isSelected 
+                        ? AppColors.warmBrown 
+                        : AppColors.borderPrimary,
+                    width: 1,
                   ),
                   onSelected: (_) => _applyQuickFilter(genre),
                 );

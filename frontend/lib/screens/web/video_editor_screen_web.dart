@@ -310,113 +310,256 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
   void _showTextOverlayEditor(TextOverlay overlay) {
     final textController = TextEditingController(text: overlay.text);
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
     
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      constraints: BoxConstraints(
+        maxHeight: screenHeight * 0.85,
+        maxWidth: isMobile ? screenWidth : 600,
+      ),
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: AppColors.backgroundPrimary,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        constraints: BoxConstraints(
+          maxHeight: screenHeight * 0.85,
+          maxWidth: isMobile ? screenWidth : 600,
         ),
-        child: Column(
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Edit Text',
-                    style: AppTypography.heading3.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: AppColors.textPrimary),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(),
-            
-            // Text input
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                controller: textController,
-                decoration: InputDecoration(
-                  labelText: 'Text',
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(color: AppColors.borderPrimary),
-                  ),
-                  labelStyle: AppTypography.body.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                style: AppTypography.body.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-                maxLines: 3,
-              ),
-            ),
-            
-            // Controls
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // Delete overlay
-                        setState(() {
-                          _textOverlays.removeWhere((o) => o.id == overlay.id);
-                          if (_selectedTextOverlay?.id == overlay.id) {
-                            _selectedTextOverlay = null;
-                          }
-                        });
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(Icons.delete),
-                      label: const Text('Delete'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.errorMain,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // Update overlay
-                        setState(() {
-                          final index = _textOverlays.indexWhere((o) => o.id == overlay.id);
-                          if (index != -1) {
-                            _textOverlays[index] = overlay.copyWith(
-                              text: textController.text,
-                            );
-                          }
-                        });
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(Icons.check),
-                      label: const Text('Save'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryMain,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppSpacing.radiusLarge),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
             ),
           ],
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.large),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.warmBrown.withOpacity(0.1),
+                      AppColors.accentMain.withOpacity(0.05),
+                    ],
+                  ),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppSpacing.radiusLarge),
+                  ),
+                  border: Border(
+                    bottom: BorderSide(color: AppColors.borderPrimary),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.small),
+                      decoration: BoxDecoration(
+                        color: AppColors.warmBrown.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                      ),
+                      child: Icon(
+                        Icons.text_fields,
+                        color: AppColors.warmBrown,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.medium),
+                    Expanded(
+                      child: Text(
+                        'Edit Text Overlay',
+                        style: AppTypography.heading3.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: AppColors.textSecondary),
+                      onPressed: () => Navigator.pop(context),
+                      tooltip: 'Close',
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Content - Scrollable
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppSpacing.large),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Text input
+                      Text(
+                        'Text Content',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.small),
+                      TextField(
+                        controller: textController,
+                        maxLines: 4,
+                        style: AppTypography.body.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Enter text to display on video',
+                          hintStyle: AppTypography.body.copyWith(
+                            color: AppColors.textPlaceholder,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                            borderSide: BorderSide(color: AppColors.borderPrimary),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                            borderSide: BorderSide(color: AppColors.borderPrimary),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                            borderSide: BorderSide(
+                              color: AppColors.warmBrown,
+                              width: 2,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: AppColors.backgroundSecondary,
+                          contentPadding: const EdgeInsets.all(AppSpacing.medium),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: AppSpacing.large),
+                      
+                      // Time Range Info
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.medium),
+                        decoration: BoxDecoration(
+                          color: AppColors.backgroundSecondary,
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                          border: Border.all(color: AppColors.borderPrimary),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              color: AppColors.warmBrown,
+                              size: 20,
+                            ),
+                            const SizedBox(width: AppSpacing.small),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Display Time',
+                                    style: AppTypography.bodySmall.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${_formatTime(overlay.startTime)} - ${_formatTime(overlay.endTime)}',
+                                    style: AppTypography.bodyMedium.copyWith(
+                                      color: AppColors.textPrimary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              // Action Buttons - Fixed at bottom
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.large),
+                decoration: BoxDecoration(
+                  color: AppColors.backgroundSecondary,
+                  border: Border(
+                    top: BorderSide(color: AppColors.borderPrimary),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _textOverlays.removeWhere((o) => o.id == overlay.id);
+                            if (_selectedTextOverlay?.id == overlay.id) {
+                              _selectedTextOverlay = null;
+                            }
+                          });
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text('Delete'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.errorMain,
+                          side: BorderSide(color: AppColors.errorMain, width: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.large,
+                            vertical: AppSpacing.medium,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.medium),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            final index = _textOverlays.indexWhere((o) => o.id == overlay.id);
+                            if (index != -1) {
+                              _textOverlays[index] = overlay.copyWith(
+                                text: textController.text,
+                              );
+                            }
+                          });
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.check_circle),
+                        label: const Text('Save Changes'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.warmBrown,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.large,
+                            vertical: AppSpacing.medium,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                          ),
+                          elevation: 2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -703,12 +846,6 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     }
   }
 
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds.remainder(60);
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
-
   String _formatTime(Duration duration) {
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds.remainder(60);
@@ -811,25 +948,31 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       );
     }
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
       body: Container(
-        padding: ResponsiveGridDelegate.getResponsivePadding(context),
+        padding: EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
         child: Column(
           children: [
             // Header
             _buildHeader(),
+            const SizedBox(height: AppSpacing.large),
             
-            // Video Preview
+            // Main Content Area
             Expanded(
-              child: _buildVideoPreview(),
+              child: isMobile
+                  ? _buildMobileLayout()
+                  : _buildDesktopLayout(),
             ),
             
-            // Playback Controls
-            _buildPlaybackControls(),
+            // Timeline Section
+            _buildTimelineSection(),
             
-            // Bottom Toolbar
-            _buildBottomToolbar(),
+            // Editing Tools Panel
+            _buildEditingToolsPanel(),
           ],
         ),
       ),
@@ -837,245 +980,462 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   }
 
   Widget _buildHeader() {
-    return Row(
-      children: [
-        IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        Expanded(
-          child: StyledPageHeader(
-            title: _projectTitle ?? 'Video Editor',
-            size: StyledPageHeaderSize.h2,
-          ),
-        ),
-        // Undo button
-        IconButton(
-          icon: Icon(Icons.undo, color: AppColors.textSecondary),
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Undo feature coming soon'),
-                backgroundColor: AppColors.infoMain,
-              ),
-            );
-          },
-        ),
-        // Redo button
-        IconButton(
-          icon: Icon(Icons.redo, color: AppColors.textSecondary),
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Redo feature coming soon'),
-                backgroundColor: AppColors.infoMain,
-              ),
-            );
-          },
-        ),
-        // Save button
-        Padding(
-          padding: const EdgeInsets.only(left: 8.0),
-          child: StyledPillButton(
-            label: 'Save',
-            icon: Icons.save,
-            onPressed: _isEditing ? null : _handleSave,
-            isLoading: _isEditing,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildVideoPreview() {
-    return SectionContainer(
-      showShadow: true,
-      child: MouseRegion(
-        onEnter: (_) => _onVideoMouseEnter(),
-        onExit: (_) => _onVideoMouseExit(),
-        onHover: (_) => _onVideoMouseMove(),
-        child: Container(
-          color: Colors.black,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Video player
-              if (_controller != null && _controller!.value.isInitialized)
-                Center(
-                  child: AspectRatio(
-                    aspectRatio: _controller!.value.aspectRatio,
-                    child: VideoPlayer(_controller!),
-                  ),
-                ),
-              
-              // Text overlays
-              ..._textOverlays.where((overlay) {
-                final currentTime = _currentPosition;
-                return currentTime >= overlay.startTime && currentTime <= overlay.endTime;
-              }).map((overlay) => Positioned(
-                left: overlay.x * MediaQuery.of(context).size.width - 100,
-                top: overlay.y * MediaQuery.of(context).size.height - 20,
-                child: GestureDetector(
-                  onTap: () => _editTextOverlay(overlay),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: overlay.backgroundColor != null
-                          ? Color(int.parse(overlay.backgroundColor!.replaceFirst('#', '0xff')))
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      overlay.text,
-                      style: TextStyle(
-                        color: Color(overlay.color),
-                        fontSize: overlay.fontSize,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: overlay.textAlign,
-                    ),
-                  ),
-                ),
-              )),
-              
-              // Controls Overlay
-              if (_controller != null && _controller!.value.isInitialized)
-                AnimatedOpacity(
-                  opacity: _showVideoControls ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 300),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.2),
-                          Colors.black.withOpacity(0.6),
-                        ],
-                        stops: const [0.0, 0.7, 1.0],
-                      ),
-                    ),
-                    child: Stack(
-                      children: [
-                        // Center Play/Pause Button
-                        if (!_controller!.value.isPlaying || _isMouseOverVideo)
-                          Center(
-                            child: MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: _togglePlayPause,
-                                child: Container(
-                                  width: 70,
-                                  height: 70,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryMain.withOpacity(0.9),
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.3),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Icon(
-                                    _controller!.value.isPlaying
-                                        ? Icons.pause
-                                        : Icons.play_arrow,
-                                    color: Colors.white,
-                                    size: 40,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlaybackControls() {
-    return SectionContainer(
-      showShadow: false,
-      padding: EdgeInsets.symmetric(
-        horizontal: AppSpacing.large,
-        vertical: AppSpacing.medium,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.medium),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        border: Border.all(color: AppColors.borderPrimary),
       ),
       child: Row(
         children: [
-          // Current time
-          Text(
-            _formatTime(_currentPosition),
-            style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+          IconButton(
+            icon: Icon(Icons.arrow_back, color: AppColors.warmBrown),
+            onPressed: () => Navigator.pop(context),
+            tooltip: 'Back',
           ),
-          
-          const Spacer(),
-          
-          // Play button (centered)
-          GestureDetector(
-            onTap: _togglePlayPause,
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: AppColors.primaryMain,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primaryMain.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _projectTitle ?? 'Video Editor',
+                  style: AppTypography.heading2.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
-              ),
-              child: Icon(
-                _isPlaying ? Icons.pause : Icons.play_arrow,
-                color: Colors.white,
-                size: 36,
-              ),
+                ),
+                if (_videoDuration != Duration.zero)
+                  Text(
+                    '${_resolution} • ${_fps.toStringAsFixed(0)}fps • ${_formatTime(_videoDuration)}',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+              ],
             ),
           ),
-          
-          const Spacer(),
-          
-          // Total duration
-          Text(
-            '/${_formatTime(_videoDuration)}',
-            style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+          // Action buttons
+          Row(
+            children: [
+              _buildHeaderButton(
+                icon: Icons.undo,
+                tooltip: 'Undo',
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Undo feature coming soon'),
+                      backgroundColor: AppColors.infoMain,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: AppSpacing.small),
+              _buildHeaderButton(
+                icon: Icons.redo,
+                tooltip: 'Redo',
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Redo feature coming soon'),
+                      backgroundColor: AppColors.infoMain,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: AppSpacing.medium),
+              StyledPillButton(
+                label: _isEditing ? 'Processing...' : 'Save & Continue',
+                icon: Icons.save,
+                onPressed: _isEditing ? null : _handleSave,
+                isLoading: _isEditing,
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTimeline() {
-    return SectionContainer(
-      showShadow: false,
+  Widget _buildHeaderButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
       child: Container(
-        height: 200,
+        decoration: BoxDecoration(
+          color: AppColors.backgroundSecondary,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+          border: Border.all(color: AppColors.borderPrimary),
+        ),
+        child: IconButton(
+          icon: Icon(icon, color: AppColors.warmBrown, size: 20),
+          onPressed: onPressed,
+          padding: const EdgeInsets.all(AppSpacing.small),
+          constraints: const BoxConstraints(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Video Preview Section (Left - 65%)
+        Expanded(
+          flex: 65,
+          child: _buildVideoPreview(),
+        ),
+        const SizedBox(width: AppSpacing.large),
+        // Controls Panel (Right - 35%)
+        Expanded(
+          flex: 35,
+          child: _buildControlsPanel(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          _buildVideoPreview(),
+          const SizedBox(height: AppSpacing.large),
+          _buildControlsPanel(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVideoPreview() {
+    return SectionContainer(
+      showShadow: true,
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          // Video Player
+          Expanded(
+            child: MouseRegion(
+              onEnter: (_) => _onVideoMouseEnter(),
+              onExit: (_) => _onVideoMouseExit(),
+              onHover: (_) => _onVideoMouseMove(),
+              child: Container(
+                color: Colors.black,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Video player
+                    if (_controller != null && _controller!.value.isInitialized)
+                      Center(
+                        child: AspectRatio(
+                          aspectRatio: _controller!.value.aspectRatio,
+                          child: VideoPlayer(_controller!),
+                        ),
+                      )
+                    else
+                      Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.warmBrown,
+                        ),
+                      ),
+                    
+                    // Text overlays
+                    ..._textOverlays.where((overlay) {
+                      final currentTime = _currentPosition;
+                      return currentTime >= overlay.startTime && currentTime <= overlay.endTime;
+                    }).map((overlay) => Positioned(
+                      left: overlay.x * MediaQuery.of(context).size.width - 100,
+                      top: overlay.y * MediaQuery.of(context).size.height - 20,
+                      child: GestureDetector(
+                        onTap: () => _editTextOverlay(overlay),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: overlay.backgroundColor != null
+                                ? Color(int.parse(overlay.backgroundColor!.replaceFirst('#', '0xff')))
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            overlay.text,
+                            style: TextStyle(
+                              color: Color(overlay.color),
+                              fontSize: overlay.fontSize,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: overlay.textAlign,
+                          ),
+                        ),
+                      ),
+                    )),
+                    
+                    // Controls Overlay
+                    if (_controller != null && _controller!.value.isInitialized)
+                      AnimatedOpacity(
+                        opacity: _showVideoControls ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 300),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withOpacity(0.2),
+                                Colors.black.withOpacity(0.6),
+                              ],
+                              stops: const [0.0, 0.7, 1.0],
+                            ),
+                          ),
+                          child: Stack(
+                            children: [
+                              // Center Play/Pause Button
+                              if (!_controller!.value.isPlaying || _isMouseOverVideo)
+                                Center(
+                                  child: MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: GestureDetector(
+                                      onTap: _togglePlayPause,
+                                      child: Container(
+                                        width: 80,
+                                        height: 80,
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              AppColors.warmBrown,
+                                              AppColors.accentMain,
+                                            ],
+                                          ),
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.warmBrown.withOpacity(0.4),
+                                              blurRadius: 16,
+                                              offset: const Offset(0, 4),
+                                              spreadRadius: 2,
+                                            ),
+                                          ],
+                                        ),
+                                        child: Icon(
+                                          _controller!.value.isPlaying
+                                              ? Icons.pause
+                                              : Icons.play_arrow,
+                                          color: Colors.white,
+                                          size: 48,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          
+          // Playback Controls Bar
+          _buildPlaybackControlsBar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlaybackControlsBar() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.medium),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        border: Border(
+          top: BorderSide(color: AppColors.borderPrimary),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Progress Bar
+          if (_controller != null && _controller!.value.isInitialized)
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 6,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                activeTrackColor: AppColors.warmBrown,
+                inactiveTrackColor: AppColors.borderPrimary,
+                thumbColor: AppColors.warmBrown,
+              ),
+              child: Slider(
+                value: _playheadPosition.clamp(0.0, 1.0),
+                onChanged: (value) {
+                  _onPlayheadDragStart();
+                  _onPlayheadDragUpdate(value);
+                  _onPlayheadDragEnd();
+                },
+                onChangeStart: (_) => _onPlayheadDragStart(),
+                onChangeEnd: (_) => _onPlayheadDragEnd(),
+              ),
+            ),
+          
+          // Time and Controls
+          Row(
+            children: [
+              Text(
+                _formatTime(_currentPosition),
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.small),
+              Text(
+                '/ ${_formatTime(_videoDuration)}',
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const Spacer(),
+              // Play/Pause button
+              GestureDetector(
+                onTap: _togglePlayPause,
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.warmBrown,
+                        AppColors.accentMain,
+                      ],
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.warmBrown.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    _isPlaying ? Icons.pause : Icons.play_arrow,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControlsPanel() {
+    return SectionContainer(
+      showShadow: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Panel Header
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.medium),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.warmBrown.withOpacity(0.1),
+                  AppColors.accentMain.withOpacity(0.05),
+                ],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppSpacing.radiusLarge),
+              ),
+              border: Border(
+                bottom: BorderSide(color: AppColors.borderPrimary),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.tune,
+                  color: AppColors.warmBrown,
+                  size: 24,
+                ),
+                const SizedBox(width: AppSpacing.small),
+                Text(
+                  'Editing Tools',
+                  style: AppTypography.heading3.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Tab Bar
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: AppColors.borderPrimary),
+              ),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: AppColors.warmBrown,
+              indicatorWeight: 3,
+              labelColor: AppColors.warmBrown,
+              unselectedLabelColor: AppColors.textSecondary,
+              labelStyle: AppTypography.bodyMedium.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              tabs: const [
+                Tab(icon: Icon(Icons.content_cut, size: 20), text: 'Trim'),
+                Tab(icon: Icon(Icons.music_note, size: 20), text: 'Audio'),
+                Tab(icon: Icon(Icons.text_fields, size: 20), text: 'Text'),
+              ],
+            ),
+          ),
+          
+          // Tab Content
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildEditPanel(),
+                _buildMusicPanel(),
+                _buildTextPanel(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimelineSection() {
+    return Container(
+      margin: const EdgeInsets.only(top: AppSpacing.large),
+      height: 180,
+      child: SectionContainer(
+        showShadow: true,
+        padding: EdgeInsets.zero,
         child: Column(
           children: [
-            // Timeline header with time markers
+            // Timeline Header
             _buildTimelineHeader(),
             
-            // Timeline tracks
+            // Timeline Tracks
             Expanded(
               child: ListView(
                 children: [
-                  // Text track
                   _buildTextTrack(),
-                  
-                  // Video track
                   _buildVideoTrack(),
-                  
-                  // Audio track
                   _buildAudioTrack(),
                 ],
               ),
@@ -1086,28 +1446,64 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     );
   }
 
+  Widget _buildEditingToolsPanel() {
+    return Container(
+      margin: const EdgeInsets.only(top: AppSpacing.medium),
+      height: 0,
+      child: const SizedBox.shrink(),
+    );
+  }
+
   Widget _buildTimelineHeader() {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final markerCount = (_videoDuration.inSeconds ~/ 5).clamp(5, 20);
         return Container(
-          height: 30,
-          color: AppColors.backgroundTertiary,
+          height: 40,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.backgroundTertiary,
+                AppColors.backgroundSecondary,
+              ],
+            ),
+            border: Border(
+              bottom: BorderSide(color: AppColors.borderPrimary, width: 2),
+            ),
+          ),
           child: Stack(
             children: [
               // Time markers
               Row(
                 children: List.generate(
-                  (_videoDuration.inSeconds ~/ 5) + 1,
+                  markerCount + 1,
                   (index) => Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        border: Border(right: BorderSide(color: AppColors.borderSecondary, width: 1)),
-                      ),
-                      child: Center(
-                        child: Text(
-                          _formatTime(Duration(seconds: index * 5)),
-                          style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                        border: Border(
+                          right: BorderSide(
+                            color: AppColors.borderPrimary,
+                            width: 1,
+                          ),
                         ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 1,
+                            height: 8,
+                            color: AppColors.warmBrown,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _formatTime(Duration(seconds: index * 5)),
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1116,7 +1512,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               
               // Playhead
               Positioned(
-                left: _playheadPosition * constraints.maxWidth,
+                left: (_playheadPosition * constraints.maxWidth).clamp(0.0, constraints.maxWidth - 2),
                 top: 0,
                 bottom: 0,
                 child: GestureDetector(
@@ -1128,24 +1524,48 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                     _onPlayheadDragUpdate(position);
                   },
                   onPanEnd: (_) => _onPlayheadDragEnd(),
-                  child: Container(
-                    width: 2,
-                    color: AppColors.primaryMain,
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          top: -8,
-                          left: -6,
-                          child: Container(
-                            width: 14,
-                            height: 14,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryMain,
-                              shape: BoxShape.circle,
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.resizeLeftRight,
+                    child: Container(
+                      width: 3,
+                      decoration: BoxDecoration(
+                        color: AppColors.warmBrown,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.warmBrown.withOpacity(0.5),
+                            blurRadius: 4,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            top: -10,
+                            left: -8,
+                            child: Container(
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppColors.warmBrown,
+                                    AppColors.accentMain,
+                                  ],
+                                ),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.warmBrown.withOpacity(0.4),
+                                    blurRadius: 6,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -1162,46 +1582,109 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       builder: (context, constraints) {
         return Container(
           height: 50,
-          color: AppColors.backgroundPrimary,
-          child: Stack(
+          decoration: BoxDecoration(
+            color: AppColors.backgroundPrimary,
+            border: Border(
+              bottom: BorderSide(color: AppColors.borderPrimary),
+            ),
+          ),
+          child: Row(
             children: [
-              // Text overlay bars
-              ..._textOverlays.map((overlay) {
-                final startPosition = overlay.startTime.inMilliseconds / _videoDuration.inMilliseconds;
-                final duration = overlay.endTime.inMilliseconds - overlay.startTime.inMilliseconds;
-                final width = (duration / _videoDuration.inMilliseconds) * constraints.maxWidth;
-                
-                return Positioned(
-                  left: startPosition * constraints.maxWidth,
-                  top: 8,
-                  child: GestureDetector(
-                    onTap: () => _editTextOverlay(overlay),
-                    child: Container(
-                      width: width,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: AppColors.accentMain,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            child: const Icon(Icons.text_fields, color: Colors.white, size: 16),
-                          ),
-                          Expanded(
-                            child: Text(
-                              overlay.text,
-                              style: const TextStyle(color: Colors.white, fontSize: 12),
-                              overflow: TextOverflow.ellipsis,
+          // Track label
+          Container(
+            width: 80,
+            padding: const EdgeInsets.all(AppSpacing.small),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundSecondary,
+              border: Border(
+                right: BorderSide(color: AppColors.borderPrimary),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.text_fields, color: AppColors.warmBrown, size: 16),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    'Text',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+              // Track content
+              Expanded(
+                child: Stack(
+                  children: [
+                    // Text overlay bars
+                    ..._textOverlays.map((overlay) {
+                      final startPosition = overlay.startTime.inMilliseconds / _videoDuration.inMilliseconds;
+                      final duration = overlay.endTime.inMilliseconds - overlay.startTime.inMilliseconds;
+                      final width = (duration / _videoDuration.inMilliseconds) * constraints.maxWidth;
+                      
+                      return Positioned(
+                        left: (startPosition * constraints.maxWidth).clamp(0.0, constraints.maxWidth - width),
+                        top: 8,
+                        child: GestureDetector(
+                          onTap: () => _editTextOverlay(overlay),
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: Container(
+                              width: width.clamp(50.0, double.infinity),
+                              height: 34,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppColors.accentMain,
+                                    AppColors.accentDark,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.accentMain.withOpacity(0.3),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    child: const Icon(Icons.text_fields, color: Colors.white, size: 14),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      overlay.text,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
             ],
           ),
         );
@@ -1212,46 +1695,71 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   Widget _buildVideoTrack() {
     return Container(
       height: 60,
-      color: AppColors.backgroundPrimary,
-      child: Center(
-        child: Text(
-          'Video Track',
-          style: AppTypography.body.copyWith(
-            color: AppColors.textSecondary,
-          ),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundPrimary,
+        border: Border(
+          bottom: BorderSide(color: AppColors.borderPrimary),
         ),
       ),
-    );
-  }
-
-  Widget _buildAudioTrack() {
-    return Container(
-      height: 50,
-      color: AppColors.backgroundPrimary,
       child: Row(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Icon(Icons.music_note, color: AppColors.textSecondary, size: 20),
+          // Track label
+          Container(
+            width: 80,
+            padding: const EdgeInsets.all(AppSpacing.small),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundSecondary,
+              border: Border(
+                right: BorderSide(color: AppColors.borderPrimary),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.videocam, color: AppColors.warmBrown, size: 16),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    'Video',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
+          // Track content
           Expanded(
             child: Container(
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.backgroundTertiary,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: AppColors.borderSecondary),
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.warmBrown.withOpacity(0.2),
+                    AppColors.primaryMain.withOpacity(0.1),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                border: Border.all(
+                  color: AppColors.warmBrown.withOpacity(0.3),
+                ),
               ),
               child: Center(
-                child: Text(
-                  _audioFilePath != null 
-                      ? 'Audio track loaded' 
-                      : _audioRemoved 
-                          ? 'Audio removed' 
-                          : 'No audio track',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.play_circle_outline, color: AppColors.warmBrown, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Main Video Track',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1261,127 +1769,307 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     );
   }
 
-  Widget _buildBottomToolbar() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Tab content panel
-        SectionContainer(
-          showShadow: false,
-          padding: EdgeInsets.zero,
-          child: Container(
-            height: 150,
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildEditPanel(),
-                _buildMusicPanel(),
-                _buildTextPanel(),
-              ],
-            ),
-          ),
-        ),
-        
-        // Tab bar
-        SectionContainer(
-          showShadow: false,
-          padding: EdgeInsets.zero,
-          child: Container(
-            height: 60,
-            child: TabBar(
-              controller: _tabController,
-              indicatorColor: AppColors.primaryMain,
-              labelColor: AppColors.primaryMain,
-              unselectedLabelColor: AppColors.textSecondary,
-              tabs: const [
-                Tab(icon: Icon(Icons.content_cut), text: 'Trim'),
-                Tab(icon: Icon(Icons.music_note), text: 'Music'),
-                Tab(icon: Icon(Icons.text_fields), text: 'Text'),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEditPanel() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+  Widget _buildAudioTrack() {
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: AppColors.backgroundPrimary,
+      ),
+      child: Row(
         children: [
-          Text(
-            'Trim Video',
-            style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Start: ${_formatTime(_trimStart)}',
-                      style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+          // Track label
+          Container(
+            width: 80,
+            padding: const EdgeInsets.all(AppSpacing.small),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundSecondary,
+              border: Border(
+                right: BorderSide(color: AppColors.borderPrimary),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.music_note, color: AppColors.warmBrown, size: 16),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    'Audio',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
                     ),
-                    Slider(
-                      value: _trimStart.inSeconds.toDouble(),
-                      min: 0,
-                      max: _videoDuration.inSeconds.toDouble(),
-                      activeColor: AppColors.primaryMain,
-                      onChanged: (value) {
-                        setState(() {
-                          _trimStart = Duration(seconds: value.toInt());
-                          if (_trimStart >= _trimEnd) {
-                            _trimEnd = Duration(seconds: (value + 1).toInt());
-                          }
-                        });
-                      },
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Track content
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: _audioFilePath != null
+                      ? [
+                          AppColors.accentMain.withOpacity(0.2),
+                          AppColors.accentDark.withOpacity(0.1),
+                        ]
+                      : _audioRemoved
+                          ? [
+                              AppColors.errorMain.withOpacity(0.1),
+                              AppColors.errorMain.withOpacity(0.05),
+                            ]
+                          : [
+                              AppColors.backgroundTertiary,
+                              AppColors.backgroundSecondary,
+                            ],
+                ),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                border: Border.all(
+                  color: _audioFilePath != null
+                      ? AppColors.accentMain.withOpacity(0.3)
+                      : AppColors.borderPrimary,
+                ),
+              ),
+              child: Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _audioFilePath != null
+                          ? Icons.volume_up
+                          : _audioRemoved
+                              ? Icons.volume_off
+                              : Icons.music_off,
+                      color: _audioFilePath != null
+                          ? AppColors.accentMain
+                          : AppColors.textSecondary,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _audioFilePath != null
+                          ? 'Audio track loaded'
+                          : _audioRemoved
+                              ? 'Audio removed'
+                              : 'No audio track',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: _audioFilePath != null
+                            ? AppColors.textPrimary
+                            : AppColors.textSecondary,
+                        fontWeight: _audioFilePath != null ? FontWeight.w600 : FontWeight.normal,
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'End: ${_formatTime(_trimEnd)}',
-                      style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
-                    ),
-                    Slider(
-                      value: _trimEnd.inSeconds.toDouble(),
-                      min: 0,
-                      max: _videoDuration.inSeconds.toDouble(),
-                      activeColor: AppColors.primaryMain,
-                      onChanged: (value) {
-                        setState(() {
-                          _trimEnd = Duration(seconds: value.toInt());
-                          if (_trimEnd <= _trimStart) {
-                            _trimStart = Duration(seconds: (value - 1).toInt());
-                          }
-                        });
-                      },
-                    ),
-                  ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildEditPanel() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.large),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.small),
+                decoration: BoxDecoration(
+                  color: AppColors.warmBrown.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                ),
+                child: Icon(
+                  Icons.content_cut,
+                  color: AppColors.warmBrown,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.small),
+              Text(
+                'Trim Video',
+                style: AppTypography.heading4.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: _isEditing ? null : _applyTrim,
-            icon: const Icon(Icons.check),
-            label: const Text('Apply Trim'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryMain,
-              foregroundColor: Colors.white,
+          const SizedBox(height: AppSpacing.medium),
+          
+          // Trim Controls
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.large),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundSecondary,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              border: Border.all(color: AppColors.borderPrimary),
+            ),
+            child: Column(
+              children: [
+                // Start Time
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Start Time',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.medium,
+                            vertical: AppSpacing.small,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.warmBrown.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                            border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
+                          ),
+                          child: Text(
+                            _formatTime(_trimStart),
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.warmBrown,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.small),
+                    SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        trackHeight: 6,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                        activeTrackColor: AppColors.warmBrown,
+                        inactiveTrackColor: AppColors.borderPrimary,
+                        thumbColor: AppColors.warmBrown,
+                      ),
+                      child: Slider(
+                        value: _trimStart.inSeconds.toDouble(),
+                        min: 0,
+                        max: _videoDuration.inSeconds.toDouble(),
+                        onChanged: (value) {
+                          setState(() {
+                            _trimStart = Duration(seconds: value.toInt());
+                            if (_trimStart >= _trimEnd) {
+                              _trimEnd = Duration(seconds: (value + 1).toInt());
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: AppSpacing.large),
+                
+                // End Time
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'End Time',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.medium,
+                            vertical: AppSpacing.small,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.warmBrown.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                            border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
+                          ),
+                          child: Text(
+                            _formatTime(_trimEnd),
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.warmBrown,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.small),
+                    SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        trackHeight: 6,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                        activeTrackColor: AppColors.warmBrown,
+                        inactiveTrackColor: AppColors.borderPrimary,
+                        thumbColor: AppColors.warmBrown,
+                      ),
+                      child: Slider(
+                        value: _trimEnd.inSeconds.toDouble(),
+                        min: 0,
+                        max: _videoDuration.inSeconds.toDouble(),
+                        onChanged: (value) {
+                          setState(() {
+                            _trimEnd = Duration(seconds: value.toInt());
+                            if (_trimEnd <= _trimStart) {
+                              _trimStart = Duration(seconds: (value - 1).toInt());
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: AppSpacing.large),
+          
+          // Apply Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isEditing ? null : _applyTrim,
+              icon: const Icon(Icons.check_circle),
+              label: Text(
+                _isEditing ? 'Processing...' : 'Apply Trim',
+                style: AppTypography.button.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.warmBrown,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.extraLarge,
+                  vertical: AppSpacing.medium,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                ),
+                elevation: 2,
+              ),
             ),
           ),
         ],
@@ -1391,38 +2079,145 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
   Widget _buildMusicPanel() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.large),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'Audio Track',
-            style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+          // Section Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.small),
+                decoration: BoxDecoration(
+                  color: AppColors.warmBrown.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                ),
+                child: Icon(
+                  Icons.music_note,
+                  color: AppColors.warmBrown,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.small),
+              Text(
+                'Audio Track',
+                style: AppTypography.heading4.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.medium),
+          
+          // Audio Status Card
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.large),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundSecondary,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              border: Border.all(color: AppColors.borderPrimary),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.medium),
+                  decoration: BoxDecoration(
+                    color: _audioFilePath != null
+                        ? AppColors.accentMain.withOpacity(0.1)
+                        : _audioRemoved
+                            ? AppColors.errorMain.withOpacity(0.1)
+                            : AppColors.backgroundTertiary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _audioFilePath != null
+                        ? Icons.volume_up
+                        : _audioRemoved
+                            ? Icons.volume_off
+                            : Icons.music_off,
+                    color: _audioFilePath != null
+                        ? AppColors.accentMain
+                        : _audioRemoved
+                            ? AppColors.errorMain
+                            : AppColors.textSecondary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.medium),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _audioFilePath != null
+                            ? 'Audio Track Loaded'
+                            : _audioRemoved
+                                ? 'Audio Removed'
+                                : 'No Audio Track',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _audioFilePath != null
+                            ? 'Custom audio track is active'
+                            : _audioRemoved
+                                ? 'Original audio has been removed'
+                                : 'Video has original audio track',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: AppSpacing.large),
+          
+          // Action Buttons
           Row(
             children: [
               Expanded(
-                child: ElevatedButton.icon(
+                child: OutlinedButton.icon(
                   onPressed: _isEditing || _audioRemoved ? null : _removeAudio,
                   icon: const Icon(Icons.volume_off),
                   label: const Text('Remove Audio'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.errorMain,
-                    foregroundColor: Colors.white,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.errorMain,
+                    side: BorderSide(color: AppColors.errorMain, width: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.large,
+                      vertical: AppSpacing.medium,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.medium),
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: _isEditing ? null : _selectAudioFile,
                   icon: const Icon(Icons.volume_up),
                   label: const Text('Add Audio'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryMain,
+                    backgroundColor: AppColors.warmBrown,
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.large,
+                      vertical: AppSpacing.medium,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                    ),
+                    elevation: 2,
                   ),
                 ),
               ),
@@ -1435,25 +2230,134 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
   Widget _buildTextPanel() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.large),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'Text Overlays',
-            style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+          // Section Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.small),
+                decoration: BoxDecoration(
+                  color: AppColors.warmBrown.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                ),
+                child: Icon(
+                  Icons.text_fields,
+                  color: AppColors.warmBrown,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.small),
+              Text(
+                'Text Overlays',
+                style: AppTypography.heading4.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: _addTextOverlay,
-            icon: const Icon(Icons.text_fields),
-            label: const Text('Add Text'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryMain,
-              foregroundColor: Colors.white,
+          const SizedBox(height: AppSpacing.medium),
+          
+          // Add Text Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _addTextOverlay,
+              icon: const Icon(Icons.add_circle),
+              label: const Text('Add Text Overlay'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.warmBrown,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.extraLarge,
+                  vertical: AppSpacing.medium,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                ),
+                elevation: 2,
+              ),
             ),
           ),
+          
+          // Text Overlays List
+          if (_textOverlays.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.large),
+            Text(
+              'Active Overlays (${_textOverlays.length})',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.medium),
+            ..._textOverlays.map((overlay) => Container(
+              margin: const EdgeInsets.only(bottom: AppSpacing.small),
+              padding: const EdgeInsets.all(AppSpacing.medium),
+              decoration: BoxDecoration(
+                color: AppColors.backgroundSecondary,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                border: Border.all(
+                  color: _selectedTextOverlay?.id == overlay.id
+                      ? AppColors.warmBrown
+                      : AppColors.borderPrimary,
+                  width: _selectedTextOverlay?.id == overlay.id ? 2 : 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.small),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentMain.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                    ),
+                    child: Icon(
+                      Icons.text_fields,
+                      color: AppColors.accentMain,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.medium),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          overlay.text,
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_formatTime(overlay.startTime)} - ${_formatTime(overlay.endTime)}',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.edit,
+                      color: AppColors.warmBrown,
+                      size: 20,
+                    ),
+                    onPressed: () => _editTextOverlay(overlay),
+                    tooltip: 'Edit',
+                  ),
+                ],
+              ),
+            )),
+          ],
         ],
       ),
     );

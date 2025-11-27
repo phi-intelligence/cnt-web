@@ -5,8 +5,6 @@ import '../../theme/app_typography.dart';
 import '../voice/voice_bubble.dart';
 import '../../screens/web/voice_agent_screen_web.dart';
 
-/// Welcome Section Widget for Web Homepage
-/// Displays welcome message, description, action buttons, and voice assistant
 class WelcomeSectionWeb extends StatelessWidget {
   final VoidCallback? onStartListening;
   final VoidCallback? onJoinPrayer;
@@ -19,137 +17,261 @@ class WelcomeSectionWeb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: AppSpacing.extraLarge,
-        vertical: AppSpacing.extraLarge * 1.5,
-      ),
+      padding: EdgeInsets.all(isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2),
       decoration: BoxDecoration(
-        color: AppColors.backgroundSecondary,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.warmBrown.withOpacity(0.15),
+            AppColors.accentMain.withOpacity(0.1),
+            AppColors.backgroundSecondary,
+          ],
+        ),
         borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Left side: Text content and buttons
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Welcome Heading
-                Text(
-                  'Welcome to Christ New Tabernacle',
-                  style: AppTypography.heading1.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.medium),
-                
-                // Description
-                Text(
-                  "Experience God's word through engaging podcasts, Bible stories, and spiritual guidance. Join our community of believers in Christ.",
-                  style: AppTypography.body.copyWith(
-                    color: AppColors.textSecondary,
-                    height: 1.6,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.extraLarge),
-                
-                // Action Buttons
-                Row(
-                  children: [
-                    // Start Listening Button (filled)
-                    ElevatedButton(
-                      onPressed: onStartListening ?? () {
-                        // Scroll to audio podcasts section or play featured content
-                        // Default action: scroll to audio podcasts
-                        final RenderObject? renderObject = context.findRenderObject();
-                        if (renderObject != null) {
-                          Scrollable.ensureVisible(
-                            context,
-                            duration: const Duration(milliseconds: 500),
-                            curve: Curves.easeInOut,
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.warmBrown,
-                        foregroundColor: AppColors.textInverse,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: AppSpacing.extraLarge,
-                          vertical: AppSpacing.medium,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                        ),
-                        elevation: 2,
-                      ),
-                      child: Text(
-                        'Start Listening',
-                        style: AppTypography.button.copyWith(
-                          color: AppColors.textInverse,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.medium),
-                    
-                    // Join Prayer Button (outlined)
-                    OutlinedButton(
-                      onPressed: onJoinPrayer ?? () {
-                        // Navigate to prayer screen
-                        Navigator.pushNamed(context, '/prayer');
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.warmBrown,
-                        side: BorderSide(
-                          color: AppColors.warmBrown,
-                          width: 2,
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: AppSpacing.extraLarge,
-                          vertical: AppSpacing.medium,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                        ),
-                      ),
-                      child: Text(
-                        'Join Prayer',
-                        style: AppTypography.button.copyWith(
-                          color: AppColors.warmBrown,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          
-          // Right side: Voice Assistant
-          const SizedBox(width: AppSpacing.extraLarge),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              VoiceBubble(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const VoiceAgentScreenWeb(),
-                    ),
-                  );
-                },
-                isActive: false,
-                label: 'Tap to connect and start talking',
-                enableHero: true,
-                size: 130.0, // Larger size for web welcome section
-              ),
-            ],
+        border: Border.all(
+          color: AppColors.warmBrown.withOpacity(0.2),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.warmBrown.withOpacity(0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
+      child: isMobile
+          ? Column(
+              children: [
+                _buildHeader(context),
+                const SizedBox(height: AppSpacing.extraLarge),
+                _buildActionButtons(context),
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(context),
+                      const SizedBox(height: AppSpacing.extraLarge),
+                      _buildActionButtons(context),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.extraLarge * 2),
+                _buildVoiceAssistant(context),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.medium),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.warmBrown.withOpacity(0.2),
+                    AppColors.accentMain.withOpacity(0.15),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                border: Border.all(
+                  color: AppColors.warmBrown.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Icon(
+                Icons.church,
+                color: AppColors.warmBrown,
+                size: 32,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.medium),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Welcome to',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    'Christ New Tabernacle',
+                    style: AppTypography.heading1.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.warmBrown,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.large),
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.large),
+          decoration: BoxDecoration(
+            color: AppColors.cardBackground.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+            border: Border.all(
+              color: AppColors.borderPrimary.withOpacity(0.3),
+            ),
+          ),
+          child: Text(
+            "Experience God's word through engaging podcasts, Bible stories, and spiritual guidance. Join our community of believers in Christ and be part of a movement that is changing lives.",
+            style: AppTypography.body.copyWith(
+              color: AppColors.textSecondary,
+              height: 1.7,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context) {
+    return Wrap(
+      spacing: AppSpacing.medium,
+      runSpacing: AppSpacing.medium,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.warmBrown,
+                AppColors.primaryMain,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.warmBrown.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ElevatedButton.icon(
+            onPressed: onStartListening ?? () {
+              final RenderObject? renderObject = context.findRenderObject();
+              if (renderObject != null) {
+                Scrollable.ensureVisible(
+                  context,
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeInOut,
+                );
+              }
+            },
+            icon: const Icon(Icons.play_circle_filled, size: 24),
+            label: Text(
+              'Start Listening',
+              style: AppTypography.button.copyWith(
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.extraLarge,
+                vertical: AppSpacing.medium,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              ),
+            ),
+          ),
+        ),
+        OutlinedButton.icon(
+          onPressed: onJoinPrayer ?? () {
+            Navigator.pushNamed(context, '/prayer');
+          },
+          icon: Icon(Icons.favorite, color: AppColors.accentMain),
+          label: Text(
+            'Join Prayer',
+            style: AppTypography.button.copyWith(
+              color: AppColors.warmBrown,
+            ),
+          ),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.warmBrown,
+            side: BorderSide(
+              color: AppColors.warmBrown,
+              width: 2,
+            ),
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSpacing.extraLarge,
+              vertical: AppSpacing.medium,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVoiceAssistant(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.large),
+          decoration: BoxDecoration(
+            color: AppColors.cardBackground,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.accentMain.withOpacity(0.2),
+                blurRadius: 20,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: VoiceBubble(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const VoiceAgentScreenWeb(),
+                ),
+              );
+            },
+            isActive: false,
+            label: '',
+            enableHero: true,
+            size: 120.0,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.medium),
+        Text(
+          'Voice Assistant',
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w500,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 }
