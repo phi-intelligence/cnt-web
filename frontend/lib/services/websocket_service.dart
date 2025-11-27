@@ -43,27 +43,37 @@ class WebSocketService {
         url = url.substring(0, url.length - 1);
       }
       
-      // Parse URL to ensure proper port handling and avoid port 0 issue
-      final uri = Uri.parse(url);
+      // Use string manipulation to remove port specifications before parsing
+      // This prevents socket_io_client from inferring port 0
+      String cleanUrl = url;
+      
+      // Remove port specifications for default ports using regex
+      // Remove :0, :443 (wss default), :80 (ws default) from URL string
+      cleanUrl = cleanUrl.replaceAll(RegExp(r':(0|443|80)(?=/|$)'), '');
+      
+      // Parse URL after cleaning to reconstruct properly
+      final uri = Uri.parse(cleanUrl);
       
       // Reconstruct URL to ensure no port 0 issues
-      // If port is 0 or missing, don't include port (let browser use defaults)
+      // For default ports, never include port in final URL
       String finalUrl;
-      // Check port directly - if it's 0 or default port, reconstruct without explicit port
-      // Default ports: 80 for http/ws, 443 for https/wss
       final defaultPort = (uri.scheme == 'https' || uri.scheme == 'wss') ? 443 : 80;
+      
+      // Always reconstruct without port for default ports to prevent socket_io_client from adding :0
       if (uri.port != 0 && uri.port != defaultPort) {
         // Valid non-default port specified, use as-is
-        finalUrl = url;
+        finalUrl = '${uri.scheme}://${uri.host}:${uri.port}';
       } else {
         // No port, port is 0, or default port - reconstruct without port (browser will use default)
         finalUrl = '${uri.scheme}://${uri.host}';
-        if (uri.path.isNotEmpty && uri.path != '/') {
-          finalUrl += uri.path;
-        }
       }
       
-      print('🔌 WebSocket: Connecting to $finalUrl');
+      // Add path if present (but socket.io uses path option, so usually not needed)
+      if (uri.path.isNotEmpty && uri.path != '/') {
+        finalUrl += uri.path;
+      }
+      
+      print('🔌 WebSocket: Original: $url, Cleaned: $finalUrl');
       
       _socket = IO.io(finalUrl, <String, dynamic>{
         'path': '/socket.io/',
