@@ -6,6 +6,7 @@ import '../theme/app_typography.dart';
 import '../theme/app_spacing.dart';
 import '../utils/platform_helper.dart';
 import 'user_login_screen.dart';
+import 'web/landing_screen_web.dart';
 import 'admin/admin_dashboard_page.dart';
 import 'admin/admin_audio_page.dart';
 import 'admin/admin_video_page.dart';
@@ -348,8 +349,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.logout();
       if (mounted) {
+        final isWeb = PlatformHelper.isWebPlatform();
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const UserLoginScreen()),
+          MaterialPageRoute(
+            builder: (_) => isWeb 
+                ? const LandingScreenWeb()
+                : const UserLoginScreen(),
+          ),
           (route) => false,
         );
       }

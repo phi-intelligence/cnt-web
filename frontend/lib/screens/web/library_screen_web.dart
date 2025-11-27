@@ -384,19 +384,53 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Create Playlist'),
+        backgroundColor: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        ),
+        title: Text(
+          'Create Playlist',
+          style: AppTypography.heading3.copyWith(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: TextField(
           controller: nameController,
-          decoration: const InputDecoration(
+          style: AppTypography.body.copyWith(
+            color: AppColors.textPrimary,
+          ),
+          decoration: InputDecoration(
             labelText: 'Playlist Name',
-            border: OutlineInputBorder(),
+            labelStyle: TextStyle(color: AppColors.textSecondary),
+            hintText: 'Enter playlist name',
+            hintStyle: TextStyle(color: AppColors.textPlaceholder),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderSide: BorderSide(color: AppColors.borderPrimary),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderSide: BorderSide(color: AppColors.borderPrimary),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
+            ),
+            filled: true,
+            fillColor: AppColors.backgroundSecondary,
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: AppTypography.button.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -413,12 +447,24 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
                             ? 'Playlist created!'
                             : 'Failed to create playlist',
                       ),
+                      backgroundColor: success 
+                          ? AppColors.successMain 
+                          : AppColors.errorMain,
                     ),
                   );
                 }
               }
             },
-            child: const Text('Create'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.warmBrown,
+              foregroundColor: AppColors.textInverse,
+            ),
+            child: Text(
+              'Create',
+              style: AppTypography.button.copyWith(
+                color: AppColors.textInverse,
+              ),
+            ),
           ),
         ],
       ),

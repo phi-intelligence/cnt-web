@@ -773,12 +773,28 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
           // Title
           TextField(
             controller: _titleController,
+            style: AppTypography.body.copyWith(
+              color: AppColors.textPrimary,
+            ),
             decoration: InputDecoration(
               labelText: 'Title',
+              labelStyle: TextStyle(color: AppColors.textSecondary),
               hintText: 'Enter podcast title',
+              hintStyle: TextStyle(color: AppColors.textPlaceholder),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderSide: BorderSide(color: AppColors.borderPrimary),
               ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderSide: BorderSide(color: AppColors.borderPrimary),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
+              ),
+              filled: true,
+              fillColor: AppColors.backgroundSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.medium),
@@ -787,12 +803,28 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
           TextField(
             controller: _descriptionController,
             maxLines: 3,
+            style: AppTypography.body.copyWith(
+              color: AppColors.textPrimary,
+            ),
             decoration: InputDecoration(
               labelText: 'Description',
+              labelStyle: TextStyle(color: AppColors.textSecondary),
               hintText: 'Enter podcast description',
+              hintStyle: TextStyle(color: AppColors.textPlaceholder),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderSide: BorderSide(color: AppColors.borderPrimary),
               ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderSide: BorderSide(color: AppColors.borderPrimary),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
+              ),
+              filled: true,
+              fillColor: AppColors.backgroundSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.medium),

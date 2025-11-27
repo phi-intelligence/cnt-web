@@ -14,6 +14,7 @@ import '../../utils/dimension_utils.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_page_header.dart';
 import 'user_login_screen_web.dart';
+import 'landing_screen_web.dart';
 import '../support/support_center_screen.dart';
 import '../admin/admin_support_page.dart';
 import '../../utils/media_utils.dart';
@@ -387,7 +388,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                               await authProvider.logout();
                               if (mounted) {
                                 Navigator.of(context).pushAndRemoveUntil(
-                                  MaterialPageRoute(builder: (_) => const UserLoginScreenWeb()),
+                                  MaterialPageRoute(builder: (_) => const LandingScreenWeb()),
                                   (route) => false,
                                 );
                               }

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:html' if (dart.library.io) '../utils/html_stub.dart' as html;
+import '../../utils/platform_view_registry_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
+import '../../utils/web_video_recorder.dart';
 import 'video_preview_screen_web.dart';
 
 /// Web Video Recording Screen - Record video podcasts
@@ -18,51 +21,72 @@ class VideoRecordingScreenWeb extends StatefulWidget {
 }
 
 class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
-  CameraController? _controller;
+  WebVideoRecorder? _recorder;
   bool _isRecording = false;
   int _recordingDuration = 0;
   bool _isFlashOn = false;
-  CameraDescription? _camera;
   bool _isInitializing = true;
   String? _errorMessage;
+  String? _videoElementViewId;
+  html.VideoElement? _videoElement;
 
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
+    if (kIsWeb) {
+      _initializeCamera();
+    } else {
+      setState(() {
+        _errorMessage = 'Video recording is only available on web';
+        _isInitializing = false;
+      });
+    }
   }
 
   Future<void> _initializeCamera() async {
     try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) {
+      _recorder = WebVideoRecorder();
+      
+      // Check permissions first
+      final hasPermission = await _recorder!.hasPermission();
+      if (!hasPermission) {
         setState(() {
-          _errorMessage = 'No cameras available';
+          _errorMessage = 'Camera permission denied. Please allow camera access in your browser settings.';
           _isInitializing = false;
         });
         return;
       }
 
-      _camera = cameras.first;
-      _controller = CameraController(
-        _camera!,
-        ResolutionPreset.high,
+      // Initialize camera
+      _videoElement = await _recorder!.initializeCamera();
+      
+      // Register video element for HtmlElementView
+      _videoElementViewId = 'video-preview-${DateTime.now().millisecondsSinceEpoch}';
+      platformViewRegistry.registerViewFactory(
+        _videoElementViewId!,
+        (int viewId) => _videoElement!,
       );
-      await _controller!.initialize();
+
       setState(() {
         _isInitializing = false;
       });
     } catch (e) {
-      print('Error initializing camera: $e');
+      print('❌ Error initializing camera: $e');
+      // Extract user-friendly error message
+      String errorMsg = e.toString();
+      if (errorMsg.contains('Exception: ')) {
+        errorMsg = errorMsg.replaceFirst('Exception: ', '');
+      }
+      
       setState(() {
-        _errorMessage = 'Failed to initialize camera: ${e.toString()}';
+        _errorMessage = errorMsg.isNotEmpty ? errorMsg : 'Failed to initialize camera. Please check your browser settings and try again.';
         _isInitializing = false;
       });
     }
   }
 
   Future<void> _startRecording() async {
-    if (_controller == null || !_controller!.value.isInitialized) {
+    if (_recorder == null || !_recorder!.isInitialized) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -75,7 +99,7 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
     }
 
     try {
-      await _controller!.startVideoRecording();
+      await _recorder!.startRecording();
       setState(() {
         _isRecording = true;
       });
@@ -93,7 +117,7 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
   }
 
   Future<void> _stopRecording() async {
-    if (_controller == null || !_controller!.value.isInitialized) {
+    if (_recorder == null || !_recorder!.isInitialized) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -110,16 +134,15 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
         _isRecording = false;
       });
 
-      final video = await _controller!.stopVideoRecording();
+      final videoFile = await _recorder!.stopRecording();
       
-      // On web, use XFile.readAsBytes() to get file size
+      // Get file size
       int fileSize = 0;
       try {
-        final bytes = await video.readAsBytes();
+        final bytes = await videoFile.readAsBytes();
         fileSize = bytes.length;
       } catch (e) {
         print('Error reading video bytes: $e');
-        // Continue with fileSize = 0 if we can't read bytes
       }
 
       // Navigate to web preview screen
@@ -128,7 +151,7 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
           context,
           MaterialPageRoute(
             builder: (context) => VideoPreviewScreenWeb(
-              videoUri: video.path,
+              videoUri: videoFile.path,
               source: 'camera',
               duration: _recordingDuration,
               fileSize: fileSize,
@@ -160,29 +183,16 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
   }
 
   Future<void> _switchCamera() async {
+    if (_recorder == null) return;
+    
     try {
-      final cameras = await availableCameras();
-      if (cameras.length < 2) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Only one camera available')),
-        );
-        return;
-      }
-
-      final currentIndex = cameras.indexWhere(
-        (camera) => camera.lensDirection == _camera!.lensDirection,
-      );
-      final newCamera = cameras[(currentIndex + 1) % cameras.length];
-
-      await _controller?.dispose();
+      await _recorder!.switchCamera();
       
-      _controller = CameraController(
-        newCamera,
-        ResolutionPreset.high,
-      );
-      await _controller!.initialize();
-      _camera = newCamera;
-      setState(() {});
+      // Update video element view
+      if (_videoElementViewId != null && _recorder!.videoElement != null) {
+        _videoElement = _recorder!.videoElement;
+        setState(() {});
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -216,7 +226,7 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
 
   @override
   void dispose() {
-    _controller?.dispose();
+    _recorder?.dispose();
     super.dispose();
   }
 
@@ -307,14 +317,26 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
                           )
                         : Stack(
                             children: [
-                              // Camera Preview
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-                                child: AspectRatio(
-                                  aspectRatio: _controller!.value.aspectRatio,
-                                  child: CameraPreview(_controller!),
+                              // Camera Preview - HTML Video Element
+                              if (_videoElementViewId != null)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                                  child: AspectRatio(
+                                    aspectRatio: 16 / 9, // Default aspect ratio for web
+                                    child: HtmlElementView(
+                                      viewType: _videoElementViewId!,
+                                    ),
+                                  ),
+                                )
+                              else
+                                Container(
+                                  color: Colors.black,
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
-                              ),
 
                               // Top Controls Overlay
                               Positioned(

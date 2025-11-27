@@ -22,7 +22,15 @@ class ApiService {
       print('🌐 API Base URL (from env): $envUrl');
       return envUrl;
     }
-    return AppConfig.apiBaseUrl;
+    
+    // Return config URL (will be placeholder if not set via --dart-define)
+    // User should set API_BASE_URL via --dart-define when running locally
+    final configUrl = AppConfig.apiBaseUrl;
+    if (configUrl.contains('yourdomain.com')) {
+      print('⚠️ API Base URL: Placeholder URL detected. Set API_BASE_URL via --dart-define when running locally.');
+    }
+    
+    return configUrl;
   }
   
   static String get mediaBaseUrl {
@@ -158,6 +166,12 @@ class ApiService {
     
     // Remove leading slash if present to avoid double slashes
     String cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    
+    // Paths starting with 'images/' are S3/CloudFront paths - don't add /media/ prefix
+    // These are direct S3 keys like: images/quotes/quote_13.jpg
+    if (cleanPath.startsWith('images/')) {
+      return '$mediaBaseUrl/$cleanPath';
+    }
     
     // Convert assets/images/ paths to media/images/ since backend serves from /media
     if (cleanPath.startsWith('assets/images/')) {

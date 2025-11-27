@@ -25,11 +25,44 @@ class WebSocketService {
   Future<void> connect() async {
     if (_isConnected) return;
     try {
-      // Use AppConfig to get the base API URL (works for both web and mobile)
-      // Extract base URL without /api/v1 for Socket.io connection
-      final apiBaseUrl = AppConfig.apiBaseUrl;
-      final url = apiBaseUrl.replaceAll('/api/v1', '').replaceAll('/api', '');
-      _socket = IO.io(url, <String, dynamic>{
+      // Use AppConfig.websocketUrl directly for Socket.io connection
+      // This URL should be the base URL (e.g., wss://api.christnewtabernacle.com)
+      // Socket.io will append /socket.io/ automatically
+      var url = AppConfig.websocketUrl;
+      
+      // Skip connection if using placeholder URL (development without proper env vars)
+      if (url.contains('yourdomain.com')) {
+        print('⚠️ WebSocket: Skipping connection - placeholder URL detected. Set WEBSOCKET_URL via --dart-define or update AppConfig.');
+        return;
+      }
+      
+      // Ensure proper protocol - Socket.io handles ws:// and wss:// automatically
+      // Remove any trailing slashes
+      url = url.trim();
+      if (url.endsWith('/')) {
+        url = url.substring(0, url.length - 1);
+      }
+      
+      // Parse URL to ensure proper port handling and avoid port 0 issue
+      final uri = Uri.parse(url);
+      
+      // Reconstruct URL to ensure no port 0 issues
+      // If port is 0 or missing, don't include port (let browser use defaults)
+      String finalUrl;
+      if (uri.hasPort && uri.port != 0) {
+        // Valid port specified, use as-is
+        finalUrl = url;
+      } else {
+        // No port or port is 0 - reconstruct without port (browser will use default: 80 for ws, 443 for wss)
+        finalUrl = '${uri.scheme}://${uri.host}';
+        if (uri.path.isNotEmpty && uri.path != '/') {
+          finalUrl += uri.path;
+        }
+      }
+      
+      print('🔌 WebSocket: Connecting to $finalUrl');
+      
+      _socket = IO.io(finalUrl, <String, dynamic>{
         'path': '/socket.io/',
         'transports': ['websocket'],
         'autoConnect': true,

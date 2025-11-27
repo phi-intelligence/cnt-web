@@ -42,6 +42,7 @@ class AdminDashboardCard extends StatelessWidget {
           padding: EdgeInsets.all(AppSpacing.extraLarge),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 padding: const EdgeInsets.all(AppSpacing.small),
@@ -51,22 +52,30 @@ class AdminDashboardCard extends StatelessWidget {
                 ),
                 child: Icon(icon, color: AppColors.textInverse, size: 36),
               ),
-              const Spacer(),
-              Text(
-                value,
-                style: AppTypography.heading2.copyWith(
-                  color: AppColors.textInverse,
-                  fontWeight: FontWeight.w700,
-                  height: 1.1,
+              SizedBox(height: AppSpacing.medium),
+              Flexible(
+                child: Text(
+                  value,
+                  style: AppTypography.heading2.copyWith(
+                    color: AppColors.textInverse,
+                    fontWeight: FontWeight.w700,
+                    height: 1.1,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ),
               const SizedBox(height: AppSpacing.tiny),
-              Text(
-                title,
-                style: AppTypography.heading3.copyWith(
-                  color: AppColors.textInverse,
-                  fontWeight: FontWeight.w600,
-                  height: 1.1,
+              Flexible(
+                child: Text(
+                  title,
+                  style: AppTypography.heading3.copyWith(
+                    color: AppColors.textInverse,
+                    fontWeight: FontWeight.w600,
+                    height: 1.1,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ),
             ],
