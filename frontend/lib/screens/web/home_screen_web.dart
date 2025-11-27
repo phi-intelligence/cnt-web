@@ -414,8 +414,95 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
         _bibleStories.isNotEmpty || _bibleDocuments.isNotEmpty;
 
     if (isLoading) {
-      return _buildBibleSectionWrapper(
-        const LoadingShimmer(width: double.infinity, height: 300),
+      return Container(
+        padding: const EdgeInsets.all(AppSpacing.extraLarge * 2),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.warmBrown.withOpacity(0.15),
+              AppColors.accentMain.withOpacity(0.1),
+              AppColors.backgroundSecondary,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+          border: Border.all(
+            color: AppColors.warmBrown.withOpacity(0.2),
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.warmBrown.withOpacity(0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Read the Bible',
+                    style: AppTypography.heading2.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.medium),
+                  Text(
+                    "Explore God's word through stories and documents.",
+                    style: AppTypography.body.copyWith(
+                      color: AppColors.textSecondary,
+                      height: 1.7,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.extraLarge * 2),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 120,
+                  height: 120,
+                  padding: const EdgeInsets.all(AppSpacing.large),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBackground,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.accentMain.withOpacity(0.2),
+                        blurRadius: 20,
+                        spreadRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.warmBrown,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.medium),
+                Text(
+                  'Bible Reader',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ],
+        ),
       );
     }
 
@@ -428,63 +515,91 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
       );
     }
 
-    return _buildBibleSectionWrapper(
-      Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(AppSpacing.large),
-        decoration: BoxDecoration(
-          color: AppColors.backgroundSecondary,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-          border: Border.all(
-            color: AppColors.borderPrimary.withOpacity(0.3),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'No Bible documents yet',
-              style: AppTypography.heading4.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.small),
-            Text(
-              'Admins can upload Bible PDFs and study notes from the dashboard. '
-              'Once documents are available, they will appear here.',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.medium),
-            OutlinedButton.icon(
-              onPressed: () {
-                _fetchBibleStories();
-                _fetchBibleDocuments();
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Refresh'),
-            ),
+    // Empty state - show the box but with empty message
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.extraLarge * 2),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.warmBrown.withOpacity(0.15),
+            AppColors.accentMain.withOpacity(0.1),
+            AppColors.backgroundSecondary,
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildBibleSectionWrapper(Widget child) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Bible Reader',
-          style: AppTypography.heading2.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        border: Border.all(
+          color: AppColors.warmBrown.withOpacity(0.2),
+          width: 2,
         ),
-        const SizedBox(height: AppSpacing.medium),
-        child,
-      ],
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.warmBrown.withOpacity(0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Read the Bible',
+                  style: AppTypography.heading2.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.medium),
+                Text(
+                  'Admins can upload Bible PDFs and stories from the dashboard. '
+                  'Once available, they will appear here.',
+                  style: AppTypography.body.copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.7,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.extraLarge * 2),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.large),
+                decoration: BoxDecoration(
+                  color: AppColors.cardBackground.withOpacity(0.5),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.borderPrimary.withOpacity(0.3),
+                  ),
+                ),
+                child: Icon(
+                  Icons.menu_book,
+                  size: 60,
+                  color: AppColors.textSecondary.withOpacity(0.5),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.medium),
+              Text(
+                'Bible Reader',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

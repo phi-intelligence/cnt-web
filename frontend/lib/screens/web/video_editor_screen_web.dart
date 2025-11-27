@@ -1272,6 +1272,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               ),
               child: Slider(
                 value: _playheadPosition.clamp(0.0, 1.0),
+                min: 0.0,
+                max: 1.0,
                 onChanged: (value) {
                   _onPlayheadDragStart();
                   _onPlayheadDragUpdate(value);
@@ -1951,28 +1953,53 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                       ],
                     ),
                     const SizedBox(height: AppSpacing.small),
-                    SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        trackHeight: 6,
-                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
-                        activeTrackColor: AppColors.warmBrown,
-                        inactiveTrackColor: AppColors.borderPrimary,
-                        thumbColor: AppColors.warmBrown,
-                      ),
-                      child: Slider(
-                        value: _trimStart.inSeconds.toDouble(),
-                        min: 0,
-                        max: _videoDuration.inSeconds.toDouble(),
-                        onChanged: (value) {
-                          setState(() {
-                            _trimStart = Duration(seconds: value.toInt());
-                            if (_trimStart >= _trimEnd) {
-                              _trimEnd = Duration(seconds: (value + 1).toInt());
-                            }
-                          });
-                        },
-                      ),
+                    Builder(
+                      builder: (context) {
+                        // Get duration and ensure it's valid
+                        final durationSeconds = _videoDuration.inSeconds;
+                        final maxValue = durationSeconds > 0 
+                            ? durationSeconds.toDouble() 
+                            : 1.0;
+                        final trimStartValue = _trimStart.inSeconds.toDouble().clamp(0.0, maxValue);
+                        
+                        // Only show slider if duration is valid
+                        if (maxValue <= 0 || maxValue.isNaN || maxValue.isInfinite) {
+                          return Container(
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: AppColors.borderPrimary,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          );
+                        }
+                        
+                        return SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 6,
+                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                            activeTrackColor: AppColors.warmBrown,
+                            inactiveTrackColor: AppColors.borderPrimary,
+                            thumbColor: AppColors.warmBrown,
+                          ),
+                          child: Slider(
+                            value: trimStartValue,
+                            min: 0.0,
+                            max: maxValue,
+                            onChanged: (value) {
+                              if (maxValue > 0) {
+                                final clampedValue = value.clamp(0.0, maxValue);
+                                setState(() {
+                                  _trimStart = Duration(seconds: clampedValue.toInt());
+                                  if (_trimStart >= _trimEnd) {
+                                    _trimEnd = Duration(seconds: (clampedValue + 1).toInt().clamp(0, durationSeconds));
+                                  }
+                                });
+                              }
+                            },
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -2014,28 +2041,53 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                       ],
                     ),
                     const SizedBox(height: AppSpacing.small),
-                    SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        trackHeight: 6,
-                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
-                        activeTrackColor: AppColors.warmBrown,
-                        inactiveTrackColor: AppColors.borderPrimary,
-                        thumbColor: AppColors.warmBrown,
-                      ),
-                      child: Slider(
-                        value: _trimEnd.inSeconds.toDouble(),
-                        min: 0,
-                        max: _videoDuration.inSeconds.toDouble(),
-                        onChanged: (value) {
-                          setState(() {
-                            _trimEnd = Duration(seconds: value.toInt());
-                            if (_trimEnd <= _trimStart) {
-                              _trimStart = Duration(seconds: (value - 1).toInt());
-                            }
-                          });
-                        },
-                      ),
+                    Builder(
+                      builder: (context) {
+                        // Get duration and ensure it's valid
+                        final durationSeconds = _videoDuration.inSeconds;
+                        final maxValue = durationSeconds > 0 
+                            ? durationSeconds.toDouble() 
+                            : 1.0;
+                        final trimEndValue = _trimEnd.inSeconds.toDouble().clamp(0.0, maxValue);
+                        
+                        // Only show slider if duration is valid
+                        if (maxValue <= 0 || maxValue.isNaN || maxValue.isInfinite) {
+                          return Container(
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: AppColors.borderPrimary,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          );
+                        }
+                        
+                        return SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 6,
+                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                            activeTrackColor: AppColors.warmBrown,
+                            inactiveTrackColor: AppColors.borderPrimary,
+                            thumbColor: AppColors.warmBrown,
+                          ),
+                          child: Slider(
+                            value: trimEndValue,
+                            min: 0.0,
+                            max: maxValue,
+                            onChanged: (value) {
+                              if (maxValue > 0) {
+                                final clampedValue = value.clamp(0.0, maxValue);
+                                setState(() {
+                                  _trimEnd = Duration(seconds: clampedValue.toInt());
+                                  if (_trimEnd <= _trimStart) {
+                                    _trimStart = Duration(seconds: (clampedValue - 1).toInt().clamp(0, durationSeconds));
+                                  }
+                                });
+                              }
+                            },
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

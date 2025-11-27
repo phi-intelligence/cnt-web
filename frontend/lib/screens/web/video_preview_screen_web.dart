@@ -651,49 +651,84 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
                                                     ),
                                                   ),
                                                   Expanded(
-                                                    child: SliderTheme(
-                                                      data: SliderTheme.of(context).copyWith(
-                                                        trackHeight: 4,
-                                                        thumbShape: const RoundSliderThumbShape(
-                                                          enabledThumbRadius: 8,
-                                                        ),
-                                                        overlayShape: const RoundSliderOverlayShape(
-                                                          overlayRadius: 16,
-                                                        ),
-                                                      ),
-                                                      child: Slider(
-                                                        value: _isScrubbing
+                                                    child: Builder(
+                                                      builder: (context) {
+                                                        // Get duration and ensure it's valid
+                                                        final durationSeconds = _controller!.value.duration.inSeconds;
+                                                        final positionSeconds = _isScrubbing
                                                             ? _scrubValue
-                                                            : _controller!.value.position.inSeconds.toDouble(),
-                                                        min: 0,
-                                                        max: _controller!.value.duration.inSeconds.toDouble(),
-                                                        activeColor: AppColors.primaryMain,
-                                                        inactiveColor: Colors.white.withOpacity(0.3),
-                                                        thumbColor: AppColors.primaryMain,
-                                                        onChangeStart: (value) {
-                                                          setState(() {
-                                                            _isScrubbing = true;
-                                                            _scrubValue = value;
-                                                            _wasPlayingBeforeScrub = _controller!.value.isPlaying;
-                                                          });
-                                                          _controller!.pause();
-                                                        },
-                                                        onChanged: (value) {
-                                                          setState(() {
-                                                            _scrubValue = value;
-                                                          });
-                                                        },
-                                                        onChangeEnd: (value) async {
-                                                          await _controller!.seekTo(Duration(seconds: value.toInt()));
-                                                          setState(() {
-                                                            _isScrubbing = false;
-                                                          });
-                                                          if (_wasPlayingBeforeScrub) {
-                                                            _controller!.play();
-                                                            _startControlsTimer();
-                                                          }
-                                                        },
-                                                      ),
+                                                            : _controller!.value.position.inSeconds.toDouble();
+                                                        
+                                                        // Ensure max is always greater than min
+                                                        // If duration is 0 or invalid, use a default of 1 second
+                                                        final maxValue = durationSeconds > 0 
+                                                            ? durationSeconds.toDouble() 
+                                                            : 1.0;
+                                                        
+                                                        // Clamp position to valid range
+                                                        final clampedValue = positionSeconds.clamp(0.0, maxValue);
+                                                        
+                                                        // Only show slider if duration is valid
+                                                        if (maxValue <= 0 || maxValue.isNaN || maxValue.isInfinite) {
+                                                          return Container(
+                                                            height: 4,
+                                                            decoration: BoxDecoration(
+                                                              color: Colors.white.withOpacity(0.3),
+                                                              borderRadius: BorderRadius.circular(2),
+                                                            ),
+                                                          );
+                                                        }
+                                                        
+                                                        return SliderTheme(
+                                                          data: SliderTheme.of(context).copyWith(
+                                                            trackHeight: 4,
+                                                            thumbShape: const RoundSliderThumbShape(
+                                                              enabledThumbRadius: 8,
+                                                            ),
+                                                            overlayShape: const RoundSliderOverlayShape(
+                                                              overlayRadius: 16,
+                                                            ),
+                                                          ),
+                                                          child: Slider(
+                                                            value: clampedValue,
+                                                            min: 0.0,
+                                                            max: maxValue,
+                                                            activeColor: AppColors.primaryMain,
+                                                            inactiveColor: Colors.white.withOpacity(0.3),
+                                                            thumbColor: AppColors.primaryMain,
+                                                            onChangeStart: (value) {
+                                                              if (maxValue > 0) {
+                                                                setState(() {
+                                                                  _isScrubbing = true;
+                                                                  _scrubValue = value.clamp(0.0, maxValue);
+                                                                  _wasPlayingBeforeScrub = _controller!.value.isPlaying;
+                                                                });
+                                                                _controller!.pause();
+                                                              }
+                                                            },
+                                                            onChanged: (value) {
+                                                              if (maxValue > 0) {
+                                                                setState(() {
+                                                                  _scrubValue = value.clamp(0.0, maxValue);
+                                                                });
+                                                              }
+                                                            },
+                                                            onChangeEnd: (value) async {
+                                                              if (maxValue > 0) {
+                                                                final clampedEndValue = value.clamp(0.0, maxValue);
+                                                                await _controller!.seekTo(Duration(seconds: clampedEndValue.toInt()));
+                                                                setState(() {
+                                                                  _isScrubbing = false;
+                                                                });
+                                                                if (_wasPlayingBeforeScrub) {
+                                                                  _controller!.play();
+                                                                  _startControlsTimer();
+                                                                }
+                                                              }
+                                                            },
+                                                          ),
+                                                        );
+                                                      },
                                                     ),
                                                   ),
                                                   SizedBox(

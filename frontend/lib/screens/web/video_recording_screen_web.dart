@@ -23,6 +23,7 @@ class VideoRecordingScreenWeb extends StatefulWidget {
 class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
   WebVideoRecorder? _recorder;
   bool _isRecording = false;
+  bool _isPaused = false;
   int _recordingDuration = 0;
   bool _isFlashOn = false;
   bool _isInitializing = true;
@@ -102,6 +103,7 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
       await _recorder!.startRecording();
       setState(() {
         _isRecording = true;
+        _isPaused = false;
       });
       _updateDuration();
     } catch (e) {
@@ -109,6 +111,51 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error starting recording: $e'),
+            backgroundColor: AppColors.errorMain,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _pauseRecording() async {
+    if (_recorder == null || !_recorder!.isInitialized || !_isRecording) {
+      return;
+    }
+
+    try {
+      await _recorder!.pauseRecording();
+      setState(() {
+        _isPaused = true;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error pausing recording: $e'),
+            backgroundColor: AppColors.errorMain,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _resumeRecording() async {
+    if (_recorder == null || !_recorder!.isInitialized || !_isRecording) {
+      return;
+    }
+
+    try {
+      await _recorder!.resumeRecording();
+      setState(() {
+        _isPaused = false;
+      });
+      _updateDuration();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error resuming recording: $e'),
             backgroundColor: AppColors.errorMain,
           ),
         );
@@ -129,10 +176,35 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
       return;
     }
 
+    if (!_isRecording) {
+      return;
+    }
+
     try {
       setState(() {
         _isRecording = false;
+        _isPaused = false;
       });
+
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                  CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                  const SizedBox(width: AppSpacing.medium),
+                  const Text('Processing video...'),
+                ],
+            ),
+            duration: const Duration(seconds: 5),
+            backgroundColor: AppColors.primaryMain,
+          ),
+        );
+      }
 
       final videoFile = await _recorder!.stopRecording();
       
@@ -141,12 +213,32 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
       try {
         final bytes = await videoFile.readAsBytes();
         fileSize = bytes.length;
+        
+        // Validate file size
+        if (fileSize == 0) {
+          throw Exception('Video file is empty. Please try recording again.');
+        }
       } catch (e) {
         print('Error reading video bytes: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error reading video file: $e'),
+              backgroundColor: AppColors.errorMain,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+        setState(() {
+          _isRecording = false;
+        });
+        return;
       }
 
       // Navigate to web preview screen
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -160,16 +252,43 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
         );
       }
     } catch (e) {
-      print('Error stopping video recording: $e');
+      print('❌ Error stopping video recording: $e');
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        
+        // Extract user-friendly error message
+        String errorMessage = e.toString();
+        if (errorMessage.contains('Exception: ')) {
+          errorMessage = errorMessage.replaceFirst('Exception: ', '');
+        }
+        if (errorMessage.contains('blob contains no valid video data')) {
+          errorMessage = 'The recording contains no valid video data. Please try recording again and ensure you record for at least a few seconds.';
+        } else if (errorMessage.contains('uint8 list expected byte buffer') || errorMessage.contains('ByteBuffer')) {
+          errorMessage = 'Error processing video data. Please try recording again.';
+        } else if (errorMessage.contains('Timeout')) {
+          errorMessage = 'Processing took too long. The video file may be too large. Please try recording a shorter video.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error stopping recording: $e'),
+            content: Text(errorMessage),
             backgroundColor: AppColors.errorMain,
+            duration: const Duration(seconds: 8),
+            action: SnackBarAction(
+              label: 'Try Again',
+              textColor: Colors.white,
+              onPressed: () {
+                setState(() {
+                  _isRecording = false;
+                  _isPaused = false;
+                });
+              },
+            ),
           ),
         );
         setState(() {
           _isRecording = false;
+          _isPaused = false;
         });
       }
     }
@@ -206,9 +325,9 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
   }
 
   void _updateDuration() {
-    if (_isRecording) {
+    if (_isRecording && !_isPaused) {
       Future.delayed(const Duration(seconds: 1), () {
-        if (mounted && _isRecording) {
+        if (mounted && _isRecording && !_isPaused) {
           setState(() {
             _recordingDuration++;
           });
@@ -426,48 +545,89 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
                                 left: 0,
                                 right: 0,
                                 child: Center(
-                                  child: GestureDetector(
-                                    onTap: _isRecording ? _stopRecording : _startRecording,
-                                    child: Container(
-                                      width: 80,
-                                      height: 80,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: _isRecording
-                                            ? AppColors.errorMain
-                                            : AppColors.primaryMain,
-                                        border: Border.all(
-                                          color: Colors.white,
-                                          width: 4,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: (_isRecording
-                                                    ? AppColors.errorMain
-                                                    : AppColors.primaryMain)
-                                                .withOpacity(0.4),
-                                            blurRadius: 20,
-                                            spreadRadius: 4,
-                                          ),
-                                        ],
-                                      ),
-                                      child: Center(
-                                        child: _isRecording
-                                            ? Container(
-                                                width: 32,
-                                                height: 32,
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white,
-                                                  borderRadius: BorderRadius.circular(6),
-                                                ),
-                                              )
-                                            : Icon(
-                                                Icons.videocam,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Pause/Resume Button (only shown when recording)
+                                      if (_isRecording) ...[
+                                        GestureDetector(
+                                          onTap: _isPaused ? _resumeRecording : _pauseRecording,
+                                          child: Container(
+                                            width: 60,
+                                            height: 60,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: AppColors.accentMain,
+                                              border: Border.all(
                                                 color: Colors.white,
-                                                size: 32,
+                                                width: 3,
                                               ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: AppColors.accentMain.withOpacity(0.4),
+                                                  blurRadius: 15,
+                                                  spreadRadius: 3,
+                                                ),
+                                              ],
+                                            ),
+                                            child: Center(
+                                              child: Icon(
+                                                _isPaused ? Icons.play_arrow : Icons.pause,
+                                                color: Colors.white,
+                                                size: 28,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: AppSpacing.large),
+                                      ],
+                                      
+                                      // Record/Stop Button
+                                      GestureDetector(
+                                        onTap: _isRecording ? _stopRecording : _startRecording,
+                                        child: Container(
+                                          width: 80,
+                                          height: 80,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: _isRecording
+                                                ? AppColors.errorMain
+                                                : AppColors.primaryMain,
+                                            border: Border.all(
+                                              color: Colors.white,
+                                              width: 4,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: (_isRecording
+                                                        ? AppColors.errorMain
+                                                        : AppColors.primaryMain)
+                                                    .withOpacity(0.4),
+                                                blurRadius: 20,
+                                                spreadRadius: 4,
+                                              ),
+                                            ],
+                                          ),
+                                          child: Center(
+                                            child: _isRecording
+                                                ? Container(
+                                                    width: 32,
+                                                    height: 32,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      borderRadius: BorderRadius.circular(6),
+                                                    ),
+                                                  )
+                                                : Icon(
+                                                    Icons.videocam,
+                                                    color: Colors.white,
+                                                    size: 32,
+                                                  ),
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
                                 ),
                               ),

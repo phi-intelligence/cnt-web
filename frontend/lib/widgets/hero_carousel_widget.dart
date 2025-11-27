@@ -70,20 +70,38 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticK
       final items = <_CarouselItem>[];
       for (final post in posts) {
         final imageUrl = post['image_url'] as String?;
+        final postId = post['id'] as int;
+        final isApproved = post['is_approved'] ?? false;
+        final postType = post['post_type'] as String? ?? 'image';
+        
         if (imageUrl != null && imageUrl.isNotEmpty) {
           // Get full media URL (handles both regular images and generated quote images)
           final fullImageUrl = apiService.getMediaUrl(imageUrl);
-          print('🖼️ Hero Carousel: Post ${post['id']} - Original: $imageUrl, Full URL: $fullImageUrl');
+          
+          // Log detailed information for debugging
+          print('🖼️ Hero Carousel: Post $postId');
+          print('   - Type: $postType');
+          print('   - Approved: $isApproved');
+          print('   - Original URL: $imageUrl');
+          print('   - Full URL: $fullImageUrl');
+          
+          // Validate URL before adding
+          if (fullImageUrl.isEmpty) {
+            print('   ⚠️ Warning: Empty URL after processing, skipping post $postId');
+            continue;
+          }
           
           items.add(_CarouselItem(
-            id: post['id'].toString(),
+            id: postId.toString(),
             imageUrl: fullImageUrl,
             title: post['title'] as String?,
-            postId: post['id'] as int,
+            postId: postId,
           ));
           
           // Limit to 10-12 items for carousel
           if (items.length >= 12) break;
+        } else {
+          print('⚠️ Hero Carousel: Post $postId has null or empty image_url, skipping');
         }
       }
       

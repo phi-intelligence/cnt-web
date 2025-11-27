@@ -381,64 +381,84 @@ class WebVideoRecorder {
       // Read blob as bytes using FileReader
       final reader = html.FileReader();
       final completer = Completer<Uint8List>();
+      bool isCompleted = false;
       
       // Set up load handler
       reader.onLoad.listen((event) {
         try {
+          if (isCompleted) return;
+          
           final result = reader.result;
           if (result == null) {
             if (!completer.isCompleted) {
-              completer.completeError(Exception('FileReader result is null'));
+              isCompleted = true;
+              completer.completeError(Exception('FileReader result is null - blob may contain no valid video data'));
             }
             return;
           }
           
-          // Enhanced type checking with fallback
+          // Enhanced type checking with proper ByteBuffer handling
+          Uint8List bytes;
           if (result is ByteBuffer) {
-            if (!completer.isCompleted) {
-              completer.complete(Uint8List.view(result));
-            }
+            // Convert ByteBuffer to Uint8List
+            bytes = result.asUint8List();
+          } else if (result is Uint8List) {
+            // Already a Uint8List
+            bytes = result;
           } else if (result is String) {
             // Handle string result (shouldn't happen with readAsArrayBuffer, but handle gracefully)
+            isCompleted = true;
             if (!completer.isCompleted) {
               completer.completeError(Exception(
                 'FileReader returned string instead of ArrayBuffer - blob may be invalid. '
                 'This may indicate the blob contains no valid video data.'
               ));
             }
+            return;
           } else {
-            // Unknown type - provide more context and try to handle gracefully
+            // Unknown type - provide more context
             print('⚠️ FileReader returned unexpected type: ${result.runtimeType}');
-            // Try to convert to string and check if it's an error message
-            try {
-              final resultStr = result.toString();
-              if (resultStr.contains('error') || resultStr.contains('invalid')) {
-                if (!completer.isCompleted) {
-                  completer.completeError(Exception(
-                    'FileReader encountered an error reading the blob. The video data may be corrupted or invalid. '
-                    'Please try recording again.'
-                  ));
-                }
-              } else {
-                if (!completer.isCompleted) {
-                  completer.completeError(Exception(
-                    'Unexpected FileReader result type: ${result.runtimeType}. '
-                    'Expected ByteBuffer. This may indicate the blob contains no valid video data. '
-                    'Please try recording again and ensure you record for at least ${_minRecordingDurationMs}ms.'
-                  ));
-                }
-              }
-            } catch (e) {
-              if (!completer.isCompleted) {
-                completer.completeError(Exception(
-                  'Failed to process video data. The recording may have been stopped too quickly or the video data is invalid. '
-                  'Please try recording again and ensure you record for at least ${_minRecordingDurationMs}ms.'
-                ));
-              }
+            isCompleted = true;
+            if (!completer.isCompleted) {
+              completer.completeError(Exception(
+                'Unexpected FileReader result type: ${result.runtimeType}. '
+                'Expected ByteBuffer or Uint8List. This may indicate the blob contains no valid video data. '
+                'Please try recording again and ensure you record for at least ${_minRecordingDurationMs}ms.'
+              ));
             }
+            return;
+          }
+          
+          // Validate bytes are not empty
+          if (bytes.isEmpty) {
+            isCompleted = true;
+            if (!completer.isCompleted) {
+              completer.completeError(Exception('Blob contains no valid video data - bytes array is empty'));
+            }
+            return;
+          }
+          
+          // Validate minimum size
+          if (bytes.length < _minBlobSizeBytes) {
+            isCompleted = true;
+            if (!completer.isCompleted) {
+              completer.completeError(Exception(
+                'Video data is too small (${bytes.length} bytes). '
+                'Minimum size required: $_minBlobSizeBytes bytes. '
+                'Please record for at least ${_minRecordingDurationMs}ms before stopping.'
+              ));
+            }
+            return;
+          }
+          
+          // Successfully converted
+          if (!completer.isCompleted) {
+            isCompleted = true;
+            completer.complete(bytes);
           }
         } catch (e) {
-          if (!completer.isCompleted) {
+          if (!isCompleted && !completer.isCompleted) {
+            isCompleted = true;
             completer.completeError(Exception('Error processing FileReader result: $e'));
           }
         }
@@ -446,7 +466,10 @@ class WebVideoRecorder {
       
       // Set up error handler
       reader.onError.listen((event) {
-        completer.completeError(Exception('FileReader error'));
+        if (!isCompleted && !completer.isCompleted) {
+          isCompleted = true;
+          completer.completeError(Exception('FileReader error: ${event.toString()}'));
+        }
       });
       
       // Start reading
@@ -456,33 +479,61 @@ class WebVideoRecorder {
       Uint8List bytes;
       try {
         bytes = await completer.future.timeout(
-          const Duration(seconds: 10),
+          const Duration(seconds: 15),
           onTimeout: () {
-            throw Exception('Timeout reading blob data');
+            throw Exception('Timeout reading blob data after 15 seconds. The video file may be too large or corrupted.');
           },
         );
       } catch (e) {
-        print('Error reading blob bytes: $e');
-        rethrow;
+        print('❌ Error reading blob bytes: $e');
+        if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
+          _stopCompleter!.completeError(e);
+        }
+        return;
+      }
+
+      // Validate bytes before creating XFile
+      if (bytes.isEmpty) {
+        final error = Exception('Blob contains no valid video data - bytes array is empty after conversion');
+        print('❌ $error');
+        if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
+          _stopCompleter!.completeError(error);
+        }
+        return;
       }
 
       // Create XFile from bytes
       final extension = mimeType.contains('mp4') ? 'mp4' : 'webm';
       final fileName = 'video_${DateTime.now().millisecondsSinceEpoch}.$extension';
-      final xFile = XFile.fromData(
-        bytes,
-        mimeType: mimeType,
-        name: fileName,
-      );
+      
+      try {
+        final xFile = XFile.fromData(
+          bytes,
+          mimeType: mimeType,
+          name: fileName,
+        );
 
-      // Complete the stop completer
-      if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
-        _stopCompleter!.complete(xFile);
+        // Complete the stop completer
+        if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
+          print('✅ Successfully converted blob to XFile: $fileName (${bytes.length} bytes)');
+          _stopCompleter!.complete(xFile);
+        }
+      } catch (e) {
+        print('❌ Error creating XFile from bytes: $e');
+        if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
+          _stopCompleter!.completeError(Exception(
+            'Failed to create video file. Error: $e. '
+            'The video data may be corrupted. Please try recording again.'
+          ));
+        }
       }
     } catch (e) {
-      print('Error converting blob to XFile: $e');
+      print('❌ Error converting blob to XFile: $e');
       if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
-        _stopCompleter!.completeError(e);
+        _stopCompleter!.completeError(Exception(
+          'Failed to process video recording. Error: $e. '
+          'Please try recording again and ensure you record for at least ${_minRecordingDurationMs}ms before stopping.'
+        ));
       }
     }
   }

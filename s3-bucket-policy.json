@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": [
+        "arn:aws:s3:::cnt-web-media/images/quotes/*",
+        "arn:aws:s3:::cnt-web-media/images/*",
+        "arn:aws:s3:::cnt-web-media/media/images/quotes/*",
+        "arn:aws:s3:::cnt-web-media/documents/*",
+        "arn:aws:s3:::cnt-web-media/audio/*",
+        "arn:aws:s3:::cnt-web-media/video/*",
+        "arn:aws:s3:::cnt-web-media/courts/*",
+        "arn:aws:s3:::cnt-web-media/codes/*"
+      ]
+    }
+  ]
+}
+
