@@ -249,271 +249,96 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
-      // Web version with web design system
+      // Web version with horizontal layout matching VideoPreviewScreenWeb
       return Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
         body: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header with back button
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                      onPressed: _handleBack,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                    onPressed: _handleBack,
+                  ),
+                  Expanded(
+                    child: StyledPageHeader(
+                      title: 'Preview Audio Podcast',
+                      size: StyledPageHeaderSize.h2,
                     ),
-                    Expanded(
-                      child: StyledPageHeader(
-                        title: 'Preview Audio Podcast',
-                        size: StyledPageHeaderSize.h2,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.extraLarge),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete, color: AppColors.errorMain),
+                    onPressed: () {
+                      // Delete functionality - can be implemented later
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Delete feature coming soon')),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.extraLarge),
 
-                // Action buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: StyledPillButton(
-                        label: 'Edit Audio',
-                        icon: Icons.edit,
-                        onPressed: _handleEdit,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.medium),
-                    Expanded(
-                      child: StyledPillButton(
-                        label: 'Add Captions',
-                        icon: Icons.closed_caption,
-                        onPressed: _handleAddCaptions,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.medium),
-                    Expanded(
-                      child: StyledPillButton(
-                        label: _isLoading ? 'Publishing...' : 'Publish',
-                        icon: Icons.publish,
-                        onPressed: _isLoading ? null : _handlePublish,
-                        isLoading: _isLoading,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.extraLarge),
-
-                // Audio Player Section
-                SectionContainer(
-                  showShadow: true,
-                  child: Column(
-                    children: [
-                      // Audio Icon
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryMain.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.audiotrack,
-                          size: 40,
-                          color: AppColors.primaryMain,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.medium),
-                      Text(
-                        'Audio Podcast',
-                        style: AppTypography.heading3.copyWith(
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.small),
-                      Text(
-                        _duration != Duration.zero
-                            ? '${_formatTime(_duration.inSeconds)} • ${_formatFileSize(widget.fileSize)}'
-                            : '${_formatTime(widget.duration)} • ${_formatFileSize(widget.fileSize)}',
-                        style: AppTypography.body.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.large),
-
-                      if (_isInitializing)
-                        CircularProgressIndicator(color: AppColors.primaryMain)
-                      else if (_hasError)
-                        Column(
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              color: AppColors.errorMain,
-                              size: 32,
+              // Main Content: Horizontal Layout
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // On smaller screens, stack vertically; on larger screens, use horizontal layout
+                    final useHorizontalLayout = constraints.maxWidth > 1024;
+                    
+                    if (useHorizontalLayout) {
+                      // Horizontal Layout: Audio player on left, controls on right
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Audio Player Section (Left - 60-70%)
+                          Expanded(
+                            flex: 3,
+                            child: SectionContainer(
+                              showShadow: true,
+                              padding: EdgeInsets.zero,
+                              child: _buildAudioPlayer(),
                             ),
-                            const SizedBox(height: AppSpacing.small),
-                            Text(
-                              'Error loading audio',
-                              style: AppTypography.body.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
+                          ),
+                          SizedBox(width: AppSpacing.large),
+                          // Controls & Form Section (Right - 30-40%)
+                          Expanded(
+                            flex: 2,
+                            child: SectionContainer(
+                              showShadow: true,
+                              child: _buildControlsAndForm(),
+                            ),
+                          ),
+                        ],
+                      );
+                    } else {
+                      // Vertical Layout for smaller screens
+                      return SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SectionContainer(
+                              showShadow: true,
+                              padding: EdgeInsets.zero,
+                              child: _buildAudioPlayer(),
+                            ),
+                            const SizedBox(height: AppSpacing.large),
+                            SectionContainer(
+                              showShadow: true,
+                              child: _buildControlsAndForm(),
                             ),
                           ],
-                        )
-                      else ...[
-                        // Play Button
-                        GestureDetector(
-                          onTap: _handlePlayPause,
-                          child: Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryMain,
-                              shape: BoxShape.circle,
-                            ),
-                            child: StreamBuilder<bool>(
-                              stream: _audioPlayer.playingStream,
-                              builder: (context, snapshot) {
-                                final isPlaying = snapshot.data ?? false;
-                                return Icon(
-                                  isPlaying ? Icons.pause : Icons.play_arrow,
-                                  size: 32,
-                                  color: Colors.white,
-                                );
-                              },
-                            ),
-                          ),
                         ),
-                        const SizedBox(height: AppSpacing.medium),
-
-                        // Progress Bar
-                        StreamBuilder<Duration>(
-                          stream: _audioPlayer.positionStream,
-                          builder: (context, positionSnapshot) {
-                            final position = positionSnapshot.data ?? Duration.zero;
-                            return StreamBuilder<Duration?>(
-                              stream: _audioPlayer.durationStream,
-                              builder: (context, durationSnapshot) {
-                                final duration = durationSnapshot.data ?? _duration;
-                                return Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 50,
-                                      child: Text(
-                                        _formatTime(position.inSeconds),
-                                        style: AppTypography.bodySmall.copyWith(
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Slider(
-                                        value: duration != Duration.zero
-                                            ? position.inSeconds.toDouble().clamp(0.0, duration.inSeconds.toDouble())
-                                            : 0.0,
-                                        min: 0,
-                                        max: duration != Duration.zero
-                                            ? duration.inSeconds.toDouble()
-                                            : widget.duration.toDouble(),
-                                        activeColor: AppColors.primaryMain,
-                                        inactiveColor: AppColors.borderPrimary,
-                                        onChanged: (value) {
-                                          _audioPlayer.seek(Duration(seconds: value.toInt()));
-                                        },
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: 50,
-                                      child: Text(
-                                        _formatTime((duration != Duration.zero ? duration : Duration(seconds: widget.duration)).inSeconds),
-                                        style: AppTypography.bodySmall.copyWith(
-                                          color: AppColors.textSecondary,
-                                        ),
-                                        textAlign: TextAlign.right,
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                        ),
-                      ],
-                    ],
-                  ),
+                      );
+                    }
+                  },
                 ),
-
-                const SizedBox(height: AppSpacing.large),
-
-                // Metadata Form
-                SectionContainer(
-                  showShadow: true,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Podcast Details',
-                        style: AppTypography.heading3.copyWith(
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.large),
-                      
-                      // Title
-                      _buildTextField(
-                        label: 'Title',
-                        controller: _titleController,
-                        hint: 'Enter podcast title',
-                      ),
-                      const SizedBox(height: AppSpacing.medium),
-                      
-                      // Description
-                      _buildTextField(
-                        label: 'Description',
-                        controller: _descriptionController,
-                        hint: 'Enter podcast description',
-                        maxLines: 3,
-                      ),
-                      const SizedBox(height: AppSpacing.medium),
-                      
-                      // Tags
-                      _buildTextField(
-                        label: 'Tags',
-                        controller: _tagsController,
-                        hint: 'Enter tags (comma separated)',
-                      ),
-                      const SizedBox(height: AppSpacing.medium),
-                      
-                      // Thumbnail Selection
-                      Container(
-                        padding: EdgeInsets.all(AppSpacing.medium),
-                        decoration: BoxDecoration(
-                          color: AppColors.backgroundSecondary,
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                          border: Border.all(
-                            color: AppColors.borderPrimary,
-                            width: 1,
-                          ),
-                        ),
-                        child: ThumbnailSelector(
-                          isVideo: false,
-                          onThumbnailSelected: (thumbnailUrl) {
-                            setState(() {
-                              _selectedThumbnail = thumbnailUrl;
-                            });
-                          },
-                          initialThumbnail: _selectedThumbnail,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: AppSpacing.extraLarge),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       );
@@ -801,6 +626,321 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
         ),
       );
     }
+  }
+
+  Widget _buildAudioPlayer() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.extraLarge),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (_isInitializing)
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(color: AppColors.primaryMain),
+                const SizedBox(height: AppSpacing.medium),
+                Text(
+                  'Loading audio...',
+                  style: AppTypography.body.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            )
+          else if (_hasError)
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: AppColors.errorMain,
+                ),
+                const SizedBox(height: AppSpacing.medium),
+                Text(
+                  'Error loading audio',
+                  style: AppTypography.heading3.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: AppSpacing.small),
+                  Padding(
+                    padding: EdgeInsets.all(AppSpacing.medium),
+                    child: Text(
+                      _errorMessage!,
+                      style: AppTypography.body.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ],
+            )
+          else ...[
+            // Audio Icon
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.warmBrown,
+                    AppColors.accentMain,
+                  ],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.warmBrown.withOpacity(0.3),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.audiotrack,
+                size: 60,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.large),
+            Text(
+              'Audio Podcast',
+              style: AppTypography.heading2.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.small),
+            Text(
+              _duration != Duration.zero
+                  ? '${_formatTime(_duration.inSeconds)} • ${_formatFileSize(widget.fileSize)}'
+                  : '${_formatTime(widget.duration)} • ${_formatFileSize(widget.fileSize)}',
+              style: AppTypography.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.extraLarge),
+
+            // Play/Pause Button
+            GestureDetector(
+              onTap: _handlePlayPause,
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.warmBrown,
+                      AppColors.accentMain,
+                    ],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.warmBrown.withOpacity(0.4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: StreamBuilder<bool>(
+                  stream: _audioPlayer.playingStream,
+                  builder: (context, snapshot) {
+                    final isPlaying = snapshot.data ?? false;
+                    return Icon(
+                      isPlaying ? Icons.pause : Icons.play_arrow,
+                      size: 48,
+                      color: Colors.white,
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.large),
+
+            // Progress Bar
+            StreamBuilder<Duration>(
+              stream: _audioPlayer.positionStream,
+              builder: (context, positionSnapshot) {
+                final position = positionSnapshot.data ?? Duration.zero;
+                return StreamBuilder<Duration?>(
+                  stream: _audioPlayer.durationStream,
+                  builder: (context, durationSnapshot) {
+                    final duration = durationSnapshot.data ?? _duration;
+                    final totalDuration = duration != Duration.zero
+                        ? duration
+                        : Duration(seconds: widget.duration);
+                    
+                    return Column(
+                      children: [
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 60,
+                              child: Text(
+                                _formatTime(position.inSeconds),
+                                style: AppTypography.bodyMedium.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '/ ${_formatTime(totalDuration.inSeconds)}',
+                              style: AppTypography.body.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.small),
+                        SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 6,
+                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                            activeTrackColor: AppColors.warmBrown,
+                            inactiveTrackColor: AppColors.borderPrimary,
+                            thumbColor: AppColors.warmBrown,
+                          ),
+                          child: Slider(
+                            value: totalDuration != Duration.zero
+                                ? position.inSeconds.toDouble().clamp(0.0, totalDuration.inSeconds.toDouble())
+                                : 0.0,
+                            min: 0.0,
+                            max: totalDuration.inSeconds.toDouble() > 0
+                                ? totalDuration.inSeconds.toDouble()
+                                : 1.0,
+                            onChanged: (value) {
+                              _audioPlayer.seek(Duration(seconds: value.toInt()));
+                            },
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControlsAndForm() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.large),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Action buttons
+          Row(
+            children: [
+              Expanded(
+                child: StyledPillButton(
+                  label: 'Edit Audio',
+                  icon: Icons.edit,
+                  onPressed: _handleEdit,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.small),
+              Expanded(
+                child: StyledPillButton(
+                  label: 'Add Captions',
+                  icon: Icons.closed_caption,
+                  onPressed: _handleAddCaptions,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.medium),
+          SizedBox(
+            width: double.infinity,
+            child: StyledPillButton(
+              label: _isLoading ? 'Publishing...' : 'Publish',
+              icon: Icons.publish,
+              onPressed: _isLoading ? null : _handlePublish,
+              isLoading: _isLoading,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.extraLarge),
+
+          // Podcast Details Section
+          Text(
+            'Podcast Details',
+            style: AppTypography.heading3.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.large),
+          
+          // Title
+          _buildTextField(
+            label: 'Title',
+            controller: _titleController,
+            hint: 'Enter podcast title',
+          ),
+          const SizedBox(height: AppSpacing.medium),
+          
+          // Description
+          _buildTextField(
+            label: 'Description',
+            controller: _descriptionController,
+            hint: 'Enter podcast description',
+            maxLines: 3,
+          ),
+          const SizedBox(height: AppSpacing.medium),
+          
+          // Tags
+          _buildTextField(
+            label: 'Tags',
+            controller: _tagsController,
+            hint: 'Enter tags (comma separated)',
+          ),
+          const SizedBox(height: AppSpacing.medium),
+          
+          // Thumbnail Selection
+          Text(
+            'Thumbnail',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.small),
+          Container(
+            padding: EdgeInsets.all(AppSpacing.medium),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundSecondary,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              border: Border.all(
+                color: AppColors.borderPrimary,
+                width: 1,
+              ),
+            ),
+            child: ThumbnailSelector(
+              isVideo: false,
+              onThumbnailSelected: (thumbnailUrl) {
+                setState(() {
+                  _selectedThumbnail = thumbnailUrl;
+                });
+              },
+              initialThumbnail: _selectedThumbnail,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildActionButton({

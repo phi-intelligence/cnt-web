@@ -778,270 +778,649 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
   }
 
   Widget _buildWebContent() {
-    return Column(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Audio Player Section
-        SectionContainer(
-          showShadow: true,
-          child: Column(
-            children: [
-              Icon(Icons.audiotrack, size: 64, color: AppColors.primaryMain),
-              const SizedBox(height: AppSpacing.medium),
-              Text(
-                widget.title ?? 'Audio File',
-                style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
-              ),
-              const SizedBox(height: AppSpacing.small),
-              Text(
-                _formatDuration(_audioDuration),
-                style: AppTypography.body.copyWith(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: AppSpacing.medium),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.play_arrow, color: AppColors.primaryMain),
-                    onPressed: () => _player?.play(),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.pause, color: AppColors.primaryMain),
-                    onPressed: () => _player?.pause(),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.stop, color: AppColors.primaryMain),
-                    onPressed: () => _player?.stop(),
-                  ),
-                ],
-              ),
-            ],
-          ),
+        // Audio Player Section (Left - 40%)
+        Expanded(
+          flex: 40,
+          child: _buildAudioPlayerSection(),
         ),
-        const SizedBox(height: AppSpacing.large),
-
-        // Trim Section
-        SectionContainer(
-          showShadow: true,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Trim Audio',
-                style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
-              ),
-              const SizedBox(height: AppSpacing.large),
-              
-              // Trim Start
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Start: ${_formatDuration(_trimStart)}',
-                    style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
-                  ),
-                  Slider(
-                    value: _trimStart.inSeconds.toDouble(),
-                    min: 0,
-                    max: _audioDuration.inSeconds.toDouble(),
-                    activeColor: AppColors.primaryMain,
-                    onChanged: (value) {
-                      setState(() {
-                        _trimStart = Duration(seconds: value.toInt());
-                        if (_trimStart >= _trimEnd) {
-                          _trimEnd = Duration(seconds: (value + 1).toInt());
-                        }
-                      });
-                    },
-                  ),
-                ],
-              ),
-              
-              // Trim End
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'End: ${_formatDuration(_trimEnd)}',
-                    style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
-                  ),
-                  Slider(
-                    value: _trimEnd.inSeconds.toDouble(),
-                    min: 0,
-                    max: _audioDuration.inSeconds.toDouble(),
-                    activeColor: AppColors.primaryMain,
-                    onChanged: (value) {
-                      setState(() {
-                        _trimEnd = Duration(seconds: value.toInt());
-                        if (_trimEnd <= _trimStart) {
-                          _trimStart = Duration(seconds: (value - 1).toInt());
-                        }
-                      });
-                    },
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: AppSpacing.medium),
-              StyledPillButton(
-                label: _isEditing ? 'Trimming...' : 'Apply Trim',
-                icon: Icons.content_cut,
-                onPressed: _isEditing ? null : _applyTrim,
-                isLoading: _isEditing,
-                width: double.infinity,
-              ),
-            ],
-          ),
+        const SizedBox(width: AppSpacing.large),
+        // Editing Tools Panel (Right - 60% - uses more space)
+        Expanded(
+          flex: 60,
+          child: _buildEditingToolsPanel(),
         ),
-        const SizedBox(height: AppSpacing.large),
+      ],
+    );
+  }
 
-        // Merge Section
-        SectionContainer(
-          showShadow: true,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Merge Audio Files',
-                style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
-              ),
-              const SizedBox(height: AppSpacing.medium),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: StyledPillButton(
-                      label: 'Select Files',
-                      icon: Icons.file_upload,
-                      onPressed: _selectAudioFiles,
-                    ),
+  Widget _buildAudioPlayerSection() {
+    return SectionContainer(
+      showShadow: true,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.extraLarge),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Audio Icon
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.warmBrown,
+                    AppColors.accentMain,
+                  ],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.warmBrown.withOpacity(0.3),
+                    blurRadius: 20,
+                    spreadRadius: 5,
                   ),
-                  if (_filesToMerge.isNotEmpty) ...[
-                    const SizedBox(width: AppSpacing.medium),
-                    Expanded(
-                      child: StyledPillButton(
-                        label: _isEditing ? 'Merging...' : 'Merge',
-                        icon: Icons.merge_type,
-                        onPressed: _isEditing ? null : _mergeAudioFiles,
-                        isLoading: _isEditing,
-                      ),
+                ],
+              ),
+              child: Icon(
+                Icons.audiotrack,
+                size: 60,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.large),
+            Text(
+              widget.title ?? 'Audio File',
+              style: AppTypography.heading2.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.small),
+            Text(
+              _formatDuration(_audioDuration),
+              style: AppTypography.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.extraLarge),
+
+            // Play/Pause Button
+            GestureDetector(
+              onTap: () {
+                if (_player?.playing ?? false) {
+                  _player?.pause();
+                } else {
+                  _player?.play();
+                }
+              },
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.warmBrown,
+                      AppColors.accentMain,
+                    ],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.warmBrown.withOpacity(0.4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                      spreadRadius: 2,
                     ),
                   ],
-                ],
-              ),
-              
-              if (_filesToMerge.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.small),
-                  child: Text(
-                    '${_filesToMerge.length} file(s) selected',
-                    style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
-                  ),
                 ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.large),
+                child: StreamBuilder<bool>(
+                  stream: _player?.playingStream ?? const Stream<bool>.empty(),
+                  builder: (context, snapshot) {
+                    final isPlaying = snapshot.data ?? false;
+                    return Icon(
+                      isPlaying ? Icons.pause : Icons.play_arrow,
+                      size: 48,
+                      color: Colors.white,
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.large),
 
-        // Fade Effects Section
-        SectionContainer(
-          showShadow: true,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Fade Effects',
-                style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+            // Progress Bar
+            StreamBuilder<Duration>(
+              stream: _player?.positionStream ?? const Stream<Duration>.empty(),
+              builder: (context, positionSnapshot) {
+                final position = positionSnapshot.data ?? Duration.zero;
+                return StreamBuilder<Duration?>(
+                  stream: _player?.durationStream ?? const Stream<Duration?>.empty(),
+                  builder: (context, durationSnapshot) {
+                    final duration = durationSnapshot.data ?? _audioDuration;
+                    final totalDuration = duration != Duration.zero ? duration : _audioDuration;
+                    
+                    return Column(
+                      children: [
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 60,
+                              child: Text(
+                                _formatDuration(position),
+                                style: AppTypography.bodyMedium.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '/ ${_formatDuration(totalDuration)}',
+                              style: AppTypography.body.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.small),
+                        SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 6,
+                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                            activeTrackColor: AppColors.warmBrown,
+                            inactiveTrackColor: AppColors.borderPrimary,
+                            thumbColor: AppColors.warmBrown,
+                          ),
+                          child: Slider(
+                            value: totalDuration != Duration.zero
+                                ? position.inSeconds.toDouble().clamp(0.0, totalDuration.inSeconds.toDouble())
+                                : 0.0,
+                            min: 0.0,
+                            max: totalDuration.inSeconds.toDouble() > 0
+                                ? totalDuration.inSeconds.toDouble()
+                                : 1.0,
+                            onChanged: (value) {
+                              _player?.seek(Duration(seconds: value.toInt()));
+                            },
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditingToolsPanel() {
+    return SectionContainer(
+      showShadow: true,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Panel Header
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.medium),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.warmBrown.withOpacity(0.1),
+                    AppColors.accentMain.withOpacity(0.05),
+                  ],
+                ),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(AppSpacing.radiusLarge),
+                ),
+                border: Border(
+                  bottom: BorderSide(color: AppColors.borderPrimary),
+                ),
               ),
-              const SizedBox(height: AppSpacing.large),
-              
-              // Fade In
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text(
-                    'Fade In: ${_fadeInDuration.inSeconds}s',
-                    style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
-                  ),
-                  Slider(
-                    value: _fadeInDuration.inSeconds.toDouble(),
-                    min: 0,
-                    max: 10,
-                    divisions: 20,
-                    activeColor: AppColors.primaryMain,
-                    onChanged: (value) {
-                      setState(() {
-                        _fadeInDuration = Duration(seconds: value.toInt());
-                      });
-                    },
-                  ),
-                ],
-              ),
-              
-              // Fade Out
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Fade Out: ${_fadeOutDuration.inSeconds}s',
-                    style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
-                  ),
-                  Slider(
-                    value: _fadeOutDuration.inSeconds.toDouble(),
-                    min: 0,
-                    max: 10,
-                    divisions: 20,
-                    activeColor: AppColors.primaryMain,
-                    onChanged: (value) {
-                      setState(() {
-                        _fadeOutDuration = Duration(seconds: value.toInt());
-                      });
-                    },
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: AppSpacing.medium),
-              Row(
-                children: [
-                  Expanded(
-                    child: StyledPillButton(
-                      label: 'Fade In',
-                      icon: Icons.trending_up,
-                      onPressed: _isEditing || _fadeInDuration == Duration.zero
-                          ? null
-                          : _applyFadeIn,
-                    ),
+                  Icon(
+                    Icons.tune,
+                    color: AppColors.warmBrown,
+                    size: 24,
                   ),
                   const SizedBox(width: AppSpacing.small),
-                  Expanded(
-                    child: StyledPillButton(
-                      label: 'Fade Out',
-                      icon: Icons.trending_down,
-                      onPressed: _isEditing || _fadeOutDuration == Duration.zero
-                          ? null
-                          : _applyFadeOut,
+                  Text(
+                    'Editing Tools',
+                    style: AppTypography.heading3.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
-              
-              const SizedBox(height: AppSpacing.small),
-              
-              StyledPillButton(
-                label: _isEditing ? 'Applying...' : 'Apply Both',
-                icon: Icons.swap_horiz,
-                onPressed: _isEditing ||
-                        _fadeInDuration == Duration.zero ||
-                        _fadeOutDuration == Duration.zero
-                    ? null
-                    : _applyFadeInOut,
-                isLoading: _isEditing,
-                width: double.infinity,
+            ),
+            
+            // Editing Tools Content
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.large),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Trim Section
+                  _buildTrimSection(),
+                  const SizedBox(height: AppSpacing.large),
+                  
+                  // Merge Section
+                  _buildMergeSection(),
+                  const SizedBox(height: AppSpacing.large),
+                  
+                  // Fade Effects Section
+                  _buildFadeEffectsSection(),
+                ],
               ),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTrimSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.content_cut, color: AppColors.warmBrown, size: 20),
+            const SizedBox(width: AppSpacing.small),
+            Text(
+              'Trim Audio',
+              style: AppTypography.heading4.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.large),
+        
+        // Trim Start
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Start Time',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.medium,
+                    vertical: AppSpacing.small,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.warmBrown.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                    border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    _formatDuration(_trimStart),
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.warmBrown,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.small),
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 6,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                activeTrackColor: AppColors.warmBrown,
+                inactiveTrackColor: AppColors.borderPrimary,
+                thumbColor: AppColors.warmBrown,
+              ),
+              child: Slider(
+                value: _audioDuration.inSeconds > 0
+                    ? _trimStart.inSeconds.toDouble().clamp(0.0, _audioDuration.inSeconds.toDouble())
+                    : 0.0,
+                min: 0.0,
+                max: _audioDuration.inSeconds.toDouble() > 0
+                    ? _audioDuration.inSeconds.toDouble()
+                    : 1.0,
+                onChanged: (value) {
+                  setState(() {
+                    _trimStart = Duration(seconds: value.toInt());
+                    if (_trimStart >= _trimEnd) {
+                      _trimEnd = Duration(seconds: (value + 1).toInt().clamp(0, _audioDuration.inSeconds));
+                    }
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.large),
+        
+        // Trim End
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'End Time',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.medium,
+                    vertical: AppSpacing.small,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.warmBrown.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                    border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    _formatDuration(_trimEnd),
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.warmBrown,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.small),
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 6,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                activeTrackColor: AppColors.warmBrown,
+                inactiveTrackColor: AppColors.borderPrimary,
+                thumbColor: AppColors.warmBrown,
+              ),
+              child: Slider(
+                value: _audioDuration.inSeconds > 0
+                    ? _trimEnd.inSeconds.toDouble().clamp(0.0, _audioDuration.inSeconds.toDouble())
+                    : 0.0,
+                min: 0.0,
+                max: _audioDuration.inSeconds.toDouble() > 0
+                    ? _audioDuration.inSeconds.toDouble()
+                    : 1.0,
+                onChanged: (value) {
+                  setState(() {
+                    _trimEnd = Duration(seconds: value.toInt());
+                    if (_trimEnd <= _trimStart) {
+                      _trimStart = Duration(seconds: (value - 1).toInt().clamp(0, _audioDuration.inSeconds));
+                    }
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.medium),
+        SizedBox(
+          width: double.infinity,
+          child: StyledPillButton(
+            label: _isEditing ? 'Trimming...' : 'Apply Trim',
+            icon: Icons.content_cut,
+            onPressed: _isEditing ? null : _applyTrim,
+            isLoading: _isEditing,
           ),
         ),
-        const SizedBox(height: AppSpacing.extraLarge),
+      ],
+    );
+  }
+
+  Widget _buildMergeSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.merge_type, color: AppColors.warmBrown, size: 20),
+            const SizedBox(width: AppSpacing.small),
+            Text(
+              'Merge Audio Files',
+              style: AppTypography.heading4.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.medium),
+        Row(
+          children: [
+            Expanded(
+              child: StyledPillButton(
+                label: 'Select Files',
+                icon: Icons.file_upload,
+                onPressed: _selectAudioFiles,
+              ),
+            ),
+            if (_filesToMerge.isNotEmpty) ...[
+              const SizedBox(width: AppSpacing.small),
+              Expanded(
+                child: StyledPillButton(
+                  label: _isEditing ? 'Merging...' : 'Merge',
+                  icon: Icons.merge_type,
+                  onPressed: _isEditing ? null : _mergeAudioFiles,
+                  isLoading: _isEditing,
+                ),
+              ),
+            ],
+          ],
+        ),
+        if (_filesToMerge.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.small),
+          Text(
+            '${_filesToMerge.length} file(s) selected',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildFadeEffectsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.graphic_eq, color: AppColors.warmBrown, size: 20),
+            const SizedBox(width: AppSpacing.small),
+            Text(
+              'Fade Effects',
+              style: AppTypography.heading4.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.large),
+        
+        // Fade In
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Fade In',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.medium,
+                    vertical: AppSpacing.small,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.warmBrown.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                    border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    '${_fadeInDuration.inSeconds}s',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.warmBrown,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.small),
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 6,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                activeTrackColor: AppColors.warmBrown,
+                inactiveTrackColor: AppColors.borderPrimary,
+                thumbColor: AppColors.warmBrown,
+              ),
+              child: Slider(
+                value: _fadeInDuration.inSeconds.toDouble(),
+                min: 0.0,
+                max: 10.0,
+                divisions: 20,
+                onChanged: (value) {
+                  setState(() {
+                    _fadeInDuration = Duration(seconds: value.toInt());
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.large),
+        
+        // Fade Out
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Fade Out',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.medium,
+                    vertical: AppSpacing.small,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.warmBrown.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                    border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    '${_fadeOutDuration.inSeconds}s',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.warmBrown,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.small),
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 6,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                activeTrackColor: AppColors.warmBrown,
+                inactiveTrackColor: AppColors.borderPrimary,
+                thumbColor: AppColors.warmBrown,
+              ),
+              child: Slider(
+                value: _fadeOutDuration.inSeconds.toDouble(),
+                min: 0.0,
+                max: 10.0,
+                divisions: 20,
+                onChanged: (value) {
+                  setState(() {
+                    _fadeOutDuration = Duration(seconds: value.toInt());
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.medium),
+        Row(
+          children: [
+            Expanded(
+              child: StyledPillButton(
+                label: 'Fade In',
+                icon: Icons.trending_up,
+                onPressed: _isEditing || _fadeInDuration == Duration.zero
+                    ? null
+                    : _applyFadeIn,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.small),
+            Expanded(
+              child: StyledPillButton(
+                label: 'Fade Out',
+                icon: Icons.trending_down,
+                onPressed: _isEditing || _fadeOutDuration == Duration.zero
+                    ? null
+                    : _applyFadeOut,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.small),
+        SizedBox(
+          width: double.infinity,
+          child: StyledPillButton(
+            label: _isEditing ? 'Applying...' : 'Apply Both',
+            icon: Icons.swap_horiz,
+            onPressed: _isEditing ||
+                    _fadeInDuration == Duration.zero ||
+                    _fadeOutDuration == Duration.zero
+                ? null
+                : _applyFadeInOut,
+            isLoading: _isEditing,
+          ),
+        ),
       ],
     );
   }

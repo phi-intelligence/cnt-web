@@ -207,6 +207,9 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
       MaterialPageRoute(
         builder: (context) => VideoEditorScreenWeb(
           videoPath: widget.videoUri,
+          duration: widget.duration > 0 
+              ? Duration(seconds: widget.duration) 
+              : null,
         ),
       ),
     );

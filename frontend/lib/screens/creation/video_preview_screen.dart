@@ -135,6 +135,9 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
         builder: (context) => kIsWeb
             ? VideoEditorScreenWeb(
                 videoPath: widget.videoUri,
+                duration: widget.duration > 0 
+                    ? Duration(seconds: widget.duration) 
+                    : null,
               )
             : VideoEditorScreen(
                 videoPath: widget.videoUri,

@@ -1387,6 +1387,46 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> addTextOverlays(
+    String videoPath,
+    List<Map<String, dynamic>> overlays,
+  ) async {
+    try {
+      // Create multipart file from URL or file path
+      final file = await _createMultipartFileFromSource(
+        videoPath,
+        'video_file',
+        'video.mp4',
+      );
+      
+      // Convert overlays to JSON string
+      final overlaysJson = json.encode(overlays);
+      
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/video-editing/add-text-overlays'),
+      );
+      request.files.add(file);
+      request.fields['overlays_json'] = overlaysJson;
+      
+      // Add authentication headers
+      final headers = await _getHeaders();
+      // Remove Content-Type as multipart request sets it automatically
+      headers.remove('Content-Type');
+      request.headers.addAll(headers);
+      
+      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
+      
+      if (streamedResponse.statusCode == 200) {
+        final response = await http.Response.fromStream(streamedResponse);
+        return json.decode(response.body);
+      }
+      throw Exception('Failed to add text overlays: HTTP ${streamedResponse.statusCode}');
+    } catch (e) {
+      throw Exception('Error adding text overlays: $e');
+    }
+  }
+
   /// Audio editing endpoints
   Future<Map<String, dynamic>> trimAudio(
     String audioPath,
@@ -2160,6 +2200,42 @@ class ApiService {
   /// Upload audio file
   Future<Map<String, dynamic>> uploadAudio(String filePath) async {
     return await uploadFile(filePath, 'audio');
+  }
+
+  /// Upload audio file from bytes (for web)
+  Future<Map<String, dynamic>> uploadAudioFromBytes(
+    List<int> bytes,
+    String fileName,
+  ) async {
+    try {
+      final uri = Uri.parse('$baseUrl/upload/audio');
+      final request = http.MultipartRequest('POST', uri);
+      
+      // Add auth headers
+      final headers = await _getHeaders();
+      request.headers.addAll(headers);
+      request.headers.remove('Content-Type'); // Let multipart set it
+
+      // Add file from bytes
+      request.files.add(
+        http.MultipartFile.fromBytes('file', bytes, filename: fileName),
+      );
+
+      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        // Convert 'url' to 'file_path' for consistency
+        if (data.containsKey('url') && !data.containsKey('file_path')) {
+          data['file_path'] = data['url'];
+        }
+        return data;
+      }
+      throw Exception('Failed to upload audio: HTTP ${response.statusCode} ${response.body}');
+    } catch (e) {
+      throw Exception('Error uploading audio: $e');
+    }
   }
 
   /// Upload video file
