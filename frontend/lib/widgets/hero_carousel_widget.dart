@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../services/api_service.dart';
 import '../theme/app_typography.dart';
 import '../utils/platform_helper.dart';
@@ -35,13 +36,17 @@ class _CarouselItem {
   });
 }
 
-class _HeroCarouselWidgetState extends State<HeroCarouselWidget> {
+class _HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKeepAliveClientMixin {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
   List<_CarouselItem> _items = [];
   bool _isLoading = true;
   Timer? _autoScrollTimer;
   bool _isUserInteracting = false;
+  final Set<String> _loadedImages = {}; // Track loaded images to prevent duplicate logging
+  
+  @override
+  bool get wantKeepAlive => true; // Keep widget alive to prevent unnecessary rebuilds
 
   @override
   void initState() {
@@ -184,6 +189,7 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final screenHeight = MediaQuery.of(context).size.height;
     final isWeb = PlatformHelper.isWebPlatform();
     
@@ -329,14 +335,21 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> {
     final item = _items[index];
     final isWeb = PlatformHelper.isWebPlatform();
     
-    // Build image widget with error handling
-    Widget content = Image.network(
-      item.imageUrl,
+    // Build image widget with error handling using CachedNetworkImage
+    // This prevents re-loading images and improves performance
+    Widget content = CachedNetworkImage(
+      imageUrl: item.imageUrl,
       fit: BoxFit.cover,
       height: height,
       width: double.infinity,
-      errorBuilder: (context, error, stackTrace) {
-        print('❌ Hero Carousel: Error loading image ${item.imageUrl}: $error');
+      memCacheWidth: (MediaQuery.of(context).size.width * MediaQuery.of(context).devicePixelRatio).round(),
+      memCacheHeight: (height * MediaQuery.of(context).devicePixelRatio).round(),
+      errorWidget: (context, url, error) {
+        // Only log error once per image URL
+        if (!_loadedImages.contains('error:$url')) {
+          print('❌ Hero Carousel: Error loading image $url: $error');
+          _loadedImages.add('error:$url');
+        }
         return Container(
           height: height,
           color: Colors.black,
@@ -351,7 +364,7 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> {
                   style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
                 Text(
-                  item.imageUrl,
+                  url,
                   style: TextStyle(color: Colors.white38, fontSize: 10),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -361,25 +374,31 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> {
           ),
         );
       },
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) {
-          print('✅ Hero Carousel: Image loaded successfully: ${item.imageUrl}');
-          return child;
-        }
+      placeholder: (context, url) {
         return Container(
           height: height,
           color: Colors.black,
-          child: Center(
-            child: CircularProgressIndicator(
-              color: Colors.white,
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                  : null,
-            ),
+          child: const Center(
+            child: CircularProgressIndicator(color: Colors.white),
           ),
         );
       },
+      fadeInDuration: const Duration(milliseconds: 300),
+      fadeOutDuration: const Duration(milliseconds: 100),
     );
+    
+    // Track successful image loads (only log once per image)
+    if (!_loadedImages.contains(item.imageUrl)) {
+      // Use a post-frame callback to log after image is actually displayed
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_loadedImages.contains(item.imageUrl)) {
+          _loadedImages.add(item.imageUrl);
+          // Only log once per image to reduce console spam
+          // Commented out to reduce logging - uncomment if needed for debugging
+          // print('✅ Hero Carousel: Image loaded: ${item.imageUrl}');
+        }
+      });
+    }
     
     // For web, wrap content in InkWell for better tap detection
     if (isWeb && widget.onItemTap != null) {

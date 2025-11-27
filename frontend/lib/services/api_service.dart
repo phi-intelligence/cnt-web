@@ -167,9 +167,9 @@ class ApiService {
     // Remove leading slash if present to avoid double slashes
     String cleanPath = path.startsWith('/') ? path.substring(1) : path;
     
-    // Paths starting with 'images/' are S3/CloudFront paths - don't add /media/ prefix
-    // These are direct S3 keys like: images/quotes/quote_13.jpg
-    if (cleanPath.startsWith('images/')) {
+    // Paths starting with 'images/', 'audio/', 'video/', or 'documents/' are S3/CloudFront paths - don't add /media/ prefix
+    // These are direct S3 keys like: images/quotes/quote_13.jpg, audio/filename.mp3, video/filename.mp4
+    if (cleanPath.startsWith('images/') || cleanPath.startsWith('audio/') || cleanPath.startsWith('video/') || cleanPath.startsWith('documents/')) {
       return '$mediaBaseUrl/$cleanPath';
     }
     
@@ -828,7 +828,7 @@ class ApiService {
             'file',
             bytes,
             filename: fileName,
-            contentType: 'application/pdf',
+            contentType: http.MediaType('application', 'pdf'),
           ),
         );
       } else if (filePath != null) {

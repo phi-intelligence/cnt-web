@@ -73,13 +73,21 @@ class WebSocketService {
         finalUrl += uri.path;
       }
       
+      // Final check: ensure no :0 in the URL string before passing to socket_io_client
+      // socket_io_client may parse the URL internally and add :0, so we need to be extra careful
+      finalUrl = finalUrl.replaceAll(RegExp(r':0(?=/|$)'), '');
+      
       print('🔌 WebSocket: Original: $url, Cleaned: $finalUrl');
       
+      // Use socket_io_client with explicit options to prevent port inference
+      // Add reconnection: false initially to prevent multiple connection attempts with wrong URL
       _socket = IO.io(finalUrl, <String, dynamic>{
         'path': '/socket.io/',
         'transports': ['websocket'],
         'autoConnect': true,
         'forceNew': true,
+        'reconnection': false, // Disable auto-reconnection to prevent repeated :0 attempts
+        'timeout': 20000, // 20 second timeout
       });
 
       _socket!.on('connect', (_) {
@@ -119,8 +127,24 @@ class WebSocketService {
           print('Error handling speak_permission_requested: $e');
         }
       });
-      _socket!.on('error', (_) {
+      _socket!.on('error', (error) {
         _isConnected = false;
+        print('❌ WebSocket error: $error');
+        // Log the actual connection URL being used by socket_io_client
+        // This helps debug if port :0 is still being added
+        if (error != null && error.toString().contains(':0')) {
+          print('⚠️ WebSocket: Port :0 detected in error. URL used: $finalUrl');
+        }
+      });
+      
+      // Add connect_error handler to catch connection failures
+      _socket!.on('connect_error', (error) {
+        _isConnected = false;
+        print('❌ WebSocket connection error: $error');
+        // Check if error is related to port :0
+        if (error != null && error.toString().contains(':0')) {
+          print('⚠️ WebSocket: Port :0 detected in connection error. Attempted URL: $finalUrl');
+        }
       });
     } catch (_) {
       _isConnected = false;

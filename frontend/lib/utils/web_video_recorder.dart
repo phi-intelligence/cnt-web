@@ -274,21 +274,38 @@ class WebVideoRecorder {
       }, false);
 
       _mediaRecorder!.addEventListener('stop', (html.Event event) {
-        // When recording stops, create blob and complete
-        if (_recordedChunks.isNotEmpty) {
-          final blob = html.Blob(_recordedChunks, mimeType ?? 'video/webm');
-          // Call async function but don't await (event handler)
-          _convertBlobToXFile(blob, mimeType ?? 'video/webm').catchError((error) {
-            print('Error in _convertBlobToXFile: $error');
-            if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
-              _stopCompleter!.completeError(error);
-            }
-          });
-        } else {
+        // Enhanced validation
+        if (_recordedChunks.isEmpty) {
           if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
-            _stopCompleter!.completeError(Exception('No video data recorded'));
+            _stopCompleter!.completeError(Exception(
+              'No video data recorded - recording may have been stopped too quickly'
+            ));
           }
+          return;
         }
+
+        // Calculate total size of all chunks
+        int totalSize = _recordedChunks.fold(0, (sum, chunk) => sum + chunk.size);
+        if (totalSize == 0) {
+          if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
+            _stopCompleter!.completeError(Exception(
+              'Recorded chunks are empty - no video frames were captured'
+            ));
+          }
+          return;
+        }
+
+        // Create blob and convert
+        final blob = html.Blob(_recordedChunks, mimeType ?? 'video/webm');
+        print('📹 Created blob from ${_recordedChunks.length} chunks, total size: ${totalSize} bytes');
+        
+        // Call async function but don't await (event handler)
+        _convertBlobToXFile(blob, mimeType ?? 'video/webm').catchError((error) {
+          print('Error in _convertBlobToXFile: $error');
+          if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
+            _stopCompleter!.completeError(error);
+          }
+        });
       }, false);
 
       // Start recording with timeslice to get data chunks
@@ -308,6 +325,16 @@ class WebVideoRecorder {
       return;
     }
 
+    // Validate blob size before attempting conversion
+    if (blob.size == 0) {
+      final error = Exception('Blob is empty - no video data was recorded');
+      print('❌ $error');
+      if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
+        _stopCompleter!.completeError(error);
+      }
+      return;
+    }
+
     try {
       // Read blob as bytes using FileReader
       final reader = html.FileReader();
@@ -324,13 +351,26 @@ class WebVideoRecorder {
             return;
           }
           
+          // Enhanced type checking with fallback
           if (result is ByteBuffer) {
             if (!completer.isCompleted) {
               completer.complete(Uint8List.view(result));
             }
-          } else {
+          } else if (result is String) {
+            // Handle string result (shouldn't happen with readAsArrayBuffer, but handle gracefully)
             if (!completer.isCompleted) {
-              completer.completeError(Exception('Unexpected result type: ${result.runtimeType}'));
+              completer.completeError(Exception(
+                'FileReader returned string instead of ArrayBuffer - blob may be invalid. '
+                'This may indicate the blob contains no valid video data.'
+              ));
+            }
+          } else {
+            // Unknown type - provide more context
+            if (!completer.isCompleted) {
+              completer.completeError(Exception(
+                'Unexpected FileReader result type: ${result.runtimeType}. '
+                'Expected ByteBuffer. This may indicate the blob contains no valid video data.'
+              ));
             }
           }
         } catch (e) {
@@ -405,6 +445,11 @@ class WebVideoRecorder {
       throw Exception('Not recording');
     }
 
+    // Validate that recording actually started
+    if (_mediaRecorder!.state == 'inactive') {
+      throw Exception('Recording was never started or already stopped');
+    }
+
     try {
       // Create completer to wait for stop event
       _stopCompleter = Completer<XFile>();
@@ -451,7 +496,7 @@ class WebVideoRecorder {
             throw Exception('Failed to create video file: $e');
           }
         } else {
-          throw Exception('No video data recorded: $e');
+          throw Exception('No video data recorded. Recording may have been stopped before any frames were captured: $e');
         }
       }
     } catch (e) {
