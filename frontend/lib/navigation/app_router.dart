@@ -14,8 +14,7 @@ import '../providers/notification_provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/websocket_service.dart';
 import '../theme/app_theme.dart';
-import 'web_navigation.dart';
-import '../screens/web/landing_screen_web.dart';
+import 'app_routes.dart';
 
 class AppRouter extends StatefulWidget {
   const AppRouter({super.key});
@@ -71,25 +70,17 @@ class _AppRouterState extends State<AppRouter> {
       ],
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
-          if (authProvider.isAuthenticated) {
-            return MaterialApp(
-              title: 'CNT Media Platform',
-              debugShowCheckedModeBanner: false,
-              theme: AppTheme.lightTheme,
-              darkTheme: AppTheme.darkTheme,
-              themeMode: ThemeMode.system,
-              home: const WebNavigationLayout(),
-            );
-          } else {
-            return MaterialApp(
-              title: 'CNT Media Platform',
-              debugShowCheckedModeBanner: false,
-              theme: AppTheme.lightTheme,
-              darkTheme: AppTheme.darkTheme,
-              themeMode: ThemeMode.system,
-              home: const LandingScreenWeb(),
-            );
-          }
+          // Create GoRouter instance
+          final router = createAppRouter(authProvider);
+          
+          return MaterialApp.router(
+            title: 'CNT Media Platform',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: ThemeMode.system,
+            routerConfig: router,
+          );
         },
       ),
     );

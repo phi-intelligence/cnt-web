@@ -12,7 +12,10 @@ import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../widgets/thumbnail_selector.dart';
 import '../../services/api_service.dart';
+import '../../utils/state_persistence.dart';
 import 'video_editor_screen_web.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:go_router/go_router.dart';
 
 /// Web Video Preview Screen
 /// Shows recorded/uploaded video with playback and controls
@@ -61,7 +64,63 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
   @override
   void initState() {
     super.initState();
+    _loadSavedState();
     _initializePlayer();
+  }
+  
+  Future<void> _loadSavedState() async {
+    try {
+      final savedState = await StatePersistence.loadVideoPreviewState();
+      if (savedState != null && mounted) {
+        // Restore form controllers
+        final savedTitle = savedState['title'] as String?;
+        final savedDescription = savedState['description'] as String?;
+        final savedThumbnail = savedState['thumbnailUrl'] as String?;
+        
+        if (savedTitle != null && savedTitle.isNotEmpty) {
+          _titleController.text = savedTitle;
+        }
+        if (savedDescription != null && savedDescription.isNotEmpty) {
+          _descriptionController.text = savedDescription;
+        }
+        if (savedThumbnail != null && savedThumbnail.isNotEmpty) {
+          _selectedThumbnail = savedThumbnail;
+        }
+        
+        print('✅ Restored video preview state from saved state');
+      }
+    } catch (e) {
+      print('❌ Error loading video preview state: $e');
+    }
+  }
+  
+  Future<void> _saveState() async {
+    try {
+      // Convert blob URL to backend URL before saving if needed
+      String videoUriToSave = widget.videoUri;
+      if (kIsWeb && widget.videoUri.startsWith('blob:')) {
+        // If blob URL, try to get backend URL from saved state or upload
+        final savedState = await StatePersistence.loadVideoPreviewState();
+        if (savedState != null) {
+          final savedUri = savedState['videoUri'] as String?;
+          if (savedUri != null && !savedUri.startsWith('blob:')) {
+            videoUriToSave = savedUri;
+          }
+        }
+      }
+      
+      await StatePersistence.saveVideoPreviewState(
+        videoUri: videoUriToSave,
+        source: widget.source,
+        title: _titleController.text.trim().isNotEmpty ? _titleController.text.trim() : null,
+        description: _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : null,
+        thumbnailUrl: _selectedThumbnail,
+        duration: widget.duration > 0 ? widget.duration : null,
+        fileSize: widget.fileSize > 0 ? widget.fileSize : null,
+      );
+    } catch (e) {
+      print('⚠️ Error saving video preview state: $e');
+    }
   }
 
 
@@ -182,7 +241,12 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
   }
 
   void _handleBack() {
-    Navigator.pop(context);
+    // Use GoRouter if available, otherwise fallback to Navigator
+    if (GoRouter.of(context).canPop()) {
+      GoRouter.of(context).pop();
+    } else {
+      Navigator.pop(context);
+    }
   }
 
   Future<void> _handlePlayPause() async {
@@ -218,7 +282,10 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
       }
     }
     
-    // Navigate to VideoEditorScreenWeb (web-specific editor)
+    // Save state before navigating to editor
+    await _saveState();
+    
+    // Navigate to VideoEditorScreenWeb using GoRouter
     final editedPath = await Navigator.push<String>(
       context,
       MaterialPageRoute(
@@ -354,6 +421,9 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
         _isLoading = false;
       });
 
+      // Clear saved state after successful publish
+      await StatePersistence.clearVideoPreviewState();
+      
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -828,6 +898,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
           // Title
           TextField(
             controller: _titleController,
+            onChanged: (_) => _saveState(), // Auto-save on change
             style: AppTypography.body.copyWith(
               color: AppColors.textPrimary,
             ),
@@ -857,6 +928,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
           // Description
           TextField(
             controller: _descriptionController,
+            onChanged: (_) => _saveState(), // Auto-save on change
             maxLines: 3,
             style: AppTypography.body.copyWith(
               color: AppColors.textPrimary,
@@ -892,6 +964,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
               setState(() {
                 _selectedThumbnail = thumbnailUrl;
               });
+              _saveState(); // Save when thumbnail changes
             },
             initialThumbnail: _selectedThumbnail,
           ),

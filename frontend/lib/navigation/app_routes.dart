@@ -21,6 +21,9 @@ import '../screens/live/live_stream_start_screen.dart';
 import '../screens/web/live_screen_web.dart';
 import '../screens/web/landing_screen_web.dart';
 import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
+import 'web_navigation.dart';
+import 'package:flutter/material.dart';
 
 /// Route configuration for the application
 /// Uses go_router for URL-based routing and state persistence
@@ -55,56 +58,78 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       // Main navigation routes (wrapped in WebNavigationLayout)
       GoRoute(
         path: '/home',
-        builder: (context, state) => const HomeScreenWeb(),
+        builder: (context, state) => const WebNavigationLayout(
+          child: HomeScreenWeb(),
+        ),
       ),
       GoRoute(
         path: '/search',
-        builder: (context, state) => const SearchScreenWeb(),
+        builder: (context, state) => const WebNavigationLayout(
+          child: SearchScreenWeb(),
+        ),
       ),
       GoRoute(
         path: '/create',
-        builder: (context, state) => const CreateScreenWeb(),
+        builder: (context, state) => const WebNavigationLayout(
+          child: CreateScreenWeb(),
+        ),
       ),
       GoRoute(
         path: '/community',
         builder: (context, state) {
           final postId = state.uri.queryParameters['postId'];
-          return CommunityScreenWeb(
-            postId: postId != null ? int.tryParse(postId) : null,
+          return WebNavigationLayout(
+            child: CommunityScreenWeb(
+              postId: postId != null ? int.tryParse(postId) : null,
+            ),
           );
         },
       ),
       GoRoute(
         path: '/profile',
-        builder: (context, state) => const ProfileScreenWeb(),
+        builder: (context, state) => const WebNavigationLayout(
+          child: ProfileScreenWeb(),
+        ),
       ),
       GoRoute(
         path: '/podcasts',
-        builder: (context, state) => const PodcastsScreenWeb(),
+        builder: (context, state) => const WebNavigationLayout(
+          child: PodcastsScreenWeb(),
+        ),
       ),
       GoRoute(
         path: '/movies',
-        builder: (context, state) => const MoviesScreenWeb(),
+        builder: (context, state) => const WebNavigationLayout(
+          child: MoviesScreenWeb(),
+        ),
       ),
       GoRoute(
         path: '/about',
-        builder: (context, state) => const AboutScreenWeb(),
+        builder: (context, state) => const WebNavigationLayout(
+          child: AboutScreenWeb(),
+        ),
       ),
       GoRoute(
         path: '/admin',
-        builder: (context, state) => const AdminDashboardScreen(),
+        builder: (context, state) => const WebNavigationLayout(
+          child: AdminDashboardScreen(),
+        ),
       ),
       
       // Meeting routes
       GoRoute(
         path: '/meetings',
-        builder: (context, state) => const MeetingOptionsScreenWeb(),
+        builder: (context, state) => const WebNavigationLayout(
+          child: MeetingOptionsScreenWeb(),
+        ),
       ),
       
       // Live stream routes
       GoRoute(
         path: '/live-stream/options',
-        builder: (context, state) => const LiveStreamOptionsScreenWeb(),
+        builder: (context, state) => const WebNavigationLayout(
+          child: LiveStreamOptionsScreenWeb(),
+        ),
       ),
       GoRoute(
         path: '/live-stream/start',
@@ -112,7 +137,9 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       ),
       GoRoute(
         path: '/live-streams',
-        builder: (context, state) => const LiveScreenWeb(),
+        builder: (context, state) => const WebNavigationLayout(
+          child: LiveScreenWeb(),
+        ),
       ),
       
       // Editor routes
@@ -194,7 +221,11 @@ GoRouter createAppRouter(AuthProvider authProvider) {
           if (id == null) {
             return const Scaffold(body: Center(child: Text('Podcast ID is required')));
           }
-          return VideoPodcastDetailScreenWeb(podcastId: int.parse(id));
+          
+          // Create a wrapper widget that loads the podcast
+          return WebNavigationLayout(
+            child: _PodcastDetailLoader(podcastId: int.parse(id)),
+          );
         },
       ),
       GoRoute(
@@ -204,10 +235,77 @@ GoRouter createAppRouter(AuthProvider authProvider) {
           if (id == null) {
             return const Scaffold(body: Center(child: Text('Movie ID is required')));
           }
-          return MovieDetailScreenWeb(movieId: int.parse(id));
+          return WebNavigationLayout(
+            child: MovieDetailScreenWeb(movieId: int.parse(id)),
+          );
         },
       ),
     ],
   );
+}
+
+/// Widget to load podcast by ID and display detail screen
+class _PodcastDetailLoader extends StatefulWidget {
+  final int podcastId;
+  
+  const _PodcastDetailLoader({required this.podcastId});
+  
+  @override
+  State<_PodcastDetailLoader> createState() => _PodcastDetailLoaderState();
+}
+
+class _PodcastDetailLoaderState extends State<_PodcastDetailLoader> {
+  bool _isLoading = true;
+  String? _error;
+  Widget? _content;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadPodcast();
+  }
+  
+  Future<void> _loadPodcast() async {
+    try {
+      final apiService = ApiService();
+      final podcast = await apiService.getPodcast(widget.podcastId);
+      final item = apiService.podcastToContentItem(podcast);
+      
+      if (mounted) {
+        setState(() {
+          _content = VideoPodcastDetailScreenWeb(item: item);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    
+    if (_error != null) {
+      return Scaffold(
+        body: Center(
+          child: Text('Error loading podcast: $_error'),
+        ),
+      );
+    }
+    
+    return _content ?? const SizedBox();
+  }
 }
 

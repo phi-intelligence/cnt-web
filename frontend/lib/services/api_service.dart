@@ -156,18 +156,18 @@ class ApiService {
       return path;
     }
     
-    // Check if path contains CloudFront domain (might be stored without protocol)
-    // This handles cases where backend returns URLs without http:// prefix
-    final mediaBase = mediaBaseUrl.replaceAll('https://', '').replaceAll('http://', '').trim();
-    if (mediaBase.isNotEmpty && path.contains(mediaBase)) {
-      // Path already contains CloudFront domain, return with https:// prefix
+    // Check if path contains CloudFront domain or S3 domain (might be stored without protocol)
+    // This handles cases where backend returns full URLs without http:// prefix
+    if (path.contains('cloudfront.net') || path.contains('.amazonaws.com') || path.contains('.s3.')) {
+      // Path contains CloudFront or S3 domain, add https:// prefix if missing
       return path.startsWith('http') ? path : 'https://$path';
     }
     
-    // Check if path starts with common CloudFront domain patterns (without protocol)
-    // This handles edge cases where CloudFront domain is embedded in path
-    if (path.contains('cloudfront.net') || path.contains('.amazonaws.com')) {
-      // Path contains CloudFront or S3 domain, add https:// prefix if missing
+    // Check if path contains the configured media base URL domain
+    // This handles cases where backend returns URLs matching our configured domain
+    final mediaBase = mediaBaseUrl.replaceAll('https://', '').replaceAll('http://', '').trim();
+    if (mediaBase.isNotEmpty && path.contains(mediaBase)) {
+      // Path already contains CloudFront/media domain, return with https:// prefix
       return path.startsWith('http') ? path : 'https://$path';
     }
     

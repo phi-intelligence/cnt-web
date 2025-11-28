@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
-import '../../navigation/web_navigation.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -40,11 +40,7 @@ class _AdminLoginScreenWebState extends State<AdminLoginScreenWeb> {
     if (mounted) {
       if (success) {
         if (authProvider.isAdmin) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const WebNavigationLayout(),
-            ),
-          );
+          context.go('/admin');
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

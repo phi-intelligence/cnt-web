@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../providers/auth_provider.dart';
-import '../../navigation/web_navigation.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -110,17 +110,9 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
     if (mounted) {
       if (success) {
         if (authProvider.isAdmin) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const AdminDashboardWeb(),
-            ),
-          );
+          context.go('/admin');
         } else {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const WebNavigationLayout(),
-            ),
-          );
+          context.go('/home');
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -147,17 +139,9 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
     if (mounted) {
       if (success) {
         if (authProvider.isAdmin) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const AdminDashboardWeb(),
-            ),
-          );
+          context.go('/admin');
         } else {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const WebNavigationLayout(),
-            ),
-          );
+          context.go('/home');
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

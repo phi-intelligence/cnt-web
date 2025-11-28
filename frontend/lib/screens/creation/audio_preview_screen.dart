@@ -12,6 +12,7 @@ import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../widgets/thumbnail_selector.dart';
 import '../../services/api_service.dart';
+import '../../utils/state_persistence.dart';
 import '../editing/audio_editor_screen.dart';
 
 /// Audio Preview Screen
@@ -51,6 +52,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
   @override
   void initState() {
     super.initState();
+    _loadSavedState();
     _initializePlayer();
     _audioPlayer.positionStream.listen((position) {
       if (mounted) {
@@ -71,6 +73,60 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
         setState(() {});
       }
     });
+  }
+  
+  Future<void> _loadSavedState() async {
+    try {
+      final savedState = await StatePersistence.loadAudioPreviewState();
+      if (savedState != null && mounted) {
+        // Restore form controllers
+        final savedTitle = savedState['title'] as String?;
+        final savedDescription = savedState['description'] as String?;
+        final savedThumbnail = savedState['thumbnailUrl'] as String?;
+        
+        if (savedTitle != null && savedTitle.isNotEmpty) {
+          _titleController.text = savedTitle;
+        }
+        if (savedDescription != null && savedDescription.isNotEmpty) {
+          _descriptionController.text = savedDescription;
+        }
+        if (savedThumbnail != null && savedThumbnail.isNotEmpty) {
+          _selectedThumbnail = savedThumbnail;
+        }
+        
+        print('✅ Restored audio preview state from saved state');
+      }
+    } catch (e) {
+      print('❌ Error loading audio preview state: $e');
+    }
+  }
+  
+  Future<void> _saveState() async {
+    try {
+      // Convert blob URL to backend URL before saving if needed
+      String audioUriToSave = widget.audioUri;
+      if (kIsWeb && widget.audioUri.startsWith('blob:')) {
+        // If blob URL, try to get backend URL from saved state
+        final savedState = await StatePersistence.loadAudioPreviewState();
+        if (savedState != null) {
+          final savedUri = savedState['audioUri'] as String?;
+          if (savedUri != null && !savedUri.startsWith('blob:')) {
+            audioUriToSave = savedUri;
+          }
+        }
+      }
+      
+      await StatePersistence.saveAudioPreviewState(
+        audioUri: audioUriToSave,
+        source: widget.source,
+        title: _titleController.text.trim().isNotEmpty ? _titleController.text.trim() : null,
+        description: _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : null,
+        duration: widget.duration > 0 ? widget.duration : null,
+        fileSize: widget.fileSize > 0 ? widget.fileSize : null,
+      );
+    } catch (e) {
+      print('⚠️ Error saving audio preview state: $e');
+    }
   }
 
   Future<void> _initializePlayer() async {
@@ -146,6 +202,9 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
       audioPathToUse = ApiService().getMediaUrl(widget.audioUri);
     }
     
+    // Save state before navigating to editor
+    await _saveState();
+    
     // Navigate to AudioEditorScreen
     final editedPath = await Navigator.push<String>(
       context,
@@ -215,6 +274,9 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
       setState(() {
         _isLoading = false;
       });
+      
+      // Clear saved state after successful publish
+      await StatePersistence.clearAudioPreviewState();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -575,6 +637,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                             label: 'Title',
                             controller: _titleController,
                             hint: 'Enter podcast title',
+                            onChanged: (_) => _saveState(), // Auto-save on change
                           ),
                           const SizedBox(height: AppSpacing.medium),
                           
@@ -584,6 +647,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                             controller: _descriptionController,
                             hint: 'Enter podcast description',
                             maxLines: 3,
+                            onChanged: (_) => _saveState(), // Auto-save on change
                           ),
                           const SizedBox(height: AppSpacing.medium),
                           
@@ -911,6 +975,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
             label: 'Title',
             controller: _titleController,
             hint: 'Enter podcast title',
+            onChanged: (_) => _saveState(), // Auto-save on change
           ),
           const SizedBox(height: AppSpacing.medium),
           
@@ -920,6 +985,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
             controller: _descriptionController,
             hint: 'Enter podcast description',
             maxLines: 3,
+            onChanged: (_) => _saveState(), // Auto-save on change
           ),
           const SizedBox(height: AppSpacing.medium),
           
@@ -956,6 +1022,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                 setState(() {
                   _selectedThumbnail = thumbnailUrl;
                 });
+                _saveState(); // Save when thumbnail changes
               },
               initialThumbnail: _selectedThumbnail,
             ),
@@ -1009,6 +1076,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
     required TextEditingController controller,
     required String hint,
     int maxLines = 1,
+    ValueChanged<String>? onChanged,
   }) {
     if (kIsWeb) {
       // Web version
@@ -1025,6 +1093,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
           const SizedBox(height: AppSpacing.small),
           TextField(
             controller: controller,
+            onChanged: onChanged,
             style: AppTypography.body.copyWith(
               color: AppColors.textPrimary,
             ),

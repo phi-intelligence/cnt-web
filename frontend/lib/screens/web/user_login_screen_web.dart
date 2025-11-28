@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
-import '../../navigation/web_navigation.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -42,11 +42,7 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
       if (success) {
         // All users (including admins) go to normal navigation
         // Admin dashboard is accessible from profile or navigation menu
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => const WebNavigationLayout(),
-          ),
-        );
+        context.go('/home');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

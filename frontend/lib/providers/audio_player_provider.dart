@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import '../models/content_item.dart';
+import '../utils/state_persistence.dart';
+import 'dart:async';
 
 class AudioPlayerState extends ChangeNotifier {
   final AudioPlayer _player = AudioPlayer();
@@ -20,14 +22,68 @@ class AudioPlayerState extends ChangeNotifier {
   Duration get position => _position;
   Duration get duration => _duration;
   double get volume => _volume;
+  
+  Timer? _positionSaveTimer;
 
   AudioPlayerState() {
     _initPlayer();
+    _loadSavedState();
+  }
+  
+  Future<void> _loadSavedState() async {
+    try {
+      final savedState = await StatePersistence.loadMusicPlayerState();
+      if (savedState != null) {
+        final savedTrackId = savedState['currentTrackId'] as String?;
+        final savedPositionMs = savedState['currentTrackPositionMs'] as int?;
+        final savedIsPlaying = savedState['isPlaying'] as bool?;
+        final savedVolume = savedState['volume'] as double?;
+        
+        // Restore volume if saved
+        if (savedVolume != null && savedVolume > 0) {
+          await setVolume(savedVolume);
+        }
+        
+        // Note: We can't restore the track itself here because we need ContentItem
+        // The UI should check for saved state and restore the track separately
+        // For now, we'll save the track ID and let the UI handle restoration
+        
+        print('✅ Restored music player state: trackId=$savedTrackId, position=$savedPositionMs, playing=$savedIsPlaying');
+      }
+    } catch (e) {
+      print('❌ Error loading music player state: $e');
+    }
+  }
+  
+  Future<void> _saveState() async {
+    try {
+      final trackId = _currentTrack?.id?.toString();
+      final queueIds = _queue.map((track) => track.id?.toString()).whereType<String>().toList();
+      
+      await StatePersistence.saveMusicPlayerState(
+        currentTrackId: trackId,
+        currentTrackPositionMs: _position.inMilliseconds,
+        queueTrackIds: queueIds.isNotEmpty ? queueIds : null,
+        isPlaying: _isPlaying,
+        volume: _volume,
+      );
+    } catch (e) {
+      print('⚠️ Error saving music player state: $e');
+    }
+  }
+  
+  void _schedulePositionSave() {
+    _positionSaveTimer?.cancel();
+    // Save position every 5 seconds
+    _positionSaveTimer = Timer(const Duration(seconds: 5), () {
+      _saveState();
+    });
   }
 
   void _initPlayer() {
     _player.positionStream.listen((position) {
       _position = position;
+      _schedulePositionSave(); // Auto-save position periodically
       notifyListeners();
     });
 
@@ -38,6 +94,7 @@ class AudioPlayerState extends ChangeNotifier {
 
     _player.playingStream.listen((playing) {
       _isPlaying = playing;
+      _saveState(); // Save immediately when playing state changes
       notifyListeners();
     });
 
@@ -68,6 +125,7 @@ class AudioPlayerState extends ChangeNotifier {
     try {
       await _player.setUrl(track.audioUrl!);
       await _player.setVolume(_volume);
+      _saveState(); // Save when track changes
       notifyListeners();
     } catch (e) {
       print('Error loading track: $e');
@@ -86,7 +144,21 @@ class AudioPlayerState extends ChangeNotifier {
       print('Loading audio: ${item.audioUrl}');
       await _player.setUrl(item.audioUrl!);
       await _player.setVolume(_volume);
+      
+      // Check if we should restore position from saved state
+      final savedState = await StatePersistence.loadMusicPlayerState();
+      if (savedState != null) {
+        final savedTrackId = savedState['currentTrackId'] as String?;
+        final savedPositionMs = savedState['currentTrackPositionMs'] as int?;
+        
+        // If this is the same track and we have a saved position, restore it
+        if (savedTrackId == item.id?.toString() && savedPositionMs != null && savedPositionMs > 0) {
+          await _player.seek(Duration(milliseconds: savedPositionMs));
+        }
+      }
+      
       await play(); // Auto-play
+      _saveState(); // Save when track starts playing
       notifyListeners();
     } catch (e) {
       print('Error playing content: $e');
@@ -131,6 +203,7 @@ class AudioPlayerState extends ChangeNotifier {
   Future<void> setVolume(double volume) async {
     _volume = volume.clamp(0.0, 1.0);
     await _player.setVolume(_volume);
+    _saveState(); // Save when volume changes
     notifyListeners();
   }
 
@@ -161,11 +234,13 @@ class AudioPlayerState extends ChangeNotifier {
 
   void addToQueue(ContentItem track) {
     _queue.add(track);
+    _saveState(); // Save when queue changes
     notifyListeners();
   }
 
   void clearQueue() {
     _queue.clear();
+    _saveState(); // Save when queue changes
     notifyListeners();
   }
 
@@ -179,6 +254,8 @@ class AudioPlayerState extends ChangeNotifier {
 
   @override
   void dispose() {
+    _positionSaveTimer?.cancel();
+    _saveState(); // Final save on dispose
     _player.dispose();
     super.dispose();
   }

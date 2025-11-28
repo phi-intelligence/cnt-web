@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
@@ -20,21 +21,37 @@ import '../widgets/web/sidebar_action_box.dart';
 import '../screens/live/live_stream_start_screen.dart';
 
 class WebNavigationLayout extends StatefulWidget {
+  final Widget child;
   final int? initialIndex;
   
-  const WebNavigationLayout({super.key, this.initialIndex});
+  const WebNavigationLayout({
+    super.key,
+    required this.child,
+    this.initialIndex,
+  });
 
   @override
   State<WebNavigationLayout> createState() => _WebNavigationLayoutState();
 }
 
 class _WebNavigationLayoutState extends State<WebNavigationLayout> {
-  late int _selectedIndex;
+  int _getSelectedIndexFromRoute(String? location) {
+    if (location == null) return 0;
+    if (location.startsWith('/home')) return 0;
+    if (location.startsWith('/search')) return 1;
+    if (location.startsWith('/create')) return 2;
+    if (location.startsWith('/community')) return 3;
+    if (location.startsWith('/podcasts')) return 4;
+    if (location.startsWith('/movies')) return 5;
+    if (location.startsWith('/about')) return 6;
+    if (location.startsWith('/profile')) return 7;
+    if (location.startsWith('/admin')) return 8;
+    return widget.initialIndex ?? 0;
+  }
   
   @override
   void initState() {
     super.initState();
-    _selectedIndex = widget.initialIndex ?? 0;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final authProvider = context.read<AuthProvider>();
@@ -70,76 +87,11 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
     return items;
   }
 
-  void _navigateToScreen(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  Widget _buildCurrentScreen(List<NavigationItem> navigationItems) {
-    if (_selectedIndex >= navigationItems.length) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.info_outline, size: 48, color: AppColors.textSecondary),
-            const SizedBox(height: 16),
-            Text(
-              'Page not found',
-              style: AppTypography.heading3.copyWith(
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    
-    final route = navigationItems[_selectedIndex].route;
-    
-    switch (route) {
-      case 'home':
-        return const HomeScreenWeb();
-      case 'search':
-        return const SearchScreenWeb();
-      case 'create':
-        return const CreateScreenWeb();
-      case 'community':
-        return const CommunityScreenWeb();
-      case 'profile':
-        return const ProfileScreenWeb();
-      case 'podcasts':
-        return const PodcastsScreenWeb();
-      case 'movies':
-        return const MoviesScreenWeb();
-      case 'admin':
-        return const AdminDashboardScreen();
-      case 'about':
-        return const AboutScreenWeb();
-      default:
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.info_outline, size: 48, color: AppColors.textSecondary),
-              const SizedBox(height: 16),
-              Text(
-                'Page: ${navigationItems[_selectedIndex].label}',
-                style: AppTypography.heading3.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Coming soon...',
-                style: AppTypography.body.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        );
-    }
+  void _navigateToScreen(int index, List<NavigationItem> navigationItems) {
+    if (index >= navigationItems.length) return;
+    final route = navigationItems[index].route;
+    final routePath = '/$route';
+    context.go(routePath);
   }
 
   @override
@@ -150,15 +102,15 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
         final unreadAdmin = authProvider.isAdmin ? supportProvider.unreadAdminCount : 0;
         final navigationItems = _getNavigationItems(authProvider.isAdmin);
         
+        // Get current route from GoRouter
+        final router = GoRouter.of(context);
+        final currentLocation = router.routerDelegate.currentConfiguration.uri.path;
+        final selectedIndex = _getSelectedIndexFromRoute(currentLocation);
+        
         // Ensure selected index is valid
-        if (_selectedIndex >= navigationItems.length) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              setState(() {
-                _selectedIndex = 0;
-              });
-            }
-          });
+        if (selectedIndex >= navigationItems.length && navigationItems.isNotEmpty) {
+          // Default to home if invalid index
+          return const SizedBox.shrink(); // Will redirect via GoRouter
         }
         
         return Scaffold(
@@ -286,7 +238,7 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
                             itemCount: navigationItems.length,
                             itemBuilder: (context, index) {
                               final item = navigationItems[index];
-                              final isSelected = _selectedIndex == index;
+                              final isSelected = selectedIndex == index;
                               
                               return _NavItemWidget(
                                 item: item,
@@ -296,7 +248,7 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
                                         unreadAdmin > 0
                                     ? unreadAdmin
                                     : null,
-                                onTap: () => _navigateToScreen(index),
+                                onTap: () => _navigateToScreen(index, navigationItems),
                               );
                             },
                           ),
@@ -335,7 +287,10 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
                                 description: 'Share your message',
                                 buttonText: 'Create Now',
                                 onTap: () {
-                                  _navigateToScreen(2); // Navigate to Create screen (index 2)
+                                  // Get navigation items for passing to _navigateToScreen
+                                  final authProvider = context.read<AuthProvider>();
+                                  final navigationItems = _getNavigationItems(authProvider.isAdmin);
+                                  _navigateToScreen(2, navigationItems); // Navigate to Create screen (index 2)
                                 },
                               ),
                             ],
@@ -346,7 +301,7 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
                   ),
                   // Main Content Area
                   Expanded(
-                    child: _buildCurrentScreen(navigationItems),
+                    child: widget.child,
                   ),
                 ],
                 ),

@@ -789,69 +789,96 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
                         ),
                         const SizedBox(height: AppSpacing.medium),
                         
-                        // Trim Start
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Start: ${_formatDuration(_trimStart)}',
-                              style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                        // Only show trim controls when duration is loaded
+                        if (_audioDuration == Duration.zero || _audioDuration.inSeconds <= 0)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: AppSpacing.large),
+                            child: Center(
+                              child: Column(
+                                children: [
+                                  const CircularProgressIndicator(
+                                    color: AppColors.primaryMain,
+                                  ),
+                                  const SizedBox(height: AppSpacing.medium),
+                                  Text(
+                                    'Loading audio duration...',
+                                    style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                                  ),
+                                ],
+                              ),
                             ),
-                            Slider(
-                              value: _trimStart.inSeconds.toDouble(),
-                              min: 0,
-                              max: _audioDuration.inSeconds.toDouble(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _trimStart = Duration(seconds: value.toInt());
-                                  if (_trimStart >= _trimEnd) {
-                                    _trimEnd = Duration(seconds: (value + 1).toInt());
+                          )
+                        else ...[
+                          // Trim Start
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Start: ${_formatDuration(_trimStart)}',
+                                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                              ),
+                              Slider(
+                                value: _trimStart.inSeconds.toDouble().clamp(0.0, _audioDuration.inSeconds.toDouble()),
+                                min: 0.0,
+                                max: _audioDuration.inSeconds.toDouble(),
+                                onChanged: (value) {
+                                  if (_audioDuration.inSeconds > 0) {
+                                    setState(() {
+                                      final newStart = Duration(seconds: value.toInt().clamp(0, _audioDuration.inSeconds));
+                                      _trimStart = newStart;
+                                      if (_trimStart >= _trimEnd) {
+                                        _trimEnd = Duration(seconds: (value.toInt() + 1).clamp(0, _audioDuration.inSeconds));
+                                      }
+                                    });
                                   }
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                        
-                        // Trim End
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'End: ${_formatDuration(_trimEnd)}',
-                              style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
-                            ),
-                            Slider(
-                              value: _trimEnd.inSeconds.toDouble(),
-                              min: 0,
-                              max: _audioDuration.inSeconds.toDouble(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _trimEnd = Duration(seconds: value.toInt());
-                                  if (_trimEnd <= _trimStart) {
-                                    _trimStart = Duration(seconds: (value - 1).toInt());
-                                  }
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                        
-                        ElevatedButton.icon(
-                          onPressed: _isEditing ? null : _applyTrim,
-                          icon: _isEditing
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                )
-                              : const Icon(Icons.content_cut),
-                          label: Text(_isEditing ? 'Trimming...' : 'Apply Trim'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryMain,
-                            foregroundColor: Colors.white,
+                                },
+                              ),
+                            ],
                           ),
-                        ),
+                          
+                          // Trim End
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'End: ${_formatDuration(_trimEnd)}',
+                                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                              ),
+                              Slider(
+                                value: _trimEnd.inSeconds.toDouble().clamp(0.0, _audioDuration.inSeconds.toDouble()),
+                                min: 0.0,
+                                max: _audioDuration.inSeconds.toDouble(),
+                                onChanged: (value) {
+                                  if (_audioDuration.inSeconds > 0) {
+                                    setState(() {
+                                      final newEnd = Duration(seconds: value.toInt().clamp(0, _audioDuration.inSeconds));
+                                      _trimEnd = newEnd;
+                                      if (_trimEnd <= _trimStart) {
+                                        _trimStart = Duration(seconds: (value.toInt() - 1).clamp(0, _audioDuration.inSeconds));
+                                      }
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                          
+                          ElevatedButton.icon(
+                            onPressed: _isEditing ? null : _applyTrim,
+                            icon: _isEditing
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Icon(Icons.content_cut),
+                            label: Text(_isEditing ? 'Trimming...' : 'Apply Trim'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryMain,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
 
                         const SizedBox(height: AppSpacing.extraLarge),
 
@@ -1328,108 +1355,144 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
               ],
             ),
             const SizedBox(height: AppSpacing.small),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 6,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
-                activeTrackColor: AppColors.warmBrown,
-                inactiveTrackColor: AppColors.borderPrimary,
-                thumbColor: AppColors.warmBrown,
-              ),
-              child: Slider(
-                value: _audioDuration.inSeconds > 0
-                    ? _trimStart.inSeconds.toDouble().clamp(0.0, _audioDuration.inSeconds.toDouble())
-                    : 0.0,
-                min: 0.0,
-                max: _audioDuration.inSeconds.toDouble() > 0
-                    ? _audioDuration.inSeconds.toDouble()
-                    : 1.0,
-                onChanged: (value) {
-                  setState(() {
-                    _trimStart = Duration(seconds: value.toInt());
-                    if (_trimStart >= _trimEnd) {
-                      _trimEnd = Duration(seconds: (value + 1).toInt().clamp(0, _audioDuration.inSeconds));
-                    }
-                  });
-                },
-              ),
-            ),
+            _audioDuration == Duration.zero || _audioDuration.inSeconds <= 0
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.medium),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          const CircularProgressIndicator(
+                            color: AppColors.primaryMain,
+                            strokeWidth: 2,
+                          ),
+                          const SizedBox(height: AppSpacing.small),
+                          Text(
+                            'Loading audio...',
+                            style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 6,
+                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                      activeTrackColor: AppColors.warmBrown,
+                      inactiveTrackColor: AppColors.borderPrimary,
+                      thumbColor: AppColors.warmBrown,
+                    ),
+                    child: Slider(
+                      value: _trimStart.inSeconds.toDouble().clamp(0.0, _audioDuration.inSeconds.toDouble()),
+                      min: 0.0,
+                      max: _audioDuration.inSeconds.toDouble(),
+                      onChanged: (value) {
+                        if (_audioDuration.inSeconds > 0) {
+                          setState(() {
+                            final newStart = Duration(seconds: value.toInt().clamp(0, _audioDuration.inSeconds));
+                            _trimStart = newStart;
+                            if (_trimStart >= _trimEnd) {
+                              _trimEnd = Duration(seconds: (value.toInt() + 1).clamp(0, _audioDuration.inSeconds));
+                            }
+                          });
+                        }
+                      },
+                    ),
+                  ),
           ],
         ),
         const SizedBox(height: AppSpacing.large),
         
         // Trim End
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'End Time',
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
+        if (_audioDuration == Duration.zero || _audioDuration.inSeconds <= 0)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.large),
+            child: Center(
+              child: Column(
+                children: [
+                  const CircularProgressIndicator(
+                    color: AppColors.primaryMain,
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.medium,
-                    vertical: AppSpacing.small,
+                  const SizedBox(height: AppSpacing.medium),
+                  Text(
+                    'Loading audio duration...',
+                    style: AppTypography.body.copyWith(color: AppColors.textSecondary),
                   ),
-                  decoration: BoxDecoration(
-                    color: AppColors.warmBrown.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
-                    border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
-                  ),
-                  child: Text(
-                    _formatDuration(_trimEnd),
+                ],
+              ),
+            ),
+          )
+        else
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'End Time',
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.warmBrown,
-                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.medium,
+                      vertical: AppSpacing.small,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.warmBrown.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                      border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      _formatDuration(_trimEnd),
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.warmBrown,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.small),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 6,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                  activeTrackColor: AppColors.warmBrown,
+                  inactiveTrackColor: AppColors.borderPrimary,
+                  thumbColor: AppColors.warmBrown,
                 ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.small),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 6,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
-                activeTrackColor: AppColors.warmBrown,
-                inactiveTrackColor: AppColors.borderPrimary,
-                thumbColor: AppColors.warmBrown,
-              ),
-              child: Slider(
-                value: _audioDuration.inSeconds > 0
-                    ? _trimEnd.inSeconds.toDouble().clamp(0.0, _audioDuration.inSeconds.toDouble())
-                    : 0.0,
-                min: 0.0,
-                max: _audioDuration.inSeconds.toDouble() > 0
-                    ? _audioDuration.inSeconds.toDouble()
-                    : 1.0,
-                onChanged: (value) {
-                  setState(() {
-                    _trimEnd = Duration(seconds: value.toInt());
-                    if (_trimEnd <= _trimStart) {
-                      _trimStart = Duration(seconds: (value - 1).toInt().clamp(0, _audioDuration.inSeconds));
+                child: Slider(
+                  value: _trimEnd.inSeconds.toDouble().clamp(0.0, _audioDuration.inSeconds.toDouble()),
+                  min: 0.0,
+                  max: _audioDuration.inSeconds.toDouble(),
+                  onChanged: (value) {
+                    if (_audioDuration.inSeconds > 0) {
+                      setState(() {
+                        final newEnd = Duration(seconds: value.toInt().clamp(0, _audioDuration.inSeconds));
+                        _trimEnd = newEnd;
+                        if (_trimEnd <= _trimStart) {
+                          _trimStart = Duration(seconds: (value.toInt() - 1).clamp(0, _audioDuration.inSeconds));
+                        }
+                      });
                     }
-                  });
-                },
+                  },
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         const SizedBox(height: AppSpacing.medium),
         SizedBox(
           width: double.infinity,
           child: StyledPillButton(
             label: _isEditing ? 'Trimming...' : 'Apply Trim',
             icon: Icons.content_cut,
-            onPressed: _isEditing ? null : _applyTrim,
+            onPressed: (_isEditing || _audioDuration == Duration.zero || _audioDuration.inSeconds <= 0) ? null : _applyTrim,
             isLoading: _isEditing,
           ),
         ),

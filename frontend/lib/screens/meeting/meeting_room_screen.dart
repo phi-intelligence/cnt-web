@@ -6,6 +6,7 @@ import '../../widgets/meeting/video_track_view.dart';
 import '../../widgets/meeting/meeting_controls.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import '../../utils/state_persistence.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
 
 /// Meeting Room Screen - LiveKit meeting UI
@@ -57,9 +58,27 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
   @override
   void initState() {
     super.initState();
+    _saveMeetingState(); // Save state immediately
     _joinMeeting();
     if (widget.isLiveStream) {
       _setupPermissionRequestListener();
+    }
+  }
+  
+  Future<void> _saveMeetingState() async {
+    try {
+      await StatePersistence.saveMeetingState(
+        roomName: widget.roomName,
+        meetingId: int.tryParse(widget.meetingId) ?? 0,
+        jwtToken: widget.jwtToken,
+        serverUrl: widget.wsUrl,
+        isHost: widget.isHost,
+        audioMuted: !widget.initialMicEnabled,
+        videoMuted: !widget.initialCameraEnabled,
+        displayName: widget.userName,
+      );
+    } catch (e) {
+      print('⚠️ Error saving meeting state: $e');
     }
   }
   
@@ -173,6 +192,9 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
         _participantSubscription ??=
             _meetingService.participants.listen(_handleParticipantsUpdate);
         _handleParticipantsUpdate(_meetingService.getParticipants());
+        
+        // Save state after successful join
+        await _saveMeetingState();
       }
     } catch (e) {
       if (mounted) {
@@ -480,6 +502,10 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
     await _participantSubscription?.cancel();
     _participantSubscription = null;
     await _meetingService.leaveMeeting();
+    
+    // Clear saved meeting state when leaving
+    await StatePersistence.clearMeetingState();
+    
     if (mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst || route.settings.name == '/');
     }
@@ -490,6 +516,10 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
     _participantSubscription?.cancel();
     _permissionRequestSubscription?.cancel();
     _meetingService.leaveMeeting();
+    
+    // Clear saved meeting state on dispose (if not already cleared by _leaveMeeting)
+    StatePersistence.clearMeetingState();
+    
     super.dispose();
   }
 

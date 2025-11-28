@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../providers/auth_provider.dart';
-import '../navigation/web_navigation.dart';
 import 'admin_dashboard.dart';
 import 'user_login_screen.dart';
 
@@ -87,17 +87,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (success) {
         // Route based on user role
         if (authProvider.isAdmin) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const AdminDashboardScreen(),
-            ),
-          );
+          context.go('/admin');
         } else {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const WebNavigationLayout(),
-            ),
-          );
+          context.go('/home');
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -117,17 +109,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (mounted) {
       if (success) {
         if (authProvider.isAdmin) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const AdminDashboardScreen(),
-            ),
-          );
+          context.go('/admin');
         } else {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const WebNavigationLayout(),
-            ),
-          );
+          context.go('/home');
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
