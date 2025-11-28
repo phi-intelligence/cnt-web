@@ -158,9 +158,16 @@ class ApiService {
     
     // Check if path contains CloudFront domain (might be stored without protocol)
     // This handles cases where backend returns URLs without http:// prefix
-    final mediaBase = mediaBaseUrl.replaceAll('https://', '').replaceAll('http://', '');
-    if (path.contains(mediaBase)) {
+    final mediaBase = mediaBaseUrl.replaceAll('https://', '').replaceAll('http://', '').trim();
+    if (mediaBase.isNotEmpty && path.contains(mediaBase)) {
       // Path already contains CloudFront domain, return with https:// prefix
+      return path.startsWith('http') ? path : 'https://$path';
+    }
+    
+    // Check if path starts with common CloudFront domain patterns (without protocol)
+    // This handles edge cases where CloudFront domain is embedded in path
+    if (path.contains('cloudfront.net') || path.contains('.amazonaws.com')) {
+      // Path contains CloudFront or S3 domain, add https:// prefix if missing
       return path.startsWith('http') ? path : 'https://$path';
     }
     
@@ -1120,10 +1127,21 @@ class ApiService {
     Function(int, int)? onProgress,
   }) async {
     try {
-      final file = await http.MultipartFile.fromPath('file', filePath);
+      // Determine default filename based on file type
+      String defaultFilename = 'file';
+      if (fileType == 'audio') {
+        defaultFilename = 'audio.mp3';
+      } else if (fileType == 'video') {
+        defaultFilename = 'video.mp4';
+      } else if (fileType == 'image') {
+        defaultFilename = 'image.jpg';
+      }
+      
+      final file = await _createMultipartFileFromSource(filePath, 'file', defaultFilename);
       final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/upload/$fileType'));
       request.files.add(file);
       request.headers.addAll(await _getHeaders());
+      request.headers.remove('Content-Type'); // Let multipart set it
       
       final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
       
@@ -1162,6 +1180,38 @@ class ApiService {
       throw Exception('Failed to download file: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error downloading file: $e');
+    }
+  }
+
+  /// Helper function to detect content type from filename extension
+  http.MediaType? _detectContentTypeFromFilename(String filename) {
+    final extension = filename.toLowerCase().split('.').last;
+    switch (extension) {
+      // Audio formats
+      case 'mp3':
+        return http.MediaType('audio', 'mpeg');
+      case 'wav':
+        return http.MediaType('audio', 'wav');
+      case 'ogg':
+        return http.MediaType('audio', 'ogg');
+      case 'webm':
+        // Check if it's audio or video based on context - default to audio
+        return http.MediaType('audio', 'webm');
+      case 'm4a':
+        return http.MediaType('audio', 'mp4');
+      case 'aac':
+        return http.MediaType('audio', 'aac');
+      case 'flac':
+        return http.MediaType('audio', 'flac');
+      // Video formats
+      case 'mp4':
+        return http.MediaType('video', 'mp4');
+      case 'mov':
+        return http.MediaType('video', 'quicktime');
+      case 'avi':
+        return http.MediaType('video', 'x-msvideo');
+      default:
+        return null;
     }
   }
 
@@ -1219,7 +1269,27 @@ class ApiService {
       }
       
       try {
-        // Use HttpRequest to fetch blob URL
+        // Detect content type from filename extension
+        http.MediaType? contentType = _detectContentTypeFromFilename(defaultFilename);
+        
+        // If we couldn't detect from filename, use fallback based on filename content
+        if (contentType == null) {
+          final lowerFilename = defaultFilename.toLowerCase();
+          if (lowerFilename.contains('audio') || 
+              lowerFilename.contains('.mp3') ||
+              lowerFilename.contains('.wav') ||
+              lowerFilename.contains('.ogg')) {
+            contentType = http.MediaType('audio', 'webm');
+          } else if (lowerFilename.contains('video') ||
+                     lowerFilename.contains('.mp4')) {
+            contentType = http.MediaType('video', 'webm');
+          } else {
+            // Default to audio/webm for audio editor context
+            contentType = http.MediaType('audio', 'webm');
+          }
+        }
+        
+        // Use HttpRequest to fetch blob URL as bytes
         final request = await html.HttpRequest.request(
           source,
           responseType: 'arraybuffer',
@@ -1242,6 +1312,7 @@ class ApiService {
           fieldName,
           bytes,
           filename: defaultFilename,
+          contentType: contentType,
         );
       } catch (e) {
         throw Exception('Error converting blob URL to bytes: $e');
@@ -2239,21 +2310,70 @@ class ApiService {
   }
 
   /// Upload video file
+  /// Upload temporary media file (for persistence across page refresh)
+  /// Used for blob URLs that need to be converted to backend URLs
+  /// Upload temporary media file (for persistence across page refresh)
+  /// Used for blob URLs that need to be converted to backend URLs
+  /// Does NOT require bank details - only authentication
+  Future<String?> uploadTemporaryMedia(String sourcePath, String mediaType) async {
+    try {
+      // mediaType should be 'audio' or 'video'
+      if (mediaType != 'audio' && mediaType != 'video') {
+        throw Exception('Invalid media type. Must be "audio" or "video"');
+      }
+
+      Map<String, dynamic> result;
+      
+      if (mediaType == 'audio') {
+        // Use temporary audio endpoint (no bank details required)
+        final file = await _createMultipartFileFromSource(sourcePath, 'file', 'audio.webm');
+        final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/upload/temporary-audio'));
+        request.files.add(file);
+        request.headers.addAll(await _getHeaders());
+        request.headers.remove('Content-Type'); // Let multipart set it
+        
+        final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
+        
+        if (streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201) {
+          final response = await http.Response.fromStream(streamedResponse);
+          result = json.decode(response.body) as Map<String, dynamic>;
+          if (result.containsKey('url') && !result.containsKey('file_path')) {
+            result['file_path'] = result['url'];
+          }
+        } else {
+          final response = await http.Response.fromStream(streamedResponse);
+          throw Exception('Failed to upload temporary audio: HTTP ${streamedResponse.statusCode} ${response.body}');
+        }
+      } else {
+        // Video - use regular upload endpoint for now (may need temporary-video endpoint later)
+        result = await uploadVideo(sourcePath, generateThumbnail: false);
+      }
+
+      // Return the URL from the upload result
+      final url = result['url'] as String?;
+      if (url == null || url.isEmpty) {
+        throw Exception('No URL returned from temporary media upload');
+      }
+
+      print('✅ Temporary $mediaType uploaded successfully: $url');
+      return url;
+    } catch (e) {
+      print('❌ Error uploading temporary $mediaType: $e');
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>> uploadVideo(String filePath, {bool generateThumbnail = true}) async {
     try {
-      final file = await http.MultipartFile.fromPath('file', filePath);
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/upload/video'));
-      request.files.add(file);
-      request.headers.addAll(await _getHeaders());
-      request.headers.remove('Content-Type'); // Let multipart set it
-      
-      // Add query parameter for thumbnail generation
+      final file = await _createMultipartFileFromSource(filePath, 'file', 'video.mp4');
       final uri = Uri.parse('$baseUrl/upload/video?generate_thumbnail=$generateThumbnail');
-      final newRequest = http.MultipartRequest('POST', uri);
-      newRequest.files.addAll(request.files);
-      newRequest.headers.addAll(request.headers);
+      final request = http.MultipartRequest('POST', uri);
+      request.files.add(file);
+      final headers = await _getHeaders();
+      headers.remove('Content-Type'); // Let multipart set it
+      request.headers.addAll(headers);
       
-      final streamedResponse = await newRequest.send().timeout(const Duration(minutes: 10));
+      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
       
       if (streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201) {
         final response = await http.Response.fromStream(streamedResponse);

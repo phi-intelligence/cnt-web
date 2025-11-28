@@ -10,7 +10,10 @@ import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../services/audio_editing_service.dart';
+import '../../services/api_service.dart';
+import '../../utils/state_persistence.dart';
 import 'package:just_audio/just_audio.dart';
+import 'dart:html' if (dart.library.io) '../../utils/file_stub.dart' as html;
 
 /// Audio Editor Screen
 /// Allows users to edit audio: trim, merge, fade effects
@@ -46,33 +49,139 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
   
   List<String> _filesToMerge = [];
   String? _editedAudioPath;
+  String? _persistedAudioPath; // Track the persisted path (backend URL if blob was uploaded)
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
     super.initState();
-    _initializePlayer();
+    if (kIsWeb) {
+      // Add beforeunload warning for unsaved changes
+      html.window.onBeforeUnload.listen((event) {
+        if (_editedAudioPath != null || _hasUnsavedChanges()) {
+          final beforeUnloadEvent = event as html.BeforeUnloadEvent;
+          beforeUnloadEvent.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        }
+      });
+    }
+    _initializeFromSavedState();
   }
 
-  Future<void> _initializePlayer() async {
+  /// Check if there are unsaved changes
+  bool _hasUnsavedChanges() {
+    return _trimStart != Duration.zero || 
+           (_trimEnd != Duration.zero && _trimEnd != _audioDuration) ||
+           _fadeInDuration != Duration.zero ||
+           _fadeOutDuration != Duration.zero ||
+           _filesToMerge.isNotEmpty;
+  }
+
+  /// Initialize editor from saved state or widget parameters
+  Future<void> _initializeFromSavedState() async {
+    try {
+      final savedState = await StatePersistence.loadAudioEditorState();
+      if (savedState != null && mounted) {
+        final savedAudioPath = savedState['audioPath'] as String?;
+        final savedEditedPath = savedState['editedAudioPath'] as String?;
+        final trimStartMs = savedState['trimStart'] as int?;
+        final trimEndMs = savedState['trimEnd'] as int?;
+
+        if (savedAudioPath != null) {
+          // Use saved path (which should be backend URL if blob was uploaded)
+          _persistedAudioPath = savedAudioPath;
+          
+          // Restore trim values
+          if (trimStartMs != null) {
+            _trimStart = Duration(milliseconds: trimStartMs);
+          }
+          if (trimEndMs != null) {
+            _trimEnd = Duration(milliseconds: trimEndMs);
+          }
+
+          // Restore edited path if exists
+          if (savedEditedPath != null) {
+            _editedAudioPath = savedEditedPath;
+          }
+
+          print('✅ Restored audio editor state from saved state');
+        }
+      }
+
+      // If we have a blob URL in widget.audioPath, upload it first
+      String audioPathToUse = widget.audioPath;
+      if (kIsWeb && widget.audioPath.startsWith('blob:')) {
+        try {
+          print('📤 Uploading blob URL to backend for persistence...');
+          final backendUrl = await _apiService.uploadTemporaryMedia(widget.audioPath, 'audio');
+          if (backendUrl != null) {
+            // Convert relative path to full URL
+            audioPathToUse = _apiService.getMediaUrl(backendUrl);
+            _persistedAudioPath = backendUrl; // Save original path for state persistence
+            // Save state with backend URL (relative path)
+            await StatePersistence.saveAudioEditorState(
+              audioPath: backendUrl,
+              editedAudioPath: _editedAudioPath,
+              trimStart: _trimStart,
+              trimEnd: _trimEnd,
+            );
+            print('✅ Blob URL uploaded to backend: $audioPathToUse (from $backendUrl)');
+          }
+        } catch (e) {
+          print('⚠️ Failed to upload blob URL, using original: $e');
+        }
+      } else if (_persistedAudioPath == null) {
+        _persistedAudioPath = audioPathToUse;
+      }
+
+      // Use persisted path or widget path - convert to full URL if needed
+      final pathToLoad = _persistedAudioPath ?? audioPathToUse;
+      // Convert to full URL if it's a relative path (not already http/https/blob)
+      final finalPath = (pathToLoad.startsWith('http://') || 
+                         pathToLoad.startsWith('https://') || 
+                         pathToLoad.startsWith('blob:'))
+          ? pathToLoad 
+          : _apiService.getMediaUrl(pathToLoad);
+      await _initializePlayer(finalPath);
+    } catch (e) {
+      print('❌ Error initializing from saved state: $e');
+      await _initializePlayer(widget.audioPath);
+    }
+  }
+
+  /// Initialize player with given path
+  Future<void> _initializePlayer(String audioPath) async {
     try {
       _player = AudioPlayer();
       
       // Check if path is network URL, blob URL, or local file
-      final isNetwork = widget.audioPath.startsWith('http') || widget.audioPath.startsWith('blob:');
+      final isNetwork = audioPath.startsWith('http') || audioPath.startsWith('blob:');
       
       if (isNetwork || kIsWeb) {
         // On web or for network URLs, use setUrl
-        await _player!.setUrl(widget.audioPath);
+        await _player!.setUrl(audioPath);
       } else {
         // On mobile, use setFilePath for local files
-        await _player!.setFilePath(widget.audioPath);
+        await _player!.setFilePath(audioPath);
       }
       
-      _audioDuration = _player!.duration ?? Duration.zero;
+      // Wait for duration to be available (same as reloadPlayer)
+      Duration? duration = _player!.duration;
+      int attempts = 0;
+      while ((duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) && attempts < 10) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        duration = _player!.duration;
+        attempts++;
+      }
+      
+      if (duration != null && duration != Duration.zero && duration.inMilliseconds > 0) {
+        _audioDuration = duration;
+        if (_trimEnd == Duration.zero) {
+          _trimEnd = _audioDuration;
+        }
+      }
       
       setState(() {
         _isInitializing = false;
-        _trimEnd = _audioDuration;
       });
     } catch (e) {
       setState(() {
@@ -84,9 +193,35 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
   }
 
   Future<void> _applyTrim() async {
+    // Validate audio duration
+    if (_audioDuration == Duration.zero || _audioDuration.inSeconds <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Audio duration is not available. Please wait for audio to load.'),
+          backgroundColor: AppColors.errorMain,
+        ),
+      );
+      return;
+    }
+
+    // Validate trim range
     if (_trimStart >= _trimEnd) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Start time must be less than end time')),
+        SnackBar(
+          content: const Text('Start time must be less than end time'),
+          backgroundColor: AppColors.errorMain,
+        ),
+      );
+      return;
+    }
+
+    // Validate trim values are within audio duration
+    if (_trimStart < Duration.zero || _trimEnd > _audioDuration) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Trim values must be within audio duration'),
+          backgroundColor: AppColors.errorMain,
+        ),
       );
       return;
     }
@@ -96,29 +231,82 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
       _hasError = false;
     });
 
-    final outputPath = await _editingService.trimAudio(
-      widget.audioPath,
-      _trimStart,
-      _trimEnd,
-      onProgress: (progress) {},
-      onError: (error) {
+    try {
+      final inputPath = _editedAudioPath ?? widget.audioPath;
+      final outputPath = await _editingService.trimAudio(
+        inputPath,
+        _trimStart,
+        _trimEnd,
+        onProgress: (progress) {},
+        onError: (error) {
+          setState(() {
+            _isEditing = false;
+            _hasError = true;
+            _errorMessage = error;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error trimming audio: $error'),
+                backgroundColor: AppColors.errorMain,
+              ),
+            );
+          }
+        },
+      );
+
+      if (outputPath != null) {
+        setState(() {
+          _editedAudioPath = outputPath;
+          _isEditing = false;
+        });
+        
+        // Save state after successful trim
+        await StatePersistence.saveAudioEditorState(
+          audioPath: _persistedAudioPath ?? widget.audioPath,
+          editedAudioPath: outputPath,
+          trimStart: _trimStart,
+          trimEnd: _trimEnd,
+        );
+        
+        await _reloadPlayer(outputPath);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Audio trimmed successfully'),
+              backgroundColor: AppColors.successMain,
+            ),
+          );
+        }
+      } else {
         setState(() {
           _isEditing = false;
           _hasError = true;
-          _errorMessage = error;
+          _errorMessage = 'Failed to trim audio - no output path returned';
         });
-      },
-    );
-
-    if (outputPath != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Failed to trim audio. Please try again.'),
+              backgroundColor: AppColors.errorMain,
+            ),
+          );
+        }
+      }
+    } catch (e) {
       setState(() {
-        _editedAudioPath = outputPath;
         _isEditing = false;
+        _hasError = true;
+        _errorMessage = e.toString();
       });
-      await _reloadPlayer(outputPath);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Audio trimmed successfully')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error trimming audio: $e'),
+            backgroundColor: AppColors.errorMain,
+          ),
+        );
+      }
     }
   }
 
@@ -177,6 +365,15 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
         _isEditing = false;
         _filesToMerge = []; // Clear after merge
       });
+      
+      // Save state after successful merge
+      await StatePersistence.saveAudioEditorState(
+        audioPath: _persistedAudioPath ?? widget.audioPath,
+        editedAudioPath: outputPath,
+        trimStart: _trimStart,
+        trimEnd: _trimEnd,
+      );
+      
       await _reloadPlayer(outputPath);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Audio files merged successfully')),
@@ -217,6 +414,15 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
         _editedAudioPath = outputPath;
         _isEditing = false;
       });
+      
+      // Save state after successful fade in
+      await StatePersistence.saveAudioEditorState(
+        audioPath: _persistedAudioPath ?? widget.audioPath,
+        editedAudioPath: outputPath,
+        trimStart: _trimStart,
+        trimEnd: _trimEnd,
+      );
+      
       await _reloadPlayer(outputPath);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Fade in applied successfully')),
@@ -259,6 +465,15 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
         _editedAudioPath = outputPath;
         _isEditing = false;
       });
+      
+      // Save state after successful fade out
+      await StatePersistence.saveAudioEditorState(
+        audioPath: _persistedAudioPath ?? widget.audioPath,
+        editedAudioPath: outputPath,
+        trimStart: _trimStart,
+        trimEnd: _trimEnd,
+      );
+      
       await _reloadPlayer(outputPath);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Fade out applied successfully')),
@@ -302,6 +517,15 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
         _editedAudioPath = outputPath;
         _isEditing = false;
       });
+      
+      // Save state after successful fade in/out
+      await StatePersistence.saveAudioEditorState(
+        audioPath: _persistedAudioPath ?? widget.audioPath,
+        editedAudioPath: outputPath,
+        trimStart: _trimStart,
+        trimEnd: _trimEnd,
+      );
+      
       await _reloadPlayer(outputPath);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Fade in/out applied successfully')),
@@ -324,8 +548,23 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
       await _player!.setFilePath(path);
     }
     
-    _audioDuration = _player!.duration ?? Duration.zero;
+    // Wait for duration to be available (same as video editor)
+    Duration? duration = _player!.duration;
+    int attempts = 0;
+    while ((duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) && attempts < 10) {
+      await Future.delayed(const Duration(milliseconds: 100));
+      duration = _player!.duration;
+      attempts++;
+    }
+    
+    if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
+      print('⚠️ Audio duration is not available after reload');
+      // Don't update _audioDuration if we can't get it
+      return;
+    }
+    
     setState(() {
+      _audioDuration = duration!;
       _trimEnd = _audioDuration;
     });
   }
@@ -338,8 +577,18 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
       return;
     }
 
+    // Clear saved state after export
+    StatePersistence.clearAudioEditorState();
+
     // Return edited audio path to caller
     Navigator.pop(context, _editedAudioPath);
+  }
+  
+  @override
+  void dispose() {
+    // Don't clear state on dispose - let it persist for refresh recovery
+    _player?.dispose();
+    super.dispose();
   }
 
   String _formatDuration(Duration duration) {
@@ -348,11 +597,6 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  @override
-  void dispose() {
-    _player?.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {

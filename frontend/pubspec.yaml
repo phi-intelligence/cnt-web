@@ -73,6 +73,9 @@ dependencies:
   
   # Payment Gateways
   flutter_stripe: ^10.1.1
+  
+  # Routing
+  go_router: ^13.0.0
 
 dev_dependencies:
   flutter_test:

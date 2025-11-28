@@ -350,7 +350,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> with SingleTicker
     });
 
     final outputPath = await _editingService.trimVideo(
-      widget.videoPath,
+      _editedVideoPath ?? widget.videoPath,
       _trimStart,
       _trimEnd,
       onProgress: (progress) {},

@@ -201,12 +201,29 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
   }
 
   void _handleEdit() async {
+    // If blob URL, upload to backend first for persistence
+    String videoPathToUse = widget.videoUri;
+    if (kIsWeb && widget.videoUri.startsWith('blob:')) {
+      try {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Preparing video for editing...')),
+        );
+        final backendUrl = await ApiService().uploadTemporaryMedia(widget.videoUri, 'video');
+        if (backendUrl != null) {
+          videoPathToUse = backendUrl;
+        }
+      } catch (e) {
+        print('⚠️ Failed to upload blob before editor: $e');
+        // Continue with blob URL - editor will handle it
+      }
+    }
+    
     // Navigate to VideoEditorScreenWeb (web-specific editor)
     final editedPath = await Navigator.push<String>(
       context,
       MaterialPageRoute(
         builder: (context) => VideoEditorScreenWeb(
-          videoPath: widget.videoUri,
+          videoPath: videoPathToUse,
           duration: widget.duration > 0 
               ? Duration(seconds: widget.duration) 
               : null,

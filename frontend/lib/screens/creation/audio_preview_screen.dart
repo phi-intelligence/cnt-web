@@ -124,12 +124,34 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
   }
 
   void _handleEdit() async {
+    // If blob URL, upload to backend first for persistence
+    String audioPathToUse = widget.audioUri;
+    if (kIsWeb && widget.audioUri.startsWith('blob:')) {
+      try {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Preparing audio for editing...')),
+        );
+        final backendUrl = await ApiService().uploadTemporaryMedia(widget.audioUri, 'audio');
+        if (backendUrl != null) {
+          // Convert relative path to full URL using getMediaUrl
+          audioPathToUse = ApiService().getMediaUrl(backendUrl);
+          print('✅ Converted temporary upload path to full URL: $audioPathToUse');
+        }
+      } catch (e) {
+        print('⚠️ Failed to upload blob before editor: $e');
+        // Continue with blob URL - editor will handle it
+      }
+    } else if (!widget.audioUri.startsWith('http://') && !widget.audioUri.startsWith('https://') && !widget.audioUri.startsWith('blob:')) {
+      // If it's a relative path (not already a full URL or blob), convert it
+      audioPathToUse = ApiService().getMediaUrl(widget.audioUri);
+    }
+    
     // Navigate to AudioEditorScreen
     final editedPath = await Navigator.push<String>(
       context,
       MaterialPageRoute(
         builder: (context) => AudioEditorScreen(
-          audioPath: widget.audioUri,
+          audioPath: audioPathToUse,
           title: _titleController.text.isNotEmpty ? _titleController.text : null,
         ),
       ),

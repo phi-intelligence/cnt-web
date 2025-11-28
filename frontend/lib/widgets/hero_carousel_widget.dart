@@ -91,6 +91,18 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticK
             continue;
           }
           
+          // Additional validation: Check if URL is valid format
+          try {
+            final uri = Uri.parse(fullImageUrl);
+            if (!uri.hasScheme || (!uri.scheme.startsWith('http'))) {
+              print('   ⚠️ Warning: Invalid URL scheme, skipping post $postId');
+              continue;
+            }
+          } catch (e) {
+            print('   ⚠️ Warning: Invalid URL format ($fullImageUrl), skipping post $postId: $e');
+            continue;
+          }
+          
           items.add(_CarouselItem(
             id: postId.toString(),
             imageUrl: fullImageUrl,

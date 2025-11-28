@@ -8,6 +8,7 @@ import '../../theme/app_typography.dart';
 import '../../services/video_editing_service.dart';
 import '../../services/api_service.dart';
 import '../../models/text_overlay.dart';
+import '../../utils/state_persistence.dart';
 import 'package:video_player/video_player.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -76,6 +77,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   bool _isMouseOverVideo = false;
   
   String? _editedVideoPath;
+  String? _persistedVideoPath; // Track the persisted path (backend URL if blob was uploaded)
   final _uuid = const Uuid();
 
   @override
@@ -83,7 +85,104 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     super.initState();
     _tabController = TabController(length: 3, vsync: this); // 3 tabs: Trim, Music, Text
     _providedDuration = widget.duration;
-    _initializePlayer();
+    
+    if (kIsWeb) {
+      // Add beforeunload warning for unsaved changes
+      html.window.onBeforeUnload.listen((event) {
+        if (_editedVideoPath != null || _hasUnsavedChanges()) {
+          final beforeUnloadEvent = event as html.BeforeUnloadEvent;
+          beforeUnloadEvent.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        }
+      });
+    }
+    
+    _initializeFromSavedState();
+  }
+
+  /// Check if there are unsaved changes
+  bool _hasUnsavedChanges() {
+    return _trimStart != Duration.zero || 
+           (_trimEnd != Duration.zero && _trimEnd != _videoDuration) ||
+           _audioRemoved ||
+           _audioFilePath != null ||
+           _textOverlays.isNotEmpty;
+  }
+
+  /// Initialize editor from saved state or widget parameters
+  Future<void> _initializeFromSavedState() async {
+    try {
+      final savedState = await StatePersistence.loadVideoEditorState();
+      if (savedState != null && mounted) {
+        final savedVideoPath = savedState['videoPath'] as String?;
+        final savedEditedPath = savedState['editedVideoPath'] as String?;
+        final trimStartMs = savedState['trimStart'] as int?;
+        final trimEndMs = savedState['trimEnd'] as int?;
+        final audioRemoved = savedState['audioRemoved'] as bool?;
+        final audioFilePath = savedState['audioFilePath'] as String?;
+
+        if (savedVideoPath != null) {
+          // Use saved path (which should be backend URL if blob was uploaded)
+          _persistedVideoPath = savedVideoPath;
+          
+          // Restore trim values
+          if (trimStartMs != null) {
+            _trimStart = Duration(milliseconds: trimStartMs);
+          }
+          if (trimEndMs != null) {
+            _trimEnd = Duration(milliseconds: trimEndMs);
+          }
+
+          // Restore other state
+          if (audioRemoved != null) {
+            _audioRemoved = audioRemoved;
+          }
+          if (audioFilePath != null) {
+            _audioFilePath = audioFilePath;
+          }
+
+          // Restore edited path if exists
+          if (savedEditedPath != null) {
+            _editedVideoPath = savedEditedPath;
+          }
+
+          print('✅ Restored video editor state from saved state');
+        }
+      }
+
+      // If we have a blob URL in widget.videoPath, upload it first
+      String videoPathToUse = widget.videoPath;
+      if (kIsWeb && widget.videoPath.startsWith('blob:')) {
+        try {
+          print('📤 Uploading blob URL to backend for persistence...');
+          final backendUrl = await _apiService.uploadTemporaryMedia(widget.videoPath, 'video');
+          if (backendUrl != null) {
+            videoPathToUse = backendUrl;
+            _persistedVideoPath = backendUrl;
+            // Save state with backend URL
+            await StatePersistence.saveVideoEditorState(
+              videoPath: backendUrl,
+              editedVideoPath: _editedVideoPath,
+              trimStart: _trimStart,
+              trimEnd: _trimEnd,
+              audioRemoved: _audioRemoved,
+              audioFilePath: _audioFilePath,
+            );
+            print('✅ Blob URL uploaded to backend: $backendUrl');
+          }
+        } catch (e) {
+          print('⚠️ Failed to upload blob URL, using original: $e');
+        }
+      } else if (_persistedVideoPath == null) {
+        _persistedVideoPath = videoPathToUse;
+      }
+
+      // Use persisted path or widget path
+      final finalPath = _persistedVideoPath ?? videoPathToUse;
+      await _initializePlayer(finalPath);
+    } catch (e) {
+      print('❌ Error initializing from saved state: $e');
+      await _initializePlayer(widget.videoPath);
+    }
   }
 
   /// Get duration from blob URL using HTML5 video element directly
@@ -175,17 +274,17 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     }
   }
 
-  Future<void> _initializePlayer() async {
+  Future<void> _initializePlayer(String videoPath) async {
     try {
       // On web, all paths should be URLs (blob URLs or network URLs)
-      final isNetworkUrl = widget.videoPath.startsWith('http://') || 
-                          widget.videoPath.startsWith('https://');
-      final isBlobUrl = widget.videoPath.startsWith('blob:');
+      final isNetworkUrl = videoPath.startsWith('http://') || 
+                          videoPath.startsWith('https://');
+      final isBlobUrl = videoPath.startsWith('blob:');
       
       // Use networkUrl for both blob URLs and network URLs
       if (isNetworkUrl || isBlobUrl) {
         _controller = VideoPlayerController.networkUrl(
-          Uri.parse(widget.videoPath),
+          Uri.parse(videoPath),
           videoPlayerOptions: VideoPlayerOptions(
             mixWithOthers: false,
             allowBackgroundPlayback: false,
@@ -194,7 +293,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       } else {
         // Fallback: treat as network URL
         _controller = VideoPlayerController.networkUrl(
-          Uri.parse(widget.videoPath),
+          Uri.parse(videoPath),
           videoPlayerOptions: VideoPlayerOptions(
             mixWithOthers: false,
             allowBackgroundPlayback: false,
@@ -1359,6 +1458,17 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           _editedVideoPath = outputPath;
           _isEditing = false;
         });
+        
+        // Save state after successful trim
+        await StatePersistence.saveVideoEditorState(
+          videoPath: _persistedVideoPath ?? widget.videoPath,
+          editedVideoPath: outputPath,
+          trimStart: _trimStart,
+          trimEnd: _trimEnd,
+          audioRemoved: _audioRemoved,
+          audioFilePath: _audioFilePath,
+        );
+        
         await _reloadPlayer(outputPath);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1426,6 +1536,17 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         _audioRemoved = true;
         _isEditing = false;
       });
+      
+      // Save state after successful audio removal
+      await StatePersistence.saveVideoEditorState(
+        videoPath: _persistedVideoPath ?? widget.videoPath,
+        editedVideoPath: outputPath,
+        trimStart: _trimStart,
+        trimEnd: _trimEnd,
+        audioRemoved: _audioRemoved,
+        audioFilePath: _audioFilePath,
+      );
+      
       await _reloadPlayer(outputPath);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1749,6 +1870,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       setState(() {
         _isEditing = false;
       });
+
+      // Clear saved state after successful save
+      await StatePersistence.clearVideoEditorState();
 
       // Navigate to preview page with final video
       if (mounted) {

@@ -18,6 +18,8 @@ import '../../widgets/hero_carousel_widget.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/platform_helper.dart';
 import '../../widgets/bible/bible_reader_section.dart';
+import '../../widgets/meeting/meeting_section.dart';
+import '../../widgets/live_stream/live_stream_section.dart';
 import '../../models/document_asset.dart';
 import 'community_screen_web.dart';
 import '../../widgets/web/welcome_section_web.dart';
@@ -715,6 +717,16 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
                           onItemPlay: _handlePlay,
                           onItemTap: _handleItemTap,
                         ),
+                      
+                      const SizedBox(height: AppSpacing.extraLarge),
+                      
+                      // Meetings Section
+                      const MeetingSection(),
+                      
+                      const SizedBox(height: AppSpacing.extraLarge),
+                      
+                      // Live Stream Section
+                      const LiveStreamSection(),
                       
                       const SizedBox(height: AppSpacing.extraLarge),
                       

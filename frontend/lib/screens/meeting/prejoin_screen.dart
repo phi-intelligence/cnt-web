@@ -154,47 +154,77 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                           'Device Settings',
                           style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
                         ),
-                        const SizedBox(height: AppSpacing.medium),
-                        // Camera toggle
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(
-                            cameraEnabled ? Icons.videocam : Icons.videocam_off,
-                            color: cameraEnabled ? AppColors.primaryMain : AppColors.textSecondary,
-                          ),
-                          title: Text(
-                            cameraEnabled ? 'Camera On' : 'Camera Off',
-                            style: AppTypography.body.copyWith(color: AppColors.textPrimary),
-                          ),
-                          trailing: Switch(
-                            value: cameraEnabled,
-                            onChanged: (value) {
-                              setState(() {
-                                cameraEnabled = value;
-                              });
-                            },
-                          ),
-                        ),
-                        Divider(color: AppColors.borderPrimary),
-                        // Microphone toggle
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: Icon(
-                            micEnabled ? Icons.mic : Icons.mic_off,
-                            color: micEnabled ? AppColors.primaryMain : AppColors.textSecondary,
-                          ),
-                          title: Text(
-                            micEnabled ? 'Microphone On' : 'Microphone Off',
-                            style: AppTypography.body.copyWith(color: AppColors.textPrimary),
-                          ),
-                          trailing: Switch(
-                            value: micEnabled,
-                            onChanged: (value) {
-                              setState(() {
-                                micEnabled = value;
-                              });
-                            },
-                          ),
+                        const SizedBox(height: AppSpacing.large),
+                        // Device Controls Grid
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final screenWidth = MediaQuery.of(context).size.width;
+                            final isMobile = screenWidth < 768;
+                            
+                            if (isMobile) {
+                              // Mobile: Stack vertically
+                              return Column(
+                                children: [
+                                  _buildDeviceControlCard(
+                                    icon: cameraEnabled ? Icons.videocam : Icons.videocam_off,
+                                    title: 'Camera',
+                                    subtitle: cameraEnabled ? 'On' : 'Off',
+                                    enabled: cameraEnabled,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        cameraEnabled = value;
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(height: AppSpacing.medium),
+                                  _buildDeviceControlCard(
+                                    icon: micEnabled ? Icons.mic : Icons.mic_off,
+                                    title: 'Microphone',
+                                    subtitle: micEnabled ? 'On' : 'Off',
+                                    enabled: micEnabled,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        micEnabled = value;
+                                      });
+                                    },
+                                  ),
+                                ],
+                              );
+                            } else {
+                              // Desktop: Side by side
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildDeviceControlCard(
+                                      icon: cameraEnabled ? Icons.videocam : Icons.videocam_off,
+                                      title: 'Camera',
+                                      subtitle: cameraEnabled ? 'On' : 'Off',
+                                      enabled: cameraEnabled,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          cameraEnabled = value;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.large),
+                                  Expanded(
+                                    child: _buildDeviceControlCard(
+                                      icon: micEnabled ? Icons.mic : Icons.mic_off,
+                                      title: 'Microphone',
+                                      subtitle: micEnabled ? 'On' : 'Off',
+                                      enabled: micEnabled,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          micEnabled = value;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+                          },
                         ),
                       ],
                     ),
@@ -320,5 +350,99 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
         ),
       );
     }
+  }
+
+  Widget _buildDeviceControlCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool enabled,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.large),
+      decoration: BoxDecoration(
+        gradient: enabled
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.warmBrown.withOpacity(0.1),
+                  AppColors.accentMain.withOpacity(0.05),
+                ],
+              )
+            : null,
+        color: enabled ? null : AppColors.backgroundSecondary,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        border: Border.all(
+          color: enabled
+              ? AppColors.warmBrown.withOpacity(0.3)
+              : AppColors.borderPrimary,
+          width: enabled ? 2 : 1,
+        ),
+        boxShadow: enabled
+            ? [
+                BoxShadow(
+                  color: AppColors.warmBrown.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: enabled
+                  ? AppColors.warmBrown.withOpacity(0.15)
+                  : AppColors.backgroundSecondary,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: enabled
+                    ? AppColors.warmBrown
+                    : AppColors.borderPrimary,
+                width: 2,
+              ),
+            ),
+            child: Icon(
+              icon,
+              color: enabled
+                  ? AppColors.warmBrown
+                  : AppColors.textSecondary,
+              size: 30,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.medium),
+          Text(
+            title,
+            style: AppTypography.heading4.copyWith(
+              color: enabled
+                  ? AppColors.textPrimary
+                  : AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.small),
+          Text(
+            subtitle,
+            style: AppTypography.bodySmall.copyWith(
+              color: enabled
+                  ? AppColors.warmBrown
+                  : AppColors.textTertiary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.medium),
+          Switch(
+            value: enabled,
+            onChanged: onChanged,
+            activeColor: AppColors.warmBrown,
+          ),
+        ],
+      ),
+    );
   }
 }

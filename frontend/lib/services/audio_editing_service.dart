@@ -11,6 +11,49 @@ import 'auth_service.dart';
 class AudioEditingService {
   final ApiService _apiService = ApiService();
 
+  /// Construct media URL with proper handling for local vs production environments
+  String _constructMediaUrl(String outputUrl) {
+    // If outputUrl is already a full HTTP/HTTPS URL, use it directly
+    if (outputUrl.startsWith('http://') || outputUrl.startsWith('https://')) {
+      print('✅ Using full URL directly: $outputUrl');
+      return outputUrl;
+    }
+    
+    // If outputUrl starts with /media/, it's a backend-served file
+    if (outputUrl.startsWith('/media/')) {
+      // Get API base URL without /api/v1 suffix
+      final apiBase = ApiService.baseUrl.replaceAll('/api/v1', '').trim();
+      
+      // Check if we're in development (localhost, 127.0.0.1, ngrok, or contains port)
+      final isDevelopment = apiBase.contains('localhost') || 
+                           apiBase.contains('127.0.0.1') ||
+                           apiBase.contains('ngrok') ||
+                           apiBase.contains(':8002') ||
+                           apiBase.contains(':8000') ||
+                           apiBase.contains('192.168.') ||
+                           apiBase.contains('10.') ||
+                           apiBase.contains('172.');
+      
+      if (isDevelopment) {
+        // Development: Use backend API URL to serve the file
+        // Backend serves files via /media endpoint
+        final constructedUrl = apiBase + outputUrl;
+        print('🔧 Development mode - Using backend URL: $constructedUrl');
+        return constructedUrl;
+      } else {
+        // Production: Use CloudFront/S3 URL
+        final constructedUrl = ApiService.mediaBaseUrl + outputUrl;
+        print('🌐 Production mode - Using CloudFront/S3 URL: $constructedUrl');
+        return constructedUrl;
+      }
+    }
+    
+    // Fallback: Use mediaBaseUrl
+    final fallbackUrl = ApiService.mediaBaseUrl + (outputUrl.startsWith('/') ? outputUrl : '/$outputUrl');
+    print('⚠️ Fallback URL construction: $fallbackUrl');
+    return fallbackUrl;
+  }
+
   /// Trim audio - Cut audio from start time to end time
   Future<String?> trimAudio(
     String inputPath,
@@ -34,10 +77,7 @@ class AudioEditingService {
 
       // On web, return the URL directly
       if (kIsWeb) {
-        final fullUrl = outputUrl.startsWith('http') 
-            ? outputUrl 
-            : ApiService.mediaBaseUrl + outputUrl;
-        return fullUrl;
+        return _constructMediaUrl(outputUrl);
       }
 
       // On mobile, download the edited audio to a file
@@ -99,10 +139,7 @@ class AudioEditingService {
 
       // On web, return the URL directly
       if (kIsWeb) {
-        final fullUrl = outputUrl.startsWith('http') 
-            ? outputUrl 
-            : ApiService.mediaBaseUrl + outputUrl;
-        return fullUrl;
+        return _constructMediaUrl(outputUrl);
       }
 
       // On mobile, download the merged audio to a file
@@ -158,10 +195,7 @@ class AudioEditingService {
 
       // On web, return the URL directly
       if (kIsWeb) {
-        final fullUrl = outputUrl.startsWith('http') 
-            ? outputUrl 
-            : ApiService.mediaBaseUrl + outputUrl;
-        return fullUrl;
+        return _constructMediaUrl(outputUrl);
       }
 
       // On mobile, download the edited audio to a file
@@ -218,10 +252,7 @@ class AudioEditingService {
 
       // On web, return the URL directly
       if (kIsWeb) {
-        final fullUrl = outputUrl.startsWith('http') 
-            ? outputUrl 
-            : ApiService.mediaBaseUrl + outputUrl;
-        return fullUrl;
+        return _constructMediaUrl(outputUrl);
       }
 
       // On mobile, download the edited audio to a file
@@ -280,10 +311,7 @@ class AudioEditingService {
 
       // On web, return the URL directly
       if (kIsWeb) {
-        final fullUrl = outputUrl.startsWith('http') 
-            ? outputUrl 
-            : ApiService.mediaBaseUrl + outputUrl;
-        return fullUrl;
+        return _constructMediaUrl(outputUrl);
       }
 
       // On mobile, download the edited audio to a file

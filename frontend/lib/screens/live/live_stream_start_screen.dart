@@ -142,12 +142,33 @@ class _LiveStreamStartScreenState extends State<LiveStreamStartScreen> {
         backgroundColor: AppColors.backgroundPrimary,
         body: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: ResponsiveGridDelegate.getMaxContentWidth(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with back button
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  Expanded(
+                    child: StyledPageHeader(
+                      title: 'Live Stream',
+                      size: StyledPageHeaderSize.h2,
+                    ),
+                  ),
+                ],
               ),
-              child: _isCreating
+              const SizedBox(height: AppSpacing.extraLarge),
+              // Content
+              Expanded(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: ResponsiveGridDelegate.getMaxContentWidth(context),
+                    ),
+                    child: _isCreating
                   ? SectionContainer(
                       showShadow: true,
                       child: Column(
@@ -222,7 +243,10 @@ class _LiveStreamStartScreenState extends State<LiveStreamStartScreen> {
                         ],
                       ),
                     ),
-            ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       );
