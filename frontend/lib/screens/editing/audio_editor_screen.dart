@@ -11,20 +11,25 @@ import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../services/audio_editing_service.dart';
 import '../../services/api_service.dart';
+import '../../services/auth_service.dart';
 import '../../utils/state_persistence.dart';
 import 'package:just_audio/just_audio.dart';
 import 'dart:html' if (dart.library.io) '../../utils/file_stub.dart' as html;
+import 'dart:async';
+import 'package:http/http.dart' as http;
 
 /// Audio Editor Screen
 /// Allows users to edit audio: trim, merge, fade effects
 class AudioEditorScreen extends StatefulWidget {
   final String audioPath;
   final String? title;
+  final Duration? duration; // Optional duration from backend (FFprobe)
 
   const AudioEditorScreen({
     super.key,
     required this.audioPath,
     this.title,
+    this.duration,
   });
 
   @override
@@ -112,19 +117,22 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
       if (kIsWeb && widget.audioPath.startsWith('blob:')) {
         try {
           print('📤 Uploading blob URL to backend for persistence...');
-          final backendUrl = await _apiService.uploadTemporaryMedia(widget.audioPath, 'audio');
-          if (backendUrl != null) {
-            // Convert relative path to full URL
-            audioPathToUse = _apiService.getMediaUrl(backendUrl);
-            _persistedAudioPath = backendUrl; // Save original path for state persistence
-            // Save state with backend URL (relative path)
-            await StatePersistence.saveAudioEditorState(
-              audioPath: backendUrl,
-              editedAudioPath: _editedAudioPath,
-              trimStart: _trimStart,
-              trimEnd: _trimEnd,
-            );
-            print('✅ Blob URL uploaded to backend: $audioPathToUse (from $backendUrl)');
+          final uploadResult = await _apiService.uploadTemporaryMedia(widget.audioPath, 'audio');
+          if (uploadResult != null) {
+            final backendUrl = uploadResult['url'] as String?;
+            if (backendUrl != null) {
+              // Convert relative path to full URL
+              audioPathToUse = _apiService.getMediaUrl(backendUrl);
+              _persistedAudioPath = backendUrl; // Save original path for state persistence
+              // Save state with backend URL (relative path)
+              await StatePersistence.saveAudioEditorState(
+                audioPath: backendUrl,
+                editedAudioPath: _editedAudioPath,
+                trimStart: _trimStart,
+                trimEnd: _trimEnd,
+              );
+              print('✅ Blob URL uploaded to backend: $audioPathToUse (from $backendUrl)');
+            }
           }
         } catch (e) {
           print('⚠️ Failed to upload blob URL, using original: $e');
@@ -141,15 +149,217 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
                          pathToLoad.startsWith('blob:'))
           ? pathToLoad 
           : _apiService.getMediaUrl(pathToLoad);
-      await _initializePlayer(finalPath);
+      
+      // Use provided duration from widget if available (from backend FFprobe)
+      final durationToUse = widget.duration;
+      await _initializePlayer(finalPath, providedDuration: durationToUse);
     } catch (e) {
       print('❌ Error initializing from saved state: $e');
-      await _initializePlayer(widget.audioPath);
+      await _initializePlayer(widget.audioPath, providedDuration: widget.duration);
+    }
+  }
+
+  /// Get duration using Web Audio API (decodes entire file - expensive, use as last resort)
+  /// This is a final fallback when other methods fail
+  /// Note: Full implementation requires dart:js_interop - simplified version for now
+  Future<Duration?> _getDurationFromWebAudioApi(String audioUrl) async {
+    if (!kIsWeb) return null;
+    
+    try {
+      print('🎵 Attempting Web Audio API fallback for duration (this may take a moment - loading entire file)...');
+      
+      // Fetch audio file as bytes
+      // Get auth headers for authenticated requests
+      final authService = AuthService();
+      final headers = await authService.getAuthHeaders();
+      final response = await http.get(Uri.parse(audioUrl), headers: headers);
+      if (response.statusCode != 200) {
+        print('❌ Failed to fetch audio for Web Audio API: HTTP ${response.statusCode}');
+        return null;
+      }
+      
+      // Note: Full Web Audio API implementation requires dart:js_interop or package:js
+      // Since backend FFprobe is more reliable and already implemented, 
+      // we skip Web Audio API for now to avoid complexity
+      // If needed in future, can implement using:
+      // - package:js for JS interop
+      // - AudioContext.decodeAudioData() to get AudioBuffer
+      // - AudioBuffer.duration to get duration
+      
+      print('⚠️ Web Audio API fallback not fully implemented - backend FFprobe should be used instead');
+      return null;
+    } catch (e) {
+      print('❌ Error getting duration from Web Audio API: $e');
+      return null;
+    }
+  }
+
+  /// Get duration from audio URL using HTML5 audio element directly
+  /// This is a workaround for WebM audio files that don't expose duration immediately via just_audio
+  Future<Duration?> _getDurationFromAudioUrl(String audioUrl) async {
+    if (!kIsWeb) return null;
+    
+    try {
+      print('🎵 Attempting to get duration from HTML5 AudioElement for: $audioUrl');
+      
+      // First, verify the file is accessible by making a HEAD request
+      try {
+        final response = await http.head(Uri.parse(audioUrl));
+        print('📡 File accessibility check - Status: ${response.statusCode}, Content-Type: ${response.headers['content-type']}');
+        if (response.statusCode != 200) {
+          print('❌ File not accessible - HTTP ${response.statusCode}');
+          return null;
+        }
+      } catch (e) {
+        print('⚠️ Could not verify file accessibility: $e');
+        // Continue anyway - might be CORS issue but file could still load
+      }
+      
+      final audioElement = html.AudioElement()
+        ..src = audioUrl
+        ..preload = 'metadata'
+        ..crossOrigin = 'anonymous'; // Important for CORS
+      
+      // Wait for metadata to load
+      final completer = Completer<Duration?>();
+      
+      void checkDuration() {
+        if (audioElement.readyState >= html.MediaElement.HAVE_METADATA) {
+          final durationSeconds = audioElement.duration;
+          
+          // Check for Infinity or invalid duration values
+          if (durationSeconds != null) {
+            if (durationSeconds.isInfinite) {
+              print('⚠️ HTML5 AudioElement reports Infinity duration - WebM file may not have duration metadata');
+              // Don't complete with Infinity - return null to trigger fallback
+              return;
+            }
+            if (durationSeconds.isNaN) {
+              print('⚠️ HTML5 AudioElement reports NaN duration');
+              return;
+            }
+            if (!durationSeconds.isFinite) {
+              print('⚠️ HTML5 AudioElement reports non-finite duration: $durationSeconds');
+              return;
+            }
+            if (durationSeconds <= 0) {
+              print('⚠️ HTML5 AudioElement reports invalid duration: $durationSeconds');
+              return;
+            }
+            
+            // Valid duration
+            final duration = Duration(milliseconds: (durationSeconds * 1000).round());
+            print('✅ HTML5 AudioElement duration detected: ${duration.inSeconds}s');
+            completer.complete(duration);
+            return;
+          }
+        }
+      }
+      
+      audioElement.onLoadedMetadata.listen((_) {
+        checkDuration();
+        if (!completer.isCompleted) {
+          completer.complete(null);
+        }
+      });
+      
+      audioElement.onError.listen((event) {
+        final errorCode = audioElement.error?.code;
+        final errorMessage = audioElement.error?.message ?? "Unknown error";
+        print('❌ HTML5 AudioElement error - Code: $errorCode, Message: $errorMessage');
+        print('❌ AudioElement src: ${audioElement.src}');
+        print('❌ AudioElement readyState: ${audioElement.readyState}');
+        print('❌ AudioElement networkState: ${audioElement.networkState}');
+        if (!completer.isCompleted) {
+          completer.complete(null);
+        }
+      });
+      
+      // Also listen for network state changes to debug loading issues
+      audioElement.onCanPlay.listen((_) {
+        print('✅ HTML5 AudioElement can play - duration: ${audioElement.duration}');
+      });
+      
+      audioElement.onLoadedData.listen((_) {
+        print('✅ HTML5 AudioElement data loaded - duration: ${audioElement.duration}');
+        checkDuration(); // Check duration when data is loaded
+      });
+      
+      // Load the audio
+      audioElement.load();
+      
+      // Check immediately in case metadata is already loaded
+      checkDuration();
+      
+      // Wait for metadata with timeout
+      return await completer.future.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          // Try one more time
+          checkDuration();
+          final durationSeconds = audioElement.duration;
+          print('⏱️ HTML5 AudioElement timeout check - duration: $durationSeconds, readyState: ${audioElement.readyState}, networkState: ${audioElement.networkState}');
+          
+          // Check for Infinity or invalid duration
+          if (durationSeconds != null) {
+            if (durationSeconds.isInfinite) {
+              print('⚠️ HTML5 AudioElement reports Infinity duration (timeout) - WebM file lacks duration metadata');
+              return null; // Trigger backend fallback
+            }
+            if (durationSeconds.isNaN || !durationSeconds.isFinite || durationSeconds <= 0) {
+              print('⚠️ HTML5 AudioElement reports invalid duration: $durationSeconds');
+              return null;
+            }
+            
+            // Valid duration
+            final duration = Duration(milliseconds: (durationSeconds * 1000).round());
+            print('✅ HTML5 AudioElement duration detected (timeout): ${duration.inSeconds}s');
+            return duration;
+          }
+          
+          print('⚠️ HTML5 AudioElement duration not available after timeout');
+          print('⚠️ Final state - readyState: ${audioElement.readyState}, networkState: ${audioElement.networkState}, error: ${audioElement.error?.message ?? "none"}');
+          return null;
+        },
+      );
+    } catch (e) {
+      print('❌ Error getting duration from HTML5 AudioElement: $e');
+      return null;
     }
   }
 
   /// Initialize player with given path
-  Future<void> _initializePlayer(String audioPath) async {
+  /// [providedDuration] - Duration from backend (FFprobe) - most reliable source
+  Future<void> _initializePlayer(String audioPath, {Duration? providedDuration}) async {
+    print('🎵 Initializing audio player with path: $audioPath');
+    
+    // Use provided duration first (from backend FFprobe) - most reliable
+    Duration? duration = providedDuration;
+    if (duration != null && duration != Duration.zero && duration.inMilliseconds > 0) {
+      print('✅ Using provided duration from backend (FFprobe): ${duration.inSeconds}s');
+      _audioDuration = duration;
+      if (_trimEnd == Duration.zero) {
+        _trimEnd = _audioDuration;
+      }
+      setState(() {
+        _isInitializing = false;
+      });
+      
+      // Still initialize player for playback, but we already have duration
+      try {
+        _player = AudioPlayer();
+        final isNetwork = audioPath.startsWith('http') || audioPath.startsWith('blob:');
+        if (isNetwork || kIsWeb) {
+          await _player!.setUrl(audioPath);
+        } else {
+          await _player!.setFilePath(audioPath);
+        }
+      } catch (e) {
+        print('⚠️ Error initializing player (but duration is available): $e');
+      }
+      return; // Early return - we have duration, no need to detect
+    }
+    
     try {
       _player = AudioPlayer();
       
@@ -158,36 +368,142 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
       
       if (isNetwork || kIsWeb) {
         // On web or for network URLs, use setUrl
+        print('🌐 Loading audio from URL: $audioPath');
+        
+        // Listen for player state changes to catch errors
+        _player!.playerStateStream.listen((state) {
+          print('🎵 just_audio player state: ${state.processingState}, playing: ${state.playing}');
+          // Check for error states (idle after loading usually means error)
+          if (state.processingState == ProcessingState.idle && state.playing == false) {
+            // This might indicate an error, but we'll rely on durationStream for actual detection
+            print('⚠️ just_audio in idle state - may indicate loading issue');
+          }
+        });
+        
         await _player!.setUrl(audioPath);
       } else {
         // On mobile, use setFilePath for local files
+        print('📱 Loading audio from file path: $audioPath');
         await _player!.setFilePath(audioPath);
       }
       
-      // Wait for duration to be available (same as reloadPlayer)
-      Duration? duration = _player!.duration;
-      int attempts = 0;
-      while ((duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) && attempts < 10) {
-        await Future.delayed(const Duration(milliseconds: 100));
-        duration = _player!.duration;
-        attempts++;
+      // Try to get duration from just_audio using durationStream
+      try {
+        print('⏳ Waiting for duration from just_audio...');
+        duration = await _player!.durationStream
+            .where((d) => d != null && d != Duration.zero && d.inMilliseconds > 0)
+            .timeout(const Duration(seconds: 2))
+            .first
+            .catchError((e) {
+              print('⚠️ just_audio duration not available after 2 seconds, trying HTML5 fallback...');
+              return null;
+            });
+        
+        if (duration != null && duration != Duration.zero && duration.inMilliseconds > 0) {
+          print('✅ Duration from just_audio: ${duration.inSeconds}s');
+        }
+      } catch (e) {
+        print('⚠️ Could not get duration from just_audio: $e');
+        duration = null;
       }
       
+      // If just_audio didn't provide duration, try HTML5 AudioElement fallback (especially for WebM)
+      if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
+        if (kIsWeb && (audioPath.startsWith('http') || audioPath.startsWith('blob:'))) {
+          print('🔄 Attempting HTML5 AudioElement fallback for duration detection...');
+          final html5Duration = await _getDurationFromAudioUrl(audioPath);
+          if (html5Duration != null && html5Duration != Duration.zero && html5Duration.inMilliseconds > 0) {
+            duration = html5Duration;
+            print('✅ Duration from HTML5 AudioElement: ${duration.inSeconds}s');
+          } else {
+            print('❌ HTML5 AudioElement also failed to get duration');
+          }
+        }
+      }
+      
+      // If still no duration, try backend endpoint (FFprobe) - most reliable for WebM files
+      if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
+        // Extract path from URL for backend call
+        String? mediaPath;
+        if (audioPath.startsWith('http://') || audioPath.startsWith('https://')) {
+          final uri = Uri.parse(audioPath);
+          mediaPath = uri.path; // e.g., /media/audio/file.webm
+        } else if (audioPath.startsWith('/media/')) {
+          mediaPath = audioPath;
+        } else if (audioPath.startsWith('media/')) {
+          mediaPath = '/$audioPath';
+        } else if (!audioPath.startsWith('blob:')) {
+          // Assume it's a relative path
+          mediaPath = audioPath.startsWith('/') ? audioPath : '/$audioPath';
+        }
+        
+        if (mediaPath != null && !mediaPath.startsWith('blob:')) {
+          print('🔄 Attempting backend duration endpoint (FFprobe)...');
+          try {
+            final durationSeconds = await _apiService.getMediaDuration(mediaPath);
+            if (durationSeconds != null && durationSeconds > 0) {
+              duration = Duration(seconds: durationSeconds);
+              print('✅ Duration from backend (FFprobe): ${duration.inSeconds}s');
+            }
+          } catch (e) {
+            print('⚠️ Backend duration endpoint failed: $e');
+          }
+        }
+      }
+      
+      // If we still don't have duration, try one more time with just_audio (wait longer)
+      if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
+        print('⏳ Final attempt: waiting up to 3 more seconds for just_audio duration...');
+        int attempts = 0;
+        while ((duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) && attempts < 30) {
+          await Future.delayed(const Duration(milliseconds: 100));
+          duration = _player!.duration;
+          attempts++;
+        }
+        
+        if (duration != null && duration != Duration.zero && duration.inMilliseconds > 0) {
+          print('✅ Duration from just_audio (delayed): ${duration.inSeconds}s');
+        }
+      }
+      
+      // Final fallback: Web Audio API (very expensive - loads entire file)
+      // Only use if all other methods failed
+      if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
+        if (kIsWeb && audioPath.startsWith('http') && !audioPath.startsWith('blob:')) {
+          print('🔄 Attempting Web Audio API as final fallback...');
+          final webAudioDuration = await _getDurationFromWebAudioApi(audioPath);
+          if (webAudioDuration != null && webAudioDuration != Duration.zero && webAudioDuration.inMilliseconds > 0) {
+            duration = webAudioDuration;
+            print('✅ Duration from Web Audio API: ${duration.inSeconds}s');
+          }
+        }
+      }
+      
+      // Set duration if we got it
       if (duration != null && duration != Duration.zero && duration.inMilliseconds > 0) {
         _audioDuration = duration;
         if (_trimEnd == Duration.zero) {
           _trimEnd = _audioDuration;
         }
+        print('✅ Audio duration set: ${_audioDuration.inSeconds}s');
+      } else {
+        print('❌ Could not determine audio duration after all attempts');
+        print('💡 This is common for WebM files from MediaRecorder. The file may need to be processed to add duration metadata.');
+        setState(() {
+          _hasError = true;
+          _errorMessage = 'Could not load audio duration. This is common for WebM files recorded in the browser. Please try recording again or use a different audio format.';
+        });
       }
       
       setState(() {
         _isInitializing = false;
       });
     } catch (e) {
+      print('❌ Error initializing audio player: $e');
       setState(() {
         _isInitializing = false;
         _hasError = true;
-        _errorMessage = e.toString();
+        _errorMessage = 'Failed to load audio: ${e.toString()}';
       });
     }
   }

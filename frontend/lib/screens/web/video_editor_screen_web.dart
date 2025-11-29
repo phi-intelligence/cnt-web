@@ -154,20 +154,23 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       if (kIsWeb && widget.videoPath.startsWith('blob:')) {
         try {
           print('📤 Uploading blob URL to backend for persistence...');
-          final backendUrl = await _apiService.uploadTemporaryMedia(widget.videoPath, 'video');
-          if (backendUrl != null) {
-            videoPathToUse = backendUrl;
-            _persistedVideoPath = backendUrl;
-            // Save state with backend URL
-            await StatePersistence.saveVideoEditorState(
-              videoPath: backendUrl,
-              editedVideoPath: _editedVideoPath,
-              trimStart: _trimStart,
-              trimEnd: _trimEnd,
-              audioRemoved: _audioRemoved,
-              audioFilePath: _audioFilePath,
-            );
-            print('✅ Blob URL uploaded to backend: $backendUrl');
+          final uploadResult = await _apiService.uploadTemporaryMedia(widget.videoPath, 'video');
+          if (uploadResult != null) {
+            final backendUrl = uploadResult['url'] as String?;
+            if (backendUrl != null) {
+              videoPathToUse = backendUrl;
+              _persistedVideoPath = backendUrl;
+              // Save state with backend URL
+              await StatePersistence.saveVideoEditorState(
+                videoPath: backendUrl,
+                editedVideoPath: _editedVideoPath,
+                trimStart: _trimStart,
+                trimEnd: _trimEnd,
+                audioRemoved: _audioRemoved,
+                audioFilePath: _audioFilePath,
+              );
+              print('✅ Blob URL uploaded to backend: $backendUrl');
+            }
           }
         } catch (e) {
           print('⚠️ Failed to upload blob URL, using original: $e');

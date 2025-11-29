@@ -272,9 +272,12 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Preparing video for editing...')),
         );
-        final backendUrl = await ApiService().uploadTemporaryMedia(widget.videoUri, 'video');
-        if (backendUrl != null) {
-          videoPathToUse = backendUrl;
+        final uploadResult = await ApiService().uploadTemporaryMedia(widget.videoUri, 'video');
+        if (uploadResult != null) {
+          final backendUrl = uploadResult['url'] as String?;
+          if (backendUrl != null) {
+            videoPathToUse = backendUrl;
+          }
         }
       } catch (e) {
         print('⚠️ Failed to upload blob before editor: $e');

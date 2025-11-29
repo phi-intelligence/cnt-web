@@ -182,16 +182,30 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
   void _handleEdit() async {
     // If blob URL, upload to backend first for persistence
     String audioPathToUse = widget.audioUri;
+    Duration? providedDuration;
+    
     if (kIsWeb && widget.audioUri.startsWith('blob:')) {
       try {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Preparing audio for editing...')),
         );
-        final backendUrl = await ApiService().uploadTemporaryMedia(widget.audioUri, 'audio');
-        if (backendUrl != null) {
-          // Convert relative path to full URL using getMediaUrl
-          audioPathToUse = ApiService().getMediaUrl(backendUrl);
-          print('✅ Converted temporary upload path to full URL: $audioPathToUse');
+        final uploadResult = await ApiService().uploadTemporaryMedia(widget.audioUri, 'audio');
+        if (uploadResult != null) {
+          // Extract URL and duration from upload response
+          final backendUrl = uploadResult['url'] as String?;
+          final durationSeconds = uploadResult['duration'] as int?;
+          
+          if (backendUrl != null) {
+            // Convert relative path to full URL using getMediaUrl
+            audioPathToUse = ApiService().getMediaUrl(backendUrl);
+            print('✅ Converted temporary upload path to full URL: $audioPathToUse');
+            
+            // Extract duration if available (from FFprobe on backend)
+            if (durationSeconds != null && durationSeconds > 0) {
+              providedDuration = Duration(seconds: durationSeconds);
+              print('✅ Duration from upload response: ${providedDuration.inSeconds}s');
+            }
+          }
         }
       } catch (e) {
         print('⚠️ Failed to upload blob before editor: $e');
@@ -205,13 +219,14 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
     // Save state before navigating to editor
     await _saveState();
     
-    // Navigate to AudioEditorScreen
+    // Navigate to AudioEditorScreen with duration if available
     final editedPath = await Navigator.push<String>(
       context,
       MaterialPageRoute(
         builder: (context) => AudioEditorScreen(
           audioPath: audioPathToUse,
           title: _titleController.text.isNotEmpty ? _titleController.text : null,
+          duration: providedDuration,
         ),
       ),
     );

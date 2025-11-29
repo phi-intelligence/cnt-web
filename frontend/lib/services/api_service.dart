@@ -174,23 +174,51 @@ class ApiService {
     // Remove leading slash if present to avoid double slashes
     String cleanPath = path.startsWith('/') ? path.substring(1) : path;
     
-    // Paths starting with 'images/', 'audio/', 'video/', or 'documents/' are S3/CloudFront paths - don't add /media/ prefix
-    // These are direct S3 keys like: images/quotes/quote_13.jpg, audio/filename.mp3, video/filename.mp4
-    if (cleanPath.startsWith('images/') || cleanPath.startsWith('audio/') || cleanPath.startsWith('video/') || cleanPath.startsWith('documents/')) {
-      return '$mediaBaseUrl/$cleanPath';
+    // IMPORTANT: Check for 'media/' paths FIRST before checking for 'audio/', 'video/', etc.
+    // This ensures paths like 'media/audio/temp_xxx.webm' are handled correctly
+    // Backend mounts media directory at /media endpoint in development
+    if (cleanPath.startsWith('media/')) {
+      final constructedUrl = '$mediaBaseUrl/$cleanPath';
+      print('🔧 getMediaUrl: Constructed URL for media path: $constructedUrl (from input: $path)');
+      return constructedUrl;
     }
     
     // Convert assets/images/ paths to media/images/ since backend serves from /media
     if (cleanPath.startsWith('assets/images/')) {
       cleanPath = cleanPath.replaceFirst('assets/images/', 'media/images/');
+      final constructedUrl = '$mediaBaseUrl/$cleanPath';
+      print('🔧 getMediaUrl: Converted assets path: $constructedUrl');
+      return constructedUrl;
     }
     
-    // Backend mounts media directory at /media endpoint
-    // If path already starts with 'media/', use it directly, otherwise prepend 'media/'
-    if (cleanPath.startsWith('media/')) {
-      return '$mediaBaseUrl/$cleanPath';
+    // Paths starting with 'images/', 'audio/', 'video/', or 'documents/' without 'media/' prefix
+    // These are direct S3/CloudFront paths in production (e.g., images/quotes/quote_13.jpg)
+    // OR they need /media/ prefix in development (e.g., audio/temp_xxx.webm -> media/audio/temp_xxx.webm)
+    // For development (localhost), add /media/ prefix. For production, use as-is.
+    if (cleanPath.startsWith('images/') || cleanPath.startsWith('audio/') || cleanPath.startsWith('video/') || cleanPath.startsWith('documents/')) {
+      // Check if we're in development mode (mediaBaseUrl contains localhost)
+      final isDevelopment = mediaBaseUrl.contains('localhost') || 
+                           mediaBaseUrl.contains('127.0.0.1') ||
+                           mediaBaseUrl.contains(':8002') ||
+                           mediaBaseUrl.contains(':8000');
+      
+      if (isDevelopment) {
+        // Development: Add /media/ prefix since backend serves from /media endpoint
+        final constructedUrl = '$mediaBaseUrl/media/$cleanPath';
+        print('🔧 getMediaUrl: Development mode - Added /media/ prefix: $constructedUrl (from input: $path)');
+        return constructedUrl;
+      } else {
+        // Production: Use as-is (direct S3/CloudFront path)
+        final constructedUrl = '$mediaBaseUrl/$cleanPath';
+        print('🌐 getMediaUrl: Production mode - Using direct path: $constructedUrl');
+        return constructedUrl;
+      }
     }
-    return '$mediaBaseUrl/media/$cleanPath';
+    
+    // Default: Prepend 'media/' for any other relative paths
+    final constructedUrl = '$mediaBaseUrl/media/$cleanPath';
+    print('🔧 getMediaUrl: Default construction: $constructedUrl (from input: $path)');
+    return constructedUrl;
   }
 
   /// Get all podcasts
@@ -1505,11 +1533,38 @@ class ApiService {
     double endTime,
   ) async {
     try {
+      // Extract filename from audioPath if possible
+      String defaultFilename = 'audio.mp3';
+      try {
+        if (audioPath.startsWith('http://') || audioPath.startsWith('https://')) {
+          final uri = Uri.parse(audioPath);
+          final pathSegments = uri.pathSegments;
+          if (pathSegments.isNotEmpty) {
+            final urlFilename = pathSegments.last;
+            if (urlFilename.isNotEmpty && urlFilename.contains('.')) {
+              defaultFilename = urlFilename;
+            }
+          }
+        } else if (audioPath.contains('/')) {
+          // Local file path - extract filename
+          final pathParts = audioPath.split('/');
+          if (pathParts.isNotEmpty) {
+            final filename = pathParts.last;
+            if (filename.isNotEmpty && filename.contains('.')) {
+              defaultFilename = filename;
+            }
+          }
+        }
+      } catch (e) {
+        // Use default if extraction fails
+        print('⚠️ Could not extract filename from audioPath, using default: $e');
+      }
+      
       // Create multipart file from URL or file path
       final file = await _createMultipartFileFromSource(
         audioPath,
         'audio_file',
-        'audio.mp3',
+        defaultFilename,
       );
       
       final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/audio-editing/trim'));
@@ -2315,7 +2370,7 @@ class ApiService {
   /// Upload temporary media file (for persistence across page refresh)
   /// Used for blob URLs that need to be converted to backend URLs
   /// Does NOT require bank details - only authentication
-  Future<String?> uploadTemporaryMedia(String sourcePath, String mediaType) async {
+  Future<Map<String, dynamic>?> uploadTemporaryMedia(String sourcePath, String mediaType) async {
     try {
       // mediaType should be 'audio' or 'video'
       if (mediaType != 'audio' && mediaType != 'video') {
@@ -2349,14 +2404,22 @@ class ApiService {
         result = await uploadVideo(sourcePath, generateThumbnail: false);
       }
 
-      // Return the URL from the upload result
+      // Return full response including duration, url, and file_path
       final url = result['url'] as String?;
       if (url == null || url.isEmpty) {
         throw Exception('No URL returned from temporary media upload');
       }
 
-      print('✅ Temporary $mediaType uploaded successfully: $url');
-      return url;
+      final duration = result['duration'] as int?;
+      print('✅ Temporary $mediaType uploaded successfully: $url${duration != null ? " (duration: ${duration}s)" : ""}');
+      
+      return {
+        'url': url,
+        'file_path': result['file_path'] ?? url,
+        'duration': duration,
+        'filename': result['filename'],
+        'content_type': result['content_type'],
+      };
     } catch (e) {
       print('❌ Error uploading temporary $mediaType: $e');
       rethrow;
@@ -2384,6 +2447,51 @@ class ApiService {
     } catch (e) {
       throw Exception('Error uploading video: $e');
     }
+  }
+
+  /// Get media file duration from backend (uses FFprobe)
+  /// [mediaPath] - Path to media file (e.g., /media/audio/file.webm or audio/file.webm)
+  Future<int?> getMediaDuration(String mediaPath) async {
+    try {
+      // Normalize path - ensure it's a relative path
+      String cleanPath = mediaPath;
+      if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
+        // Extract path from URL
+        final uri = Uri.parse(cleanPath);
+        cleanPath = uri.path;
+      }
+      
+      // Remove leading slash
+      cleanPath = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/upload/media/duration?path=$cleanPath'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        final duration = data['duration'] as int?;
+        if (duration != null && duration > 0) {
+          print('✅ Duration from backend (FFprobe): ${duration}s for $mediaPath');
+          return duration;
+        } else {
+          // Duration is null - this is valid for WebM files without metadata
+          print('⚠️ Backend returned null duration for $mediaPath (WebM file may be missing duration metadata)');
+          return null;
+        }
+      } else if (response.statusCode == 404) {
+        print('⚠️ Media file not found for duration: $mediaPath');
+        return null;
+      } else {
+        print('⚠️ Failed to get duration from backend: HTTP ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error getting media duration from backend: $e');
+      return null;
+    }
+    return null;
   }
 
   /// Create podcast with thumbnail support
