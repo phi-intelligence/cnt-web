@@ -159,11 +159,42 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
     }
   }
 
+  /// Check if URL is from CloudFront (production)
+  bool _isCloudFrontUrl(String url) {
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return false;
+    }
+    // Check for CloudFront domain
+    if (url.contains('cloudfront.net')) {
+      return true;
+    }
+    // Check if mediaBaseUrl is CloudFront (production)
+    final mediaBase = ApiService.mediaBaseUrl;
+    if (mediaBase.isNotEmpty && 
+        (mediaBase.contains('cloudfront.net') || 
+         mediaBase.contains('.amazonaws.com'))) {
+      final uri = Uri.tryParse(url);
+      if (uri != null) {
+        final host = uri.host;
+        if (host.contains('cloudfront.net') || host.contains('.amazonaws.com')) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   /// Get duration using Web Audio API (decodes entire file - expensive, use as last resort)
   /// This is a final fallback when other methods fail
   /// Note: Full implementation requires dart:js_interop - simplified version for now
   Future<Duration?> _getDurationFromWebAudioApi(String audioUrl) async {
     if (!kIsWeb) return null;
+    
+    // Skip CloudFront URLs - they have CORS issues
+    if (_isCloudFrontUrl(audioUrl)) {
+      print('⏭️ Skipping Web Audio API for CloudFront URL (CORS issues)');
+      return null;
+    }
     
     try {
       print('🎵 Attempting Web Audio API fallback for duration (this may take a moment - loading entire file)...');
@@ -198,6 +229,12 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
   /// This is a workaround for WebM audio files that don't expose duration immediately via just_audio
   Future<Duration?> _getDurationFromAudioUrl(String audioUrl) async {
     if (!kIsWeb) return null;
+    
+    // Skip CloudFront URLs - they have CORS issues with HTML5 AudioElement
+    if (_isCloudFrontUrl(audioUrl)) {
+      print('⏭️ Skipping HTML5 AudioElement for CloudFront URL (CORS issues)');
+      return null;
+    }
     
     try {
       print('🎵 Attempting to get duration from HTML5 AudioElement for: $audioUrl');
@@ -407,16 +444,22 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
         duration = null;
       }
       
-      // If just_audio didn't provide duration, try HTML5 AudioElement fallback (especially for WebM)
+      // If just_audio didn't provide duration, try HTML5 AudioElement fallback
+      // BUT skip for CloudFront URLs (CORS issues)
       if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
         if (kIsWeb && (audioPath.startsWith('http') || audioPath.startsWith('blob:'))) {
-          print('🔄 Attempting HTML5 AudioElement fallback for duration detection...');
-          final html5Duration = await _getDurationFromAudioUrl(audioPath);
-          if (html5Duration != null && html5Duration != Duration.zero && html5Duration.inMilliseconds > 0) {
-            duration = html5Duration;
-            print('✅ Duration from HTML5 AudioElement: ${duration.inSeconds}s');
+          // Skip HTML5 AudioElement for CloudFront URLs (CORS issues)
+          if (!_isCloudFrontUrl(audioPath)) {
+            print('🔄 Attempting HTML5 AudioElement fallback for duration detection...');
+            final html5Duration = await _getDurationFromAudioUrl(audioPath);
+            if (html5Duration != null && html5Duration != Duration.zero && html5Duration.inMilliseconds > 0) {
+              duration = html5Duration;
+              print('✅ Duration from HTML5 AudioElement: ${duration.inSeconds}s');
+            } else {
+              print('❌ HTML5 AudioElement also failed to get duration');
+            }
           } else {
-            print('❌ HTML5 AudioElement also failed to get duration');
+            print('⏭️ Skipping HTML5 AudioElement for CloudFront URL (CORS issues)');
           }
         }
       }
@@ -472,15 +515,19 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
         }
       }
       
-      // Final fallback: Web Audio API (very expensive - loads entire file)
-      // Only use if all other methods failed
+      // Final fallback: Web Audio API - skip for CloudFront URLs
       if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
         if (kIsWeb && audioPath.startsWith('http') && !audioPath.startsWith('blob:')) {
-          print('🔄 Attempting Web Audio API as final fallback...');
-          final webAudioDuration = await _getDurationFromWebAudioApi(audioPath);
-          if (webAudioDuration != null && webAudioDuration != Duration.zero && webAudioDuration.inMilliseconds > 0) {
-            duration = webAudioDuration;
-            print('✅ Duration from Web Audio API: ${duration.inSeconds}s');
+          // Skip Web Audio API for CloudFront URLs (CORS issues)
+          if (!_isCloudFrontUrl(audioPath)) {
+            print('🔄 Attempting Web Audio API as final fallback...');
+            final webAudioDuration = await _getDurationFromWebAudioApi(audioPath);
+            if (webAudioDuration != null && webAudioDuration != Duration.zero && webAudioDuration.inMilliseconds > 0) {
+              duration = webAudioDuration;
+              print('✅ Duration from Web Audio API: ${duration.inSeconds}s');
+            }
+          } else {
+            print('⏭️ Skipping Web Audio API for CloudFront URL (CORS issues)');
           }
         }
       }
