@@ -422,19 +422,25 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
       }
       
       // If still no duration, try backend endpoint (FFprobe) - most reliable for WebM files
+      // This works with both local files and S3/CloudFront URLs
       if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
         // Extract path from URL for backend call
         String? mediaPath;
         if (audioPath.startsWith('http://') || audioPath.startsWith('https://')) {
+          // For CloudFront URLs, extract the path part (e.g., /audio/temp_xxx.webm)
           final uri = Uri.parse(audioPath);
-          mediaPath = uri.path; // e.g., /media/audio/file.webm
+          mediaPath = uri.path; // e.g., /audio/temp_xxx.webm
+          // Remove leading slash for backend
+          if (mediaPath.startsWith('/')) {
+            mediaPath = mediaPath.substring(1);
+          }
         } else if (audioPath.startsWith('/media/')) {
-          mediaPath = audioPath;
+          mediaPath = audioPath.substring(7); // Remove /media/ prefix
         } else if (audioPath.startsWith('media/')) {
-          mediaPath = '/$audioPath';
+          mediaPath = audioPath.substring(6); // Remove media/ prefix
         } else if (!audioPath.startsWith('blob:')) {
           // Assume it's a relative path
-          mediaPath = audioPath.startsWith('/') ? audioPath : '/$audioPath';
+          mediaPath = audioPath.startsWith('/') ? audioPath.substring(1) : audioPath;
         }
         
         if (mediaPath != null && !mediaPath.startsWith('blob:')) {
