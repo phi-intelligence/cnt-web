@@ -180,8 +180,8 @@ class _OptionCardState extends State<_OptionCard> {
           decoration: BoxDecoration(
             gradient: _isHovered
                 ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
                     colors: widget.hoverColors,
                   )
                 : null,

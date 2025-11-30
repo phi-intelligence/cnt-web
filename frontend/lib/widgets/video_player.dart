@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'dart:async';
+import '../theme/app_colors.dart';
 
 class VideoPlayerWidget extends StatefulWidget {
   final String videoUrl;
@@ -151,37 +152,37 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.backgroundPrimary,
       body: GestureDetector(
         onTap: _toggleControls,
         child: Stack(
           children: [
             // Video Player
             if (_isInitializing)
-              const Center(
-                child: CircularProgressIndicator(color: Colors.white),
+              Center(
+                child: CircularProgressIndicator(color: AppColors.primaryMain),
               )
             else if (_hasError)
               Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.error_outline,
                       size: 80,
-                      color: Colors.white,
+                      color: AppColors.errorMain,
                     ),
                     const SizedBox(height: 16),
                     Text(
                       'Error loading video',
-                      style: const TextStyle(color: Colors.white, fontSize: 18),
+                      style: TextStyle(color: AppColors.textPrimary, fontSize: 18),
                     ),
                     if (_errorMessage != null)
                       Padding(
                         padding: const EdgeInsets.all(16),
                         child: Text(
                           _errorMessage!,
-                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -196,8 +197,8 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                 ),
               )
             else
-              const Center(
-                child: CircularProgressIndicator(color: Colors.white),
+              Center(
+                child: CircularProgressIndicator(color: AppColors.primaryMain),
               ),
 
             // Controls Overlay
@@ -210,14 +211,14 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: Icon(Icons.arrow_back, color: AppColors.primaryMain),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     if (widget.title != null)
                       Expanded(
                         child: Text(
                           widget.title!,
-                          style: const TextStyle(color: Colors.white),
+                          style: TextStyle(color: AppColors.textPrimary),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -229,13 +230,26 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             // Play/Pause Button (Centered)
             if (_showControls && !_isInitializing && !_hasError && _controller != null)
               Center(
-                child: IconButton(
-                  icon: Icon(
-                    _controller!.value.isPlaying ? Icons.pause : Icons.play_arrow,
-                    color: Colors.white,
-                    size: 64,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryMain.withOpacity(0.9),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primaryMain.withOpacity(0.3),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                      ),
+                    ],
                   ),
-                  onPressed: _togglePlayPause,
+                  child: IconButton(
+                    icon: Icon(
+                      _controller!.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                      color: Colors.white,
+                      size: 64,
+                    ),
+                    onPressed: _togglePlayPause,
+                  ),
                 ),
               ),
 
@@ -254,7 +268,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                           width: 50,
                           child: Text(
                             _formatDuration(_controller!.value.position),
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: AppColors.textPrimary, fontSize: 12),
                           ),
                         ),
                         Expanded(
@@ -282,8 +296,8 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                                   value: sliderValue,
                                   min: 0,
                                   max: maxPosition,
-                                  activeColor: Colors.white,
-                                  inactiveColor: Colors.white38,
+                                  activeColor: AppColors.primaryMain,
+                                  inactiveColor: AppColors.primaryMain.withOpacity(0.3),
                                   onChangeStart: (value) {
                                     if (!mounted) return;
                                     setState(() {
@@ -316,7 +330,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                           width: 50,
                           child: Text(
                             _formatDuration(_controller!.value.duration),
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: AppColors.textPrimary, fontSize: 12),
                             textAlign: TextAlign.right,
                           ),
                         ),
@@ -328,7 +342,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.skip_previous, color: Colors.white),
+                          icon: Icon(Icons.skip_previous, color: AppColors.primaryMain),
                           onPressed: () {
                             _seekBy(const Duration(seconds: -10));
                           },
@@ -336,13 +350,13 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                         IconButton(
                           icon: Icon(
                             _controller!.value.isPlaying ? Icons.pause : Icons.play_arrow,
-                            color: Colors.white,
+                            color: AppColors.primaryMain,
                             size: 40,
                           ),
                           onPressed: _togglePlayPause,
                         ),
                         IconButton(
-                          icon: const Icon(Icons.skip_next, color: Colors.white),
+                          icon: Icon(Icons.skip_next, color: AppColors.primaryMain),
                           onPressed: () {
                             _seekBy(const Duration(seconds: 10));
                           },

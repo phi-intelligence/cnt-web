@@ -183,7 +183,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 title: 'Total Pending',
                                 value: totalPending.toString(),
                                 icon: Icons.pending_actions,
-                                backgroundColor: AppColors.warningMain,
+                                backgroundColor: AppColors.primaryMain,
                                 onTap: () {
                                   widget.onNavigateToPage?.call(1);
                                 },
@@ -193,7 +193,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 title: 'Pending Podcasts',
                                 value: (stats['pending_podcasts'] ?? 0).toString(),
                                 icon: Icons.podcasts,
-                                backgroundColor: AppColors.infoMain,
+                                backgroundColor: AppColors.primaryMain,
                                 onTap: () {
                                   widget.onNavigateToPage?.call(1);
                                 },
@@ -213,7 +213,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 title: 'Pending Posts',
                                 value: (stats['pending_posts'] ?? 0).toString(),
                                 icon: Icons.post_add,
-                                backgroundColor: AppColors.accentMain,
+                                backgroundColor: AppColors.primaryMain,
                                 onTap: () {
                                   widget.onNavigateToPage?.call(3);
                                 },
@@ -261,7 +261,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 title: 'Total Podcasts',
                                 value: (stats['total_podcasts'] ?? 0).toString(),
                                 icon: Icons.library_books,
-                                backgroundColor: AppColors.infoMain,
+                                backgroundColor: AppColors.primaryMain,
                                 onTap: () {
                                   widget.onNavigateToPage?.call(1);
                                 },
@@ -281,7 +281,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 title: 'Total Music',
                                 value: (stats['total_music'] ?? 0).toString(),
                                 icon: Icons.library_music,
-                                backgroundColor: AppColors.successMain,
+                                backgroundColor: AppColors.primaryMain,
                                 onTap: () {
                                   widget.onNavigateToPage?.call(1);
                                 },
@@ -291,7 +291,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 title: 'Total Posts',
                                 value: (stats['total_posts'] ?? 0).toString(),
                                 icon: Icons.article,
-                                backgroundColor: AppColors.accentMain,
+                                backgroundColor: AppColors.primaryMain,
                                 onTap: () {
                                   widget.onNavigateToPage?.call(3);
                                 },
@@ -369,7 +369,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 title: 'New Messages',
                                 value: (stats['unread_support_messages'] ?? 0).toString(),
                                 icon: Icons.mark_unread_chat_alt_outlined,
-                                backgroundColor: AppColors.errorMain,
+                                backgroundColor: AppColors.primaryMain,
                                 onTap: () {
                                   Navigator.push(
                                     context,
@@ -437,7 +437,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                                 title: 'Manage Documents',
                                 value: 'Upload PDF',
                                 icon: Icons.add_circle_outline,
-                                backgroundColor: AppColors.infoMain,
+                                backgroundColor: AppColors.primaryMain,
                                 onTap: () {
                                   Navigator.push(
                                     context,

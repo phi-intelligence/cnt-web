@@ -225,7 +225,6 @@ class _VoiceAgentScreenWebState extends State<VoiceAgentScreenWeb> {
         builder: (context, constraints) {
           // Calculate available space after padding
           final availableWidth = constraints.maxWidth - padding.horizontal;
-          final availableHeight = constraints.maxHeight - padding.vertical;
           
           return Container(
             padding: padding,
@@ -428,23 +427,23 @@ class _VoiceAgentScreenWebState extends State<VoiceAgentScreenWeb> {
                     constraints: BoxConstraints(
                       maxHeight: constraints.maxHeight,
                     ),
-                    child: SectionContainer(
-                      padding: EdgeInsets.all(AppSpacing.xxxl),
+                    child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           // Animated Voice Bubble
                           _AnimatedVoiceBubble(
                             agentState: _agentState,
-                            size: 200.0,
+                            size: 180.0,
                           ),
-                          const SizedBox(height: AppSpacing.extraLarge),
+                          const SizedBox(height: AppSpacing.xxxl),
                           // Agent State Text
                           Text(
                             _getStateText(_agentState),
-                            style: AppTypography.heading2.copyWith(
-                              color: _getStateColor(_agentState),
-                              fontWeight: FontWeight.bold,
+                            style: AppTypography.heading1.copyWith(
+                              color: AppColors.primaryMain,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -548,27 +547,29 @@ class _VoiceAgentScreenWebState extends State<VoiceAgentScreenWeb> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Voice Bubble Section
-                  SectionContainer(
-                    padding: EdgeInsets.all(AppSpacing.extraLarge),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Animated Voice Bubble
-                        _AnimatedVoiceBubble(
-                          agentState: _agentState,
-                          size: 150.0,
-                        ),
-                        const SizedBox(height: AppSpacing.large),
-                        // Agent State Text
-                        Text(
-                          _getStateText(_agentState),
-                          style: AppTypography.heading2.copyWith(
-                            color: _getStateColor(_agentState),
-                            fontWeight: FontWeight.bold,
+                  Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Animated Voice Bubble
+                          _AnimatedVoiceBubble(
+                            agentState: _agentState,
+                            size: 160.0,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: AppSpacing.xxl),
+                          // Agent State Text
+                          Text(
+                            _getStateText(_agentState),
+                            style: AppTypography.heading2.copyWith(
+                              color: AppColors.primaryMain,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   
@@ -681,21 +682,6 @@ class _VoiceAgentScreenWebState extends State<VoiceAgentScreenWeb> {
     }
   }
   
-  Color _getStateColor(String state) {
-    switch (state.toLowerCase()) {
-      case 'listening':
-        return AppColors.infoMain;
-      case 'thinking':
-        return AppColors.warningMain;
-      case 'speaking':
-        return AppColors.successMain;
-      case 'initializing':
-        return AppColors.textSecondary;
-      default:
-        return AppColors.primaryMain;
-    }
-  }
-  
   @override
   void dispose() {
     _service.dispose();
@@ -703,8 +689,8 @@ class _VoiceAgentScreenWebState extends State<VoiceAgentScreenWeb> {
   }
 }
 
-/// Animated Voice Bubble Widget
-/// Shows animated sound production activity instead of static bars
+/// Animated Voice Bubble Widget with Radiating Waveforms
+/// Shows microphone icon inside bubble with waveforms emanating outward
 class _AnimatedVoiceBubble extends StatefulWidget {
   final String agentState;
   final double size;
@@ -720,25 +706,26 @@ class _AnimatedVoiceBubble extends StatefulWidget {
 
 class _AnimatedVoiceBubbleState extends State<_AnimatedVoiceBubble> 
     with TickerProviderStateMixin {
-  late AnimationController _soundWaveController;
-  late AnimationController _pulseController;
+  late List<AnimationController> _waveControllers;
   
   @override
   void initState() {
     super.initState();
-    // Sound wave animation for active states
-    _soundWaveController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..repeat(reverse: true);
+    // Create 4 wave controllers with staggered timing
+    _waveControllers = List.generate(4, (index) {
+      final controller = AnimationController(
+        vsync: this,
+        duration: Duration(milliseconds: 2000 + (index * 100)),
+      );
+      // Stagger the start of each wave
+      Future.delayed(Duration(milliseconds: index * 400), () {
+        if (mounted) {
+          controller.repeat();
+        }
+      });
+      return controller;
+    });
     
-    // Pulse animation for active states
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
-    
-    // Pause animations when not active
     _updateAnimations();
   }
   
@@ -754,168 +741,122 @@ class _AnimatedVoiceBubbleState extends State<_AnimatedVoiceBubble>
     final isActive = widget.agentState == 'speaking' || 
                      widget.agentState == 'listening';
     
-    if (isActive) {
-      _soundWaveController.repeat(reverse: true);
-      _pulseController.repeat();
-    } else {
-      _soundWaveController.stop();
-      _pulseController.stop();
-      _pulseController.reset();
+    for (var controller in _waveControllers) {
+      if (isActive) {
+        if (!controller.isAnimating) {
+          controller.repeat();
+        }
+      } else if (widget.agentState == 'thinking') {
+        // Slower animation for thinking
+        controller.duration = const Duration(milliseconds: 3000);
+        if (!controller.isAnimating) {
+          controller.repeat();
+        }
+      } else {
+        controller.stop();
+        controller.reset();
+      }
     }
   }
   
   @override
   void dispose() {
-    _soundWaveController.dispose();
-    _pulseController.dispose();
+    for (var controller in _waveControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
   
   @override
   Widget build(BuildContext context) {
     final isActive = widget.agentState == 'speaking' || 
-                     widget.agentState == 'listening';
-    final stateColor = _getStateColor(widget.agentState);
+                     widget.agentState == 'listening' ||
+                     widget.agentState == 'thinking';
     
-    return AnimatedBuilder(
-      animation: Listenable.merge([_soundWaveController, _pulseController]),
-      builder: (context, child) {
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            // Pulse ring (only when active)
-            if (isActive)
-              Container(
-                width: widget.size + (_pulseController.value * 40),
-                height: widget.size + (_pulseController.value * 40),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: stateColor.withValues(alpha: 0.3 * (1 - _pulseController.value)),
-                    width: 3,
-                  ),
-                ),
-              ),
-            
-            // Main bubble
-            Container(
-              width: widget.size,
-              height: widget.size,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.warmBrown,
-                border: Border.all(
-                  color: AppColors.borderPrimary.withValues(alpha: 0.4),
-                  width: 2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                  if (isActive)
-                    BoxShadow(
-                      color: stateColor.withValues(alpha: 0.3),
-                      blurRadius: 20,
-                      spreadRadius: 5,
+    return SizedBox(
+      width: widget.size * 2.5, // Extra space for waveforms
+      height: widget.size * 2.5,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Radiating waveforms (behind bubble)
+          if (isActive)
+            ..._waveControllers.map((controller) {
+              return AnimatedBuilder(
+                animation: controller,
+                builder: (context, child) {
+                  final progress = controller.value;
+                  final scale = 1.0 + (progress * 1.2);
+                  final opacity = (1.0 - progress) * 0.4;
+                  
+                  return Container(
+                    width: widget.size * scale,
+                    height: widget.size * scale,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.primaryMain.withValues(alpha: opacity),
+                        width: 2,
+                      ),
                     ),
+                  );
+                },
+              );
+            }),
+          
+          // Main voice bubble with microphone icon
+          Container(
+            width: widget.size,
+            height: widget.size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.primaryMain,
+                  AppColors.primaryMain.withValues(alpha: 0.8),
                 ],
               ),
-              child: Center(
-                child: _AnimatedSoundBars(
-                  controller: _soundWaveController,
-                  isActive: isActive,
-                  color: stateColor,
-                  size: widget.size,
-                ),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.2),
+                width: 3,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: AppColors.primaryMain.withValues(alpha: 0.3),
+                  blurRadius: 30,
+                  spreadRadius: isActive ? 5 : 0,
+                ),
+              ],
             ),
-          ],
-        );
-      },
+            child: Icon(
+              _getStateIcon(widget.agentState),
+              size: widget.size * 0.4,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
   
-  Color _getStateColor(String state) {
+  IconData _getStateIcon(String state) {
     switch (state.toLowerCase()) {
       case 'listening':
-        return AppColors.infoMain;
+        return Icons.mic;
       case 'speaking':
-        return AppColors.successMain;
+        return Icons.record_voice_over;
       case 'thinking':
-        return AppColors.warningMain;
+        return Icons.psychology;
       default:
-        return AppColors.accentLight;
+        return Icons.mic_none;
     }
-  }
-}
-
-/// Animated Sound Bars Widget
-/// Shows animated bars that respond to sound production activity
-class _AnimatedSoundBars extends StatelessWidget {
-  final AnimationController controller;
-  final bool isActive;
-  final Color color;
-  final double size;
-  
-  const _AnimatedSoundBars({
-    required this.controller,
-    required this.isActive,
-    required this.color,
-    required this.size,
-  });
-  
-  @override
-  Widget build(BuildContext context) {
-    final scale = size / AppSpacing.voiceBubbleSize;
-    final barWidth = 4 * scale;
-    final barSpacing = 3 * scale;
-    final minHeight = 12.0 * scale;
-    final maxHeight = 40.0 * scale;
-    
-    if (!isActive) {
-      // Static bars when inactive
-      final bars = [12.0 * scale, 18.0 * scale, 24.0 * scale, 18.0 * scale, 12.0 * scale];
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: List.generate(bars.length, (index) {
-          return Container(
-            width: barWidth,
-            height: bars[index],
-            margin: EdgeInsets.only(right: index == bars.length - 1 ? 0 : barSpacing),
-            decoration: BoxDecoration(
-              color: AppColors.accentLight,
-              borderRadius: BorderRadius.circular(2 * scale),
-            ),
-          );
-        }),
-      );
-    }
-    
-    // Animated bars when active (simulating sound production)
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: List.generate(7, (index) {
-        // Create wave-like animation pattern
-        final offset = controller.value;
-        final phase = (index * 0.15 + offset) % 1.0;
-        final heightFactor = (0.5 + 0.5 * (phase < 0.5 ? phase * 2 : 2 - phase * 2));
-        final barHeight = minHeight + (maxHeight - minHeight) * heightFactor;
-        
-        return Container(
-          width: barWidth,
-          height: barHeight,
-          margin: EdgeInsets.only(right: index == 6 ? 0 : barSpacing),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2 * scale),
-          ),
-        );
-      }),
-    );
   }
 }
 

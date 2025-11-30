@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:video_player/video_player.dart';
 import 'dart:async';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../models/content_item.dart';
+import 'dart:html' as html show document;
 
 /// Video Player Full Screen - Exact replica of React Native implementation
 /// Features auto-hiding controls, fullscreen toggle, and gradient background
@@ -96,6 +98,20 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
 
     _initializePlayer();
     _startControlsTimer();
+    
+    // Listen for fullscreen changes (when user presses ESC)
+    if (kIsWeb) {
+      html.document.onFullscreenChange.listen((_) {
+        if (mounted) {
+          final isCurrentlyFullscreen = html.document.fullscreenElement != null;
+          if (isCurrentlyFullscreen != _isFullscreen) {
+            setState(() {
+              _isFullscreen = isCurrentlyFullscreen;
+            });
+          }
+        }
+      });
+    }
   }
 
   Future<void> _initializePlayer() async {
@@ -208,10 +224,44 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
   }
 
   Future<void> _seekTo(int seconds) async {
-    if (_controller == null || !_controller!.value.isInitialized) return;
-    final duration = _controller!.value.duration.inSeconds;
-    final clamped = seconds.clamp(0, duration);
-    await _controller!.seekTo(Duration(seconds: clamped));
+    if (_controller == null || !_controller!.value.isInitialized) {
+      debugPrint('VideoPlayer: Cannot seek - controller not initialized');
+      return;
+    }
+    
+    try {
+      final duration = _controller!.value.duration.inSeconds;
+      final clamped = seconds.clamp(0, duration);
+      debugPrint('VideoPlayer: Seeking to ${clamped}s (requested: ${seconds}s, duration: ${duration}s)');
+      await _controller!.seekTo(Duration(seconds: clamped));
+      debugPrint('VideoPlayer: Seek completed successfully');
+    } catch (e) {
+      debugPrint('VideoPlayer: Error during seek: $e');
+    }
+  }
+  
+  void _toggleFullscreen() {
+    if (!kIsWeb) {
+      debugPrint('VideoPlayer: Fullscreen only available on web');
+      return;
+    }
+    
+    try {
+      if (_isFullscreen) {
+        debugPrint('VideoPlayer: Exiting fullscreen');
+        html.document.exitFullscreen();
+      } else {
+        debugPrint('VideoPlayer: Entering fullscreen');
+        html.document.documentElement?.requestFullscreen();
+      }
+      
+      setState(() {
+        _isFullscreen = !_isFullscreen;
+      });
+      _showControlsWithAutoHide();
+    } catch (e) {
+      debugPrint('VideoPlayer: Error toggling fullscreen: $e');
+    }
   }
 
   Future<void> _loadEpisode(int newIndex) async {
@@ -263,17 +313,14 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: _isFullscreen
-              ? const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.black, Colors.black],
-                )
-              : LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: widget.gradientColors,
-                ),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.backgroundPrimary,
+              AppColors.primaryMain.withOpacity(0.1),
+            ],
+          ),
         ),
         child: Column(
           children: [
@@ -286,7 +333,7 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.arrow_back),
-                        color: Colors.white,
+                        color: AppColors.primaryMain,
                         onPressed: widget.onBack,
                       ),
                       Expanded(
@@ -294,7 +341,7 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                           child: Text(
                             'Video Podcast',
                             style: AppTypography.heading4.copyWith(
-                              color: Colors.white,
+                              color: AppColors.textPrimary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -311,7 +358,7 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                                 icon: const Icon(Icons.favorite, size: 20),
                                 label: const Text('Donate'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.black.withOpacity(0.3),
+                                  backgroundColor: AppColors.primaryMain.withOpacity(0.9),
                                   foregroundColor: Colors.white,
                                   padding: EdgeInsets.symmetric(
                                     horizontal: AppSpacing.small,
@@ -349,28 +396,28 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                     onTap: _toggleControls,
                     child: Container(
                     width: double.infinity,
-                    color: Colors.black,
+                    color: AppColors.backgroundPrimary,
                     child: Stack(
                       children: [
                         // Video Player
                         if (_isInitializing)
-                          const Center(
-                            child: CircularProgressIndicator(color: Colors.white),
+                          Center(
+                            child: CircularProgressIndicator(color: AppColors.primaryMain),
                           )
                         else if (_hasError)
                           Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.error_outline,
                                   size: 80,
-                                  color: Colors.white,
+                                  color: AppColors.errorMain,
                                 ),
                                 const SizedBox(height: 16),
-                                const Text(
+                                Text(
                                   'Error loading video',
-                                  style: TextStyle(color: Colors.white, fontSize: 18),
+                                  style: TextStyle(color: AppColors.textPrimary, fontSize: 18),
                                 ),
                               ],
                             ),
@@ -419,19 +466,48 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                               ),
                             ),
                           ),
-                      ],
-                    ),
-                  ),
-                ),
-                ),
-              ),
-            ),
-
-            // Bottom controls bar (always at bottom of screen)
-            AnimatedOpacity(
-              opacity: _showControls ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 300),
-              child: Container(
+                        
+                        // Floating Back Button (always visible, especially in fullscreen)
+                        if (_isFullscreen && _showControls && widget.onBack != null)
+                          Positioned(
+                            top: AppSpacing.large,
+                            left: AppSpacing.large,
+                            child: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.6),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: IconButton(
+                                  icon: const Icon(Icons.arrow_back),
+                                  color: Colors.white,
+                                  iconSize: 28,
+                                  onPressed: widget.onBack,
+                                  tooltip: 'Back',
+                                ),
+                              ),
+                            ),
+                          ),
+                        
+                        // Bottom controls bar (positioned over video)
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: AnimatedOpacity(
+                            opacity: _showControls ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 300),
+                            child: IgnorePointer(
+                              ignoring: !_showControls,
+                              child: Container(
                 width: double.infinity,
                 padding: EdgeInsets.all(AppSpacing.large),
                 decoration: BoxDecoration(
@@ -440,8 +516,8 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.3),
-                      Colors.black.withOpacity(0.8),
+                      AppColors.primaryMain.withOpacity(0.1),
+                      AppColors.primaryMain.withOpacity(0.3),
                     ],
                     stops: const [0.0, 0.5, 1.0],
                   ),
@@ -467,11 +543,12 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                                   ? _scrubValue
                                   : _currentTime.toDouble(),
                               min: 0.0,
-                              max: (_controller?.value.duration.inSeconds.toDouble() ??
-                                      widget.duration.toDouble())
-                                  .clamp(0.0, double.infinity),
+                              max: (_controller != null && _controller!.value.isInitialized
+                                      ? _controller!.value.duration.inSeconds.toDouble()
+                                      : widget.duration.toDouble())
+                                  .clamp(1.0, double.infinity), // Minimum 1 to avoid division by zero
                               activeColor: AppColors.primaryMain,
-                              inactiveColor: Colors.white.withOpacity(0.3),
+                              inactiveColor: AppColors.primaryMain.withOpacity(0.3),
                               thumbColor: AppColors.primaryMain,
                               onChangeStart: (value) {
                                 setState(() {
@@ -508,13 +585,8 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                             icon: Icon(
                               _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
                             ),
-                            color: Colors.white,
-                            onPressed: () {
-                              setState(() {
-                                _isFullscreen = !_isFullscreen;
-                              });
-                              _showControlsWithAutoHide();
-                            },
+                            color: AppColors.primaryMain,
+                            onPressed: _toggleFullscreen,
                             tooltip: _isFullscreen ? 'Exit Fullscreen' : 'Fullscreen',
                           ),
                         ),
@@ -526,14 +598,14 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                         Text(
                           _formatTime(_currentTime),
                           style: AppTypography.caption.copyWith(
-                            color: Colors.white,
+                            color: AppColors.textPrimary,
                             fontSize: 12,
                           ),
                         ),
                         Text(
                           _formatTime(_controller?.value.duration.inSeconds ?? widget.duration),
                           style: AppTypography.caption.copyWith(
-                            color: Colors.white,
+                            color: AppColors.textPrimary,
                             fontSize: 12,
                           ),
                         ),
@@ -547,7 +619,7 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                           cursor: _hasPrevious ? SystemMouseCursors.click : SystemMouseCursors.basic,
                           child: IconButton(
                             icon: const Icon(Icons.skip_previous),
-                            color: _hasPrevious ? Colors.white : Colors.white24,
+                            color: _hasPrevious ? AppColors.primaryMain : AppColors.primaryMain.withOpacity(0.3),
                             iconSize: 32,
                             onPressed: _hasPrevious ? _playPrevious : null,
                             tooltip: 'Previous',
@@ -585,7 +657,7 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                           cursor: _hasNext ? SystemMouseCursors.click : SystemMouseCursors.basic,
                           child: IconButton(
                             icon: const Icon(Icons.skip_next),
-                            color: _hasNext ? Colors.white : Colors.white24,
+                            color: _hasNext ? AppColors.primaryMain : AppColors.primaryMain.withOpacity(0.3),
                             iconSize: 32,
                             onPressed: _hasNext ? _playNext : null,
                             tooltip: 'Next',
@@ -594,6 +666,15 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                       ],
                     ),
                   ],
+                ),
+              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 ),
               ),
             ),

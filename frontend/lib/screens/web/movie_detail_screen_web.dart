@@ -368,14 +368,18 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
                     left: 0,
                     right: 0,
                     child: Container(
+                      constraints: BoxConstraints(
+                        maxHeight: heroHeightValue * 0.7, // Prevent overflow beyond hero section
+                      ),
                       padding: EdgeInsets.all(
                         isDesktop ? AppSpacing.extraLarge * 2 : 
                         (isTablet ? AppSpacing.extraLarge : AppSpacing.large),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                           // Title
                           Text(
                             item.title,
@@ -511,6 +515,7 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
                             ],
                           ),
                         ],
+                      ),
                       ),
                     ),
                   ),

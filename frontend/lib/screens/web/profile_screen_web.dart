@@ -91,9 +91,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                     Container(
                       padding: const EdgeInsets.all(AppSpacing.medium),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [AppColors.warmBrown, AppColors.accentMain],
-                        ),
+                        color: AppColors.primaryMain,
                         borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
                       ),
                       child: const Icon(
@@ -132,13 +130,11 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [AppColors.warmBrown, AppColors.accentMain],
-                        ),
+                        color: AppColors.primaryMain,
                         borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.warmBrown.withOpacity(0.3),
+                            color: AppColors.primaryMain.withOpacity(0.3),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -188,10 +184,10 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                     Container(
                       padding: const EdgeInsets.all(AppSpacing.medium),
                       decoration: BoxDecoration(
-                        color: AppColors.warmBrown.withOpacity(0.1),
+                        color: AppColors.primaryMain.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
                         border: Border.all(
-                          color: AppColors.warmBrown.withOpacity(0.2),
+                          color: AppColors.primaryMain.withOpacity(0.2),
                           width: 1,
                         ),
                       ),
@@ -377,15 +373,10 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
           height: 140,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [
-                AppColors.warmBrown,
-                AppColors.accentMain,
-              ],
-            ),
+            color: AppColors.primaryMain,
             boxShadow: [
               BoxShadow(
-                color: AppColors.warmBrown.withOpacity(0.3),
+                color: AppColors.primaryMain.withOpacity(0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
                 spreadRadius: 2,
@@ -423,9 +414,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
           right: 0,
           child: Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.warmBrown, AppColors.accentMain],
-              ),
+              color: AppColors.primaryMain,
               shape: BoxShape.circle,
               border: Border.all(
                 color: Colors.white,
@@ -593,19 +582,19 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.warmBrown.withOpacity(0.2),
-                    AppColors.accentMain.withOpacity(0.1),
+                    AppColors.primaryMain.withOpacity(0.2),
+                    AppColors.primaryMain.withOpacity(0.1),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
                 border: Border.all(
-                  color: AppColors.warmBrown.withOpacity(0.3),
+                  color: AppColors.primaryMain.withOpacity(0.3),
                   width: 1,
                 ),
               ),
               child: Icon(
                 Icons.bar_chart,
-                color: AppColors.warmBrown,
+                color: AppColors.primaryMain,
                 size: 28,
               ),
             ),
@@ -688,12 +677,12 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                   padding: const EdgeInsets.all(AppSpacing.medium),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [AppColors.warmBrown, AppColors.accentMain],
+                      colors: [AppColors.primaryMain, AppColors.primaryMain],
                     ),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.warmBrown.withOpacity(0.3),
+                        color: AppColors.primaryMain.withOpacity(0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -745,8 +734,8 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                   context.go('/artist/manage');
                 },
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                splashColor: AppColors.warmBrown.withOpacity(0.2),
-                highlightColor: AppColors.warmBrown.withOpacity(0.1),
+                splashColor: AppColors.primaryMain.withOpacity(0.2),
+                highlightColor: AppColors.primaryMain.withOpacity(0.1),
                 child: Container(
                   padding: const EdgeInsets.all(AppSpacing.large),
                   decoration: BoxDecoration(
@@ -763,12 +752,12 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                       Container(
                         padding: const EdgeInsets.all(AppSpacing.medium),
                         decoration: BoxDecoration(
-                          color: AppColors.warmBrown.withOpacity(0.2),
+                          color: AppColors.primaryMain.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
                         ),
                         child: Icon(
                           Icons.audio_file,
-                          color: AppColors.accentMain,
+                          color: AppColors.primaryMain,
                           size: 32,
                         ),
                       ),
@@ -800,7 +789,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                       // Arrow icon
                       Icon(
                         Icons.arrow_forward_ios,
-                        color: AppColors.accentMain,
+                        color: AppColors.primaryMain,
                         size: 20,
                       ),
                     ],
@@ -833,19 +822,19 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.accentMain.withOpacity(0.2),
-                    AppColors.warmBrown.withOpacity(0.1),
+                    AppColors.primaryMain.withOpacity(0.2),
+                    AppColors.primaryMain.withOpacity(0.1),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
                 border: Border.all(
-                  color: AppColors.accentMain.withOpacity(0.3),
+                  color: AppColors.primaryMain.withOpacity(0.3),
                   width: 1,
                 ),
               ),
               child: Icon(
                 Icons.settings,
-                color: AppColors.accentMain,
+                color: AppColors.primaryMain,
                 size: 28,
               ),
             ),
@@ -973,17 +962,17 @@ class _StatCard extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.warmBrown.withOpacity(0.2),
-                    AppColors.accentMain.withOpacity(0.1),
+                    AppColors.primaryMain.withOpacity(0.2),
+                    AppColors.primaryMain.withOpacity(0.1),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
                 border: Border.all(
-                  color: AppColors.warmBrown.withOpacity(0.3),
+                  color: AppColors.primaryMain.withOpacity(0.3),
                   width: 1,
                 ),
               ),
-              child: Icon(icon, size: 32, color: AppColors.warmBrown),
+              child: Icon(icon, size: 32, color: AppColors.primaryMain),
             ),
             const SizedBox(height: AppSpacing.medium),
             Text(
@@ -1043,8 +1032,8 @@ class _SettingListItemState extends State<_SettingListItem> {
         color: Colors.white,
         child: InkWell(
           onTap: widget.onTap,
-          splashColor: AppColors.warmBrown.withOpacity(0.2),
-          highlightColor: AppColors.warmBrown.withOpacity(0.1),
+          splashColor: AppColors.primaryMain.withOpacity(0.2),
+          highlightColor: AppColors.primaryMain.withOpacity(0.1),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             curve: Curves.easeInOut,
@@ -1053,19 +1042,19 @@ class _SettingListItemState extends State<_SettingListItem> {
               vertical: AppSpacing.medium,
             ),
             color: _isHovered
-                ? AppColors.warmBrown.withOpacity(0.05)
+                ? AppColors.primaryMain.withOpacity(0.05)
                 : Colors.white,
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(AppSpacing.small),
                 decoration: BoxDecoration(
-                  color: (widget.iconColor ?? AppColors.warmBrown).withOpacity(0.1),
+                  color: (widget.iconColor ?? AppColors.primaryMain).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
                 ),
                 child: Icon(
                   widget.icon,
-                  color: widget.iconColor ?? AppColors.warmBrown,
+                  color: widget.iconColor ?? AppColors.primaryMain,
                   size: 20,
                 ),
               ),

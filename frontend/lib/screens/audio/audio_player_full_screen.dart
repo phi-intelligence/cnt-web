@@ -77,7 +77,12 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: widget.gradientColors,
+            colors: [
+              AppColors.backgroundPrimary,
+              AppColors.backgroundSecondary,
+              AppColors.primaryMain.withOpacity(0.1),
+            ],
+            stops: const [0.0, 0.5, 1.0],
           ),
         ),
         child: SafeArea(
@@ -92,7 +97,7 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
                     // Back button
                     IconButton(
                       icon: const Icon(Icons.arrow_back),
-                      color: Colors.white,
+                      color: AppColors.primaryMain,
                       onPressed: widget.onBack,
                     ),
                     
@@ -103,7 +108,7 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
                       icon: const Icon(Icons.favorite, size: 20),
                       label: const Text('Donate'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black.withOpacity(0.3),
+                        backgroundColor: AppColors.primaryMain.withOpacity(0.9),
                         foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -119,7 +124,7 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
                     // Menu button
                     IconButton(
                       icon: const Icon(Icons.more_vert),
-                      color: Colors.white,
+                      color: AppColors.primaryMain,
                       onPressed: () {},
                     ),
                   ],
@@ -146,10 +151,10 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
                     // Title
                     Text(
                       widget.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 2,
@@ -162,7 +167,7 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
                       widget.artist,
                       style: TextStyle(
                         fontSize: 18,
-                        color: Colors.white.withOpacity(0.9),
+                        color: AppColors.textPrimary.withOpacity(0.9),
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 1,
@@ -175,7 +180,7 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
                       widget.album,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.white.withOpacity(0.7),
+                        color: AppColors.textSecondary,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 1,
@@ -196,8 +201,8 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
                       value: _currentTime.toDouble(),
                       min: 0.0,
                       max: widget.duration.toDouble(),
-                      activeColor: Colors.white,
-                      inactiveColor: Colors.white.withOpacity(0.3),
+                      activeColor: AppColors.primaryMain,
+                      inactiveColor: AppColors.primaryMain.withOpacity(0.3),
                       onChanged: (value) {
                         setState(() {
                           _currentTime = value.toInt();
@@ -210,15 +215,15 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
                       children: [
                         Text(
                           _formatTime(_currentTime),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
                             fontSize: 12,
                           ),
                         ),
                         Text(
                           _formatTime(widget.duration),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
                             fontSize: 12,
                           ),
                         ),
@@ -240,7 +245,7 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
                     IconButton(
                       icon: Icon(
                         Icons.shuffle,
-                        color: _isShuffled ? Colors.white : Colors.white.withOpacity(0.7),
+                        color: _isShuffled ? AppColors.primaryMain : AppColors.primaryMain.withOpacity(0.5),
                       ),
                       iconSize: 24,
                       onPressed: () {
@@ -253,7 +258,7 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
 
                     // Previous
                     IconButton(
-                      icon: const Icon(Icons.skip_previous, color: Colors.white),
+                      icon: Icon(Icons.skip_previous, color: AppColors.primaryMain),
                       iconSize: 32,
                       onPressed: widget.onPrevious,
                     ),
@@ -264,11 +269,18 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
                       height: 64,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.2),
+                        color: AppColors.primaryMain.withOpacity(0.9),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.4),
+                          color: AppColors.primaryMain,
                           width: 2,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primaryMain.withOpacity(0.3),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                          ),
+                        ],
                       ),
                       child: IconButton(
                         icon: Icon(
@@ -282,7 +294,7 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
 
                     // Next
                     IconButton(
-                      icon: const Icon(Icons.skip_next, color: Colors.white),
+                      icon: Icon(Icons.skip_next, color: AppColors.primaryMain),
                       iconSize: 32,
                       onPressed: widget.onNext,
                     ),
@@ -291,7 +303,7 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
                     IconButton(
                       icon: Icon(
                         Icons.repeat,
-                        color: _isRepeating ? Colors.white : Colors.white.withOpacity(0.7),
+                        color: _isRepeating ? AppColors.primaryMain : AppColors.primaryMain.withOpacity(0.5),
                       ),
                       iconSize: 24,
                       onPressed: () {
@@ -308,12 +320,12 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
               // Donate Section
               Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: ElevatedButton.icon(
+                child:                 ElevatedButton.icon(
                   onPressed: widget.onDonate,
                   icon: const Icon(Icons.favorite),
                   label: const Text('Support Artist'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white.withOpacity(0.2),
+                    backgroundColor: AppColors.primaryMain.withOpacity(0.9),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 32,
@@ -322,7 +334,7 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                       side: BorderSide(
-                        color: Colors.white.withOpacity(0.3),
+                        color: AppColors.primaryMain,
                         width: 1,
                       ),
                     ),
