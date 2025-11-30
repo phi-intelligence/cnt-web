@@ -2529,4 +2529,212 @@ class ApiService {
       throw Exception('Error creating podcast: $e');
     }
   }
+
+  // ============================================
+  // ARTIST API METHODS
+  // ============================================
+
+  /// Get artist by ID
+  Future<Map<String, dynamic>> getArtist(int artistId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/artists/$artistId'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else if (response.statusCode == 404) {
+        throw Exception('Artist not found');
+      }
+      throw Exception('Failed to get artist: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error getting artist: $e');
+    }
+  }
+
+  /// Get artist by user ID
+  Future<Map<String, dynamic>> getArtistByUserId(int userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/artists/by-user/$userId'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else if (response.statusCode == 404) {
+        throw Exception('Artist not found for this user');
+      }
+      throw Exception('Failed to get artist: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error getting artist: $e');
+    }
+  }
+
+  /// Get current user's artist profile (auto-creates if not exists)
+  Future<Map<String, dynamic>> getMyArtist() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/artists/me'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else if (response.statusCode == 401) {
+        await _handle401Error(response);
+        return {};
+      }
+      throw Exception('Failed to get artist profile: HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e.toString().contains('session has expired') || e.toString().contains('Authentication failed')) {
+        rethrow;
+      }
+      throw Exception('Error getting artist profile: $e');
+    }
+  }
+
+  /// Update artist profile
+  Future<Map<String, dynamic>> updateArtist(Map<String, dynamic> data) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/artists/me'),
+        headers: await _getHeaders(),
+        body: json.encode(data),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else if (response.statusCode == 401) {
+        await _handle401Error(response);
+        return {};
+      }
+      throw Exception('Failed to update artist: HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e.toString().contains('session has expired') || e.toString().contains('Authentication failed')) {
+        rethrow;
+      }
+      throw Exception('Error updating artist: $e');
+    }
+  }
+
+  /// Upload artist cover image
+  Future<String> uploadArtistCover(Uint8List imageData, String filename) async {
+    try {
+      // Create multipart request
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/artists/me/cover-image'),
+      );
+
+      // Add auth headers
+      final headers = await _getHeaders();
+      request.headers.addAll(headers);
+
+      // Add file
+      request.files.add(http.MultipartFile.fromBytes(
+        'file',
+        imageData,
+        filename: filename,
+      ));
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        return data['cover_image'] as String;
+      } else if (response.statusCode == 401) {
+        await _handle401Error(response);
+        return '';
+      }
+      throw Exception('Failed to upload cover: HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e.toString().contains('session has expired') || e.toString().contains('Authentication failed')) {
+        rethrow;
+      }
+      throw Exception('Error uploading cover: $e');
+    }
+  }
+
+  /// Get podcasts by artist
+  Future<List<ContentItem>> getArtistPodcasts(int artistId, {int skip = 0, int limit = 100}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/artists/$artistId/podcasts?skip=$skip&limit=$limit'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => ContentItem.fromJson(json as Map<String, dynamic>)).toList();
+      }
+      throw Exception('Failed to get artist podcasts: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error getting artist podcasts: $e');
+    }
+  }
+
+  /// Follow an artist
+  Future<void> followArtist(int artistId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/artists/$artistId/follow'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200) {
+        if (response.statusCode == 401) {
+          await _handle401Error(response);
+        }
+        throw Exception('Failed to follow artist: HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      if (e.toString().contains('session has expired') || e.toString().contains('Authentication failed')) {
+        rethrow;
+      }
+      throw Exception('Error following artist: $e');
+    }
+  }
+
+  /// Unfollow an artist
+  Future<void> unfollowArtist(int artistId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/artists/$artistId/follow'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200) {
+        if (response.statusCode == 401) {
+          await _handle401Error(response);
+        }
+        throw Exception('Failed to unfollow artist: HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      if (e.toString().contains('session has expired') || e.toString().contains('Authentication failed')) {
+        rethrow;
+      }
+      throw Exception('Error unfollowing artist: $e');
+    }
+  }
+
+  /// Get artist followers
+  Future<List<Map<String, dynamic>>> getArtistFollowers(int artistId, {int skip = 0, int limit = 100}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/artists/$artistId/followers?skip=$skip&limit=$limit'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.cast<Map<String, dynamic>>();
+      }
+      throw Exception('Failed to get followers: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error getting followers: $e');
+    }
+  }
 }

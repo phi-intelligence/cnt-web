@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -318,6 +319,10 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                   
                   // Stats Section
                   _buildStatsSection(stats, isMobile),
+                  const SizedBox(height: AppSpacing.extraLarge),
+                  
+                  // Artist Section
+                  _buildArtistSection(context, isMobile),
                   const SizedBox(height: AppSpacing.extraLarge),
                   
                   // Settings Section
@@ -682,6 +687,151 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                 ],
               ),
       ],
+    );
+  }
+
+  Widget _buildArtistSection(BuildContext context, bool isMobile) {
+    return SectionContainer(
+      showShadow: true,
+      child: Padding(
+        padding: EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Section header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.medium),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.warmBrown, AppColors.accentMain],
+                    ),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.warmBrown.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.mic,
+                    color: Colors.white,
+                    size: isMobile ? 20 : 24,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.medium),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Artist Profile',
+                        style: isMobile
+                            ? AppTypography.heading2.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              )
+                            : AppTypography.heading1.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Manage your content and followers',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.large),
+            
+            // Artist profile card/button
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  context.go('/artist/manage');
+                },
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                child: Container(
+                  padding: const EdgeInsets.all(AppSpacing.large),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.warmBrown.withOpacity(0.1),
+                        AppColors.accentMain.withOpacity(0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                    border: Border.all(
+                      color: AppColors.borderPrimary,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // Icon
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.medium),
+                        decoration: BoxDecoration(
+                          color: AppColors.warmBrown.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                        ),
+                        child: Icon(
+                          Icons.audio_file,
+                          color: AppColors.accentMain,
+                          size: 32,
+                        ),
+                      ),
+                      SizedBox(width: AppSpacing.medium),
+                      
+                      // Text
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Manage Your Artist Profile',
+                              style: AppTypography.body.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Update cover image, bio, and social links',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      // Arrow icon
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        color: AppColors.accentMain,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -20,6 +20,8 @@ import '../screens/web/audio_player_full_screen_web.dart';
 import '../screens/live/live_stream_start_screen.dart';
 import '../screens/web/live_screen_web.dart';
 import '../screens/web/landing_screen_web.dart';
+import '../screens/artist/artist_profile_screen.dart';
+import '../screens/artist/artist_profile_manage_screen.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'web_navigation.dart';
@@ -240,6 +242,54 @@ GoRouter createAppRouter(AuthProvider authProvider) {
           );
         },
       ),
+      
+      // Artist routes - specific paths must come before parameterized paths
+      GoRoute(
+        path: '/artist/manage',
+        builder: (context, state) => const WebNavigationLayout(
+          child: ArtistProfileManageScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/artist/:artistId',
+        builder: (context, state) {
+          final artistId = state.pathParameters['artistId'];
+          if (artistId == null) {
+            return const Scaffold(body: Center(child: Text('Artist ID is required')));
+          }
+          return WebNavigationLayout(
+            child: ArtistProfileScreen(artistId: int.parse(artistId)),
+          );
+        },
+      ),
+      
+      // Player routes (full-screen)
+      GoRoute(
+        path: '/player/audio/:podcastId',
+        builder: (context, state) {
+          final podcastId = state.pathParameters['podcastId'];
+          if (podcastId == null) {
+            return const Scaffold(body: Center(child: Text('Podcast ID is required')));
+          }
+          return _PodcastPlayerLoader(
+            podcastId: int.parse(podcastId),
+            isVideo: false,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/player/video/:podcastId',
+        builder: (context, state) {
+          final podcastId = state.pathParameters['podcastId'];
+          if (podcastId == null) {
+            return const Scaffold(body: Center(child: Text('Podcast ID is required')));
+          }
+          return _PodcastPlayerLoader(
+            podcastId: int.parse(podcastId),
+            isVideo: true,
+          );
+        },
+      ),
     ],
   );
 }
@@ -301,6 +351,93 @@ class _PodcastDetailLoaderState extends State<_PodcastDetailLoader> {
       return Scaffold(
         body: Center(
           child: Text('Error loading podcast: $_error'),
+        ),
+      );
+    }
+    
+    return _content ?? const SizedBox();
+  }
+}
+
+/// Widget to load podcast for full-screen player
+class _PodcastPlayerLoader extends StatefulWidget {
+  final int podcastId;
+  final bool isVideo;
+  
+  const _PodcastPlayerLoader({
+    required this.podcastId,
+    required this.isVideo,
+  });
+  
+  @override
+  State<_PodcastPlayerLoader> createState() => _PodcastPlayerLoaderState();
+}
+
+class _PodcastPlayerLoaderState extends State<_PodcastPlayerLoader> {
+  bool _isLoading = true;
+  String? _error;
+  Widget? _content;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadPodcast();
+  }
+  
+  Future<void> _loadPodcast() async {
+    try {
+      final apiService = ApiService();
+      final podcast = await apiService.getPodcast(widget.podcastId);
+      final item = apiService.podcastToContentItem(podcast);
+      
+      if (mounted) {
+        setState(() {
+          if (widget.isVideo) {
+            // Navigate to video player
+            _content = VideoPodcastDetailScreenWeb(item: item);
+          } else {
+            // Navigate to audio player - just play the track
+            // Since AudioPlayerFullScreenWeb doesn't accept tracks parameter,
+            // we'll navigate to the podcast detail which has audio player
+            _content = VideoPodcastDetailScreenWeb(item: item);
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    
+    if (_error != null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Error loading podcast: $_error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Go Back'),
+              ),
+            ],
+          ),
         ),
       );
     }

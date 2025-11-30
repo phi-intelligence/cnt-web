@@ -1,3 +1,5 @@
+import 'artist.dart';
+
 class ContentItem {
   final String id;
   final String title;
@@ -20,6 +22,10 @@ class ContentItem {
   final int? previewStartTime; // Start time in seconds for preview segment
   final int? previewEndTime; // End time in seconds for preview segment
   final bool isMovie; // Whether this is a movie
+  // Artist-specific fields
+  final int? creatorId; // User ID of the creator
+  final int? artistId; // Artist ID
+  final ArtistSummary? artist; // Artist information
 
   ContentItem({
     required this.id,
@@ -42,13 +48,32 @@ class ContentItem {
     this.previewStartTime,
     this.previewEndTime,
     this.isMovie = false,
+    this.creatorId,
+    this.artistId,
+    this.artist,
   });
 
   factory ContentItem.fromJson(Map<String, dynamic> json) {
+    // Parse artist information
+    ArtistSummary? artistData;
+    if (json['artist'] != null && json['artist'] is Map) {
+      try {
+        artistData = ArtistSummary.fromJson(json['artist'] as Map<String, dynamic>);
+      } catch (e) {
+        print('Error parsing artist data: $e');
+      }
+    }
+    
+    // Determine creator name
+    String creatorName = json['creator'] ?? json['author'] ?? '';
+    if (artistData != null && artistData.artistName != null) {
+      creatorName = artistData.artistName!;
+    }
+    
     return ContentItem(
       id: json['id']?.toString() ?? '',
       title: json['title'] ?? '',
-      creator: json['creator'] ?? json['author'] ?? '',
+      creator: creatorName,
       description: json['description'],
       coverImage: json['cover_image'] ?? json['thumbnail'] ?? json['coverImage'],
       audioUrl: json['audio_url'] ?? json['audioUrl'],
@@ -72,6 +97,9 @@ class ContentItem {
       previewStartTime: json['preview_start_time'] as int?,
       previewEndTime: json['preview_end_time'] as int?,
       isMovie: json['is_movie'] ?? false,
+      creatorId: json['creator_id'] as int?,
+      artistId: artistData?.id,
+      artist: artistData,
     );
   }
 
@@ -121,6 +149,9 @@ class ContentItem {
     int? previewStartTime,
     int? previewEndTime,
     bool? isMovie,
+    int? creatorId,
+    int? artistId,
+    ArtistSummary? artist,
   }) {
     return ContentItem(
       id: id ?? this.id,
@@ -143,6 +174,9 @@ class ContentItem {
       previewStartTime: previewStartTime ?? this.previewStartTime,
       previewEndTime: previewEndTime ?? this.previewEndTime,
       isMovie: isMovie ?? this.isMovie,
+      creatorId: creatorId ?? this.creatorId,
+      artistId: artistId ?? this.artistId,
+      artist: artist ?? this.artist,
     );
   }
 
