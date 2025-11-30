@@ -178,16 +178,14 @@ class _OptionCardState extends State<_OptionCard> {
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: _isHovered
-                  ? widget.hoverColors
-                  : [
-                      AppColors.cardBackground,
-                      AppColors.backgroundSecondary,
-                    ],
-            ),
+            gradient: _isHovered
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: widget.hoverColors,
+                  )
+                : null,
+            color: _isHovered ? null : Colors.white,
             borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
             border: Border.all(
               color: _isHovered

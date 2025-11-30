@@ -3,8 +3,6 @@ import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
-import '../../widgets/web/styled_page_header.dart';
-import '../../widgets/web/section_container.dart';
 import '../creation/video_podcast_create_screen.dart';
 import '../creation/audio_podcast_create_screen.dart';
 import '../creation/quote_create_screen_web.dart';
@@ -34,79 +32,18 @@ class CreateScreenWeb extends StatelessWidget {
       backgroundColor: AppColors.backgroundPrimary,
       body: Container(
         padding: ResponsiveGridDelegate.getResponsivePadding(context),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              StyledPageHeader(
-                title: 'Create Content',
-                size: StyledPageHeaderSize.h2,
-              ),
-              const SizedBox(height: AppSpacing.extraLarge * 2),
-              
-              // Main Content Section
-              SectionContainer(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Section Title
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(AppSpacing.small),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.warmBrown.withOpacity(0.2),
-                                AppColors.accentMain.withOpacity(0.15),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                            border: Border.all(
-                              color: AppColors.warmBrown.withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Icon(
-                            Icons.add_circle_outline,
-                            color: AppColors.warmBrown,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.medium),
-                        Text(
-                          'Choose Content Type',
-                          style: AppTypography.heading2.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.extraLarge * 2),
-                    
-                    // Options Grid
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
-                        context,
-                        desktop: 3,
-                        tablet: 2,
-                        mobile: 1,
-                        childAspectRatio: isMobile ? 2.5 : 1.3,
-                        crossAxisSpacing: AppSpacing.extraLarge,
-                        mainAxisSpacing: AppSpacing.extraLarge,
-                      ),
-                      itemCount: _getOptionCards(context).length,
-                      itemBuilder: (context, index) => _getOptionCards(context)[index],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        child: GridView.builder(
+          gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+            context,
+            desktop: 3,
+            tablet: 2,
+            mobile: 1,
+            childAspectRatio: isMobile ? 2.5 : 1.3,
+            crossAxisSpacing: AppSpacing.extraLarge,
+            mainAxisSpacing: AppSpacing.extraLarge,
           ),
+          itemCount: _getOptionCards(context).length,
+          itemBuilder: (context, index) => _getOptionCards(context)[index],
         ),
       ),
     );
@@ -258,16 +195,14 @@ class _OptionCardState extends State<_OptionCard> {
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: _isHovered
-                  ? widget.hoverColors
-                  : [
-                      Colors.white,
-                      Colors.white,
-                    ],
-            ),
+            gradient: _isHovered
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: widget.hoverColors,
+                  )
+                : null,
+            color: _isHovered ? null : Colors.white,
             borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
             border: Border.all(
               color: _isHovered

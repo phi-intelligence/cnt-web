@@ -18,8 +18,8 @@ class AppColors {
 
   // Background colors
   static const Color backgroundPrimary = Colors.white; // White background
-  static const Color backgroundSecondary = Color(0xFFFCFAF8); // Card background
-  static const Color backgroundTertiary = Color(0xFFF0EDE8); // Alternative background
+  static const Color backgroundSecondary = Colors.white; // White background (enforced theme)
+  static const Color backgroundTertiary = Colors.white; // White background (enforced theme)
 
   // Foreground/Text colors
   static const Color foregroundPrimary = Color(0xFF2D2520); // hsl(25, 15%, 15%) - Dark Brown
@@ -43,7 +43,7 @@ class AppColors {
   static const Color borderFocus = Color(0xFF8B7355); // Focus border
 
   // Card colors
-  static const Color cardBackground = Color(0xFFFCFAF8); // hsl(35, 25%, 98%) - Card Background
+  static const Color cardBackground = Colors.white; // White background (enforced theme)
   static const Color cardForeground = Color(0xFF2D2520); // hsl(25, 15%, 15%) - Card Text
   static const Color cardBorder = Color(0xFFE8E4E0); // Card border
 

@@ -7,17 +7,7 @@ import '../theme/app_typography.dart';
 import '../providers/auth_provider.dart';
 import '../providers/support_provider.dart';
 import '../widgets/notifications/stream_notification_banner.dart';
-import '../screens/web/home_screen_web.dart';
-import '../screens/web/podcasts_screen_web.dart';
-import '../screens/web/movies_screen_web.dart';
-import '../screens/web/create_screen_web.dart';
-import '../screens/web/community_screen_web.dart';
-import '../screens/web/profile_screen_web.dart';
-import '../screens/admin_dashboard.dart';
-import '../screens/web/about_screen_web.dart';
-import '../screens/web/search_screen_web.dart';
 import '../widgets/media/global_audio_player.dart';
-import '../widgets/web/sidebar_action_box.dart';
 import '../screens/live/live_stream_start_screen.dart';
 
 class WebNavigationLayout extends StatefulWidget {
@@ -35,17 +25,21 @@ class WebNavigationLayout extends StatefulWidget {
 }
 
 class _WebNavigationLayoutState extends State<WebNavigationLayout> {
-  int _getSelectedIndexFromRoute(String? location) {
+  int _getSelectedIndexFromRoute(String? location, List<NavigationItem> navigationItems) {
     if (location == null) return 0;
-    if (location.startsWith('/home')) return 0;
-    if (location.startsWith('/search')) return 1;
-    if (location.startsWith('/create')) return 2;
-    if (location.startsWith('/community')) return 3;
-    if (location.startsWith('/podcasts')) return 4;
-    if (location.startsWith('/movies')) return 5;
-    if (location.startsWith('/about')) return 6;
-    if (location.startsWith('/profile')) return 7;
-    if (location.startsWith('/admin')) return 8;
+    
+    // Extract the route from the location (remove leading slash)
+    String route = location.substring(1).split('/').first;
+    if (route.isEmpty) route = 'home'; // Default to home for root path
+    
+    // Find the index by matching the route in the navigation items
+    for (int i = 0; i < navigationItems.length; i++) {
+      if (navigationItems[i].route == route) {
+        return i;
+      }
+    }
+    
+    // If no match found, return initial index or 0
     return widget.initialIndex ?? 0;
   }
   
@@ -73,16 +67,16 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
       NavigationItem(icon: Icons.people, label: 'Community', route: 'community'),
       NavigationItem(icon: Icons.mic, label: 'Podcasts', route: 'podcasts'),
       NavigationItem(icon: Icons.movie, label: 'Movies', route: 'movies'),
-      NavigationItem(icon: Icons.info, label: 'About', route: 'about'),
+      NavigationItem(icon: Icons.person, label: 'My Profile', route: 'profile'),
     ];
     
-    // Add My Profile at the end, before Admin Dashboard
-    items.add(NavigationItem(icon: Icons.person, label: 'My Profile', route: 'profile'));
-    
-    // Only add Admin Dashboard if user is admin (after My Profile)
+    // Add Admin Dashboard if user is admin (after My Profile)
     if (isAdmin) {
       items.add(NavigationItem(icon: Icons.admin_panel_settings, label: 'Admin Dashboard', route: 'admin'));
     }
+    
+    // Add About last (after Admin Dashboard for admins, after My Profile for others)
+    items.add(NavigationItem(icon: Icons.info, label: 'About', route: 'about'));
     
     return items;
   }
@@ -105,7 +99,7 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
         // Get current route from GoRouter
         final router = GoRouter.of(context);
         final currentLocation = router.routerDelegate.currentConfiguration.uri.path;
-        final selectedIndex = _getSelectedIndexFromRoute(currentLocation);
+        final selectedIndex = _getSelectedIndexFromRoute(currentLocation, navigationItems);
         
         // Ensure selected index is valid
         if (selectedIndex >= navigationItems.length && navigationItems.isNotEmpty) {
@@ -246,7 +240,7 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
                             },
                           ),
                         ),
-                        // Sidebar Action Boxes (shown on all pages)
+                        // Sidebar Action Buttons (shown on all pages)
                         Container(
                           padding: EdgeInsets.all(AppSpacing.medium),
                           decoration: BoxDecoration(
@@ -259,32 +253,59 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
                           ),
                           child: Column(
                             children: [
-                              // Start Live Stream Box
-                              SidebarActionBox(
-                                title: 'Start Live Stream',
-                                description: 'Broadcast to your community',
-                                buttonText: 'Go Live',
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const LiveStreamStartScreen(),
+                              // Start Live Stream Button
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  icon: Icon(Icons.videocam, size: 18),
+                                  label: Text('Start Live Stream'),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const LiveStreamStartScreen(),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.warmBrown,
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: AppSpacing.small,
+                                      horizontal: AppSpacing.medium,
                                     ),
-                                  );
-                                },
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
                               ),
-                              const SizedBox(height: AppSpacing.medium),
-                              // Create Podcast Box
-                              SidebarActionBox(
-                                title: 'Create Podcast',
-                                description: 'Share your message',
-                                buttonText: 'Create Now',
-                                onTap: () {
-                                  // Get navigation items for passing to _navigateToScreen
-                                  final authProvider = context.read<AuthProvider>();
-                                  final navigationItems = _getNavigationItems(authProvider.isAdmin);
-                                  _navigateToScreen(2, navigationItems); // Navigate to Create screen (index 2)
-                                },
+                              const SizedBox(height: AppSpacing.small),
+                              // Create Podcast Button
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  icon: Icon(Icons.mic, size: 18),
+                                  label: Text('Create Podcast'),
+                                  onPressed: () {
+                                    final authProvider = context.read<AuthProvider>();
+                                    final navigationItems = _getNavigationItems(authProvider.isAdmin);
+                                    _navigateToScreen(2, navigationItems); // Navigate to Create screen (index 2)
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.warmBrown,
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: AppSpacing.small,
+                                      horizontal: AppSpacing.medium,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
                               ),
                             ],
                           ),

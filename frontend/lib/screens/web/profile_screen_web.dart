@@ -77,15 +77,13 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
               Container(
                 padding: const EdgeInsets.all(AppSpacing.large),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.warmBrown.withOpacity(0.1),
-                      AppColors.accentMain.withOpacity(0.05),
-                    ],
-                  ),
+                  color: Colors.white,
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(AppSpacing.radiusLarge),
                     topRight: Radius.circular(AppSpacing.radiusLarge),
+                  ),
+                  border: Border(
+                    bottom: BorderSide(color: AppColors.borderPrimary, width: 1),
                   ),
                 ),
                 child: Row(
@@ -349,15 +347,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
       child: Container(
         padding: EdgeInsets.all(isMobile ? AppSpacing.large : AppSpacing.extraLarge),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.warmBrown.withOpacity(0.05),
-              AppColors.accentMain.withOpacity(0.02),
-              Colors.white,
-            ],
-          ),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
         ),
         child: isMobile
@@ -972,14 +962,7 @@ class _StatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.large),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white,
-              Colors.white,
-            ],
-          ),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
         ),
         child: Column(

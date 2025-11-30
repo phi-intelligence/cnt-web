@@ -62,14 +62,9 @@ class AboutScreenWeb extends StatelessWidget {
         vertical: AppSpacing.extraLarge * 2,
       ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.warmBrown.withOpacity(0.1),
-            AppColors.accentMain.withOpacity(0.05),
-            AppColors.backgroundPrimary,
-          ],
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: AppColors.borderPrimary, width: 1),
         ),
       ),
       child: Column(
@@ -446,21 +441,11 @@ class _FeatureCardState extends State<_FeatureCard> {
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
         padding: const EdgeInsets.all(AppSpacing.medium),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: _isHovered
-                ? [
-                    AppColors.warmBrown.withOpacity(0.1),
-                    AppColors.accentMain.withOpacity(0.05),
-                  ]
-                : [
-                    Colors.white,
-                    Colors.white,
-                  ],
-          ),
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+          decoration: BoxDecoration(
+            color: _isHovered
+                ? AppColors.warmBrown.withOpacity(0.05)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
           border: Border.all(
             color: _isHovered
                 ? AppColors.warmBrown
@@ -557,14 +542,7 @@ class _ValueCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.large),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.warmBrown.withOpacity(0.05),
-            AppColors.accentMain.withOpacity(0.02),
-          ],
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
         border: Border.all(
           color: AppColors.borderPrimary,
