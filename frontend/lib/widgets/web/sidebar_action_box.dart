@@ -27,7 +27,7 @@ class SidebarActionBox extends StatelessWidget {
       margin: EdgeInsets.only(bottom: AppSpacing.medium),
       padding: EdgeInsets.all(AppSpacing.large),
       decoration: BoxDecoration(
-        color: AppColors.backgroundSecondary,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
         border: Border.all(
           color: AppColors.borderPrimary,

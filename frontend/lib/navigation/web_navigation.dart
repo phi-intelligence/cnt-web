@@ -126,14 +126,7 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
                   Container(
                     width: 280,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.cardBackground,
-                          AppColors.backgroundSecondary,
-                        ],
-                      ),
+                      color: Colors.white,
                       border: Border(
                         right: BorderSide(
                           color: AppColors.borderPrimary,
@@ -365,35 +358,22 @@ class _NavItemWidgetState extends State<_NavItemWidget> {
             vertical: AppSpacing.small - 2,
           ),
           decoration: BoxDecoration(
-            gradient: widget.isSelected
-                ? LinearGradient(
-                    colors: [
-                      AppColors.warmBrown.withOpacity(0.15),
-                      AppColors.accentMain.withOpacity(0.1),
-                    ],
-                  )
+            color: widget.isSelected
+                ? AppColors.warmBrown
                 : _isHovered
-                    ? LinearGradient(
-                        colors: [
-                          AppColors.warmBrown.withOpacity(0.08),
-                          AppColors.accentMain.withOpacity(0.05),
-                        ],
-                      )
-                    : null,
-            color: widget.isSelected || _isHovered
-                ? null
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                    ? AppColors.warmBrown.withOpacity(0.1)
+                    : Colors.transparent,
+            borderRadius: BorderRadius.circular(999), // Pill shape
             border: widget.isSelected
                 ? Border.all(
-                    color: AppColors.warmBrown.withOpacity(0.3),
+                    color: AppColors.warmBrown,
                     width: 1,
                   )
                 : null,
             boxShadow: widget.isSelected
                 ? [
                     BoxShadow(
-                      color: AppColors.warmBrown.withOpacity(0.1),
+                      color: AppColors.warmBrown.withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -405,25 +385,15 @@ class _NavItemWidgetState extends State<_NavItemWidget> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  gradient: widget.isSelected
-                      ? LinearGradient(
-                          colors: [AppColors.warmBrown, AppColors.accentMain],
-                        )
+                  color: widget.isSelected
+                      ? Colors.white.withOpacity(0.2)
                       : _isHovered
-                          ? LinearGradient(
-                              colors: [
-                                AppColors.warmBrown.withOpacity(0.2),
-                                AppColors.accentMain.withOpacity(0.1),
-                              ],
-                            )
-                          : null,
-                  color: widget.isSelected || _isHovered
-                      ? null
-                      : AppColors.warmBrown.withOpacity(0.1),
+                          ? AppColors.warmBrown.withOpacity(0.15)
+                          : AppColors.warmBrown.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
                   border: widget.isSelected
                       ? Border.all(
-                          color: AppColors.warmBrown.withOpacity(0.3),
+                          color: Colors.white.withOpacity(0.3),
                           width: 1,
                         )
                       : null,
@@ -447,9 +417,9 @@ class _NavItemWidgetState extends State<_NavItemWidget> {
                         ? FontWeight.w600
                         : FontWeight.normal,
                     color: widget.isSelected
-                        ? AppColors.warmBrown
+                        ? Colors.white
                         : _isHovered
-                            ? AppColors.textPrimary
+                            ? AppColors.warmBrown
                             : AppColors.textPrimary,
                     fontSize: 13,
                   ),

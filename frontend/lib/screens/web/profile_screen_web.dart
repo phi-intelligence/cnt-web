@@ -55,14 +55,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
         child: Container(
           constraints: const BoxConstraints(maxWidth: 500),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.cardBackground,
-                AppColors.backgroundSecondary,
-              ],
-            ),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
             border: Border.all(
               color: AppColors.borderPrimary,
@@ -362,7 +355,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
             colors: [
               AppColors.warmBrown.withOpacity(0.05),
               AppColors.accentMain.withOpacity(0.02),
-              AppColors.cardBackground,
+              Colors.white,
             ],
           ),
           borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
@@ -416,7 +409,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
-                        color: AppColors.backgroundTertiary,
+                        color: Colors.white,
                         child: Icon(
                           Icons.person,
                           size: 70,
@@ -445,7 +438,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
               ),
               shape: BoxShape.circle,
               border: Border.all(
-                color: AppColors.backgroundSecondary,
+                color: Colors.white,
                 width: 3,
               ),
               boxShadow: [
@@ -485,7 +478,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                 ),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: AppColors.backgroundSecondary,
+                  color: Colors.white,
                   width: 3,
                 ),
                 boxShadow: [
@@ -755,23 +748,19 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
             
             // Artist profile card/button
             Material(
-              color: Colors.transparent,
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
               child: InkWell(
                 onTap: () {
                   context.go('/artist/manage');
                 },
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                splashColor: AppColors.warmBrown.withOpacity(0.2),
+                highlightColor: AppColors.warmBrown.withOpacity(0.1),
                 child: Container(
                   padding: const EdgeInsets.all(AppSpacing.large),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.warmBrown.withOpacity(0.1),
-                        AppColors.accentMain.withOpacity(0.05),
-                      ],
-                    ),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
                     border: Border.all(
                       color: AppColors.borderPrimary,
@@ -987,8 +976,8 @@ class _StatCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.cardBackground,
-              AppColors.backgroundSecondary,
+              Colors.white,
+              Colors.white,
             ],
           ),
           borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
@@ -1067,18 +1056,22 @@ class _SettingListItemState extends State<_SettingListItem> {
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      child: InkWell(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.medium,
-            vertical: AppSpacing.medium,
-          ),
-          color: _isHovered
-              ? AppColors.warmBrown.withOpacity(0.05)
-              : Colors.transparent,
+      child: Material(
+        color: Colors.white,
+        child: InkWell(
+          onTap: widget.onTap,
+          splashColor: AppColors.warmBrown.withOpacity(0.2),
+          highlightColor: AppColors.warmBrown.withOpacity(0.1),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeInOut,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.medium,
+              vertical: AppSpacing.medium,
+            ),
+            color: _isHovered
+                ? AppColors.warmBrown.withOpacity(0.05)
+                : Colors.white,
           child: Row(
             children: [
               Container(
@@ -1133,6 +1126,7 @@ class _SettingListItemState extends State<_SettingListItem> {
                 size: 18,
               ),
             ],
+            ),
           ),
         ),
       ),

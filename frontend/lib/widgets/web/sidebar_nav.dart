@@ -46,7 +46,7 @@ class _WebSidebarNavigationState extends State<WebSidebarNavigation> {
   Widget build(BuildContext context) {
     return Container(
       width: 320,
-      color: AppColors.backgroundPrimary,
+      color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -97,19 +97,28 @@ class _WebSidebarNavigationState extends State<WebSidebarNavigation> {
     return Container(
       margin: EdgeInsets.only(bottom: AppSpacing.small),
       decoration: BoxDecoration(
-        color: isActive ? AppColors.backgroundSecondary : Colors.transparent,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+        color: isActive ? AppColors.warmBrown : Colors.transparent,
+        borderRadius: BorderRadius.circular(999), // Pill shape
+        boxShadow: isActive
+            ? [
+                BoxShadow(
+                  color: AppColors.warmBrown.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
       ),
       child: ListTile(
         leading: Icon(
           item.icon,
-          color: isActive ? AppColors.primaryMain : AppColors.textSecondary,
+          color: isActive ? Colors.white : AppColors.textSecondary,
           size: 20,
         ),
         title: Text(
           item.label,
           style: TextStyle(
-            color: isActive ? AppColors.primaryMain : AppColors.textSecondary,
+            color: isActive ? Colors.white : AppColors.textSecondary,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
           ),
         ),

@@ -408,7 +408,7 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
                   selected: isSelected,
                   label: Text(genre),
                   selectedColor: AppColors.warmBrown,
-                  backgroundColor: AppColors.backgroundSecondary,
+                  backgroundColor: Colors.white,
                   labelStyle: TextStyle(
                     color: isSelected ? Colors.white : AppColors.textPrimary,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,

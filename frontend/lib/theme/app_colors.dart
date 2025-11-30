@@ -17,7 +17,7 @@ class AppColors {
   static const Color accentDark = Color(0xFFB8935A); // Darker variant
 
   // Background colors
-  static const Color backgroundPrimary = Color(0xFFF7F5F2); // hsl(35, 20%, 97%) - Cream
+  static const Color backgroundPrimary = Colors.white; // White background
   static const Color backgroundSecondary = Color(0xFFFCFAF8); // Card background
   static const Color backgroundTertiary = Color(0xFFF0EDE8); // Alternative background
 

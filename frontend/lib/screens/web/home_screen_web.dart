@@ -39,6 +39,7 @@ class HomeScreenWeb extends StatefulWidget {
 class _HomeScreenWebState extends State<HomeScreenWeb> {
   final ApiService _api = ApiService();
   final GlobalKey _audioPodcastsKey = GlobalKey();
+  final ScrollController _scrollController = ScrollController();
   
   List<ContentItem> _audioPodcasts = [];
   List<ContentItem> _videoPodcasts = [];
@@ -50,11 +51,21 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
   bool _isLoadingBibleStories = false;
   bool _isLoadingBibleDocuments = false;
   bool _isLoadingMovies = false;
+  
+  double _scrollOffset = 0.0;
 
   @override
   void initState() {
     super.initState();
     print('✅ HomeScreenWeb initState');
+    
+    // Listen to scroll changes for fade and parallax effects
+    _scrollController.addListener(() {
+      setState(() {
+        _scrollOffset = _scrollController.offset;
+      });
+    });
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       try {
@@ -71,6 +82,29 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
         print('❌ HomeScreenWeb: Error initializing providers: $e');
       }
     });
+  }
+  
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+  
+  // Calculate carousel opacity based on scroll position
+  double _calculateCarouselOpacity() {
+    const fadeStart = 200.0;
+    const fadeEnd = 600.0;
+    
+    if (_scrollOffset < fadeStart) return 1.0;
+    if (_scrollOffset > fadeEnd) return 0.0;
+    
+    final fadeProgress = (_scrollOffset - fadeStart) / (fadeEnd - fadeStart);
+    return (1.0 - fadeProgress).clamp(0.0, 1.0);
+  }
+  
+  // Calculate parallax offset for carousel
+  double _calculateParallaxOffset() {
+    return _scrollOffset * 0.5;
   }
 
   Future<void> _fetchPodcasts() async {
@@ -275,7 +309,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
           title: item.title,
           author: item.creator,
           duration: item.duration?.inSeconds ?? 0,
-          gradientColors: const [AppColors.backgroundPrimary, AppColors.backgroundSecondary],
+          gradientColors: const [Colors.white, Colors.white],
           videoUrl: item.videoUrl!,
           playlist: playlist,
           initialIndex: initialIndex >= 0 ? initialIndex : 0,
@@ -363,7 +397,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.large),
             decoration: BoxDecoration(
-              color: AppColors.backgroundSecondary,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
             ),
             child: SizedBox(
@@ -416,28 +450,23 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
         _bibleStories.isNotEmpty || _bibleDocuments.isNotEmpty;
 
     if (isLoading) {
+      final screenWidth = MediaQuery.of(context).size.width;
+      final isMobile = screenWidth < 768;
+      
       return Container(
-        padding: const EdgeInsets.all(AppSpacing.extraLarge * 2),
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
+          vertical: isMobile ? AppSpacing.large : AppSpacing.extraLarge,
+        ),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.warmBrown.withOpacity(0.15),
-              AppColors.accentMain.withOpacity(0.1),
-              AppColors.backgroundSecondary,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-          border: Border.all(
-            color: AppColors.warmBrown.withOpacity(0.2),
-            width: 2,
-          ),
+          color: AppColors.warmBrown,
+          borderRadius: BorderRadius.circular(999), // Pill shape
           boxShadow: [
             BoxShadow(
-              color: AppColors.warmBrown.withOpacity(0.15),
+              color: AppColors.warmBrown.withOpacity(0.3),
               blurRadius: 20,
               offset: const Offset(0, 8),
+              spreadRadius: 2,
             ),
           ],
         ),
@@ -452,14 +481,14 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
                     'Read the Bible',
                     style: AppTypography.heading2.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: Colors.white, // White text on brown background
                     ),
                   ),
                   const SizedBox(height: AppSpacing.medium),
                   Text(
                     "Explore God's word through stories and documents.",
                     style: AppTypography.body.copyWith(
-                      color: AppColors.textSecondary,
+                      color: Colors.white.withOpacity(0.9), // Slightly transparent white
                       height: 1.7,
                     ),
                   ),
@@ -476,19 +505,23 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
                   height: 120,
                   padding: const EdgeInsets.all(AppSpacing.large),
                   decoration: BoxDecoration(
-                    color: AppColors.cardBackground,
+                    color: Colors.white.withOpacity(0.2), // Semi-transparent white on brown
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 2,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.accentMain.withOpacity(0.2),
-                        blurRadius: 20,
-                        spreadRadius: 5,
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 15,
+                        spreadRadius: 2,
                       ),
                     ],
                   ),
                   child: const Center(
                     child: CircularProgressIndicator(
-                      color: AppColors.warmBrown,
+                      color: Colors.white, // White progress indicator
                     ),
                   ),
                 ),
@@ -496,7 +529,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
                 Text(
                   'Bible Reader',
                   style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
+                    color: Colors.white, // White text on brown background
                     fontWeight: FontWeight.w500,
                   ),
                   textAlign: TextAlign.center,
@@ -518,28 +551,23 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
     }
 
     // Empty state - show the box but with empty message
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.extraLarge * 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
+        vertical: isMobile ? AppSpacing.large : AppSpacing.extraLarge,
+      ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.warmBrown.withOpacity(0.15),
-            AppColors.accentMain.withOpacity(0.1),
-            AppColors.backgroundSecondary,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-        border: Border.all(
-          color: AppColors.warmBrown.withOpacity(0.2),
-          width: 2,
-        ),
+        color: AppColors.warmBrown,
+        borderRadius: BorderRadius.circular(999), // Pill shape
         boxShadow: [
           BoxShadow(
-            color: AppColors.warmBrown.withOpacity(0.15),
+            color: AppColors.warmBrown.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
+            spreadRadius: 2,
           ),
         ],
       ),
@@ -554,7 +582,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
                   'Read the Bible',
                   style: AppTypography.heading2.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: Colors.white, // White text on brown background
                   ),
                 ),
                 const SizedBox(height: AppSpacing.medium),
@@ -562,7 +590,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
                   'Admins can upload Bible PDFs and stories from the dashboard. '
                   'Once available, they will appear here.',
                   style: AppTypography.body.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Colors.white.withOpacity(0.9), // Slightly transparent white
                     height: 1.7,
                   ),
                 ),
@@ -577,23 +605,24 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
               Container(
                 padding: const EdgeInsets.all(AppSpacing.large),
                 decoration: BoxDecoration(
-                  color: AppColors.cardBackground.withOpacity(0.5),
+                  color: Colors.white.withOpacity(0.2), // Semi-transparent white on brown
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.borderPrimary.withOpacity(0.3),
+                    color: Colors.white.withOpacity(0.3),
+                    width: 2,
                   ),
                 ),
                 child: Icon(
                   Icons.menu_book,
                   size: 60,
-                  color: AppColors.textSecondary.withOpacity(0.5),
+                  color: Colors.white.withOpacity(0.7), // Semi-transparent white icon
                 ),
               ),
               const SizedBox(height: AppSpacing.medium),
               Text(
                 'Bible Reader',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textPrimary,
+                  color: Colors.white, // White text on brown background
                   fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,
@@ -608,12 +637,43 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
   @override
   Widget build(BuildContext context) {
     final musicProvider = Provider.of<MusicProvider>(context, listen: false);
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    final carouselHeight = isMobile ? screenHeight * 0.35 : screenHeight * 0.5;
+    final whiteCardTopMargin = carouselHeight * 0.7;
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
-      body: Container(
-        padding: ResponsiveGridDelegate.getResponsivePadding(context),
-        child: RefreshIndicator(
+      body: Stack(
+        children: [
+          // Background Layer: Carousel with fade and parallax
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: carouselHeight,
+            child: Transform.translate(
+              offset: Offset(0, _calculateParallaxOffset()),
+              child: AnimatedOpacity(
+                opacity: _calculateCarouselOpacity(),
+                duration: const Duration(milliseconds: 100),
+                child: _buildHeroSection(),
+              ),
+            ),
+          ),
+          
+          // Foreground Layer: Scrollable content in white card
+          NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is ScrollUpdateNotification) {
+                setState(() {
+                  _scrollOffset = notification.metrics.pixels;
+                });
+              }
+              return false;
+            },
+            child: RefreshIndicator(
               onRefresh: () async {
                 await Future.wait([
                   _fetchPodcasts(),
@@ -625,37 +685,47 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
                 ]);
               },
               child: SingleChildScrollView(
+                controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                      // Hero Section (Carousel)
-                      _buildHeroSection(),
-                      
-                    const SizedBox(height: AppSpacing.extraLarge),
+                    // Spacer to push white card down (overlapping carousel)
+                    SizedBox(height: whiteCardTopMargin),
                     
-                    // Welcome Section
-                    WelcomeSectionWeb(
-                      onStartListening: () {
-                        // Scroll to audio podcasts section
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          final context = _audioPodcastsKey.currentContext;
-                          if (context != null) {
-                            Scrollable.ensureVisible(
-                              context,
-                              duration: const Duration(milliseconds: 500),
-                              curve: Curves.easeInOut,
-                            );
-                          }
-                        });
-                      },
-                      onJoinPrayer: () {
-                        // Navigate to prayer screen
-                        Navigator.pushNamed(context, '/prayer');
-                      },
-                    ),
+                    // White Floating Card containing all content
+                    Container(
+                      width: double.infinity,
+                      constraints: BoxConstraints(
+                        minHeight: screenHeight - whiteCardTopMargin,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(32),
+                          topRight: Radius.circular(32),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 30,
+                            offset: const Offset(0, -5),
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? AppSpacing.medium : AppSpacing.extraLarge,
+                          vertical: AppSpacing.large,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                     
-                      const SizedBox(height: AppSpacing.extraLarge),
+                            // Welcome Section
+                            const WelcomeSectionWeb(),
+                            
+                            SizedBox(height: AppSpacing.extraLarge),
                       
                       // Audio Podcasts
                       Builder(
@@ -826,11 +896,17 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
                             _openBibleStory(story);
                           },
                         ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
+        ],
+      ),
     );
   }
 
@@ -869,32 +945,18 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 768;
     
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-        child: HeroCarouselWidget(
-          onItemTap: (postId) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => CommunityScreenWeb(postId: postId),
-              ),
-            );
-          },
-          height: isMobile 
-              ? screenHeight * 0.35 
-              : screenHeight * 0.5,
-        ),
+      height: isMobile ? screenHeight * 0.35 : screenHeight * 0.5,
+      child: HeroCarouselWidget(
+        onItemTap: (postId) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => CommunityScreenWeb(postId: postId),
+            ),
+          );
+        },
+        height: isMobile ? screenHeight * 0.35 : screenHeight * 0.5,
       ),
     );
   }

@@ -388,14 +388,7 @@ class AboutScreenWeb extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.extraLarge),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.cardBackground,
-            AppColors.backgroundSecondary,
-          ],
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
         border: Border.all(
           color: AppColors.borderPrimary,
@@ -463,8 +456,8 @@ class _FeatureCardState extends State<_FeatureCard> {
                     AppColors.accentMain.withOpacity(0.05),
                   ]
                 : [
-                    AppColors.cardBackground,
-                    AppColors.backgroundSecondary,
+                    Colors.white,
+                    Colors.white,
                   ],
           ),
           borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),

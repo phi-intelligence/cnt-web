@@ -384,7 +384,7 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
         ),
@@ -418,7 +418,7 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
               borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
             ),
             filled: true,
-            fillColor: AppColors.backgroundSecondary,
+            fillColor: Colors.white,
           ),
           autofocus: true,
         ),

@@ -6,13 +6,8 @@ import '../voice/voice_bubble.dart';
 import '../../screens/web/voice_agent_screen_web.dart';
 
 class WelcomeSectionWeb extends StatelessWidget {
-  final VoidCallback? onStartListening;
-  final VoidCallback? onJoinPrayer;
-
   const WelcomeSectionWeb({
     super.key,
-    this.onStartListening,
-    this.onJoinPrayer,
   });
 
   @override
@@ -21,27 +16,19 @@ class WelcomeSectionWeb extends StatelessWidget {
     final isMobile = screenWidth < 768;
 
     return Container(
-      padding: EdgeInsets.all(isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
+        vertical: isMobile ? AppSpacing.large : AppSpacing.extraLarge,
+      ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.warmBrown.withOpacity(0.15),
-            AppColors.accentMain.withOpacity(0.1),
-            AppColors.backgroundSecondary,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-        border: Border.all(
-          color: AppColors.warmBrown.withOpacity(0.2),
-          width: 2,
-        ),
+        color: AppColors.warmBrown,
+        borderRadius: BorderRadius.circular(999), // Pill shape
         boxShadow: [
           BoxShadow(
-            color: AppColors.warmBrown.withOpacity(0.15),
+            color: AppColors.warmBrown.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
+            spreadRadius: 2,
           ),
         ],
       ),
@@ -50,21 +37,14 @@ class WelcomeSectionWeb extends StatelessWidget {
               children: [
                 _buildHeader(context),
                 const SizedBox(height: AppSpacing.extraLarge),
-                _buildActionButtons(context),
+                _buildVoiceAssistant(context),
               ],
             )
           : Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(context),
-                      const SizedBox(height: AppSpacing.extraLarge),
-                      _buildActionButtons(context),
-                    ],
-                  ),
+                  child: _buildHeader(context),
                 ),
                 const SizedBox(width: AppSpacing.extraLarge * 2),
                 _buildVoiceAssistant(context),
@@ -82,21 +62,16 @@ class WelcomeSectionWeb extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppSpacing.medium),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.warmBrown.withOpacity(0.2),
-                    AppColors.accentMain.withOpacity(0.15),
-                  ],
-                ),
+                color: Colors.white.withOpacity(0.2), // Semi-transparent white on brown
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
                 border: Border.all(
-                  color: AppColors.warmBrown.withOpacity(0.3),
+                  color: Colors.white.withOpacity(0.3),
                   width: 1,
                 ),
               ),
               child: Icon(
                 Icons.church,
-                color: AppColors.warmBrown,
+                color: Colors.white, // White icon on brown background
                 size: 32,
               ),
             ),
@@ -108,7 +83,7 @@ class WelcomeSectionWeb extends StatelessWidget {
                   Text(
                     'Welcome to',
                     style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
+                      color: Colors.white.withOpacity(0.9), // Slightly transparent white
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -116,7 +91,7 @@ class WelcomeSectionWeb extends StatelessWidget {
                     'Christ New Tabernacle',
                     style: AppTypography.heading1.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.warmBrown,
+                      color: Colors.white, // White text on brown background
                     ),
                   ),
                 ],
@@ -128,16 +103,16 @@ class WelcomeSectionWeb extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(AppSpacing.large),
           decoration: BoxDecoration(
-            color: AppColors.cardBackground.withOpacity(0.5),
+            color: Colors.white.withOpacity(0.15), // Semi-transparent white on brown
             borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
             border: Border.all(
-              color: AppColors.borderPrimary.withOpacity(0.3),
+              color: Colors.white.withOpacity(0.2),
             ),
           ),
           child: Text(
             "Experience God's word through engaging podcasts, Bible stories, and spiritual guidance. Join our community of believers in Christ and be part of a movement that is changing lives.",
             style: AppTypography.body.copyWith(
-              color: AppColors.textSecondary,
+              color: Colors.white.withOpacity(0.9), // Slightly transparent white
               height: 1.7,
             ),
           ),
@@ -146,88 +121,6 @@ class WelcomeSectionWeb extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context) {
-    return Wrap(
-      spacing: AppSpacing.medium,
-      runSpacing: AppSpacing.medium,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.warmBrown,
-                AppColors.primaryMain,
-              ],
-            ),
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.warmBrown.withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: ElevatedButton.icon(
-            onPressed: onStartListening ?? () {
-              final RenderObject? renderObject = context.findRenderObject();
-              if (renderObject != null) {
-                Scrollable.ensureVisible(
-                  context,
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.easeInOut,
-                );
-              }
-            },
-            icon: const Icon(Icons.play_circle_filled, size: 24),
-            label: Text(
-              'Start Listening',
-              style: AppTypography.button.copyWith(
-                color: Colors.white,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.extraLarge,
-                vertical: AppSpacing.medium,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-              ),
-            ),
-          ),
-        ),
-        OutlinedButton.icon(
-          onPressed: onJoinPrayer ?? () {
-            Navigator.pushNamed(context, '/prayer');
-          },
-          icon: Icon(Icons.favorite, color: AppColors.accentMain),
-          label: Text(
-            'Join Prayer',
-            style: AppTypography.button.copyWith(
-              color: AppColors.warmBrown,
-            ),
-          ),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.warmBrown,
-            side: BorderSide(
-              color: AppColors.warmBrown,
-              width: 2,
-            ),
-            padding: EdgeInsets.symmetric(
-              horizontal: AppSpacing.extraLarge,
-              vertical: AppSpacing.medium,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildVoiceAssistant(BuildContext context) {
     return Column(
@@ -237,13 +130,17 @@ class WelcomeSectionWeb extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(AppSpacing.large),
           decoration: BoxDecoration(
-            color: AppColors.cardBackground,
+            color: Colors.white.withOpacity(0.2), // Semi-transparent white on brown
             shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white.withOpacity(0.3),
+              width: 2,
+            ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.accentMain.withOpacity(0.2),
-                blurRadius: 20,
-                spreadRadius: 5,
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 15,
+                spreadRadius: 2,
               ),
             ],
           ),
@@ -266,7 +163,7 @@ class WelcomeSectionWeb extends StatelessWidget {
         Text(
           'Voice Assistant',
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textPrimary,
+            color: Colors.white, // White text on brown background
             fontWeight: FontWeight.w500,
           ),
           textAlign: TextAlign.center,

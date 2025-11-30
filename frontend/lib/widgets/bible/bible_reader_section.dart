@@ -84,29 +84,21 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
       return const SizedBox.shrink();
     }
 
-    // Main container matching WelcomeSectionWeb design
+    // Pill-shaped brown container
     return Container(
-      padding: EdgeInsets.all(isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
+        vertical: isMobile ? AppSpacing.large : AppSpacing.extraLarge,
+      ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.warmBrown.withOpacity(0.15),
-            AppColors.accentMain.withOpacity(0.1),
-            AppColors.backgroundSecondary,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-        border: Border.all(
-          color: AppColors.warmBrown.withOpacity(0.2),
-          width: 2,
-        ),
+        color: AppColors.warmBrown,
+        borderRadius: BorderRadius.circular(999), // Pill shape
         boxShadow: [
           BoxShadow(
-            color: AppColors.warmBrown.withOpacity(0.15),
+            color: AppColors.warmBrown.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
+            spreadRadius: 2,
           ),
         ],
       ),
@@ -139,14 +131,14 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
           'Read the Bible',
           style: AppTypography.heading2.copyWith(
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: Colors.white, // White text on brown background
           ),
         ),
         const SizedBox(height: AppSpacing.medium),
         Text(
           "Explore God's word through stories and documents.",
           style: AppTypography.body.copyWith(
-            color: AppColors.textSecondary,
+            color: Colors.white.withOpacity(0.9), // Slightly transparent white
             height: 1.7,
           ),
         ),
@@ -164,20 +156,24 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.large),
             decoration: BoxDecoration(
-              color: AppColors.cardBackground,
+              color: Colors.white.withOpacity(0.2), // Semi-transparent white on brown
               shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 2,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.accentMain.withOpacity(0.2),
-                  blurRadius: 20,
-                  spreadRadius: 5,
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 15,
+                  spreadRadius: 2,
                 ),
               ],
             ),
             child: Icon(
               Icons.menu_book,
               size: 60,
-              color: AppColors.warmBrown,
+              color: Colors.white, // White icon on brown background
             ),
           ),
         ),
@@ -185,7 +181,7 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
         Text(
           'Bible Reader',
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textPrimary,
+            color: Colors.white, // White text on brown background
             fontWeight: FontWeight.w500,
           ),
           textAlign: TextAlign.center,

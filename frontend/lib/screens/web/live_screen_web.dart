@@ -171,7 +171,7 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.backgroundSecondary,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(Icons.videocam, color: AppColors.errorMain, size: 40),
@@ -237,7 +237,7 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.backgroundSecondary,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(Icons.schedule, color: AppColors.primaryMain, size: 40),
@@ -291,7 +291,7 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.backgroundSecondary,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(Icons.history, color: AppColors.textSecondary, size: 40),

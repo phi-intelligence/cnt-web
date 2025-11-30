@@ -34,7 +34,7 @@ class SectionContainer extends StatelessWidget {
             vertical: AppSpacing.extraLarge,
           ),
       decoration: BoxDecoration(
-        color: backgroundColor ?? AppColors.backgroundSecondary,
+        color: backgroundColor ?? Colors.white,
         borderRadius: BorderRadius.circular(
           borderRadius ?? AppSpacing.radiusLarge,
         ),

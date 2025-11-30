@@ -72,7 +72,7 @@ class StyledPageHeader extends StatelessWidget {
           vertical: AppSpacing.large,
         ),
         decoration: BoxDecoration(
-          color: backgroundColor ?? AppColors.backgroundSecondary,
+          color: backgroundColor ?? Colors.white,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
         ),
         child: headerContent,

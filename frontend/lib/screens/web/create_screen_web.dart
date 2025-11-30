@@ -264,8 +264,8 @@ class _OptionCardState extends State<_OptionCard> {
               colors: _isHovered
                   ? widget.hoverColors
                   : [
-                      AppColors.cardBackground,
-                      AppColors.backgroundSecondary,
+                      Colors.white,
+                      Colors.white,
                     ],
             ),
             borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
