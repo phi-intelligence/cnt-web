@@ -278,7 +278,6 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
         child: Consumer3<AuthProvider, UserProvider, SupportProvider>(
           builder: (context, authProvider, userProvider, supportProvider, child) {
             final profileUser = userProvider.user ?? authProvider.user;
-            final stats = userProvider.stats;
             final isAdmin = authProvider.isAdmin;
             final avatarUrl = resolveMediaUrl(profileUser?['avatar'] as String?);
             final supportStats = supportProvider.stats;
@@ -302,10 +301,6 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                     isAdmin,
                     isMobile,
                   ),
-                  const SizedBox(height: AppSpacing.extraLarge),
-                  
-                  // Stats Section
-                  _buildStatsSection(stats, isMobile),
                   const SizedBox(height: AppSpacing.extraLarge),
                   
                   // Artist Section
@@ -571,96 +566,6 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
     );
   }
 
-  Widget _buildStatsSection(Map<String, dynamic>? stats, bool isMobile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.medium),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primaryMain.withOpacity(0.2),
-                    AppColors.primaryMain.withOpacity(0.1),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                border: Border.all(
-                  color: AppColors.primaryMain.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              child: Icon(
-                Icons.bar_chart,
-                color: AppColors.primaryMain,
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.medium),
-            Text(
-              'Your Statistics',
-              style: AppTypography.heading2.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.large),
-        isMobile
-            ? Column(
-                children: [
-                  _StatCard(
-                    label: 'Minutes',
-                    value: stats?['total_minutes']?.toString() ?? '0',
-                    icon: Icons.timer,
-                  ),
-                  const SizedBox(height: AppSpacing.medium),
-                  _StatCard(
-                    label: 'Songs',
-                    value: stats?['songs_played']?.toString() ?? '0',
-                    icon: Icons.music_note,
-                  ),
-                  const SizedBox(height: AppSpacing.medium),
-                  _StatCard(
-                    label: 'Streak',
-                    value: '${stats?['streak_days'] ?? 0}',
-                    icon: Icons.local_fire_department,
-                  ),
-                ],
-              )
-            : Row(
-                children: [
-                  Expanded(
-                    child: _StatCard(
-                      label: 'Minutes',
-                      value: stats?['total_minutes']?.toString() ?? '0',
-                      icon: Icons.timer,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.medium),
-                  Expanded(
-                    child: _StatCard(
-                      label: 'Songs',
-                      value: stats?['songs_played']?.toString() ?? '0',
-                      icon: Icons.music_note,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.medium),
-                  Expanded(
-                    child: _StatCard(
-                      label: 'Streak',
-                      value: '${stats?['streak_days'] ?? 0}',
-                      icon: Icons.local_fire_department,
-                    ),
-                  ),
-                ],
-              ),
-      ],
-    );
-  }
 
   Widget _buildArtistSection(BuildContext context, bool isMobile) {
     return SectionContainer(
@@ -933,70 +838,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SectionContainer(
-      showShadow: true,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.large),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.medium),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primaryMain.withOpacity(0.2),
-                    AppColors.primaryMain.withOpacity(0.1),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                border: Border.all(
-                  color: AppColors.primaryMain.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              child: Icon(icon, size: 32, color: AppColors.primaryMain),
-            ),
-            const SizedBox(height: AppSpacing.medium),
-            Text(
-              value,
-              style: AppTypography.heading2.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.small),
-            Text(
-              label,
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingListItem extends StatefulWidget {
+class _SettingListItem extends StatefulWidget{
   final IconData icon;
   final String title;
   final String? subtitle;

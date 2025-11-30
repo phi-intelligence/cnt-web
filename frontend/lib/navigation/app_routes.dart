@@ -27,6 +27,14 @@ import '../services/api_service.dart';
 import 'web_navigation.dart';
 import 'package:flutter/material.dart';
 
+/// Helper function to create a page with no transition animation
+Page<void> _buildPageWithoutTransition(BuildContext context, GoRouterState state, Widget child) {
+  return NoTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+  );
+}
+
 /// Route configuration for the application
 /// Uses go_router for URL-based routing and state persistence
 GoRouter createAppRouter(AuthProvider authProvider) {
@@ -57,80 +65,104 @@ GoRouter createAppRouter(AuthProvider authProvider) {
         builder: (context, state) => const LandingScreenWeb(),
       ),
       
-      // Main navigation routes (wrapped in WebNavigationLayout)
+      // Main navigation routes (wrapped in WebNavigationLayout - NO transitions)
       GoRoute(
         path: '/home',
-        builder: (context, state) => const WebNavigationLayout(
-          child: HomeScreenWeb(),
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: HomeScreenWeb()),
         ),
       ),
       GoRoute(
         path: '/search',
-        builder: (context, state) => const WebNavigationLayout(
-          child: SearchScreenWeb(),
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: SearchScreenWeb()),
         ),
       ),
       GoRoute(
         path: '/create',
-        builder: (context, state) => const WebNavigationLayout(
-          child: CreateScreenWeb(),
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: CreateScreenWeb()),
         ),
       ),
       GoRoute(
         path: '/community',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final postId = state.uri.queryParameters['postId'];
-          return WebNavigationLayout(
-            child: CommunityScreenWeb(
-              postId: postId != null ? int.tryParse(postId) : null,
+          return _buildPageWithoutTransition(
+            context,
+            state,
+            WebNavigationLayout(
+              child: CommunityScreenWeb(
+                postId: postId != null ? int.tryParse(postId) : null,
+              ),
             ),
           );
         },
       ),
       GoRoute(
         path: '/profile',
-        builder: (context, state) => const WebNavigationLayout(
-          child: ProfileScreenWeb(),
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: ProfileScreenWeb()),
         ),
       ),
       GoRoute(
         path: '/podcasts',
-        builder: (context, state) => const WebNavigationLayout(
-          child: PodcastsScreenWeb(),
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: PodcastsScreenWeb()),
         ),
       ),
       GoRoute(
         path: '/movies',
-        builder: (context, state) => const WebNavigationLayout(
-          child: MoviesScreenWeb(),
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: MoviesScreenWeb()),
         ),
       ),
       GoRoute(
         path: '/about',
-        builder: (context, state) => const WebNavigationLayout(
-          child: AboutScreenWeb(),
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: AboutScreenWeb()),
         ),
       ),
       GoRoute(
         path: '/admin',
-        builder: (context, state) => const WebNavigationLayout(
-          child: AdminDashboardScreen(),
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: AdminDashboardScreen()),
         ),
       ),
       
       // Meeting routes
       GoRoute(
         path: '/meetings',
-        builder: (context, state) => const WebNavigationLayout(
-          child: MeetingOptionsScreenWeb(),
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: MeetingOptionsScreenWeb()),
         ),
       ),
       
       // Live stream routes
       GoRoute(
         path: '/live-stream/options',
-        builder: (context, state) => const WebNavigationLayout(
-          child: LiveStreamOptionsScreenWeb(),
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: LiveStreamOptionsScreenWeb()),
         ),
       ),
       GoRoute(
@@ -139,8 +171,10 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       ),
       GoRoute(
         path: '/live-streams',
-        builder: (context, state) => const WebNavigationLayout(
-          child: LiveScreenWeb(),
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: LiveScreenWeb()),
         ),
       ),
       
@@ -218,27 +252,43 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       // Detail routes
       GoRoute(
         path: '/podcast/:id',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final id = state.pathParameters['id'];
           if (id == null) {
-            return const Scaffold(body: Center(child: Text('Podcast ID is required')));
+            return _buildPageWithoutTransition(
+              context,
+              state,
+              const Scaffold(body: Center(child: Text('Podcast ID is required'))),
+            );
           }
           
           // Create a wrapper widget that loads the podcast
-          return WebNavigationLayout(
-            child: _PodcastDetailLoader(podcastId: int.parse(id)),
+          return _buildPageWithoutTransition(
+            context,
+            state,
+            WebNavigationLayout(
+              child: _PodcastDetailLoader(podcastId: int.parse(id)),
+            ),
           );
         },
       ),
       GoRoute(
         path: '/movie/:id',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final id = state.pathParameters['id'];
           if (id == null) {
-            return const Scaffold(body: Center(child: Text('Movie ID is required')));
+            return _buildPageWithoutTransition(
+              context,
+              state,
+              const Scaffold(body: Center(child: Text('Movie ID is required'))),
+            );
           }
-          return WebNavigationLayout(
-            child: MovieDetailScreenWeb(movieId: int.parse(id)),
+          return _buildPageWithoutTransition(
+            context,
+            state,
+            WebNavigationLayout(
+              child: MovieDetailScreenWeb(movieId: int.parse(id)),
+            ),
           );
         },
       ),
@@ -246,19 +296,29 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       // Artist routes - specific paths must come before parameterized paths
       GoRoute(
         path: '/artist/manage',
-        builder: (context, state) => const WebNavigationLayout(
-          child: ArtistProfileManageScreen(),
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: ArtistProfileManageScreen()),
         ),
       ),
       GoRoute(
         path: '/artist/:artistId',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final artistId = state.pathParameters['artistId'];
           if (artistId == null) {
-            return const Scaffold(body: Center(child: Text('Artist ID is required')));
+            return _buildPageWithoutTransition(
+              context,
+              state,
+              const Scaffold(body: Center(child: Text('Artist ID is required'))),
+            );
           }
-          return WebNavigationLayout(
-            child: ArtistProfileScreen(artistId: int.parse(artistId)),
+          return _buildPageWithoutTransition(
+            context,
+            state,
+            WebNavigationLayout(
+              child: ArtistProfileScreen(artistId: int.parse(artistId)),
+            ),
           );
         },
       ),
