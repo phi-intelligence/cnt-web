@@ -188,41 +188,40 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
       _isLoading = true;
     });
 
-    // TODO: Implement actual video publish with API
-    // For now, simulate publish success
-    Future.delayed(const Duration(seconds: 2), () async {
-      if (!mounted) return;
-      
-      setState(() {
-        _isLoading = false;
-      });
-
-      // Check if bank details are missing
-      final hasBankDetailsValue = await hasBankDetails(context);
-      
-      if (!hasBankDetailsValue && mounted) {
-        // Show bank details prompt (handles navigation)
-        await showBankDetailsPromptAfterPublish(context);
-      } else if (mounted) {
-        // Just show success and navigate
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Video Published'),
-            content: const Text('Your video podcast has been published and shared with the community!'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                },
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
+    // Simulate publish delay (TODO: Replace with actual video publish API call)
+    await Future.delayed(const Duration(seconds: 2));
+    
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoading = false;
     });
+
+    // Check if bank details are missing
+    final hasBankDetailsValue = await hasBankDetails(context);
+    
+    if (!hasBankDetailsValue && mounted) {
+      // Show bank details prompt (handles navigation)
+      await showBankDetailsPromptAfterPublish(context);
+    } else if (mounted) {
+      // Just show success and navigate
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Video Published'),
+          content: const Text('Your video podcast has been published and shared with the community!'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   String _formatTime(int seconds) {
@@ -534,4 +533,3 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
     );
   }
 }
-
