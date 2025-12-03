@@ -6,15 +6,11 @@ import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
-import '../web/admin_dashboard_web.dart';
-import '../../widgets/web/styled_page_header.dart';
-import '../../widgets/web/section_container.dart';
-import '../../widgets/web/styled_pill_button.dart';
-import '../../utils/responsive_grid_delegate.dart';
 import 'landing_screen_web.dart';
 
-/// Web Register Screen - Redesigned to match web application theme
-/// Uses SectionContainer, StyledPageHeader, and web styling components
+/// Web Register Screen - Redesigned to match Landing Page Hero Section
+/// Features full-screen jesus.png background with gradient overlay
+/// Pill-shaped inputs and buttons following the hero section design
 class RegisterScreenWeb extends StatefulWidget {
   const RegisterScreenWeb({super.key});
 
@@ -125,495 +121,556 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
     }
   }
 
-  // Google Sign-In temporarily disabled
-  // Uncomment below to enable Google Sign-In
-  /*
-  Future<void> _handleGoogleSignIn() async {
-    setState(() => _isLoading = true);
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    final isTablet = screenWidth >= 600 && screenWidth < 1024;
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.googleLogin();
-
-    setState(() => _isLoading = false);
-
-    if (mounted) {
-      if (success) {
-        if (authProvider.isAdmin) {
-          context.go('/admin');
-        } else {
-          context.go('/home');
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authProvider.error ?? 'Google sign-in failed'),
-            backgroundColor: AppColors.errorMain,
-          ),
-        );
-      }
-    }
-  }
-  */
-
-  InputDecoration _buildInputDecoration(String label, IconData icon, {bool isOptional = false}) {
-    return InputDecoration(
-      labelText: isOptional ? label : '$label *',
-      labelStyle: AppTypography.body.copyWith(
-        color: AppColors.textSecondary,
-      ),
-      prefixIcon: Icon(icon, color: AppColors.warmBrown),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-        borderSide: BorderSide(color: AppColors.borderPrimary),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-        borderSide: BorderSide(color: AppColors.borderPrimary),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-        borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
-      ),
-      filled: true,
-      fillColor: AppColors.backgroundSecondary,
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: AppSpacing.large,
-        vertical: AppSpacing.medium,
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F0E8),
+      body: SizedBox(
+        width: double.infinity,
+        height: screenHeight,
+        child: Stack(
+          children: [
+            // Background: Full image - positioned to the right
+            Positioned(
+              top: isMobile ? -30 : 0,
+              bottom: isMobile ? null : 0,
+              right: isMobile ? -screenWidth * 0.4 : -50,
+              height: isMobile ? screenHeight * 0.6 : null,
+              width: isMobile ? screenWidth * 1.3 : screenWidth * 0.65,
+              child: Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: const AssetImage('assets/images/jesus.png'),
+                    fit: isMobile ? BoxFit.contain : BoxFit.cover,
+                    alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
+                  ),
+                ),
+              ),
+            ),
+            
+            // Gradient overlay from left - for text readability
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: isMobile
+                        ? [
+                            const Color(0xFFF5F0E8),
+                            const Color(0xFFF5F0E8).withOpacity(0.98),
+                            const Color(0xFFF5F0E8).withOpacity(0.85),
+                            const Color(0xFFF5F0E8).withOpacity(0.4),
+                            Colors.transparent,
+                          ]
+                        : [
+                            const Color(0xFFF5F0E8),
+                            const Color(0xFFF5F0E8).withOpacity(0.99),
+                            const Color(0xFFF5F0E8).withOpacity(0.95),
+                            const Color(0xFFF5F0E8).withOpacity(0.7),
+                            const Color(0xFFF5F0E8).withOpacity(0.3),
+                            Colors.transparent,
+                          ],
+                    stops: isMobile
+                        ? const [0.0, 0.2, 0.4, 0.6, 0.8]
+                        : const [0.0, 0.25, 0.4, 0.5, 0.6, 0.75],
+                  ),
+                ),
+              ),
+            ),
+            
+            // Header with logo
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: _buildHeader(isMobile),
+            ),
+            
+            // Form content on the left
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: isMobile ? screenWidth : (isTablet ? screenWidth * 0.65 : screenWidth * 0.55),
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                    right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
+                    top: isMobile ? 80 : 100,
+                    bottom: AppSpacing.extraLarge,
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title
+                        Text(
+                          'Create Account',
+                          style: AppTypography.getResponsiveHeroTitle(context).copyWith(
+                            color: AppColors.primaryDark,
+                            fontWeight: FontWeight.bold,
+                            fontSize: isMobile ? 28 : (isTablet ? 36 : 42),
+                            height: 1.1,
+                          ),
+                        ),
+                        SizedBox(height: AppSpacing.medium),
+                        
+                        // Subtitle
+                        Text(
+                          'Join Christ New Tabernacle\nand start your spiritual journey',
+                          style: AppTypography.getResponsiveBody(context).copyWith(
+                            color: AppColors.primaryDark.withOpacity(0.7),
+                            fontSize: isMobile ? 14 : 16,
+                            height: 1.5,
+                          ),
+                        ),
+                        SizedBox(height: AppSpacing.extraLarge * 1.5),
+                        
+                        // Form Fields
+                        _buildPillTextField(
+                          controller: _nameController,
+                          hintText: 'Full Name',
+                          icon: Icons.person_outline,
+                          onChanged: (_) => _generateUsernamePreview(),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your name';
+                            }
+                            return null;
+                          },
+                          isMobile: isMobile,
+                        ),
+                        SizedBox(height: AppSpacing.medium),
+                        
+                        _buildPillTextField(
+                          controller: _emailController,
+                          hintText: 'Email address',
+                          icon: Icons.email_outlined,
+                          keyboardType: TextInputType.emailAddress,
+                          onChanged: (_) => _generateUsernamePreview(),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your email';
+                            }
+                            if (!value.contains('@') || !value.contains('.')) {
+                              return 'Please enter a valid email';
+                            }
+                            return null;
+                          },
+                          isMobile: isMobile,
+                        ),
+                        SizedBox(height: AppSpacing.medium),
+                        
+                        _buildPillTextField(
+                          controller: _passwordController,
+                          hintText: 'Password',
+                          icon: Icons.lock_outline,
+                          obscureText: _obscurePassword,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              color: AppColors.warmBrown.withOpacity(0.6),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter a password';
+                            }
+                            if (value.length < 8) {
+                              return 'Password must be at least 8 characters';
+                            }
+                            return null;
+                          },
+                          isMobile: isMobile,
+                        ),
+                        SizedBox(height: AppSpacing.medium),
+                        
+                        _buildPillTextField(
+                          controller: _phoneController,
+                          hintText: 'Phone (optional)',
+                          icon: Icons.phone_outlined,
+                          keyboardType: TextInputType.phone,
+                          isMobile: isMobile,
+                        ),
+                        
+                        // Username preview
+                        if (_generatedUsername != null) ...[
+                          SizedBox(height: AppSpacing.medium),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.large,
+                              vertical: AppSpacing.small + 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.warmBrown.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: AppColors.warmBrown.withOpacity(0.2),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.alternate_email,
+                                  color: AppColors.warmBrown,
+                                  size: 16,
+                                ),
+                                SizedBox(width: AppSpacing.small),
+                                Text(
+                                  'Username: $_generatedUsername',
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: AppColors.warmBrown,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        
+                        SizedBox(height: AppSpacing.large),
+                        
+                        // Optional Fields Expandable
+                        ExpansionTile(
+                          tilePadding: EdgeInsets.zero,
+                          title: Text(
+                            'Additional Information (Optional)',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.primaryDark.withOpacity(0.8),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          iconColor: AppColors.warmBrown,
+                          collapsedIconColor: AppColors.warmBrown.withOpacity(0.6),
+                          children: [
+                            SizedBox(height: AppSpacing.small),
+                            // Date of Birth
+                            _buildPillDatePicker(isMobile: isMobile),
+                            SizedBox(height: AppSpacing.medium),
+                            // Bio
+                            _buildPillTextField(
+                              controller: _bioController,
+                              hintText: 'Tell us about yourself...',
+                              icon: Icons.description_outlined,
+                              maxLines: 3,
+                              isMobile: isMobile,
+                            ),
+                            SizedBox(height: AppSpacing.medium),
+                          ],
+                        ),
+                        
+                        SizedBox(height: AppSpacing.extraLarge),
+                        
+                        // Buttons Row
+                        if (isMobile)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildPillButton(
+                                label: 'Create Account',
+                                onPressed: _isLoading ? null : _handleRegister,
+                                isOutlined: false,
+                                isLoading: _isLoading,
+                              ),
+                              SizedBox(height: AppSpacing.medium),
+                              _buildPillButton(
+                                label: 'Back to Login',
+                                onPressed: () => Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(builder: (_) => const LandingScreenWeb()),
+                                ),
+                                isOutlined: true,
+                              ),
+                            ],
+                          )
+                        else
+                          Wrap(
+                            spacing: AppSpacing.medium,
+                            runSpacing: AppSpacing.medium,
+                            children: [
+                              _buildPillButton(
+                                label: 'Back to Login',
+                                onPressed: () => Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(builder: (_) => const LandingScreenWeb()),
+                                ),
+                                isOutlined: true,
+                                width: 180,
+                              ),
+                              _buildPillButton(
+                                label: 'Create Account',
+                                onPressed: _isLoading ? null : _handleRegister,
+                                isOutlined: false,
+                                isLoading: _isLoading,
+                                width: 200,
+                              ),
+                            ],
+                          ),
+                        
+                        SizedBox(height: AppSpacing.extraLarge),
+                        
+                        // Login link
+                        Row(
+                          children: [
+                            Text(
+                              'Already have an account? ',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.primaryDark.withOpacity(0.6),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(builder: (_) => const LandingScreenWeb()),
+                              ),
+                              child: Text(
+                                'Sign In',
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: AppColors.warmBrown,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth >= 1024;
-
-    return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      body: Container(
-        padding: ResponsiveGridDelegate.getResponsivePadding(context),
-        child: Center(
-          child: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isDesktop ? 800 : 600,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header with back button
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                        onPressed: () => Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (_) => const LandingScreenWeb(),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: StyledPageHeader(
-                          title: 'Create Account',
-                          size: StyledPageHeaderSize.h2,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.extraLarge),
-
-                  // Registration Form Container
-                  SectionContainer(
-                    showShadow: true,
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Subtitle
-                          Text(
-                            'Join Christ New Tabernacle and start sharing your content',
-                            style: AppTypography.body.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: AppSpacing.extraLarge),
-
-                          // Required Fields Section
-                          if (isDesktop)
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      TextFormField(
-                                        controller: _nameController,
-                                        style: AppTypography.body.copyWith(
-                                          color: AppColors.textPrimary,
-                                        ),
-                                        decoration: _buildInputDecoration('Full Name', Icons.person_outline),
-                                        onChanged: (_) => _generateUsernamePreview(),
-                                        validator: (value) {
-                                          if (value == null || value.isEmpty) {
-                                            return 'Please enter your name';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                      const SizedBox(height: AppSpacing.large),
-                                      TextFormField(
-                                        controller: _emailController,
-                                        keyboardType: TextInputType.emailAddress,
-                                        style: AppTypography.body.copyWith(
-                                          color: AppColors.textPrimary,
-                                        ),
-                                        decoration: _buildInputDecoration('Email', Icons.email_outlined),
-                                        onChanged: (_) => _generateUsernamePreview(),
-                                        validator: (value) {
-                                          if (value == null || value.isEmpty) {
-                                            return 'Please enter your email';
-                                          }
-                                          if (!value.contains('@') || !value.contains('.')) {
-                                            return 'Please enter a valid email';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.large),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      TextFormField(
-                                        controller: _passwordController,
-                                        obscureText: _obscurePassword,
-                                        style: AppTypography.body.copyWith(
-                                          color: AppColors.textPrimary,
-                                        ),
-                                        decoration: _buildInputDecoration('Password', Icons.lock_outline).copyWith(
-                                          suffixIcon: IconButton(
-                                            icon: Icon(
-                                              _obscurePassword
-                                                  ? Icons.visibility_outlined
-                                                  : Icons.visibility_off_outlined,
-                                              color: AppColors.textSecondary,
-                                            ),
-                                            onPressed: () {
-                                              setState(() {
-                                                _obscurePassword = !_obscurePassword;
-                                              });
-                                            },
-                                          ),
-                                        ),
-                                        validator: (value) {
-                                          if (value == null || value.isEmpty) {
-                                            return 'Please enter a password';
-                                          }
-                                          if (value.length < 8) {
-                                            return 'Password must be at least 8 characters';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                      const SizedBox(height: AppSpacing.large),
-                                      TextFormField(
-                                        controller: _phoneController,
-                                        keyboardType: TextInputType.phone,
-                                        style: AppTypography.body.copyWith(
-                                          color: AppColors.textPrimary,
-                                        ),
-                                        decoration: _buildInputDecoration('Phone', Icons.phone_outlined, isOptional: true),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            )
-                          else
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                TextFormField(
-                                  controller: _nameController,
-                                  style: AppTypography.body.copyWith(
-                                    color: AppColors.textPrimary,
-                                  ),
-                                  decoration: _buildInputDecoration('Full Name', Icons.person_outline),
-                                  onChanged: (_) => _generateUsernamePreview(),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter your name';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: AppSpacing.large),
-                                TextFormField(
-                                  controller: _emailController,
-                                  keyboardType: TextInputType.emailAddress,
-                                  style: AppTypography.body.copyWith(
-                                    color: AppColors.textPrimary,
-                                  ),
-                                  decoration: _buildInputDecoration('Email', Icons.email_outlined),
-                                  onChanged: (_) => _generateUsernamePreview(),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter your email';
-                                    }
-                                    if (!value.contains('@') || !value.contains('.')) {
-                                      return 'Please enter a valid email';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: AppSpacing.large),
-                                TextFormField(
-                                  controller: _passwordController,
-                                  obscureText: _obscurePassword,
-                                  style: AppTypography.body.copyWith(
-                                    color: AppColors.textPrimary,
-                                  ),
-                                  decoration: _buildInputDecoration('Password', Icons.lock_outline).copyWith(
-                                    suffixIcon: IconButton(
-                                      icon: Icon(
-                                        _obscurePassword
-                                            ? Icons.visibility_outlined
-                                            : Icons.visibility_off_outlined,
-                                        color: AppColors.textSecondary,
-                                      ),
-                                      onPressed: () {
-                                        setState(() {
-                                          _obscurePassword = !_obscurePassword;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter a password';
-                                    }
-                                    if (value.length < 8) {
-                                      return 'Password must be at least 8 characters';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: AppSpacing.large),
-                                TextFormField(
-                                  controller: _phoneController,
-                                  keyboardType: TextInputType.phone,
-                                  style: AppTypography.body.copyWith(
-                                    color: AppColors.textPrimary,
-                                  ),
-                                  decoration: _buildInputDecoration('Phone', Icons.phone_outlined, isOptional: true),
-                                ),
-                              ],
-                            ),
-
-                          // Username preview
-                          if (_generatedUsername != null) ...[
-                            const SizedBox(height: AppSpacing.medium),
-                            Container(
-                              padding: EdgeInsets.all(AppSpacing.medium),
-                              decoration: BoxDecoration(
-                                color: AppColors.warmBrown.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                                border: Border.all(
-                                  color: AppColors.warmBrown.withOpacity(0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: AppColors.warmBrown,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: AppSpacing.small),
-                                  Expanded(
-                                    child: Text(
-                                      'Your username will be: $_generatedUsername',
-                                      style: AppTypography.bodySmall.copyWith(
-                                        color: AppColors.warmBrown,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-
-                          const SizedBox(height: AppSpacing.large),
-
-                          // Optional Fields Section
-                          Text(
-                            'Additional Information (Optional)',
-                            style: AppTypography.heading4.copyWith(
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.medium),
-                          Text(
-                            'These fields help us personalize your experience',
-                            style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.large),
-
-                          // Date of Birth
-                          InkWell(
-                            onTap: _selectDateOfBirth,
-                            child: InputDecorator(
-                              decoration: _buildInputDecoration('Date of Birth', Icons.calendar_today_outlined, isOptional: true),
-                              child: Text(
-                                _selectedDateOfBirth == null
-                                    ? 'Select date'
-                                    : DateFormat('yyyy-MM-dd').format(_selectedDateOfBirth!),
-                                style: AppTypography.body.copyWith(
-                                  color: _selectedDateOfBirth == null
-                                      ? AppColors.textSecondary
-                                      : AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.large),
-
-                          // Bio
-                          TextFormField(
-                            controller: _bioController,
-                            maxLines: 3,
-                            style: AppTypography.body.copyWith(
-                              color: AppColors.textPrimary,
-                            ),
-                            decoration: _buildInputDecoration('Bio', Icons.description_outlined, isOptional: true).copyWith(
-                              alignLabelWithHint: true,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.extraLarge),
-
-                          // Register Button
-                          StyledPillButton(
-                            label: 'Create Account',
-                            icon: Icons.person_add,
-                            onPressed: _isLoading ? null : _handleRegister,
-                            isLoading: _isLoading,
-                            width: double.infinity,
-                          ),
-                          // Google Sign-In temporarily disabled
-                          // Uncomment below to enable Google Sign-In
-                          /*
-                          const SizedBox(height: AppSpacing.large),
-
-                          // Divider
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Divider(
-                                  color: AppColors.borderPrimary,
-                                  thickness: 1,
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium),
-                                child: Text(
-                                  'OR',
-                                  style: AppTypography.bodySmall.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: Divider(
-                                  color: AppColors.borderPrimary,
-                                  thickness: 1,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.large),
-
-                          // Google Sign-In Button
-                          OutlinedButton.icon(
-                            onPressed: _isLoading ? null : _handleGoogleSignIn,
-                            icon: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Icon(
-                                Icons.g_mobiledata,
-                                size: 18,
-                                color: Color(0xFF4285F4), // Google Blue
-                              ),
-                            ),
-                            label: Text(
-                              'Sign up with Google',
-                              style: AppTypography.button.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(
-                                vertical: AppSpacing.medium,
-                              ),
-                              side: BorderSide(color: AppColors.borderPrimary),
-                              foregroundColor: AppColors.textPrimary,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                              ),
-                            ),
-                          ),
-                          */
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.large),
-
-                  // Login Link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Already have an account? ',
-                        style: AppTypography.body.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (_) => const LandingScreenWeb(),
-                            ),
-                          );
-                        },
-                        child: Text(
-                          'Sign In',
-                          style: AppTypography.body.copyWith(
-                            color: AppColors.warmBrown,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+  /// Header with logo - matching landing page
+  Widget _buildHeader(bool isMobile) {
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+          right: AppSpacing.extraLarge,
+          top: AppSpacing.large,
+          bottom: AppSpacing.large,
+        ),
+        child: Row(
+          children: [
+            // Logo
+            Icon(
+              Icons.church,
+              color: AppColors.warmBrown,
+              size: isMobile ? 28 : 32,
+            ),
+            SizedBox(width: AppSpacing.small),
+            Text(
+              'Christ New Tabernacle',
+              style: AppTypography.heading3.copyWith(
+                color: AppColors.primaryDark,
+                fontWeight: FontWeight.bold,
+                fontSize: isMobile ? 16 : 20,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Pill-shaped text field matching hero section design
+  Widget _buildPillTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required IconData icon,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    int maxLines = 1,
+    void Function(String)? onChanged,
+    String? Function(String?)? validator,
+    required bool isMobile,
+  }) {
+    final maxWidth = isMobile ? double.infinity : 450.0;
+    
+    return Container(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 30),
+        border: Border.all(
+          color: AppColors.warmBrown.withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        obscureText: obscureText,
+        maxLines: maxLines,
+        onChanged: onChanged,
+        validator: validator,
+        style: AppTypography.body.copyWith(
+          color: AppColors.primaryDark,
+          fontSize: isMobile ? 14 : 15,
+        ),
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: AppTypography.body.copyWith(
+            color: AppColors.primaryDark.withOpacity(0.4),
+            fontSize: isMobile ? 14 : 15,
+          ),
+          prefixIcon: Padding(
+            padding: EdgeInsets.only(left: AppSpacing.large, right: AppSpacing.small),
+            child: Icon(
+              icon,
+              color: AppColors.warmBrown.withOpacity(0.7),
+              size: 20,
+            ),
+          ),
+          prefixIconConstraints: const BoxConstraints(minWidth: 48),
+          suffixIcon: suffixIcon,
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.large,
+            vertical: maxLines > 1 ? AppSpacing.medium : AppSpacing.medium + 4,
+          ),
+          errorStyle: TextStyle(
+            color: AppColors.errorMain,
+            fontSize: 12,
           ),
         ),
+      ),
+    );
+  }
+
+  /// Pill-shaped date picker
+  Widget _buildPillDatePicker({required bool isMobile}) {
+    final maxWidth = isMobile ? double.infinity : 450.0;
+    
+    return GestureDetector(
+      onTap: _selectDateOfBirth,
+      child: Container(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: AppColors.warmBrown.withOpacity(0.2),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.symmetric(
+          horizontal: AppSpacing.large,
+          vertical: AppSpacing.medium + 4,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.calendar_today_outlined,
+              color: AppColors.warmBrown.withOpacity(0.7),
+              size: 20,
+            ),
+            SizedBox(width: AppSpacing.medium),
+            Expanded(
+              child: Text(
+                _selectedDateOfBirth == null
+                    ? 'Date of Birth (optional)'
+                    : DateFormat('MMMM d, yyyy').format(_selectedDateOfBirth!),
+                style: AppTypography.body.copyWith(
+                  color: _selectedDateOfBirth == null
+                      ? AppColors.primaryDark.withOpacity(0.4)
+                      : AppColors.primaryDark,
+                  fontSize: isMobile ? 14 : 15,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.arrow_drop_down,
+              color: AppColors.warmBrown.withOpacity(0.6),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Pill-shaped button matching hero section design
+  Widget _buildPillButton({
+    required String label,
+    required VoidCallback? onPressed,
+    required bool isOutlined,
+    double? width,
+    bool isLoading = false,
+  }) {
+    return SizedBox(
+      width: width,
+      height: 52,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isOutlined ? Colors.transparent : AppColors.warmBrown,
+          foregroundColor: isOutlined ? AppColors.warmBrown : Colors.white,
+          elevation: isOutlined ? 0 : 3,
+          shadowColor: AppColors.warmBrown.withOpacity(0.4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(26),
+            side: isOutlined
+                ? BorderSide(color: AppColors.warmBrown, width: 2)
+                : BorderSide.none,
+          ),
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.extraLarge + 8,
+            vertical: AppSpacing.medium,
+          ),
+        ),
+        child: isLoading
+            ? SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isOutlined ? AppColors.warmBrown : Colors.white,
+                  ),
+                ),
+              )
+            : Text(
+                label,
+                style: AppTypography.button.copyWith(
+                  color: isOutlined ? AppColors.warmBrown : Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  letterSpacing: 0.3,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.visible,
+              ),
       ),
     );
   }
