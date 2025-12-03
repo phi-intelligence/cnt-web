@@ -1,0 +1,102 @@
+name: cnt_media_platform_web
+description: "CNT Media Platform - Web Application Only"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  provider: ^6.1.1
+  # Remove: flutter_riverpod: ^2.4.9  # Not needed for web
+  
+  # HTTP & WebSocket
+  http: ^1.1.0
+  socket_io_client: ^2.0.3+1
+  dio: ^5.4.0
+  web_socket_channel: ^2.4.0
+  
+  # Media Players
+  just_audio: ^0.9.36
+  video_player: ^2.8.2
+  # Remove: audioplayers: ^5.2.1  # Use just_audio for web
+  # Remove: audio_session: ^0.1.18  # Mobile only
+  
+  # Storage (web-compatible)
+  shared_preferences: ^2.2.2
+  flutter_secure_storage: ^9.0.0
+  # Remove: sqflite: ^2.3.0+2  # Mobile only
+  path_provider: ^2.1.1  # For mobile compatibility in conditional code
+  
+  # UI
+  cached_network_image: ^3.3.1
+  flutter_animate: ^4.5.0
+  google_fonts: ^6.1.0
+  flutter_svg: ^2.0.9
+  shimmer: ^3.0.0
+  glassmorphism: ^3.0.0
+  
+  # Camera & Media (supports web)
+  camera: ^0.10.5+2  # Web support via camera_web plugin (auto-included)
+  record: ^6.1.2  # Mobile only, but needed for conditional code
+  
+  # Web audio recording support (using dart:html directly)
+  
+  # Connectivity
+  connectivity_plus: ^6.1.5
+  device_info_plus: ^11.3.3
+  
+  # Permissions (web-compatible)
+  # Remove: permission_handler: ^11.1.0  # Mobile only
+  image_picker: ^1.0.7  # Supports web in newer versions
+  file_picker: ^8.1.0  # Keep for additional file types
+  
+  # Utils
+  intl: ^0.20.2
+  uuid: ^4.2.1
+  url_launcher: ^6.2.2
+  webview_flutter: ^4.4.2
+  pdfx: ^2.4.0
+  
+  # Google Services
+  google_sign_in: ^6.2.1
+  googleapis: ^13.0.0
+  googleapis_auth: ^1.5.0
+  
+  # Video Conferencing & Live Streaming (LiveKit ONLY)
+  livekit_client: ^2.1.0
+  # Remove: jitsi_meet_flutter_sdk: ^11.6.0  # REMOVED - using LiveKit only
+  
+  # Payment Gateways
+  flutter_stripe: ^10.1.1
+  
+  # Routing
+  go_router: ^13.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true
+  
+  # Assets
+  assets:
+    - assets/images/
+  
+  # Fonts commented out until files exist
+  # fonts:
+  #   - family: Inter
+  #     fonts:
+  #       - asset: assets/fonts/Inter-Regular.ttf
+  #       - asset: assets/fonts/Inter-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/Inter-SemiBold.ttf
+  #         weight: 600
+  #       - asset: assets/fonts/Inter-Bold.ttf
+  #         weight: 700

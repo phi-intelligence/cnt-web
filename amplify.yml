@@ -1,0 +1,30 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - |
+          echo "Installing Flutter SDK..."
+          git clone https://github.com/flutter/flutter.git -b stable --depth 1
+          export PATH="$PATH:$PWD/flutter/bin"
+          flutter doctor
+        - cd web/frontend
+        - flutter pub get
+        - flutter clean
+    build:
+      commands:
+        - |
+          export PATH="$PATH:$PWD/flutter/bin"
+          cd web/frontend
+          flutter build web --release --no-source-maps --dart-define=API_BASE_URL=$API_BASE_URL --dart-define=MEDIA_BASE_URL=$MEDIA_BASE_URL --dart-define=LIVEKIT_WS_URL=$LIVEKIT_WS_URL --dart-define=LIVEKIT_HTTP_URL=$LIVEKIT_HTTP_URL --dart-define=WEBSOCKET_URL=$WEBSOCKET_URL --dart-define=ENVIRONMENT=production
+    postBuild:
+      commands:
+        - echo "Build completed successfully"
+  artifacts:
+    baseDirectory: web/frontend/build/web
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - web/frontend/.dart_tool/pub/bin/**
+      - flutter/.pub-cache/**
