@@ -255,6 +255,94 @@ class AuthProvider extends ChangeNotifier {
       return {'available': false, 'error': e.toString()};
     }
   }
+  
+  /// Send OTP to email
+  Future<bool> sendOTP(String email) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    
+    try {
+      final result = await _authService.sendOTP(email);
+      _error = null;
+      return result['success'] == true;
+    } catch (e) {
+      _error = e.toString().replaceAll('Exception: ', '');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+  
+  /// Verify OTP code
+  Future<bool> verifyOTP(String email, String otpCode) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    
+    try {
+      final result = await _authService.verifyOTP(email, otpCode);
+      if (result['success'] == true) {
+        _error = null;
+        return true;
+      } else {
+        _error = result['message'] ?? 'Verification failed';
+        return false;
+      }
+    } catch (e) {
+      _error = e.toString().replaceAll('Exception: ', '');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+  
+  /// Register with OTP verification
+  Future<bool> registerWithOTP({
+    required String email,
+    required String otpCode,
+    required String password,
+    required String name,
+    String? phone,
+    DateTime? dateOfBirth,
+    String? bio,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    
+    try {
+      final data = await _authService.registerWithOTP(
+        email: email,
+        otpCode: otpCode,
+        password: password,
+        name: name,
+        phone: phone,
+        dateOfBirth: dateOfBirth,
+        bio: bio,
+      );
+      _user = {
+        'id': data['user_id'],
+        'username': data['username'],
+        'email': data['email'],
+        'name': data['name'],
+        'is_admin': data['is_admin'],
+      };
+      _isAuthenticated = true;
+      _error = null;
+      return true;
+    } catch (e) {
+      _error = e.toString().replaceAll('Exception: ', '');
+      _isAuthenticated = false;
+      _user = null;
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
   Future<void> updateCachedUser(Map<String, dynamic> updates) async {
     Map<String, dynamic>? baseUser = _user;

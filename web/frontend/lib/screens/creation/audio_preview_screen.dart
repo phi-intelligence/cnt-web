@@ -247,12 +247,6 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
   }
 
   Future<void> _handlePublish() async {
-    // Check bank details before publishing
-    final hasBankDetails = await checkBankDetailsAndNavigate(context);
-    if (!hasBankDetails || !mounted) {
-      return; // User cancelled or navigated away
-    }
-
     // Validate required fields
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -274,7 +268,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
       final audioUrl = audioUploadResponse['url'] as String;
 
       // Create podcast with thumbnail
-      await ApiService().createPodcast(
+      final response = await ApiService().createPodcast(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim().isEmpty 
             ? null 
@@ -293,15 +287,22 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
       // Clear saved state after successful publish
       await StatePersistence.clearAudioPreviewState();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Audio podcast published successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      // Navigate to home
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      // Check if bank details are missing and show prompt
+      final bankDetailsMissing = response['bank_details_missing'] == true;
+      
+      if (bankDetailsMissing && mounted) {
+        // Show bank details prompt (handles navigation)
+        await showBankDetailsPromptAfterPublish(context);
+      } else {
+        // Just show success and navigate
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Audio podcast published successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
     } catch (e) {
       if (!mounted) return;
 

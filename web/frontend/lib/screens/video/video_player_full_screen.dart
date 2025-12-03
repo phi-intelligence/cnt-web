@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'dart:async';
 import '../../theme/app_colors.dart';
@@ -65,6 +66,18 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
   // Mouse movement detection
   Timer? _hideControlsTimer;
   bool _isMouseOverVideo = false;
+  
+  // Volume control
+  double _volume = 1.0;
+  bool _isMuted = false;
+  bool _showVolumeSlider = false;
+  
+  // Playback speed
+  double _playbackSpeed = 1.0;
+  final List<double> _availableSpeeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+  
+  // Focus node for keyboard shortcuts
+  final FocusNode _focusNode = FocusNode();
 
   ContentItem get _currentItem => _playlist[_currentIndex];
   bool get _hasNext => _currentIndex < _playlist.length - 1;
@@ -112,6 +125,80 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
         }
       });
     }
+    
+    // Request focus for keyboard shortcuts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
+  }
+  
+  /// Handle keyboard shortcuts
+  void _handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) return;
+    
+    switch (event.logicalKey.keyLabel) {
+      case ' ': // Space - Play/Pause
+        _togglePlayPause();
+        break;
+      case 'Arrow Left': // Left arrow - Skip back 10s
+        _skipBackward();
+        break;
+      case 'Arrow Right': // Right arrow - Skip forward 10s
+        _skipForward();
+        break;
+      case 'Arrow Up': // Up arrow - Volume up
+        _adjustVolume(0.1);
+        break;
+      case 'Arrow Down': // Down arrow - Volume down
+        _adjustVolume(-0.1);
+        break;
+      case 'F': // F - Toggle fullscreen
+      case 'f':
+        _toggleFullscreen();
+        break;
+      case 'M': // M - Toggle mute
+      case 'm':
+        _toggleMute();
+        break;
+    }
+  }
+  
+  void _skipForward() {
+    if (_controller == null || !_controller!.value.isInitialized) return;
+    final newPosition = _controller!.value.position + const Duration(seconds: 10);
+    final maxPosition = _controller!.value.duration;
+    _controller!.seekTo(newPosition > maxPosition ? maxPosition : newPosition);
+    _showControlsWithAutoHide();
+  }
+  
+  void _skipBackward() {
+    if (_controller == null || !_controller!.value.isInitialized) return;
+    final newPosition = _controller!.value.position - const Duration(seconds: 10);
+    _controller!.seekTo(newPosition.isNegative ? Duration.zero : newPosition);
+    _showControlsWithAutoHide();
+  }
+  
+  void _adjustVolume(double delta) {
+    final newVolume = (_volume + delta).clamp(0.0, 1.0);
+    setState(() {
+      _volume = newVolume;
+      _isMuted = newVolume == 0;
+    });
+    _controller?.setVolume(newVolume);
+  }
+  
+  void _toggleMute() {
+    setState(() {
+      _isMuted = !_isMuted;
+    });
+    _controller?.setVolume(_isMuted ? 0 : _volume);
+  }
+  
+  void _setPlaybackSpeed(double speed) {
+    setState(() {
+      _playbackSpeed = speed;
+    });
+    _controller?.setPlaybackSpeed(speed);
   }
 
   Future<void> _initializePlayer() async {
@@ -305,12 +392,17 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
     _hideControlsTimer?.cancel();
     _controller?.removeListener(_videoListener);
     _controller?.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return KeyboardListener(
+      focusNode: _focusNode,
+      onKeyEvent: _handleKeyEvent,
+      autofocus: true,
+      child: Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -432,41 +524,6 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                             ),
                           ),
 
-                        // Play/Pause Overlay (center, large button)
-                        if (!_isInitializing && !_hasError && _controller != null && (!_controller!.value.isPlaying || _isMouseOverVideo))
-                          Positioned.fill(
-                            child: Center(
-                              child: MouseRegion(
-                                cursor: SystemMouseCursors.click,
-                                child: GestureDetector(
-                                  onTap: _togglePlayPause,
-                                  child: Container(
-                                    width: 80,
-                                    height: 80,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: AppColors.primaryMain.withOpacity(0.9),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.3),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(
-                                      _controller!.value.isPlaying
-                                          ? Icons.pause
-                                          : Icons.play_arrow,
-                                      color: Colors.white,
-                                      size: 48,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        
                         // Floating Back Button (always visible, especially in fullscreen)
                         if (_isFullscreen && _showControls && widget.onBack != null)
                           Positioned(
@@ -516,10 +573,10 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      AppColors.primaryMain.withOpacity(0.1),
-                      AppColors.primaryMain.withOpacity(0.3),
+                      Colors.black.withOpacity(0.4),
+                      Colors.black.withOpacity(0.8),
                     ],
-                    stops: const [0.0, 0.5, 1.0],
+                    stops: const [0.0, 0.4, 1.0],
                   ),
                 ),
                 child: Column(
@@ -547,9 +604,9 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                                       ? _controller!.value.duration.inSeconds.toDouble()
                                       : widget.duration.toDouble())
                                   .clamp(1.0, double.infinity), // Minimum 1 to avoid division by zero
-                              activeColor: AppColors.primaryMain,
-                              inactiveColor: AppColors.primaryMain.withOpacity(0.3),
-                              thumbColor: AppColors.primaryMain,
+                              activeColor: Colors.white,
+                              inactiveColor: Colors.white.withOpacity(0.3),
+                              thumbColor: Colors.white,
                               onChangeStart: (value) {
                                 setState(() {
                                   _isScrubbing = true;
@@ -583,11 +640,11 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                           cursor: SystemMouseCursors.click,
                           child: IconButton(
                             icon: Icon(
-                              _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                              _isFullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
                             ),
-                            color: AppColors.primaryMain,
+                            color: Colors.white,
                             onPressed: _toggleFullscreen,
-                            tooltip: _isFullscreen ? 'Exit Fullscreen' : 'Fullscreen',
+                            tooltip: _isFullscreen ? 'Exit Fullscreen (F)' : 'Fullscreen (F)',
                           ),
                         ),
                       ],
@@ -598,14 +655,15 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                         Text(
                           _formatTime(_currentTime),
                           style: AppTypography.caption.copyWith(
-                            color: AppColors.textPrimary,
+                            color: Colors.white,
                             fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                         Text(
                           _formatTime(_controller?.value.duration.inSeconds ?? widget.duration),
                           style: AppTypography.caption.copyWith(
-                            color: AppColors.textPrimary,
+                            color: Colors.white.withOpacity(0.7),
                             fontSize: 12,
                           ),
                         ),
@@ -613,18 +671,33 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                     ),
                     const SizedBox(height: AppSpacing.large),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        // Previous
                         MouseRegion(
                           cursor: _hasPrevious ? SystemMouseCursors.click : SystemMouseCursors.basic,
                           child: IconButton(
-                            icon: const Icon(Icons.skip_previous),
-                            color: _hasPrevious ? AppColors.primaryMain : AppColors.primaryMain.withOpacity(0.3),
-                            iconSize: 32,
+                            icon: const Icon(Icons.skip_previous_rounded),
+                            color: _hasPrevious ? Colors.white : Colors.white.withOpacity(0.3),
+                            iconSize: 28,
                             onPressed: _hasPrevious ? _playPrevious : null,
                             tooltip: 'Previous',
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        // Skip back 10s
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: IconButton(
+                            icon: const Icon(Icons.replay_10_rounded),
+                            color: Colors.white,
+                            iconSize: 32,
+                            onPressed: _skipBackward,
+                            tooltip: 'Skip back 10s',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Play/Pause
                         MouseRegion(
                           cursor: SystemMouseCursors.click,
                           child: GestureDetector(
@@ -634,34 +707,131 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                               height: 64,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: AppColors.primaryMain.withOpacity(0.9),
+                                color: Colors.white,
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
                                   ),
                                 ],
                               ),
                               child: Icon(
                                 _controller != null && _controller!.value.isPlaying
-                                    ? Icons.pause
-                                    : Icons.play_arrow,
-                                color: Colors.white,
+                                    ? Icons.pause_rounded
+                                    : Icons.play_arrow_rounded,
+                                color: AppColors.primaryDark,
                                 size: 40,
                               ),
                             ),
                           ),
                         ),
+                        const SizedBox(width: 12),
+                        // Skip forward 10s
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: IconButton(
+                            icon: const Icon(Icons.forward_10_rounded),
+                            color: Colors.white,
+                            iconSize: 32,
+                            onPressed: _skipForward,
+                            tooltip: 'Skip forward 10s',
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Next
                         MouseRegion(
                           cursor: _hasNext ? SystemMouseCursors.click : SystemMouseCursors.basic,
                           child: IconButton(
-                            icon: const Icon(Icons.skip_next),
-                            color: _hasNext ? AppColors.primaryMain : AppColors.primaryMain.withOpacity(0.3),
-                            iconSize: 32,
+                            icon: const Icon(Icons.skip_next_rounded),
+                            color: _hasNext ? Colors.white : Colors.white.withOpacity(0.3),
+                            iconSize: 28,
                             onPressed: _hasNext ? _playNext : null,
                             tooltip: 'Next',
                           ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.medium),
+                    // Bottom row with volume and speed
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Volume control
+                        MouseRegion(
+                          onEnter: (_) => setState(() => _showVolumeSlider = true),
+                          onExit: (_) => setState(() => _showVolumeSlider = false),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  _isMuted || _volume == 0
+                                      ? Icons.volume_off_rounded
+                                      : _volume < 0.5
+                                          ? Icons.volume_down_rounded
+                                          : Icons.volume_up_rounded,
+                                  color: Colors.white,
+                                ),
+                                onPressed: _toggleMute,
+                                tooltip: _isMuted ? 'Unmute' : 'Mute',
+                              ),
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                width: _showVolumeSlider ? 100 : 0,
+                                child: _showVolumeSlider
+                                    ? SliderTheme(
+                                        data: SliderTheme.of(context).copyWith(
+                                          trackHeight: 3,
+                                          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                                          overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                                          activeTrackColor: Colors.white,
+                                          inactiveTrackColor: Colors.white.withOpacity(0.3),
+                                          thumbColor: Colors.white,
+                                        ),
+                                        child: Slider(
+                                          value: _isMuted ? 0 : _volume,
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _volume = value;
+                                              _isMuted = value == 0;
+                                            });
+                                            _controller?.setVolume(value);
+                                          },
+                                        ),
+                                      )
+                                    : const SizedBox(),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Playback speed
+                        PopupMenuButton<double>(
+                          initialValue: _playbackSpeed,
+                          onSelected: _setPlaybackSpeed,
+                          tooltip: 'Playback speed',
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '${_playbackSpeed}x',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                          itemBuilder: (context) => _availableSpeeds.map((speed) {
+                            return PopupMenuItem<double>(
+                              value: speed,
+                              child: Text(
+                                '${speed}x',
+                                style: TextStyle(
+                                  fontWeight: _playbackSpeed == speed ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              ),
+                            );
+                          }).toList(),
                         ),
                       ],
                     ),
@@ -681,6 +851,7 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }

@@ -184,40 +184,44 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   }
 
   Future<void> _handlePublish() async {
-    // Check bank details before publishing
-    final hasBankDetails = await checkBankDetailsAndNavigate(context);
-    if (!hasBankDetails || !mounted) {
-      return; // User cancelled or navigated away
-    }
-
     setState(() {
       _isLoading = true;
     });
 
-    Future.delayed(const Duration(seconds: 2), () {
+    // TODO: Implement actual video publish with API
+    // For now, simulate publish success
+    Future.delayed(const Duration(seconds: 2), () async {
       if (!mounted) return;
       
       setState(() {
         _isLoading = false;
       });
 
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Video Published'),
-          content: const Text('Your video podcast has been published and shared with the community!'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                // Navigate to home
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+      // Check if bank details are missing
+      final hasBankDetailsValue = await hasBankDetails(context);
+      
+      if (!hasBankDetailsValue && mounted) {
+        // Show bank details prompt (handles navigation)
+        await showBankDetailsPromptAfterPublish(context);
+      } else if (mounted) {
+        // Just show success and navigate
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Video Published'),
+            content: const Text('Your video podcast has been published and shared with the community!'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
     });
   }
 

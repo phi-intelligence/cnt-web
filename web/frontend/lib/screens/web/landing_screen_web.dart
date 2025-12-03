@@ -129,6 +129,33 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
     }
   }
 
+  Future<void> _handleGoogleLogin(BuildContext dialogContext) async {
+    setState(() => _isLoading = true);
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.googleLogin();
+
+    setState(() => _isLoading = false);
+
+    if (mounted) {
+      if (success) {
+        Navigator.of(dialogContext).pop();
+        if (authProvider.isAdmin) {
+          context.go('/admin');
+        } else {
+          context.go('/home');
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.error ?? 'Google sign-in failed'),
+            backgroundColor: AppColors.errorMain,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1611,6 +1638,67 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                   onPressed: _isLoading ? null : _handleLogin,
                   isLoading: _isLoading,
                   width: double.infinity,
+                ),
+                SizedBox(height: AppSpacing.large),
+                
+                // Divider with OR
+                Row(
+                  children: [
+                    Expanded(
+                      child: Divider(
+                        color: AppColors.borderPrimary,
+                        thickness: 1,
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium),
+                      child: Text(
+                        'OR',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Divider(
+                        color: AppColors.borderPrimary,
+                        thickness: 1,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: AppSpacing.large),
+                
+                // Google Sign-In Button
+                OutlinedButton.icon(
+                  onPressed: _isLoading ? null : () => _handleGoogleLogin(dialogContext),
+                  icon: Image.network(
+                    'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                    height: 20,
+                    width: 20,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.g_mobiledata,
+                      size: 24,
+                      color: Color(0xFF4285F4),
+                    ),
+                  ),
+                  label: Text(
+                    'Continue with Google',
+                    style: AppTypography.button.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(
+                      vertical: AppSpacing.medium + 2,
+                      horizontal: AppSpacing.large,
+                    ),
+                    side: BorderSide(color: AppColors.borderPrimary),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  ),
                 ),
                 SizedBox(height: AppSpacing.large),
                 

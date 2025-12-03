@@ -295,6 +295,147 @@ class AuthService {
     }
   }
   
+  /// Send OTP to email for verification
+  Future<Map<String, dynamic>> sendOTP(String email) async {
+    try {
+      print('📧 Sending OTP to: $email');
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/send-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+        }),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('Connection timeout. Please try again.');
+        },
+      );
+      
+      print('📡 Send OTP response status: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('✅ OTP sent successfully');
+        return data;
+      } else {
+        final errorBody = response.body;
+        print('❌ Send OTP failed: $errorBody');
+        try {
+          final error = jsonDecode(errorBody);
+          throw Exception(error['detail'] ?? 'Failed to send verification code');
+        } catch (_) {
+          throw Exception('Failed to send verification code');
+        }
+      }
+    } catch (e) {
+      print('💥 Send OTP exception: $e');
+      rethrow;
+    }
+  }
+  
+  /// Verify OTP code
+  Future<Map<String, dynamic>> verifyOTP(String email, String otpCode) async {
+    try {
+      print('🔐 Verifying OTP for: $email');
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/verify-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'otp_code': otpCode,
+        }),
+      ).timeout(const Duration(seconds: 15));
+      
+      print('📡 Verify OTP response status: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('✅ OTP verification result: ${data['success']}');
+        return data;
+      } else {
+        final errorBody = response.body;
+        print('❌ Verify OTP failed: $errorBody');
+        try {
+          final error = jsonDecode(errorBody);
+          throw Exception(error['detail'] ?? 'Verification failed');
+        } catch (_) {
+          throw Exception('Verification failed');
+        }
+      }
+    } catch (e) {
+      print('💥 Verify OTP exception: $e');
+      rethrow;
+    }
+  }
+  
+  /// Register with OTP verification
+  Future<Map<String, dynamic>> registerWithOTP({
+    required String email,
+    required String otpCode,
+    required String password,
+    required String name,
+    String? phone,
+    DateTime? dateOfBirth,
+    String? bio,
+  }) async {
+    try {
+      print('📝 Registering with OTP to: $baseUrl/auth/register-with-otp');
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/register-with-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'otp_code': otpCode,
+          'password': password,
+          'name': name,
+          if (phone != null) 'phone': phone,
+          if (dateOfBirth != null) 'date_of_birth': dateOfBirth.toIso8601String(),
+          if (bio != null) 'bio': bio,
+        }),
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw Exception('Connection timeout. Please check your network connection.');
+        },
+      );
+      
+      print('📡 Register with OTP response status: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        // Store token and user data
+        await _storage.write(key: _tokenKey, value: data['access_token']);
+        await _storage.write(key: _userKey, value: jsonEncode({
+          'id': data['user_id'],
+          'username': data['username'],
+          'email': data['email'],
+          'name': data['name'],
+          'is_admin': data['is_admin'],
+        }));
+        
+        print('✅ Registration with OTP successful');
+        return data;
+      } else {
+        final errorBody = response.body;
+        print('❌ Register with OTP failed: $errorBody');
+        try {
+          final error = jsonDecode(errorBody);
+          throw Exception(error['detail'] ?? 'Registration failed');
+        } catch (_) {
+          throw Exception('Registration failed');
+        }
+      }
+    } catch (e) {
+      print('💥 Register with OTP exception: $e');
+      rethrow;
+    }
+  }
+  
   /// Get authorization header (checks token expiration)
   Future<Map<String, String>> getAuthHeaders() async {
     final token = await getToken();

@@ -358,12 +358,15 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
     if (_previewController != null && 
         _previewController!.value.isInitialized && 
         !_hasPreviewError) {
-      return FittedBox(
-        fit: BoxFit.cover,
-        child: SizedBox(
-          width: _previewController!.value.size.width,
-          height: _previewController!.value.size.height,
-          child: VideoPlayer(_previewController!),
+      return ClipRect(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(
+            width: _previewController!.value.size.width,
+            height: _previewController!.value.size.height,
+            child: VideoPlayer(_previewController!),
+          ),
         ),
       );
     } else if (item.coverImage != null && item.coverImage!.isNotEmpty) {
