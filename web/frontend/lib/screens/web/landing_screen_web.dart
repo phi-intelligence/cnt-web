@@ -78,19 +78,14 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   }
 
   Future<void> _handleGetStarted() async {
-    if (_emailController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your email address'),
-          backgroundColor: AppColors.errorMain,
-        ),
-      );
-      return;
-    }
-    
+    // Navigate directly to register page (email is optional pre-fill)
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => const RegisterScreenWeb(),
+        builder: (_) => RegisterScreenWeb(
+          prefilledEmail: _emailController.text.trim().isNotEmpty 
+              ? _emailController.text.trim() 
+              : null,
+        ),
       ),
     );
   }

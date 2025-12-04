@@ -16,7 +16,7 @@ frontend:
         - |
           export PATH="$PATH:$PWD/flutter/bin"
           cd web/frontend
-          flutter build web --release --no-source-maps --dart-define=API_BASE_URL=$API_BASE_URL --dart-define=MEDIA_BASE_URL=$MEDIA_BASE_URL --dart-define=LIVEKIT_WS_URL=$LIVEKIT_WS_URL --dart-define=LIVEKIT_HTTP_URL=$LIVEKIT_HTTP_URL --dart-define=WEBSOCKET_URL=$WEBSOCKET_URL --dart-define=ENVIRONMENT=production
+          flutter build web --release --no-source-maps --dart-define=API_BASE_URL=$API_BASE_URL --dart-define=MEDIA_BASE_URL=$MEDIA_BASE_URL --dart-define=LIVEKIT_WS_URL=$LIVEKIT_WS_URL --dart-define=LIVEKIT_HTTP_URL=$LIVEKIT_HTTP_URL --dart-define=WEBSOCKET_URL=$WEBSOCKET_URL --dart-define=ENVIRONMENT=production --dart-define=GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
     postBuild:
       commands:
         - echo "Build completed successfully"
