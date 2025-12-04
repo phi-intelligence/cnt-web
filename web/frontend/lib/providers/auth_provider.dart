@@ -215,18 +215,24 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      // Get Google ID token
-      final idToken = await _googleAuthService.signInWithGoogle();
+      // Get Google authentication result (may be id_token or access_token)
+      final authResult = await _googleAuthService.signInWithGoogle();
       
-      if (idToken == null) {
+      if (authResult == null) {
         _error = 'Google sign-in cancelled';
         _isLoading = false;
         notifyListeners();
         return false;
       }
       
-      // Send to backend
-      final data = await _authService.googleLogin(idToken);
+      // Send to backend with token type info
+      final data = await _authService.googleLogin(
+        authResult['token']!,
+        tokenType: authResult['token_type'],
+        email: authResult['email'],
+        displayName: authResult['display_name'],
+        photoUrl: authResult['photo_url'],
+      );
       _user = {
         'id': data['user_id'],
         'username': data['username'],

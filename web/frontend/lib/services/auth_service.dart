@@ -222,16 +222,37 @@ class AuthService {
   }
   
   /// Login with Google
-  Future<Map<String, dynamic>> googleLogin(String idToken) async {
+  /// Supports both id_token and access_token (fallback for web)
+  Future<Map<String, dynamic>> googleLogin(
+    String token, {
+    String? tokenType,
+    String? email,
+    String? displayName,
+    String? photoUrl,
+  }) async {
     try {
       print('🔐 Attempting Google login to: $baseUrl/auth/google-login');
+      print('🔑 Token type: ${tokenType ?? 'id_token'}');
+      
+      // Build request body based on token type
+      final Map<String, dynamic> body = {};
+      
+      if (tokenType == 'access_token') {
+        // Use access token with user info from Google SDK
+        body['access_token'] = token;
+        body['token_type'] = 'access_token';
+        if (email != null) body['email'] = email;
+        if (displayName != null) body['name'] = displayName;
+        if (photoUrl != null) body['picture'] = photoUrl;
+      } else {
+        // Default: use id_token
+        body['id_token'] = token;
+      }
       
       final response = await http.post(
         Uri.parse('$baseUrl/auth/google-login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'id_token': idToken,
-        }),
+        body: jsonEncode(body),
       ).timeout(
         const Duration(seconds: 15),
         onTimeout: () {

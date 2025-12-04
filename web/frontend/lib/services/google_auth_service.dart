@@ -77,8 +77,9 @@ class GoogleAuthService {
     return _googleSignInInstance!;
   }
   
-  /// Sign in with Google and return ID token
-  Future<String?> signInWithGoogle() async {
+  /// Sign in with Google and return authentication result
+  /// Returns a map with 'token' and 'token_type' ('id_token' or 'access_token')
+  Future<Map<String, String>?> signInWithGoogle() async {
     try {
       final googleSignIn = await _getGoogleSignIn();
       
@@ -103,12 +104,26 @@ class GoogleAuthService {
       // Get authentication details
       final GoogleSignInAuthentication auth = await account.authentication;
       
-      if (auth.idToken == null) {
-        throw Exception('Failed to get ID token from Google. Please check your OAuth configuration.');
+      // Try ID token first (preferred), fall back to access token
+      if (auth.idToken != null && auth.idToken!.isNotEmpty) {
+        print('✅ Got Google ID token');
+        return {
+          'token': auth.idToken!,
+          'token_type': 'id_token',
+        };
+      } else if (auth.accessToken != null && auth.accessToken!.isNotEmpty) {
+        // Fallback to access token (common on web with deprecated signIn method)
+        print('⚠️ ID token not available, using access token instead');
+        return {
+          'token': auth.accessToken!,
+          'token_type': 'access_token',
+          'email': account.email,
+          'display_name': account.displayName ?? '',
+          'photo_url': account.photoUrl ?? '',
+        };
+      } else {
+        throw Exception('Failed to get authentication token from Google.');
       }
-      
-      // Return ID token
-      return auth.idToken;
     } catch (e) {
       final errorMessage = e.toString();
       print('❌ Error signing in with Google: $errorMessage');
