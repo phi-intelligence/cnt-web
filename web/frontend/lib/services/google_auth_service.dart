@@ -56,16 +56,17 @@ class GoogleAuthService {
       }
       
       // Initialize GoogleSignIn with clientId if available
+      // Include 'openid' scope to get ID token (required for backend auth)
       if (clientId != null && clientId.isNotEmpty) {
         _googleSignInInstance = GoogleSignIn(
-          scopes: ['email', 'profile'],
+          scopes: ['openid', 'email', 'profile'],
           clientId: clientId,
         );
         print('✅ Google Sign-In initialized with Client ID from ${_getClientIdFromEnv() != null ? 'environment' : 'backend'}');
       } else {
         // Fallback: will try to read from meta tag on web
         _googleSignInInstance = GoogleSignIn(
-          scopes: ['email', 'profile'],
+          scopes: ['openid', 'email', 'profile'],
         );
         print('⚠️  Google Sign-In initialized without Client ID. Make sure it\'s set in index.html meta tag or backend config.');
       }

@@ -138,28 +138,28 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
   }
 
   Future<void> _handleGoogleSignup() async {
+    if (!mounted) return;
     setState(() => _isGoogleLoading = true);
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.googleLogin();
 
+    if (!mounted) return;
     setState(() => _isGoogleLoading = false);
 
-    if (mounted) {
-      if (success) {
-        if (authProvider.isAdmin) {
-          context.go('/admin');
-        } else {
-          context.go('/home');
-        }
+    if (success) {
+      if (authProvider.isAdmin) {
+        context.go('/admin');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authProvider.error ?? 'Google sign-up failed'),
-            backgroundColor: AppColors.errorMain,
-          ),
-        );
+        context.go('/home');
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.error ?? 'Google sign-up failed'),
+          backgroundColor: AppColors.errorMain,
+        ),
+      );
     }
   }
 

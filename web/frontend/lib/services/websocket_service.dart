@@ -55,17 +55,20 @@ class WebSocketService {
       final uri = Uri.parse(cleanUrl);
       
       // Reconstruct URL to ensure no port 0 issues
-      // For default ports, never include port in final URL
+      // socket_io_client on web has a bug where it adds :0 for portless URLs
+      // Fix: Explicitly include the default port (443 for wss, 80 for ws)
       String finalUrl;
-      final defaultPort = (uri.scheme == 'https' || uri.scheme == 'wss') ? 443 : 80;
+      final isSecure = uri.scheme == 'https' || uri.scheme == 'wss';
+      final defaultPort = isSecure ? 443 : 80;
       
-      // Always reconstruct without port for default ports to prevent socket_io_client from adding :0
+      // Always explicitly include port to prevent socket_io_client from using :0
       if (uri.port != 0 && uri.port != defaultPort) {
         // Valid non-default port specified, use as-is
         finalUrl = '${uri.scheme}://${uri.host}:${uri.port}';
       } else {
-        // No port, port is 0, or default port - reconstruct without port (browser will use default)
-        finalUrl = '${uri.scheme}://${uri.host}';
+        // No port or default port - explicitly add the correct default port
+        // This prevents socket_io_client from incorrectly using :0
+        finalUrl = '${uri.scheme}://${uri.host}:$defaultPort';
       }
       
       // Add path if present (but socket.io uses path option, so usually not needed)
