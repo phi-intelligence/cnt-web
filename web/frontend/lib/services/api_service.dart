@@ -1277,9 +1277,18 @@ class ApiService {
     if (source.startsWith('http://') || source.startsWith('https://')) {
       // Network URL - download the file
       try {
-        final headers = await _getHeaders();
-        // Remove Content-Type for download request
-        headers.remove('Content-Type');
+        // Don't send auth headers to CloudFront/S3 - public files don't need auth
+        // Auth headers trigger preflight (OPTIONS) which CloudFront blocks with 403
+        final isCloudFrontOrS3 = source.contains('cloudfront.net') || 
+                                  source.contains('.s3.') ||
+                                  source.contains('s3.amazonaws.com');
+        
+        Map<String, String>? headers;
+        if (!isCloudFrontOrS3) {
+          headers = await _getHeaders();
+          // Remove Content-Type for download request
+          headers.remove('Content-Type');
+        }
         
         final response = await http.get(
           Uri.parse(source),
