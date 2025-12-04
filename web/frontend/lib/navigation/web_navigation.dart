@@ -37,6 +37,12 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
     String route = location.substring(1).split('/').first;
     if (route.isEmpty) route = 'home'; // Default to home for root path
     
+    // Map related routes to their parent navigation item
+    // Artist routes should highlight "My Profile" in sidebar
+    if (route == 'artist') {
+      route = 'profile';
+    }
+    
     // Find the index by matching the route in the navigation items
     for (int i = 0; i < navigationItems.length; i++) {
       if (navigationItems[i].route == route) {

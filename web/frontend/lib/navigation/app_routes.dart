@@ -23,6 +23,7 @@ import '../screens/web/landing_screen_web.dart';
 import '../screens/artist/artist_profile_screen.dart';
 import '../screens/artist/artist_profile_manage_screen.dart';
 import '../screens/creation/quote_create_screen_web.dart';
+import '../screens/admin/bulk_upload_screen.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'web_navigation.dart';
@@ -144,6 +145,16 @@ GoRouter createAppRouter(AuthProvider authProvider) {
           context,
           state,
           const WebNavigationLayout(child: AdminDashboardScreen()),
+        ),
+      ),
+      
+      // Bulk upload route (admin only)
+      GoRoute(
+        path: '/bulk-upload',
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: BulkUploadScreen()),
         ),
       ),
       

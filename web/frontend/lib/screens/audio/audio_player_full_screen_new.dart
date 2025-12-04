@@ -30,12 +30,17 @@ class _AudioPlayerFullScreenNewState extends State<AudioPlayerFullScreenNew> {
     final audioPlayer = Provider.of<AudioPlayerState>(context);
     final track = audioPlayer.currentTrack;
 
-    // Don't show if no track is playing
+    // Auto-navigate back when track becomes null (playback ended)
     if (track == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+      });
       return Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
         body: const Center(
-          child: Text('No track playing'),
+          child: CircularProgressIndicator(),
         ),
       );
     }

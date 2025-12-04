@@ -183,13 +183,13 @@ class _CommunityScreenWebState extends State<CommunityScreenWeb> {
                               desktop: 3,
                               tablet: 2,
                               mobile: 1,
-                              childAspectRatio: 0.85,
+                              childAspectRatio: 0.72, // Match main grid aspect ratio
                               crossAxisSpacing: AppSpacing.medium,
                               mainAxisSpacing: AppSpacing.medium,
                             ),
                             itemCount: 6,
                             itemBuilder: (context, index) {
-                              return const LoadingShimmer(width: double.infinity, height: 320);
+                              return const LoadingShimmer(width: double.infinity, height: 400);
                             },
                           );
                         }
@@ -224,7 +224,7 @@ class _CommunityScreenWebState extends State<CommunityScreenWeb> {
                               desktop: 3,
                               tablet: 2,
                               mobile: 1,
-                              childAspectRatio: 0.95, // Increased from 0.85 - less tall cards
+                              childAspectRatio: 0.72, // Decreased to make cards taller for buttons
                               crossAxisSpacing: AppSpacing.large,
                               mainAxisSpacing: AppSpacing.large,
                             ),

@@ -2598,6 +2598,28 @@ class ApiService {
     }
   }
 
+  /// Bulk create podcasts - admin only
+  /// Creates multiple podcasts at once with auto-approved status
+  Future<List<Map<String, dynamic>>> bulkCreatePodcasts(
+    List<Map<String, dynamic>> podcasts,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/podcasts/bulk/'),
+        headers: await _getHeaders(),
+        body: json.encode(podcasts),
+      ).timeout(const Duration(seconds: 120)); // Longer timeout for bulk
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.cast<Map<String, dynamic>>();
+      }
+      throw Exception('Failed to bulk create podcasts: HTTP ${response.statusCode} ${response.body}');
+    } catch (e) {
+      throw Exception('Error bulk creating podcasts: $e');
+    }
+  }
+
   // ============================================
   // ARTIST API METHODS
   // ============================================

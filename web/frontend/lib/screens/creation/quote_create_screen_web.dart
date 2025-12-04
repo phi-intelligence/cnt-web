@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/community_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
@@ -9,7 +10,6 @@ import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_grid_delegate.dart';
-import '../web/create_screen_web.dart';
 
 /// Web Quote Creation Screen - Simple text input for creating quotes
 /// Backend automatically generates image with predefined templates
@@ -64,20 +64,98 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final isAdmin = authProvider.isAdmin;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isAdmin 
-              ? 'Quote published successfully!' 
-              : 'Quote submitted! It will be reviewed by an admin.'),
-          backgroundColor: AppColors.successMain,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-
-      // Navigate back to create page
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => const CreateScreenWeb(),
+      // Show success dialog
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Success icon
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.successMain.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_circle,
+                  size: 50,
+                  color: AppColors.successMain,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.large),
+              // Title
+              Text(
+                'Quote Posted!',
+                style: AppTypography.heading3.copyWith(
+                  color: AppColors.primaryDark,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.medium),
+              // Message
+              Text(
+                isAdmin 
+                    ? 'Your quote has been published to the community page.'
+                    : 'Your quote has been submitted for review. Once approved by an admin, it will appear on the community page.',
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.extraLarge),
+              // Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        // Go to community page
+                        context.go('/community');
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.warmBrown,
+                        side: BorderSide(color: AppColors.warmBrown),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('View Community'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.medium),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        // Go back to create page using proper routing
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.warmBrown,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Done'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       );
     } catch (e) {

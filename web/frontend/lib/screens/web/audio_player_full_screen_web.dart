@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/audio_player_provider.dart';
 import '../../models/content_item.dart';
 import '../donation_modal.dart';
@@ -67,10 +68,16 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
     }
 
     if (track == null) {
+      // Auto-navigate back when track becomes null (playback ended)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+      });
       return Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
         body: const Center(
-          child: Text('No track playing'),
+          child: CircularProgressIndicator(),
         ),
       );
     }
@@ -329,15 +336,37 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
           overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 8),
-        // Artist
-        Text(
-          track.creator ?? 'Unknown Artist',
-          style: AppTypography.body.copyWith(
-            color: AppColors.warmBrown,
-            fontWeight: FontWeight.w500,
-            fontSize: 16,
+        // Artist - Tappable to view profile
+        GestureDetector(
+          onTap: track.creatorId != null ? () {
+            // Navigate to artist profile
+            Navigator.pop(context); // Close player first
+            context.go('/artist/${track.creatorId}');
+          } : null,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                track.creator ?? 'Unknown Artist',
+                style: AppTypography.body.copyWith(
+                  color: AppColors.warmBrown,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                  decoration: track.creatorId != null ? TextDecoration.underline : null,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              if (track.creatorId != null) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.open_in_new,
+                  size: 14,
+                  color: AppColors.warmBrown,
+                ),
+              ],
+            ],
           ),
-          textAlign: TextAlign.center,
         ),
       ],
     );

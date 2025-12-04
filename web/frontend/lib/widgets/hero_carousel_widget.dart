@@ -296,44 +296,6 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticK
             ),
           ),
           
-          // Gradient Overlay (bottom) - IgnorePointer to allow clicks through
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: carouselHeight,
-            child: IgnorePointer(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  height: carouselHeight * 0.5,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.8),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          
-          // Title Overlay - IgnorePointer to allow clicks through
-          if (_currentIndex < _items.length && _items[_currentIndex].title != null)
-            Positioned(
-              top: carouselHeight - 100,
-              left: 16,
-              right: 16,
-              child: IgnorePointer(
-                child: _buildContentOverlay(_items[_currentIndex]),
-              ),
-            ),
-          
-          
           // Carousel Indicators - IgnorePointer to allow clicks through
           Positioned(
             top: carouselHeight - 16,

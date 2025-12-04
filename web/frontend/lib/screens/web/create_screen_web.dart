@@ -12,6 +12,7 @@ import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../admin/admin_documents_page.dart';
+import '../admin/bulk_upload_screen.dart';
 
 /// Web Create Screen - Full implementation
 class CreateScreenWeb extends StatelessWidget {
@@ -60,8 +61,9 @@ class CreateScreenWeb extends StatelessWidget {
     final orangeHover = [AppColors.accentMain, AppColors.accentDark];
     // Brown hover colors (warm brown/primary) - for even cards (2, 4, 6)
     final brownHover = [AppColors.warmBrown, AppColors.primaryMain];
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
-    return [
+    final cards = <Widget>[
       _buildOptionCard(
         context,
         title: 'Video Podcast',
@@ -147,6 +149,25 @@ class CreateScreenWeb extends StatelessWidget {
         },
       ),
     ];
+    
+    // Add Bulk Upload card for admins only
+    if (authProvider.isAdmin) {
+      cards.add(
+        _buildOptionCard(
+          context,
+          title: 'Bulk Upload',
+          description: 'Upload multiple podcasts at once',
+          icon: Icons.cloud_upload,
+          hoverColors: orangeHover, // 7 - orange (admin only)
+          onTap: () => _navigateToScreen(
+            context,
+            const BulkUploadScreen(),
+          ),
+        ),
+      );
+    }
+    
+    return cards;
   }
 
   Widget _buildOptionCard(

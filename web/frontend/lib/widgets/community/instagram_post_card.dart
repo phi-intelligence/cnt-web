@@ -171,6 +171,7 @@ class _InstagramPostCardState extends State<InstagramPostCard>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
         child: Column(
+          mainAxisSize: MainAxisSize.min, // Allow column to shrink
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header: Profile picture, username, three dots menu
@@ -229,7 +230,7 @@ class _InstagramPostCardState extends State<InstagramPostCard>
                   children: [
                       // Main image - reduced size on web
                       AspectRatio(
-                        aspectRatio: 1.0,
+                        aspectRatio: 1.2, // Wider aspect ratio to leave room for buttons
                         child: imageUrl.toString().startsWith('assets/')
                             ? Image.asset(
                                 imageUrl.toString(),
