@@ -238,7 +238,12 @@ class AuthProvider extends ChangeNotifier {
       _error = null;
       return true;
     } catch (e) {
-      _error = e.toString();
+      String errorMsg = e.toString();
+      // Clean up the error message for display
+      if (errorMsg.startsWith('Exception: ')) {
+        errorMsg = errorMsg.substring(11);
+      }
+      _error = errorMsg;
       _isAuthenticated = false;
       _user = null;
       return false;

@@ -129,6 +129,20 @@ class GoogleAuthService {
         return null;
       }
       
+      // Handle People API not enabled error
+      if (errorMessage.contains('people.googleapis.com') || 
+          errorMessage.contains('People API') ||
+          errorMessage.contains('SERVICE_DISABLED')) {
+        throw Exception(
+          'Google People API is not enabled.\n\n'
+          'Please enable it in Google Cloud Console:\n'
+          '1. Go to APIs & Services > Library\n'
+          '2. Search for "People API"\n'
+          '3. Click Enable\n'
+          '4. Wait 1-2 minutes and try again.'
+        );
+      }
+      
       rethrow;
     }
   }
