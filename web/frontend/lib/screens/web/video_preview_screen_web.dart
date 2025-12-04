@@ -387,25 +387,33 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
     });
 
     try {
-      // Upload video file first
+      // Upload video file first (supports file paths, blob URLs, and http URLs)
       String videoUrl;
       String? thumbnailUrl;
       
-      if (widget.videoUri.startsWith('blob:') || widget.videoUri.startsWith('http')) {
-        // For web, we need to handle blob URLs differently
-        // For now, assume video is already uploaded or handle separately
-        // In production, convert blob to file and upload
-        throw Exception('Video upload from blob URL not yet implemented. Please use file upload.');
-      } else {
-        // Upload video file
-        final videoUploadResponse = await ApiService().uploadVideo(widget.videoUri, generateThumbnail: true);
-        videoUrl = videoUploadResponse['url'] as String;
-        thumbnailUrl = videoUploadResponse['thumbnail_url'] as String?;
-        
-        // If auto-generated thumbnail, use it as default
-        if (thumbnailUrl != null && _selectedThumbnail == null) {
-          _selectedThumbnail = thumbnailUrl;
-        }
+      // Show upload progress
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Uploading video...'),
+          backgroundColor: AppColors.infoMain,
+          duration: const Duration(seconds: 60),
+        ),
+      );
+      
+      // Upload video - ApiService.uploadVideo() handles blob URLs via _createMultipartFileFromSource()
+      final videoUploadResponse = await ApiService().uploadVideo(
+        widget.videoUri, 
+        generateThumbnail: true,
+      );
+      videoUrl = videoUploadResponse['url'] as String;
+      thumbnailUrl = videoUploadResponse['thumbnail_url'] as String?;
+      
+      // Hide upload progress snackbar
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      
+      // If auto-generated thumbnail, use it as default
+      if (thumbnailUrl != null && _selectedThumbnail == null) {
+        _selectedThumbnail = thumbnailUrl;
       }
 
       // Create podcast with thumbnail
