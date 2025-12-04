@@ -331,43 +331,77 @@ class _InstagramPostCardState extends State<InstagramPostCard>
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: AppSpacing.small,
-              vertical: AppSpacing.tiny,
+              vertical: AppSpacing.small,
             ),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                IconButton(
-                  icon: Icon(
-                    _isLiked ? Icons.favorite : Icons.favorite_border,
-                    color: _isLiked ? AppColors.errorMain : AppColors.textSecondary,
-                    size: 20,
+                // Like button
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _handleLike,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        _isLiked ? Icons.favorite : Icons.favorite_border,
+                        color: _isLiked ? AppColors.errorMain : AppColors.textSecondary,
+                        size: 22,
+                      ),
+                    ),
                   ),
-                  onPressed: _handleLike,
-                  padding: EdgeInsets.all(AppSpacing.tiny),
-                  constraints: const BoxConstraints(),
                 ),
-                SizedBox(width: AppSpacing.tiny),
-                IconButton(
-                  icon: const Icon(Icons.comment_outlined, size: 20),
-                  color: AppColors.textSecondary,
-                  onPressed: widget.onComment,
-                  padding: EdgeInsets.all(AppSpacing.tiny),
-                  constraints: const BoxConstraints(),
+                const SizedBox(width: 4),
+                // Comment button
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: widget.onComment,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.comment_outlined,
+                        color: AppColors.textSecondary,
+                        size: 22,
+                      ),
+                    ),
+                  ),
                 ),
-                SizedBox(width: AppSpacing.tiny),
-                IconButton(
-                  icon: const Icon(Icons.send_outlined, size: 20),
-                  color: AppColors.textSecondary,
-                  onPressed: widget.onShare,
-                  padding: EdgeInsets.all(AppSpacing.tiny),
-                  constraints: const BoxConstraints(),
+                const SizedBox(width: 4),
+                // Share button
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: widget.onShare,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.send_outlined,
+                        color: AppColors.textSecondary,
+                        size: 22,
+                      ),
+                    ),
+                  ),
                 ),
                 const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.bookmark_border, size: 20),
-                  color: AppColors.textSecondary,
-                  onPressed: widget.onBookmark,
-                  padding: EdgeInsets.all(AppSpacing.tiny),
-                  constraints: const BoxConstraints(),
+                // Bookmark button
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: widget.onBookmark,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.bookmark_border,
+                        color: AppColors.textSecondary,
+                        size: 22,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),

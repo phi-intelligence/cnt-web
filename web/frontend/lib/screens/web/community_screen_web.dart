@@ -224,9 +224,9 @@ class _CommunityScreenWebState extends State<CommunityScreenWeb> {
                               desktop: 3,
                               tablet: 2,
                               mobile: 1,
-                              childAspectRatio: 0.85,
-                              crossAxisSpacing: AppSpacing.medium,
-                              mainAxisSpacing: AppSpacing.medium,
+                              childAspectRatio: 0.95, // Increased from 0.85 - less tall cards
+                              crossAxisSpacing: AppSpacing.large,
+                              mainAxisSpacing: AppSpacing.large,
                             ),
                             itemCount: provider.posts.length + (provider.hasMore ? 1 : 0),
                             itemBuilder: (context, index) {

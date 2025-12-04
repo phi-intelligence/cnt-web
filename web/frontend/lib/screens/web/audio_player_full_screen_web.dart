@@ -94,8 +94,23 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
                       children: [
                         SizedBox(height: screenHeight * 0.03),
                         
-                        // Large Album Art with vinyl effect
-                        _buildAlbumArtCard(track, screenWidth),
+                        // Album Art with Vertical Volume Slider on the right
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Spacer for balance
+                            const SizedBox(width: 60),
+                            
+                            // Large Album Art with vinyl effect
+                            Flexible(
+                              child: _buildAlbumArtCard(track, screenWidth),
+                            ),
+                            
+                            // Vertical Volume Slider on the right
+                            _buildVerticalVolumeSlider(audioPlayer),
+                          ],
+                        ),
                         
                         const SizedBox(height: 32),
                         
@@ -114,8 +129,8 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
                         
                         const SizedBox(height: 24),
                         
-                        // Volume & Extra Controls
-                        _buildVolumeAndExtras(audioPlayer),
+                        // Extra Controls (queue, favorite - without horizontal volume)
+                        _buildExtraControls(audioPlayer),
                         
                         const SizedBox(height: 24),
                         
@@ -389,17 +404,19 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Shuffle button
+        // Shuffle button - connected to provider
         IconButton(
           icon: Icon(
             Icons.shuffle_rounded,
             size: 24,
-            color: _isShuffled 
+            color: audioPlayer.shuffleEnabled 
                 ? AppColors.warmBrown 
                 : AppColors.primaryDark.withOpacity(0.4),
           ),
+          tooltip: 'Shuffle',
           onPressed: () {
-            setState(() => _isShuffled = !_isShuffled);
+            audioPlayer.toggleShuffle();
+            setState(() => _isShuffled = audioPlayer.shuffleEnabled);
           },
         ),
         
@@ -420,8 +437,9 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
           ),
           child: IconButton(
             icon: Icon(Icons.skip_previous_rounded, size: 32),
-            color: AppColors.primaryDark,
-            onPressed: audioPlayer.queue.isNotEmpty && audioPlayer.currentTrack != null
+            color: audioPlayer.hasPrevious ? AppColors.primaryDark : AppColors.primaryDark.withOpacity(0.3),
+            tooltip: 'Previous',
+            onPressed: audioPlayer.hasPrevious || audioPlayer.currentTrack != null
                 ? () => audioPlayer.previous()
                 : null,
           ),
@@ -480,8 +498,9 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
           ),
           child: IconButton(
             icon: Icon(Icons.skip_next_rounded, size: 32),
-            color: AppColors.primaryDark,
-            onPressed: audioPlayer.queue.isNotEmpty && audioPlayer.currentTrack != null
+            color: audioPlayer.hasNext ? AppColors.primaryDark : AppColors.primaryDark.withOpacity(0.3),
+            tooltip: 'Next',
+            onPressed: audioPlayer.hasNext
                 ? () => audioPlayer.next()
                 : null,
           ),
@@ -489,25 +508,25 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
         
         const SizedBox(width: 16),
         
-        // Repeat button
+        // Repeat button - connected to provider
         IconButton(
           icon: Icon(
-            _isRepeatOne ? Icons.repeat_one_rounded : Icons.repeat_rounded,
+            audioPlayer.repeatOneEnabled ? Icons.repeat_one_rounded : Icons.repeat_rounded,
             size: 24,
-            color: (_isRepeat || _isRepeatOne)
+            color: (audioPlayer.repeatEnabled || audioPlayer.repeatOneEnabled)
                 ? AppColors.warmBrown 
                 : AppColors.primaryDark.withOpacity(0.4),
           ),
+          tooltip: audioPlayer.repeatOneEnabled 
+              ? 'Repeat One' 
+              : audioPlayer.repeatEnabled 
+                  ? 'Repeat All' 
+                  : 'Repeat',
           onPressed: () {
+            audioPlayer.toggleRepeat();
             setState(() {
-              if (!_isRepeat && !_isRepeatOne) {
-                _isRepeat = true;
-              } else if (_isRepeat) {
-                _isRepeat = false;
-                _isRepeatOne = true;
-              } else {
-                _isRepeatOne = false;
-              }
+              _isRepeat = audioPlayer.repeatEnabled;
+              _isRepeatOne = audioPlayer.repeatOneEnabled;
             });
           },
         ),
@@ -515,75 +534,133 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
     );
   }
 
-  Widget _buildVolumeAndExtras(AudioPlayerState audioPlayer) {
+  /// Vertical volume slider positioned on the right side of album art
+  Widget _buildVerticalVolumeSlider(AudioPlayerState audioPlayer) {
+    return Container(
+      width: 60,
+      height: 220,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Volume up icon
+          Icon(
+            Icons.volume_up_rounded,
+            color: AppColors.warmBrown.withOpacity(0.6),
+            size: 20,
+          ),
+          const SizedBox(height: 8),
+          // Vertical slider
+          Expanded(
+            child: RotatedBox(
+              quarterTurns: 3, // Rotate to vertical (270 degrees)
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 4,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                  activeTrackColor: AppColors.warmBrown,
+                  inactiveTrackColor: AppColors.warmBrown.withOpacity(0.2),
+                  thumbColor: AppColors.warmBrown,
+                  overlayColor: AppColors.warmBrown.withOpacity(0.2),
+                ),
+                child: Slider(
+                  value: _volume,
+                  min: 0.0,
+                  max: 1.0,
+                  onChanged: (value) {
+                    setState(() => _volume = value);
+                    audioPlayer.setVolume(value);
+                  },
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Volume off/mute icon
+          GestureDetector(
+            onTap: () {
+              // Toggle mute
+              final newVolume = _volume == 0 ? 1.0 : 0.0;
+              setState(() => _volume = newVolume);
+              audioPlayer.setVolume(newVolume);
+            },
+            child: Icon(
+              _volume == 0 ? Icons.volume_off_rounded : Icons.volume_mute_rounded,
+              color: AppColors.warmBrown.withOpacity(_volume == 0 ? 0.9 : 0.4),
+              size: 18,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Extra controls (queue, favorite) without volume slider
+  Widget _buildExtraControls(AudioPlayerState audioPlayer) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Volume icon
-          Icon(
-            _volume == 0 
-                ? Icons.volume_off_rounded 
-                : _volume < 0.5 
-                    ? Icons.volume_down_rounded 
-                    : Icons.volume_up_rounded,
-            color: AppColors.primaryDark.withOpacity(0.6),
-            size: 22,
-          ),
-          const SizedBox(width: 8),
-          // Volume slider
-          Expanded(
-            child: SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 3,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-                activeTrackColor: AppColors.warmBrown.withOpacity(0.8),
-                inactiveTrackColor: AppColors.warmBrown.withOpacity(0.15),
-                thumbColor: AppColors.warmBrown,
-                overlayColor: AppColors.warmBrown.withOpacity(0.15),
-              ),
-              child: Slider(
-                value: _volume,
-                min: 0.0,
-                max: 1.0,
-                onChanged: (value) {
-                  setState(() => _volume = value);
-                  audioPlayer.setVolume(value);
-                },
-              ),
-            ),
-          ),
-          const SizedBox(width: 24),
           // Queue button
-          IconButton(
-            icon: Icon(
-              Icons.queue_music_rounded,
-              color: AppColors.primaryDark.withOpacity(0.6),
-              size: 22,
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.8),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Queue feature coming soon')),
-              );
-            },
+            child: IconButton(
+              icon: Icon(
+                Icons.queue_music_rounded,
+                color: AppColors.warmBrown.withOpacity(0.8),
+                size: 24,
+              ),
+              tooltip: 'Queue',
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Queue feature coming soon')),
+                );
+              },
+            ),
           ),
+          const SizedBox(width: 16),
           // Favorite button
-          IconButton(
-            icon: Icon(
-              audioPlayer.currentTrack?.isFavorite == true 
-                  ? Icons.favorite_rounded 
-                  : Icons.favorite_border_rounded,
-              color: audioPlayer.currentTrack?.isFavorite == true 
-                  ? AppColors.errorMain 
-                  : AppColors.primaryDark.withOpacity(0.6),
-              size: 22,
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.8),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Favorite feature coming soon')),
-              );
-            },
+            child: IconButton(
+              icon: Icon(
+                audioPlayer.currentTrack?.isFavorite == true 
+                    ? Icons.favorite_rounded 
+                    : Icons.favorite_border_rounded,
+                color: audioPlayer.currentTrack?.isFavorite == true 
+                    ? AppColors.errorMain 
+                    : AppColors.warmBrown.withOpacity(0.8),
+                size: 24,
+              ),
+              tooltip: 'Favorite',
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Favorite feature coming soon')),
+                );
+              },
+            ),
           ),
         ],
       ),

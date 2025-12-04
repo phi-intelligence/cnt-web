@@ -321,7 +321,15 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
       final clamped = seconds.clamp(0, duration);
       debugPrint('VideoPlayer: Seeking to ${clamped}s (requested: ${seconds}s, duration: ${duration}s)');
       await _controller!.seekTo(Duration(seconds: clamped));
-      debugPrint('VideoPlayer: Seek completed successfully');
+      
+      // Force sync _currentTime after successful seek
+      if (mounted) {
+        setState(() {
+          _currentTime = clamped;
+          _scrubValue = clamped.toDouble();
+        });
+      }
+      debugPrint('VideoPlayer: Seek completed successfully to $_currentTime seconds');
     } catch (e) {
       debugPrint('VideoPlayer: Error during seek: $e');
     }
@@ -623,12 +631,22 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                                 widget.onSeek?.call(_currentTime);
                               },
                               onChangeEnd: (value) async {
-                                await _seekTo(value.toInt());
+                                final targetSeconds = value.toInt();
+                                debugPrint('VideoPlayer: Scrub ended at $targetSeconds seconds');
+                                
+                                // Perform the seek
+                                await _seekTo(targetSeconds);
+                                
+                                // Update state after seek completes
                                 setState(() {
                                   _isScrubbing = false;
+                                  _currentTime = targetSeconds;
+                                  _scrubValue = value;
                                 });
+                                
+                                // Resume playback if was playing before scrub
                                 if (_wasPlayingBeforeScrub) {
-                                  _controller?.play();
+                                  await _controller?.play();
                                   _startControlsTimer();
                                 }
                               },

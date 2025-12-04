@@ -3,17 +3,25 @@ import 'package:just_audio/just_audio.dart';
 import '../models/content_item.dart';
 import '../utils/state_persistence.dart';
 import 'dart:async';
+import 'dart:math';
 
 class AudioPlayerState extends ChangeNotifier {
   final AudioPlayer _player = AudioPlayer();
+  final Random _random = Random();
   
   ContentItem? _currentTrack;
   List<ContentItem> _queue = [];
+  List<ContentItem> _originalQueue = []; // Store original queue order for unshuffle
   bool _isPlaying = false;
   bool _isLoading = false;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   double _volume = 1.0;
+  
+  // Shuffle and repeat modes
+  bool _shuffleEnabled = false;
+  bool _repeatEnabled = false;      // Repeat entire queue
+  bool _repeatOneEnabled = false;   // Repeat single track
 
   ContentItem? get currentTrack => _currentTrack;
   List<ContentItem> get queue => _queue;
@@ -22,6 +30,23 @@ class AudioPlayerState extends ChangeNotifier {
   Duration get position => _position;
   Duration get duration => _duration;
   double get volume => _volume;
+  bool get shuffleEnabled => _shuffleEnabled;
+  bool get repeatEnabled => _repeatEnabled;
+  bool get repeatOneEnabled => _repeatOneEnabled;
+  
+  // Check if there's a next track available
+  bool get hasNext {
+    if (_queue.isEmpty || _currentTrack == null) return false;
+    final currentIndex = _queue.indexOf(_currentTrack!);
+    return currentIndex >= 0 && currentIndex < _queue.length - 1;
+  }
+  
+  // Check if there's a previous track available
+  bool get hasPrevious {
+    if (_queue.isEmpty || _currentTrack == null) return false;
+    final currentIndex = _queue.indexOf(_currentTrack!);
+    return currentIndex > 0;
+  }
   
   Timer? _positionSaveTimer;
 
@@ -99,12 +124,9 @@ class AudioPlayerState extends ChangeNotifier {
     });
 
     // Listen for when playback completes
-    _player.playerStateStream.listen((state) {
+    _player.playerStateStream.listen((state) async {
       if (state.processingState == ProcessingState.completed) {
-        // Track finished - clear it so player disappears
-        _currentTrack = null;
-        _isPlaying = false;
-        notifyListeners();
+        await _handleTrackCompletion();
       }
     });
 
@@ -250,6 +272,134 @@ class AudioPlayerState extends ChangeNotifier {
     } else {
       await play();
     }
+  }
+  
+  /// Handle track completion - auto-play next based on shuffle/repeat settings
+  Future<void> _handleTrackCompletion() async {
+    print('🎵 Track completed - checking auto-play settings');
+    
+    // Repeat One: replay the same track
+    if (_repeatOneEnabled) {
+      print('🔂 Repeat One enabled - replaying current track');
+      await _player.seek(Duration.zero);
+      await play();
+      return;
+    }
+    
+    // If we have a queue, try to play next
+    if (_queue.isNotEmpty && _currentTrack != null) {
+      final currentIndex = _queue.indexOf(_currentTrack!);
+      
+      if (currentIndex >= 0 && currentIndex < _queue.length - 1) {
+        // Play next track in queue
+        print('⏭️ Playing next track in queue');
+        await next();
+        return;
+      } else if (_repeatEnabled && _queue.isNotEmpty) {
+        // At end of queue but repeat is enabled - restart from beginning
+        print('🔁 Repeat enabled - restarting queue from beginning');
+        final firstTrack = _queue.first;
+        await loadTrack(firstTrack);
+        await play();
+        return;
+      }
+    }
+    
+    // Repeat All with single track (no queue)
+    if (_repeatEnabled && _currentTrack != null) {
+      print('🔁 Repeat enabled - replaying single track');
+      await _player.seek(Duration.zero);
+      await play();
+      return;
+    }
+    
+    // No auto-play - stop and clear
+    print('⏹️ No auto-play - stopping player');
+    _currentTrack = null;
+    _isPlaying = false;
+    _position = Duration.zero;
+    notifyListeners();
+  }
+  
+  /// Toggle shuffle mode
+  void toggleShuffle() {
+    _shuffleEnabled = !_shuffleEnabled;
+    
+    if (_shuffleEnabled && _queue.isNotEmpty) {
+      // Save original queue order and shuffle
+      _originalQueue = List.from(_queue);
+      _queue.shuffle(_random);
+      print('🔀 Shuffle enabled - queue shuffled');
+    } else if (!_shuffleEnabled && _originalQueue.isNotEmpty) {
+      // Restore original queue order
+      _queue = List.from(_originalQueue);
+      print('🔀 Shuffle disabled - queue restored');
+    }
+    
+    _saveState();
+    notifyListeners();
+  }
+  
+  /// Toggle repeat mode (cycles: off -> repeat all -> repeat one -> off)
+  void toggleRepeat() {
+    if (!_repeatEnabled && !_repeatOneEnabled) {
+      // Off -> Repeat All
+      _repeatEnabled = true;
+      _repeatOneEnabled = false;
+      print('🔁 Repeat All enabled');
+    } else if (_repeatEnabled && !_repeatOneEnabled) {
+      // Repeat All -> Repeat One
+      _repeatEnabled = false;
+      _repeatOneEnabled = true;
+      print('🔂 Repeat One enabled');
+    } else {
+      // Repeat One -> Off
+      _repeatEnabled = false;
+      _repeatOneEnabled = false;
+      print('🔁 Repeat disabled');
+    }
+    
+    _saveState();
+    notifyListeners();
+  }
+  
+  /// Set shuffle directly
+  void setShuffle(bool enabled) {
+    if (_shuffleEnabled == enabled) return;
+    toggleShuffle();
+  }
+  
+  /// Set repeat mode directly
+  void setRepeat({bool repeatAll = false, bool repeatOne = false}) {
+    _repeatEnabled = repeatAll;
+    _repeatOneEnabled = repeatOne;
+    _saveState();
+    notifyListeners();
+  }
+  
+  /// Play a list of tracks starting at the specified index
+  Future<void> playQueue(List<ContentItem> tracks, {int startIndex = 0}) async {
+    if (tracks.isEmpty) return;
+    
+    _queue = List.from(tracks);
+    _originalQueue = List.from(tracks);
+    
+    if (_shuffleEnabled) {
+      // If shuffle is on, shuffle the queue but keep start track first
+      final startTrack = tracks[startIndex.clamp(0, tracks.length - 1)];
+      _queue.shuffle(_random);
+      // Move start track to front
+      _queue.remove(startTrack);
+      _queue.insert(0, startTrack);
+    }
+    
+    final trackToPlay = _shuffleEnabled 
+        ? _queue.first 
+        : tracks[startIndex.clamp(0, tracks.length - 1)];
+    
+    print('🎵 Playing queue with ${tracks.length} tracks, starting at ${trackToPlay.title}');
+    await loadTrack(trackToPlay);
+    await play();
   }
 
   @override

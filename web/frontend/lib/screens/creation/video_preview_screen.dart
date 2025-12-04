@@ -184,36 +184,33 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   }
 
   Future<void> _handlePublish() async {
+    // Check bank details before publishing
+    final hasBankDetails = await checkBankDetailsAndNavigate(context);
+    if (!hasBankDetails || !mounted) {
+      return; // User cancelled or navigated away
+    }
+
     setState(() {
       _isLoading = true;
     });
 
-    // Simulate publish delay (TODO: Replace with actual video publish API call)
-    await Future.delayed(const Duration(seconds: 2));
-    
-    if (!mounted) return;
-    
-    setState(() {
-      _isLoading = false;
-    });
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      
+      setState(() {
+        _isLoading = false;
+      });
 
-    // Check if bank details are missing
-    final hasBankDetailsValue = await hasBankDetails(context);
-    
-    if (!hasBankDetailsValue && mounted) {
-      // Show bank details prompt (handles navigation)
-      await showBankDetailsPromptAfterPublish(context);
-    } else if (mounted) {
-      // Just show success and navigate
       showDialog(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (context) => AlertDialog(
           title: const Text('Video Published'),
           content: const Text('Your video podcast has been published and shared with the community!'),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(ctx);
+                Navigator.pop(context);
+                // Navigate to home
                 Navigator.of(context).popUntil((route) => route.isFirst);
               },
               child: const Text('OK'),
@@ -221,7 +218,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
           ],
         ),
       );
-    }
+    });
   }
 
   String _formatTime(int seconds) {

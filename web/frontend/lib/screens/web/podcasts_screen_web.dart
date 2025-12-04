@@ -140,16 +140,17 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
   }
 
   // Responsive aspect ratio for cards
+  // Higher values = shorter/wider cards, Lower values = taller cards
   double _getChildAspectRatio(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     if (screenWidth < 480) {
-      return 0.8; // Mobile: More compact cards
+      return 0.95; // Mobile: Compact cards
     } else if (screenWidth < 768) {
-      return 0.75; // Tablet: Slightly less compact
+      return 0.9; // Tablet: Balanced
     } else if (screenWidth < 1024) {
-      return 0.7; // Desktop: Balanced
+      return 0.85; // Desktop: Slightly wider
     }
-    return 0.65; // Large desktop: More spacious
+    return 0.82; // Large desktop: Wider cards
   }
 
   void _handlePlay(ContentItem item) {

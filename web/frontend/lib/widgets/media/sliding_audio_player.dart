@@ -262,13 +262,21 @@ class SlidingAudioPlayerState extends State<SlidingAudioPlayer> with SingleTicke
           
           const SizedBox(width: 4),
           
-          // Previous Button
+          // Previous Button - styled based on availability
           IconButton(
-            icon: const Icon(Icons.skip_previous, color: Colors.white),
+            icon: Icon(
+              Icons.skip_previous, 
+              color: audioPlayer.hasPrevious || audioPlayer.currentTrack != null
+                  ? Colors.white 
+                  : Colors.white.withOpacity(0.4),
+            ),
             iconSize: 24,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
-            onPressed: () => audioPlayer.previous(),
+            tooltip: 'Previous',
+            onPressed: audioPlayer.hasPrevious || audioPlayer.currentTrack != null
+                ? () => audioPlayer.previous()
+                : null,
           ),
           
           // Play/Pause Button
@@ -280,16 +288,25 @@ class SlidingAudioPlayerState extends State<SlidingAudioPlayer> with SingleTicke
             ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
+            tooltip: audioPlayer.isPlaying ? 'Pause' : 'Play',
             onPressed: () => audioPlayer.togglePlayPause(),
           ),
           
-          // Next Button
+          // Next Button - styled based on availability
           IconButton(
-            icon: const Icon(Icons.skip_next, color: Colors.white),
+            icon: Icon(
+              Icons.skip_next, 
+              color: audioPlayer.hasNext 
+                  ? Colors.white 
+                  : Colors.white.withOpacity(0.4),
+            ),
             iconSize: 24,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
-            onPressed: () => audioPlayer.next(),
+            tooltip: 'Next',
+            onPressed: audioPlayer.hasNext
+                ? () => audioPlayer.next()
+                : null,
           ),
           
           // Close Button

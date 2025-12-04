@@ -207,7 +207,9 @@ class GlobalAudioPlayer extends StatelessWidget {
                     children: [
                       _ControlButton(
                         icon: Icons.skip_previous,
-                        onPressed: audioPlayer.queue.isNotEmpty && audioPlayer.currentTrack != null
+                        tooltip: 'Previous',
+                        // Allow previous if there's a track (to restart) or queue
+                        onPressed: audioPlayer.hasPrevious || audioPlayer.currentTrack != null
                             ? () => audioPlayer.previous()
                             : null,
                       ),
@@ -220,7 +222,8 @@ class GlobalAudioPlayer extends StatelessWidget {
                       const SizedBox(width: AppSpacing.small),
                       _ControlButton(
                         icon: Icons.skip_next,
-                        onPressed: audioPlayer.queue.isNotEmpty && audioPlayer.currentTrack != null
+                        tooltip: 'Next',
+                        onPressed: audioPlayer.hasNext
                             ? () => audioPlayer.next()
                             : null,
                       ),
@@ -433,8 +436,11 @@ class GlobalAudioPlayer extends StatelessWidget {
                   ),
                   child: IconButton(
                     icon: Icon(Icons.skip_previous, size: iconSize - 2),
-                    color: audioPlayer.queue.isNotEmpty ? AppColors.warmBrown : AppColors.textTertiary,
-                    onPressed: audioPlayer.queue.isNotEmpty && audioPlayer.currentTrack != null
+                    color: audioPlayer.hasPrevious || audioPlayer.currentTrack != null 
+                        ? AppColors.warmBrown 
+                        : AppColors.textTertiary,
+                    tooltip: 'Previous',
+                    onPressed: audioPlayer.hasPrevious || audioPlayer.currentTrack != null
                         ? () => audioPlayer.previous()
                         : null,
                     padding: EdgeInsets.zero,
@@ -494,8 +500,11 @@ class GlobalAudioPlayer extends StatelessWidget {
                   ),
                   child: IconButton(
                     icon: Icon(Icons.skip_next, size: iconSize - 2),
-                    color: audioPlayer.queue.isNotEmpty ? AppColors.warmBrown : AppColors.textTertiary,
-                    onPressed: audioPlayer.queue.isNotEmpty && audioPlayer.currentTrack != null
+                    color: audioPlayer.hasNext 
+                        ? AppColors.warmBrown 
+                        : AppColors.textTertiary,
+                    tooltip: 'Next',
+                    onPressed: audioPlayer.hasNext
                         ? () => audioPlayer.next()
                         : null,
                     padding: EdgeInsets.zero,
@@ -651,10 +660,12 @@ class _PlayPauseButton extends StatelessWidget {
 class _ControlButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onPressed;
+  final String? tooltip;
 
   const _ControlButton({
     required this.icon,
     this.onPressed,
+    this.tooltip,
   });
 
   @override
@@ -672,6 +683,7 @@ class _ControlButton extends StatelessWidget {
         icon: Icon(icon, size: 20),
         color: onPressed != null ? AppColors.warmBrown : AppColors.textTertiary,
         onPressed: onPressed,
+        tooltip: tooltip,
         padding: const EdgeInsets.all(6),
         constraints: const BoxConstraints(
           minWidth: 36,
