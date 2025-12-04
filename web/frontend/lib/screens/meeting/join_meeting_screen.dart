@@ -525,8 +525,8 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
       children: [
         Text(
           label,
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textPrimary,
+          style: AppTypography.bodySmall.copyWith(
+            color: AppColors.textSecondary,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -541,18 +541,21 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
             filled: true,
             fillColor: AppColors.backgroundSecondary,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
               borderSide: BorderSide(color: AppColors.borderPrimary),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
               borderSide: BorderSide(color: AppColors.borderPrimary),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-              borderSide: BorderSide(color: AppColors.primaryMain, width: 2),
+              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
+              borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
             ),
-            contentPadding: EdgeInsets.all(AppSpacing.medium),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: maxLines > 1 ? 16 : 14,
+            ),
           ),
           onChanged: (_) => setState(() {}),
         ),

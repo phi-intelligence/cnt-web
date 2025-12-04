@@ -107,209 +107,307 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
-      // Web version with web design system
+      final screenWidth = MediaQuery.of(context).size.width;
+      final isMobile = screenWidth < 600;
+      
+      // Web version with improved design - compact and responsive
       return Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
-        body: Stack(
-          children: [
-            // Background image with low opacity overlay
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: const AssetImage('assets/images/jesus-walking.png'),
-                    fit: BoxFit.cover,
-                    opacity: 0.05,
-                  ),
-                ),
-              ),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppColors.warmBrown.withOpacity(0.03),
+                AppColors.backgroundPrimary,
+              ],
             ),
-            Container(
-              padding: ResponsiveGridDelegate.getResponsivePadding(context),
+          ),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 16 : 32,
+                vertical: 24,
+              ),
               child: Center(
-                child: SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: ResponsiveGridDelegate.getMaxContentWidth(context),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header with back button
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: 500),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Back button row
+                      Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.warmBrown.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: IconButton(
+                              icon: Icon(Icons.arrow_back, color: AppColors.warmBrown),
                               onPressed: _handleBack,
                             ),
-                            Expanded(
-                              child: StyledPageHeader(
-                                title: 'Meeting Created',
-                                size: StyledPageHeaderSize.h2,
+                          ),
+                          const SizedBox(width: 16),
+                          Text(
+                            'Meeting Created',
+                            style: AppTypography.heading3.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Success Card
+                      Container(
+                        padding: EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.warmBrown.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            // Success Icon
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [AppColors.warmBrown, AppColors.accentMain],
+                                ),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.warmBrown.withOpacity(0.3),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(Icons.check, size: 40, color: Colors.white),
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Meeting Type
+                            Text(
+                              widget.isInstant ? 'Instant Meeting' : 'Scheduled Meeting',
+                              style: AppTypography.heading4.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+
+                            // Meeting ID Badge
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppColors.warmBrown.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                'ID: ${widget.meetingId}',
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: AppColors.warmBrown,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Meeting Link - Pill shaped
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: AppColors.backgroundSecondary,
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.link, color: AppColors.warmBrown, size: 20),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      widget.meetingLink,
+                                      style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: AppColors.warmBrown,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: _handleCopyLink,
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                _isCopied ? Icons.check : Icons.copy,
+                                                color: Colors.white,
+                                                size: 16,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                _isCopied ? 'Copied!' : 'Copy',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: AppSpacing.extraLarge),
+                      ),
+                      const SizedBox(height: 24),
 
-                        // Meeting Details Section
-                        SectionContainer(
-                          showShadow: true,
-                          child: Column(
-                            children: [
-                              // Meeting Icon
-                              Container(
-                                width: 100,
-                                height: 100,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AppColors.warmBrown,
-                                      AppColors.accentMain,
-                                    ],
-                                  ),
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.warmBrown.withOpacity(0.3),
-                                      blurRadius: 15,
-                                      offset: const Offset(0, 6),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.video_call,
-                                  size: 48,
-                                  color: Colors.white,
-                                ),
+                      // Share Section - Compact horizontal pills
+                      Container(
+                        padding: EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Share Meeting',
+                              style: AppTypography.bodyMedium.copyWith(
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
                               ),
-                              const SizedBox(height: AppSpacing.large),
-
-                              // Meeting Title
-                              Text(
-                                widget.isInstant ? 'Instant Meeting' : 'Scheduled Meeting',
-                                style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
-                              ),
-                              const SizedBox(height: AppSpacing.small),
-
-                              // Meeting ID
-                              Text(
-                                'Meeting ID: ${widget.meetingId}',
-                                style: AppTypography.body.copyWith(color: AppColors.textSecondary),
-                              ),
-                              const SizedBox(height: AppSpacing.large),
-
-                              // Meeting Link with brown border accent
-                              Container(
-                                padding: EdgeInsets.all(AppSpacing.medium),
-                                decoration: BoxDecoration(
-                                  color: AppColors.backgroundSecondary,
-                                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                                  border: Border.all(
-                                    color: AppColors.warmBrown,
-                                    width: 2,
-                                  ),
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            // Share buttons in a row - compact pill style
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: [
+                                _buildCompactShareButton(
+                                  icon: Icons.chat,
+                                  label: 'WhatsApp',
+                                  color: const Color(0xFF25D366),
+                                  onTap: _handleShare,
                                 ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        widget.meetingLink,
-                                        style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
+                                _buildCompactShareButton(
+                                  icon: Icons.email,
+                                  label: 'Email',
+                                  color: const Color(0xFFEA4335),
+                                  onTap: _handleShare,
+                                ),
+                                _buildCompactShareButton(
+                                  icon: Icons.message,
+                                  label: 'SMS',
+                                  color: const Color(0xFF34A853),
+                                  onTap: _handleShare,
+                                ),
+                                _buildCompactShareButton(
+                                  icon: Icons.share,
+                                  label: 'More',
+                                  color: AppColors.warmBrown,
+                                  onTap: _handleShare,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Join Meeting Button - Pill shaped with gradient
+                      Container(
+                        height: 56,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppColors.warmBrown, AppColors.accentMain],
+                          ),
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.warmBrown.withOpacity(0.4),
+                              blurRadius: 15,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _joining ? null : _handleJoinMeeting,
+                            borderRadius: BorderRadius.circular(28),
+                            child: Center(
+                              child: _joining
+                                  ? SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                       ),
-                                    ),
-                                    const SizedBox(width: AppSpacing.small),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: AppColors.warmBrown,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: IconButton(
-                                        icon: Icon(
-                                          _isCopied ? Icons.check : Icons.copy,
-                                          color: Colors.white,
-                                          size: 20,
+                                    )
+                                  : Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.video_call, color: Colors.white, size: 24),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'Join Meeting Now',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
-                                        onPressed: _handleCopyLink,
-                                      ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
-                        const SizedBox(height: AppSpacing.large),
-
-                        // Share Section with brown-themed gradient cards
-                        SectionContainer(
-                          showShadow: true,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Share Meeting',
-                                style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
-                              ),
-                              const SizedBox(height: AppSpacing.medium),
-
-                              // Share Options Grid
-                              GridView.count(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                crossAxisCount: 2,
-                                crossAxisSpacing: AppSpacing.medium,
-                                mainAxisSpacing: AppSpacing.medium,
-                                childAspectRatio: 2.5,
-                                children: [
-                                  _buildShareOption(
-                                    icon: Icons.chat,
-                                    label: 'WhatsApp',
-                                    color: const Color(0xFF25D366),
-                                    onTap: _handleShare,
-                                  ),
-                                  _buildShareOption(
-                                    icon: Icons.email,
-                                    label: 'Email',
-                                    color: const Color(0xFFEA4335),
-                                    onTap: _handleShare,
-                                  ),
-                                  _buildShareOption(
-                                    icon: Icons.message,
-                                    label: 'SMS',
-                                    color: const Color(0xFF34A853),
-                                    onTap: _handleShare,
-                                  ),
-                                  _buildShareOption(
-                                    icon: Icons.more_horiz,
-                                    label: 'More',
-                                    color: AppColors.warmBrown,
-                                    onTap: _handleShare,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.extraLarge),
-
-                        // Join Meeting Button - proper pill button size
-                        StyledPillButton(
-                          label: _joining ? 'Joining...' : 'Join Meeting',
-                          icon: Icons.video_call,
-                          onPressed: _joining ? null : _handleJoinMeeting,
-                          isLoading: _joining,
-                          width: double.infinity,
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
                   ),
                 ),
               ),
             ),
-          ],
+          ),
         ),
       );
     } else {
@@ -498,6 +596,45 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
     }
   }
 
+  // Compact pill-shaped share button for web
+  Widget _buildCompactShareButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withOpacity(0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildShareOption({
     required IconData icon,
     required String label,
@@ -505,51 +642,12 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
     required VoidCallback onTap,
   }) {
     if (kIsWeb) {
-      // Web version - used in GridView with brown-themed gradient
-      return MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: EdgeInsets.all(AppSpacing.medium),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  color,
-                  color.withOpacity(0.8),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-              border: Border.all(
-                color: AppColors.warmBrown.withOpacity(0.3),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: Colors.white, size: 20),
-                const SizedBox(width: AppSpacing.tiny),
-                Text(
-                  label,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+      // Web version - compact pill style
+      return _buildCompactShareButton(
+        icon: icon,
+        label: label,
+        color: color,
+        onTap: onTap,
       );
     } else {
       // Mobile version

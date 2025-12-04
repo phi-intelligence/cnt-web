@@ -515,29 +515,37 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
         Text(
           label,
           style: AppTypography.bodySmall.copyWith(
-            color: AppColors.textPrimary,
+            color: AppColors.textSecondary,
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: AppSpacing.tiny),
+        const SizedBox(height: AppSpacing.small),
         TextField(
           controller: controller,
           maxLines: maxLines,
           keyboardType: keyboardType,
+          style: AppTypography.body.copyWith(color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: AppColors.textSecondary),
+            hintStyle: TextStyle(color: AppColors.textTertiary),
             filled: true,
             fillColor: AppColors.backgroundSecondary,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
               borderSide: BorderSide(color: AppColors.borderPrimary),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
               borderSide: BorderSide(color: AppColors.borderPrimary),
             ),
-            contentPadding: const EdgeInsets.all(AppSpacing.medium),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
+              borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
+            ),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: maxLines > 1 ? 16 : 14,
+            ),
           ),
         ),
       ],
@@ -554,44 +562,40 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
       cursor: SystemMouseCursors.click,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        borderRadius: BorderRadius.circular(28),
         child: Container(
-          padding: EdgeInsets.all(AppSpacing.medium),
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
             color: AppColors.backgroundSecondary,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+            borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: AppColors.warmBrown,
-              width: 2,
+              color: AppColors.warmBrown.withOpacity(0.3),
+              width: 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.warmBrown.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
           ),
           child: Row(
             children: [
               Container(
-                padding: EdgeInsets.all(AppSpacing.small),
+                padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: AppColors.warmBrown.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: AppColors.warmBrown, size: 24),
+                child: Icon(icon, color: AppColors.warmBrown, size: 22),
               ),
-              const SizedBox(width: AppSpacing.medium),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       label,
-                      style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
                       value,
                       style: AppTypography.body.copyWith(
@@ -602,7 +606,14 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: AppColors.warmBrown),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.warmBrown.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(Icons.chevron_right, color: AppColors.warmBrown, size: 20),
+              ),
             ],
           ),
         ),
@@ -612,14 +623,36 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
 
   Widget _buildOptionRow(IconData icon, String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.small),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.primaryMain, size: 20),
-          const SizedBox(width: AppSpacing.medium),
-          Text(
-            text,
-            style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.warmBrown.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: AppColors.warmBrown, size: 18),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              text,
+              style: AppTypography.body.copyWith(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: AppColors.warmBrown,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(Icons.check, color: Colors.white, size: 16),
           ),
         ],
       ),
