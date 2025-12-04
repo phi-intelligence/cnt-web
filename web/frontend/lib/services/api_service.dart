@@ -2584,7 +2584,7 @@ class ApiService {
       };
 
       final response = await http.post(
-        Uri.parse('$baseUrl/podcasts'),
+        Uri.parse('$baseUrl/podcasts/'),
         headers: await _getHeaders(),
         body: json.encode(body),
       ).timeout(const Duration(seconds: 30));

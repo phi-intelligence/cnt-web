@@ -387,12 +387,37 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
     return '${mins.toString().padLeft(1, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
+  /// Handle back button - exit fullscreen first if needed
+  void _handleBack() {
+    // Exit fullscreen before navigating
+    if (kIsWeb && _isFullscreen) {
+      try {
+        html.document.exitFullscreen();
+        setState(() {
+          _isFullscreen = false;
+        });
+      } catch (e) {
+        debugPrint('VideoPlayer: Error exiting fullscreen on back: $e');
+      }
+    }
+    // Call the provided callback
+    widget.onBack?.call();
+  }
+
   @override
   void dispose() {
     _hideControlsTimer?.cancel();
     _controller?.removeListener(_videoListener);
     _controller?.dispose();
     _focusNode.dispose();
+    // Exit fullscreen on dispose if still in fullscreen
+    if (kIsWeb && _isFullscreen) {
+      try {
+        html.document.exitFullscreen();
+      } catch (e) {
+        debugPrint('VideoPlayer: Error exiting fullscreen on dispose: $e');
+      }
+    }
     super.dispose();
   }
 
@@ -426,7 +451,7 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                       IconButton(
                         icon: const Icon(Icons.arrow_back),
                         color: AppColors.primaryMain,
-                        onPressed: widget.onBack,
+                        onPressed: _handleBack,
                       ),
                       Expanded(
                         child: Center(
@@ -525,7 +550,7 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                           ),
 
                         // Floating Back Button (always visible, especially in fullscreen)
-                        if (_isFullscreen && _showControls && widget.onBack != null)
+                        if (_isFullscreen && _showControls)
                           Positioned(
                             top: AppSpacing.large,
                             left: AppSpacing.large,
@@ -547,8 +572,8 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                                   icon: const Icon(Icons.arrow_back),
                                   color: Colors.white,
                                   iconSize: 28,
-                                  onPressed: widget.onBack,
-                                  tooltip: 'Back',
+                                  onPressed: _handleBack,
+                                  tooltip: 'Exit Fullscreen & Back',
                                 ),
                               ),
                             ),
