@@ -1738,9 +1738,26 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       attempts++;
     }
     
+    // Calculate expected duration from trim values (before reset)
+    final expectedDuration = _trimEnd - _trimStart;
+    print('🔄 Reloading video: controller duration=${duration?.inSeconds}s, expected=${expectedDuration.inSeconds}s');
+    
+    // If controller duration is missing or suspiciously different, use expected duration
     if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
-      print('⚠️ Video duration is not available after reload');
-      return;
+      if (expectedDuration.inMilliseconds > 0) {
+        duration = expectedDuration;
+        print('✅ Using expected duration from trim: ${duration.inSeconds}s');
+      } else {
+        print('⚠️ Video duration is not available after reload');
+        return;
+      }
+    } else if (expectedDuration.inMilliseconds > 0) {
+      // Check if controller duration is suspiciously different (more than 50% difference)
+      final ratio = duration.inMilliseconds / expectedDuration.inMilliseconds;
+      if (ratio < 0.5 || ratio > 2.0) {
+        print('⚠️ Controller duration ${duration.inSeconds}s differs significantly from expected ${expectedDuration.inSeconds}s, using expected');
+        duration = expectedDuration;
+      }
     }
     
     _controller!.addListener(_videoListener);
@@ -1751,6 +1768,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       // Reset trim start to zero when reloading
       _trimStart = Duration.zero;
     });
+    print('✅ Video reloaded with duration: ${_videoDuration.inSeconds}s');
   }
 
   Future<void> _handleSave() async {
