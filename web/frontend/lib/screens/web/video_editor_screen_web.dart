@@ -354,8 +354,27 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         duration = _controller!.value.duration;
       }
       
-      if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
-        // For blob URLs (WebM from MediaRecorder), try using HTML5 video element directly
+      // Check if provided duration is available (from backend - more reliable for WebM)
+      // WebM files from MediaRecorder often have wrong/missing duration metadata
+      // The backend uses FFprobe re-encoding to get accurate duration
+      if (_providedDuration != null && _providedDuration!.inMilliseconds > 0) {
+        // If controller duration is missing, invalid, or suspiciously different from provided,
+        // prefer the backend-provided duration
+        final bool controllerDurationInvalid = duration == null || 
+            duration == Duration.zero || 
+            duration.inMilliseconds <= 0;
+        final bool controllerDurationSuspicious = duration != null && 
+            duration.inMilliseconds > 0 &&
+            (_providedDuration!.inMilliseconds / duration.inMilliseconds > 2 ||
+             duration.inMilliseconds / _providedDuration!.inMilliseconds > 2);
+        
+        if (controllerDurationInvalid || controllerDurationSuspicious) {
+          print('🔄 Controller duration: ${duration?.inSeconds}s, Provided: ${_providedDuration!.inSeconds}s');
+          print('✅ Using backend-provided duration: ${_providedDuration!.inSeconds}s (more reliable for WebM)');
+          duration = _providedDuration;
+        }
+      } else if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
+        // No provided duration - try fallback methods for blob URLs
         if (widget.videoPath.startsWith('blob:')) {
           try {
             // Use a workaround: create a temporary video element to get duration
@@ -369,13 +388,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         }
         
         if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
-          // Use provided duration as final fallback
-          if (_providedDuration != null && _providedDuration!.inMilliseconds > 0) {
-            duration = _providedDuration;
-            print('✅ Using provided duration: ${duration!.inSeconds}s');
-          } else {
-            throw Exception('Video duration is not available. The video may be corrupted or in an unsupported format. Please try recording again.');
-          }
+          throw Exception('Video duration is not available. The video may be corrupted or in an unsupported format. Please try recording again.');
         }
       }
       
@@ -2176,21 +2189,25 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   }
 
   Widget _buildDesktopLayout() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Video Preview Section (Left - 65%)
-        Expanded(
-          flex: 65,
-          child: _buildVideoPreview(),
-        ),
-        const SizedBox(width: AppSpacing.large),
-        // Controls Panel (Right - 35%)
-        Expanded(
-          flex: 35,
-          child: _buildControlsPanel(),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Video Preview Section (Left - 60%)
+            Expanded(
+              flex: 60,
+              child: _buildVideoPreview(constraints.maxHeight),
+            ),
+            const SizedBox(width: AppSpacing.medium),
+            // Controls Panel (Right - 40%) - More space for editing tools
+            Expanded(
+              flex: 40,
+              child: _buildControlsPanel(),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -2198,7 +2215,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     return SingleChildScrollView(
       child: Column(
         children: [
-          _buildVideoPreview(),
+          _buildVideoPreview(400), // Fixed height for mobile
           const SizedBox(height: AppSpacing.large),
           _buildControlsPanel(),
         ],
@@ -2206,131 +2223,147 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     );
   }
 
-  Widget _buildVideoPreview() {
-    return SectionContainer(
-      showShadow: true,
-      padding: EdgeInsets.zero,
+  Widget _buildVideoPreview(double maxHeight) {
+    // Calculate video preview height - use most of available space minus playback controls
+    final videoHeight = (maxHeight - 80).clamp(200.0, maxHeight); // 80px for controls bar
+    
+    return Container(
+      height: maxHeight,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         children: [
-          // Video Player
+          // Video Player - Takes remaining space
           Expanded(
-            child: MouseRegion(
-              onEnter: (_) => _onVideoMouseEnter(),
-              onExit: (_) => _onVideoMouseExit(),
-              onHover: (_) => _onVideoMouseMove(),
-              child: Container(
-                color: Colors.black,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Video player
-                    if (_controller != null && _controller!.value.isInitialized)
-                      Center(
-                        child: AspectRatio(
-                          aspectRatio: _controller!.value.aspectRatio,
-                          child: VideoPlayer(_controller!),
-                        ),
-                      )
-                    else
-                      Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.warmBrown,
-                        ),
-                      ),
-                    
-                    // Text overlays
-                    ..._textOverlays.where((overlay) {
-                      final currentTime = _currentPosition;
-                      return currentTime >= overlay.startTime && currentTime <= overlay.endTime;
-                    }).map((overlay) => Positioned(
-                      left: overlay.x * MediaQuery.of(context).size.width - 100,
-                      top: overlay.y * MediaQuery.of(context).size.height - 20,
-                      child: GestureDetector(
-                        onTap: () => _editTextOverlay(overlay),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: overlay.backgroundColor != null
-                                ? Color(int.parse(overlay.backgroundColor!.replaceFirst('#', '0xff')))
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(4),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: MouseRegion(
+                onEnter: (_) => _onVideoMouseEnter(),
+                onExit: (_) => _onVideoMouseExit(),
+                onHover: (_) => _onVideoMouseMove(),
+                child: Container(
+                  color: Colors.black,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Video player
+                      if (_controller != null && _controller!.value.isInitialized)
+                        Center(
+                          child: AspectRatio(
+                            aspectRatio: _controller!.value.aspectRatio,
+                            child: VideoPlayer(_controller!),
                           ),
-                          child: Text(
-                            overlay.text,
-                            style: TextStyle(
-                              color: Color(overlay.color),
-                              fontSize: overlay.fontSize,
-                              fontWeight: FontWeight.w600,
+                        )
+                      else
+                        Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.warmBrown,
+                          ),
+                        ),
+                      
+                      // Text overlays
+                      ..._textOverlays.where((overlay) {
+                        final currentTime = _currentPosition;
+                        return currentTime >= overlay.startTime && currentTime <= overlay.endTime;
+                      }).map((overlay) => Positioned(
+                        left: overlay.x * MediaQuery.of(context).size.width - 100,
+                        top: overlay.y * MediaQuery.of(context).size.height - 20,
+                        child: GestureDetector(
+                          onTap: () => _editTextOverlay(overlay),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: overlay.backgroundColor != null
+                                  ? Color(int.parse(overlay.backgroundColor!.replaceFirst('#', '0xff')))
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                            textAlign: overlay.textAlign,
-                          ),
-                        ),
-                      ),
-                    )),
-                    
-                    // Controls Overlay
-                    if (_controller != null && _controller!.value.isInitialized)
-                      AnimatedOpacity(
-                        opacity: _showVideoControls ? 1.0 : 0.0,
-                        duration: const Duration(milliseconds: 300),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black.withOpacity(0.2),
-                                Colors.black.withOpacity(0.6),
-                              ],
-                              stops: const [0.0, 0.7, 1.0],
+                            child: Text(
+                              overlay.text,
+                              style: TextStyle(
+                                color: Color(overlay.color),
+                                fontSize: overlay.fontSize,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              textAlign: overlay.textAlign,
                             ),
                           ),
-                          child: Stack(
-                            children: [
-                              // Center Play/Pause Button
-                              if (!_controller!.value.isPlaying || _isMouseOverVideo)
-                                Center(
-                                  child: MouseRegion(
-                                    cursor: SystemMouseCursors.click,
-                                    child: GestureDetector(
-                                      onTap: _togglePlayPause,
-                                      child: Container(
-                                        width: 80,
-                                        height: 80,
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              AppColors.warmBrown,
-                                              AppColors.accentMain,
+                        ),
+                      )),
+                      
+                      // Controls Overlay
+                      if (_controller != null && _controller!.value.isInitialized)
+                        AnimatedOpacity(
+                          opacity: _showVideoControls ? 1.0 : 0.0,
+                          duration: const Duration(milliseconds: 300),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withOpacity(0.2),
+                                  Colors.black.withOpacity(0.6),
+                                ],
+                                stops: const [0.0, 0.7, 1.0],
+                              ),
+                            ),
+                            child: Stack(
+                              children: [
+                                // Center Play/Pause Button
+                                if (!_controller!.value.isPlaying || _isMouseOverVideo)
+                                  Center(
+                                    child: MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: GestureDetector(
+                                        onTap: _togglePlayPause,
+                                        child: Container(
+                                          width: 70,
+                                          height: 70,
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                AppColors.warmBrown,
+                                                AppColors.accentMain,
+                                              ],
+                                            ),
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: AppColors.warmBrown.withOpacity(0.4),
+                                                blurRadius: 16,
+                                                offset: const Offset(0, 4),
+                                                spreadRadius: 2,
+                                              ),
                                             ],
                                           ),
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: AppColors.warmBrown.withOpacity(0.4),
-                                              blurRadius: 16,
-                                              offset: const Offset(0, 4),
-                                              spreadRadius: 2,
-                                            ),
-                                          ],
-                                        ),
-                                        child: Icon(
-                                          _controller!.value.isPlaying
-                                              ? Icons.pause
-                                              : Icons.play_arrow,
-                                          color: Colors.white,
-                                          size: 48,
+                                          child: Icon(
+                                            _controller!.value.isPlaying
+                                                ? Icons.pause
+                                                : Icons.play_arrow,
+                                            color: Colors.white,
+                                            size: 40,
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -2345,22 +2378,24 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
   Widget _buildPlaybackControlsBar() {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.medium),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.medium, vertical: AppSpacing.small),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
         border: Border(
           top: BorderSide(color: AppColors.borderPrimary),
         ),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Progress Bar
           if (_controller != null && _controller!.value.isInitialized)
             SliderTheme(
               data: SliderTheme.of(context).copyWith(
-                trackHeight: 6,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                trackHeight: 4,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
                 activeTrackColor: AppColors.warmBrown,
                 inactiveTrackColor: AppColors.borderPrimary,
                 thumbColor: AppColors.warmBrown,
@@ -2434,39 +2469,42 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   }
 
   Widget _buildControlsPanel() {
-    return SectionContainer(
-      showShadow: true,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Panel Header
+          // Compact Tab Bar with header integrated
           Container(
-            padding: const EdgeInsets.all(AppSpacing.medium),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.medium, vertical: AppSpacing.small),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.warmBrown.withOpacity(0.1),
-                  AppColors.accentMain.withOpacity(0.05),
+                  AppColors.warmBrown.withOpacity(0.08),
+                  AppColors.accentMain.withOpacity(0.03),
                 ],
               ),
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(AppSpacing.radiusLarge),
               ),
-              border: Border(
-                bottom: BorderSide(color: AppColors.borderPrimary),
-              ),
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.tune,
-                  color: AppColors.warmBrown,
-                  size: 24,
-                ),
+                Icon(Icons.tune, color: AppColors.warmBrown, size: 20),
                 const SizedBox(width: AppSpacing.small),
                 Text(
-                  'Editing Tools',
-                  style: AppTypography.heading3.copyWith(
+                  'Edit',
+                  style: AppTypography.bodyMedium.copyWith(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.bold,
                   ),
@@ -2475,7 +2513,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             ),
           ),
           
-          // Tab Bar
+          // Compact Tab Bar
           Container(
             decoration: BoxDecoration(
               border: Border(
@@ -2485,21 +2523,22 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             child: TabBar(
               controller: _tabController,
               indicatorColor: AppColors.warmBrown,
-              indicatorWeight: 3,
+              indicatorWeight: 2,
               labelColor: AppColors.warmBrown,
               unselectedLabelColor: AppColors.textSecondary,
-              labelStyle: AppTypography.bodyMedium.copyWith(
+              labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+              labelStyle: AppTypography.bodySmall.copyWith(
                 fontWeight: FontWeight.w600,
               ),
               tabs: const [
-                Tab(icon: Icon(Icons.content_cut, size: 20), text: 'Trim'),
-                Tab(icon: Icon(Icons.music_note, size: 20), text: 'Audio'),
-                Tab(icon: Icon(Icons.text_fields, size: 20), text: 'Text'),
+                Tab(icon: Icon(Icons.content_cut, size: 18), text: 'Trim'),
+                Tab(icon: Icon(Icons.music_note, size: 18), text: 'Audio'),
+                Tab(icon: Icon(Icons.text_fields, size: 18), text: 'Text'),
               ],
             ),
           ),
           
-          // Tab Content
+          // Tab Content - Takes all remaining space
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -2517,28 +2556,36 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
   Widget _buildTimelineSection() {
     return Container(
-      margin: const EdgeInsets.only(top: AppSpacing.large),
-      height: 180,
-      child: SectionContainer(
-        showShadow: true,
-        padding: EdgeInsets.zero,
-        child: Column(
-          children: [
-            // Timeline Header
-            _buildTimelineHeader(),
-            
-            // Timeline Tracks
-            Expanded(
-              child: ListView(
-                children: [
-                  _buildTextTrack(),
-                  _buildVideoTrack(),
-                  _buildAudioTrack(),
-                ],
-              ),
+      margin: const EdgeInsets.only(top: AppSpacing.medium),
+      height: 140, // Reduced height
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Timeline Header
+          _buildTimelineHeader(),
+          
+          // Timeline Tracks - Compact
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                _buildTextTrack(),
+                _buildVideoTrack(),
+                _buildAudioTrack(),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -2556,7 +2603,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       builder: (context, constraints) {
         final markerCount = (_videoDuration.inSeconds ~/ 5).clamp(5, 20);
         return Container(
-          height: 40,
+          height: 30,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -2678,7 +2725,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     return LayoutBuilder(
       builder: (context, constraints) {
         return Container(
-          height: 50,
+          height: 32,
           decoration: BoxDecoration(
             color: AppColors.backgroundPrimary,
             border: Border(
@@ -2726,15 +2773,15 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                       final width = (duration / _videoDuration.inMilliseconds) * constraints.maxWidth;
                       
                       return Positioned(
-                        left: (startPosition * constraints.maxWidth).clamp(0.0, constraints.maxWidth - width),
-                        top: 8,
+                            left: (startPosition * constraints.maxWidth).clamp(0.0, constraints.maxWidth - width),
+                        top: 4,
                         child: GestureDetector(
                           onTap: () => _editTextOverlay(overlay),
                           child: MouseRegion(
                             cursor: SystemMouseCursors.click,
                             child: Container(
-                              width: width.clamp(50.0, double.infinity),
-                              height: 34,
+                              width: width.clamp(40.0, double.infinity),
+                              height: 24,
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
@@ -2791,7 +2838,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
   Widget _buildVideoTrack() {
     return Container(
-      height: 60,
+      height: 36,
       decoration: BoxDecoration(
         color: AppColors.backgroundPrimary,
         border: Border(
@@ -2868,7 +2915,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
   Widget _buildAudioTrack() {
     return Container(
-      height: 50,
+      height: 32,
       decoration: BoxDecoration(
         color: AppColors.backgroundPrimary,
       ),
@@ -2972,36 +3019,25 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
   Widget _buildEditPanel() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.large),
+      padding: const EdgeInsets.all(AppSpacing.medium),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Header
+          // Compact Section Header
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.small),
-                decoration: BoxDecoration(
-                  color: AppColors.warmBrown.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
-                ),
-                child: Icon(
-                  Icons.content_cut,
-                  color: AppColors.warmBrown,
-                  size: 20,
-                ),
-              ),
+              Icon(Icons.content_cut, color: AppColors.warmBrown, size: 18),
               const SizedBox(width: AppSpacing.small),
               Text(
                 'Trim Video',
-                style: AppTypography.heading4.copyWith(
+                style: AppTypography.bodyMedium.copyWith(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.medium),
+          const SizedBox(height: AppSpacing.small),
           
           // Trim Controls - Only show if video duration is valid
           if (_videoDuration == Duration.zero || 
@@ -3042,7 +3078,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             )
           else
             Container(
-              padding: const EdgeInsets.all(AppSpacing.large),
+              padding: const EdgeInsets.all(AppSpacing.medium),
               decoration: BoxDecoration(
                 color: AppColors.backgroundSecondary,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
@@ -3050,7 +3086,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               ),
               child: Column(
                 children: [
-                // Start Time
+                // Start Time - Compact
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -3058,25 +3094,24 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Start Time',
-                          style: AppTypography.bodyMedium.copyWith(
+                          'Start',
+                          style: AppTypography.bodySmall.copyWith(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.medium,
-                            vertical: AppSpacing.small,
+                            horizontal: AppSpacing.small,
+                            vertical: 4,
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.warmBrown.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
-                            border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
                           ),
                           child: Text(
                             _formatTime(_trimStart),
-                            style: AppTypography.bodyMedium.copyWith(
+                            style: AppTypography.bodySmall.copyWith(
                               color: AppColors.warmBrown,
                               fontWeight: FontWeight.bold,
                             ),
@@ -3084,7 +3119,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                         ),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.small),
+                    const SizedBox(height: 4),
                     Builder(
                       builder: (context) {
                         // Get duration and ensure it's valid
@@ -3137,9 +3172,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                   ],
                 ),
                 
-                const SizedBox(height: AppSpacing.large),
+                const SizedBox(height: AppSpacing.medium),
                 
-                // End Time
+                // End Time - Compact
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -3147,25 +3182,24 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'End Time',
-                          style: AppTypography.bodyMedium.copyWith(
+                          'End',
+                          style: AppTypography.bodySmall.copyWith(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.medium,
-                            vertical: AppSpacing.small,
+                            horizontal: AppSpacing.small,
+                            vertical: 4,
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.warmBrown.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
-                            border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
                           ),
                           child: Text(
                             _formatTime(_trimEnd),
-                            style: AppTypography.bodyMedium.copyWith(
+                            style: AppTypography.bodySmall.copyWith(
                               color: AppColors.warmBrown,
                               fontWeight: FontWeight.bold,
                             ),
@@ -3173,7 +3207,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                         ),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.small),
+                    const SizedBox(height: 4),
                     Builder(
                       builder: (context) {
                         // Get duration and ensure it's valid
@@ -3229,9 +3263,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             ),
           ),
           
-          const SizedBox(height: AppSpacing.large),
+          const SizedBox(height: AppSpacing.medium),
           
-          // Apply Button - Only show if video duration is valid
+          // Apply Button - Compact
           if (_videoDuration != Duration.zero && 
               _videoDuration.inSeconds > 0 && 
               _videoDuration.inMilliseconds > 0 &&
@@ -3241,28 +3275,28 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: _isEditing ? null : _applyTrim,
-              icon: const Icon(Icons.check_circle),
-              label: Text(
-                _isEditing ? 'Processing...' : 'Apply Trim',
-                style: AppTypography.button.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                icon: Icon(Icons.check_circle, size: 18),
+                label: Text(
+                  _isEditing ? 'Processing...' : 'Apply Trim',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.warmBrown,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.extraLarge,
-                  vertical: AppSpacing.medium,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.warmBrown,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.medium,
+                    vertical: AppSpacing.small,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  ),
+                  elevation: 2,
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                ),
-                elevation: 2,
               ),
             ),
-          ),
         ],
       ),
     );
