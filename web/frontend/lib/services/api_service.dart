@@ -1610,14 +1610,38 @@ class ApiService {
       headers.remove('Content-Type');
       request.headers.addAll(headers);
       
+      print('🎵 Sending audio trim request: start=${startTime}s, end=${endTime}s, file=${audioPath}');
       final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
+      
+      print('🎵 Audio trim response status: ${streamedResponse.statusCode}');
       
       if (streamedResponse.statusCode == 200) {
         final response = await http.Response.fromStream(streamedResponse);
-        return json.decode(response.body);
+        final responseBody = response.body;
+        print('🎵 Audio trim response body: $responseBody');
+        
+        try {
+          final decoded = json.decode(responseBody);
+          print('🎵 Audio trim decoded response: $decoded');
+          return decoded;
+        } catch (e) {
+          print('❌ Failed to decode audio trim response: $e');
+          print('   Response body: $responseBody');
+          throw Exception('Invalid response format from audio trim endpoint: $e');
+        }
+      } else {
+        // Try to get error message from response
+        try {
+          final response = await http.Response.fromStream(streamedResponse);
+          final errorBody = response.body;
+          print('❌ Audio trim error response: $errorBody');
+          throw Exception('Failed to trim audio: HTTP ${streamedResponse.statusCode} - $errorBody');
+        } catch (e) {
+          throw Exception('Failed to trim audio: HTTP ${streamedResponse.statusCode}');
+        }
       }
-      throw Exception('Failed to trim audio: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
+      print('❌ Error in trimAudio API call: $e');
       throw Exception('Error trimming audio: $e');
     }
   }

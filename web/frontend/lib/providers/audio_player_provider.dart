@@ -313,11 +313,12 @@ class AudioPlayerState extends ChangeNotifier {
       return;
     }
     
-    // No auto-play - stop and clear
-    print('⏹️ No auto-play - stopping player');
-    _currentTrack = null;
+    // No auto-play - keep track visible but mark as stopped
+    // This allows users to see what they just listened to and replay if desired
+    print('⏹️ Track completed - keeping track info visible');
     _isPlaying = false;
-    _position = Duration.zero;
+    _position = _duration; // Keep position at end so user can see it finished
+    // Don't clear _currentTrack - keep it visible
     notifyListeners();
   }
   

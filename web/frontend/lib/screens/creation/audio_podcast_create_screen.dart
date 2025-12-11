@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -8,7 +9,8 @@ import '../../widgets/web/section_container.dart';
 import 'audio_recording_screen.dart';
 import 'audio_preview_screen.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:io';
+// Conditional import for dart:io (only on non-web platforms)
+import 'dart:io' if (dart.library.html) '../../utils/file_stub.dart' as io;
 
 /// Audio Podcast Create Screen
 /// Shows options to record audio or upload file
@@ -20,16 +22,25 @@ class AudioPodcastCreateScreen extends StatelessWidget {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.audio,
         allowMultiple: false,
+        withData: kIsWeb, // Load bytes on web since we can't access file path
       );
 
       if (result != null && result.files.single.path != null && context.mounted) {
         final audioPath = result.files.single.path!;
-        final file = File(audioPath);
-        final fileSize = await file.length();
-        
-        // Get audio duration - in production, use just_audio or similar
-        // For now, use a default estimate
+        int fileSize = 0;
         int estimatedDuration = 180; // Default estimate
+        
+        if (kIsWeb) {
+          // Web: Get file size from bytes
+          final bytes = result.files.single.bytes;
+          if (bytes != null) {
+            fileSize = bytes.length;
+          }
+        } else {
+          // Mobile: Use File operations
+          final file = io.File(audioPath);
+          fileSize = await file.length();
+        }
         
         Navigator.push(
           context,

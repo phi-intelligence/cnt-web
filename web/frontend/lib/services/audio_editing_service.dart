@@ -63,21 +63,33 @@ class AudioEditingService {
     Function(String)? onError,
   }) async {
     try {
+      print('🎵 AudioEditingService.trimAudio called');
+      print('   Input path: $inputPath');
+      print('   Start time: ${startTime.inSeconds}s');
+      print('   End time: ${endTime.inSeconds}s');
+      
       final result = await _apiService.trimAudio(
         inputPath,
         startTime.inSeconds.toDouble(),
         endTime.inSeconds.toDouble(),
       );
 
+      print('🎵 Audio trim API response: $result');
+
       final outputUrl = result['url'] ?? result['path'] ?? '';
+      print('🎵 Extracted output URL: $outputUrl');
+      
       if (outputUrl.isEmpty) {
-        onError?.call('No output URL returned from server');
+        print('❌ No output URL in response');
+        onError?.call('No output URL returned from server. Response: $result');
         return null;
       }
 
       // On web, return the URL directly
       if (kIsWeb) {
-        return _constructMediaUrl(outputUrl);
+        final constructedUrl = _constructMediaUrl(outputUrl);
+        print('🎵 Constructed media URL: $constructedUrl');
+        return constructedUrl;
       }
 
       // On mobile, download the edited audio to a file

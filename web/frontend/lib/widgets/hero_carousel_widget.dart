@@ -396,17 +396,32 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticK
     }
     
     // Wrap content with tap handling - works for both web and mobile
+    // Use Stack with Positioned.fill for reliable click detection on web
     if (widget.onItemTap != null) {
-      return MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: () {
-            print('🖼️ Hero Carousel: Tapped on post ${item.postId}');
-            widget.onItemTap!(item.postId);
-          },
-          behavior: HitTestBehavior.opaque,
-          child: content,
-        ),
+      return Stack(
+        children: [
+          // Image content
+          content,
+          // Invisible clickable overlay that doesn't interfere with scroll
+          Positioned.fill(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  print('🖼️ Hero Carousel: Tapped on post ${item.postId}');
+                  widget.onItemTap!(item.postId);
+                },
+                splashColor: Colors.white.withOpacity(0.1),
+                highlightColor: Colors.transparent,
+                hoverColor: Colors.white.withOpacity(0.05),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Container(color: Colors.transparent),
+                ),
+              ),
+            ),
+          ),
+        ],
       );
     }
     

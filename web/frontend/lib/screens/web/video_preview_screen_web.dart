@@ -289,14 +289,18 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
       }
     }
     
-    // Save state before navigating to editor
+    // IMPORTANT: Clear any previous video editor state before starting fresh
+    // This ensures old video data doesn't persist when editing a new video
+    await StatePersistence.clearVideoEditorState();
+    
+    // Save current preview state (not editor state)
     await _saveState();
     
     // Use backend duration if available (more accurate for WebM), fallback to widget.duration
     final durationToUse = backendDuration ?? widget.duration;
     print('🎬 Using duration for editor: ${durationToUse}s (backend: $backendDuration, widget: ${widget.duration})');
     
-    // Navigate to VideoEditorScreenWeb using GoRouter
+    // Navigate to VideoEditorScreenWeb with fresh state
     final editedPath = await Navigator.push<String>(
       context,
       MaterialPageRoute(

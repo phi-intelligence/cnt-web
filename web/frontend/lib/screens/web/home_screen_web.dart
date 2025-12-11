@@ -303,7 +303,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
     return 'Hey $username';
   }
 
-  void _handlePlay(ContentItem item) {
+  void _handlePlay(ContentItem item, {List<ContentItem>? playlist}) {
     if (item.audioUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('No audio available for ${item.title}')),
@@ -311,11 +311,35 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
       return;
     }
 
-    context.read<AudioPlayerState>().playContent(item);
+    // Use playQueue if we have a playlist for auto-play next functionality
+    final audioPlayer = context.read<AudioPlayerState>();
+    
+    if (playlist != null && playlist.isNotEmpty) {
+      // Filter to only audio tracks and find the index
+      final audioTracks = playlist.where((p) => p.audioUrl != null && p.audioUrl!.isNotEmpty).toList();
+      final startIndex = audioTracks.indexWhere((p) => p.id == item.id);
+      
+      if (audioTracks.isNotEmpty) {
+        audioPlayer.playQueue(audioTracks, startIndex: startIndex >= 0 ? startIndex : 0);
+        return;
+      }
+    }
+    
+    // Fallback: If no playlist provided, use all audio podcasts as queue
+    if (_audioPodcasts.isNotEmpty) {
+      final startIndex = _audioPodcasts.indexWhere((p) => p.id == item.id);
+      if (startIndex >= 0) {
+        audioPlayer.playQueue(_audioPodcasts, startIndex: startIndex);
+        return;
+      }
+    }
+    
+    // Final fallback: just play the single item
+    audioPlayer.playContent(item);
   }
 
   void _handleItemTap(ContentItem item) {
-    _handlePlay(item);
+    _handlePlay(item, playlist: _audioPodcasts);
   }
 
   void _handlePlayVideo(ContentItem item) {
@@ -382,7 +406,8 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
     if (_audioPodcasts.isNotEmpty) {
       final firstPodcast = _audioPodcasts.first;
       if (firstPodcast.audioUrl != null) {
-        context.read<AudioPlayerState>().playContent(firstPodcast);
+        // Play all audio podcasts as a queue for auto-play next
+        context.read<AudioPlayerState>().playQueue(_audioPodcasts, startIndex: 0);
         Navigator.push(
           context,
           MaterialPageRoute(

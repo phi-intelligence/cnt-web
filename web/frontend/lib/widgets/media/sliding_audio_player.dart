@@ -262,6 +262,23 @@ class SlidingAudioPlayerState extends State<SlidingAudioPlayer> with SingleTicke
           
           const SizedBox(width: 4),
           
+          // Shuffle Button
+          IconButton(
+            icon: Icon(
+              Icons.shuffle,
+              color: audioPlayer.shuffleEnabled 
+                  ? Colors.white 
+                  : Colors.white.withOpacity(0.4),
+            ),
+            iconSize: 20,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            tooltip: audioPlayer.shuffleEnabled ? 'Shuffle On' : 'Shuffle Off',
+            onPressed: () => audioPlayer.toggleShuffle(),
+          ),
+          
+          const SizedBox(width: 4),
+          
           // Previous Button - styled based on availability
           IconButton(
             icon: Icon(
@@ -270,7 +287,7 @@ class SlidingAudioPlayerState extends State<SlidingAudioPlayer> with SingleTicke
                   ? Colors.white 
                   : Colors.white.withOpacity(0.4),
             ),
-            iconSize: 24,
+            iconSize: 28,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             tooltip: 'Previous',
@@ -279,18 +296,28 @@ class SlidingAudioPlayerState extends State<SlidingAudioPlayer> with SingleTicke
                 : null,
           ),
           
+          const SizedBox(width: 4),
+          
           // Play/Pause Button
-          IconButton(
-            icon: Icon(
-              audioPlayer.isPlaying ? Icons.pause_circle : Icons.play_circle,
-              size: 36,
-              color: Colors.white,
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
             ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            tooltip: audioPlayer.isPlaying ? 'Pause' : 'Play',
-            onPressed: () => audioPlayer.togglePlayPause(),
+            child: IconButton(
+              icon: Icon(
+                audioPlayer.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                size: 32,
+                color: Colors.white,
+              ),
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(),
+              tooltip: audioPlayer.isPlaying ? 'Pause' : 'Play',
+              onPressed: () => audioPlayer.togglePlayPause(),
+            ),
           ),
+          
+          const SizedBox(width: 4),
           
           // Next Button - styled based on availability
           IconButton(
@@ -300,7 +327,7 @@ class SlidingAudioPlayerState extends State<SlidingAudioPlayer> with SingleTicke
                   ? Colors.white 
                   : Colors.white.withOpacity(0.4),
             ),
-            iconSize: 24,
+            iconSize: 28,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             tooltip: 'Next',
@@ -308,6 +335,29 @@ class SlidingAudioPlayerState extends State<SlidingAudioPlayer> with SingleTicke
                 ? () => audioPlayer.next()
                 : null,
           ),
+          
+          const SizedBox(width: 4),
+          
+          // Repeat Button
+          IconButton(
+            icon: Icon(
+              audioPlayer.repeatOneEnabled ? Icons.repeat_one : Icons.repeat,
+              color: (audioPlayer.repeatEnabled || audioPlayer.repeatOneEnabled)
+                  ? Colors.white 
+                  : Colors.white.withOpacity(0.4),
+            ),
+            iconSize: 20,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            tooltip: audioPlayer.repeatOneEnabled 
+                ? 'Repeat One' 
+                : audioPlayer.repeatEnabled 
+                    ? 'Repeat All' 
+                    : 'Repeat Off',
+            onPressed: () => audioPlayer.toggleRepeat(),
+          ),
+          
+          const SizedBox(width: 4),
           
           // Close Button
           IconButton(

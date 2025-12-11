@@ -13,11 +13,8 @@ import 'landing_screen_web.dart';
 /// Pill-shaped inputs and buttons following the hero section design
 class RegisterScreenWeb extends StatefulWidget {
   final String? prefilledEmail;
-  
-  const RegisterScreenWeb({
-    super.key,
-    this.prefilledEmail,
-  });
+
+  const RegisterScreenWeb({super.key, this.prefilledEmail});
 
   @override
   State<RegisterScreenWeb> createState() => _RegisterScreenWebState();
@@ -34,12 +31,11 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
   DateTime? _selectedDateOfBirth;
   String? _generatedUsername;
   bool _isLoading = false;
-  bool _isGoogleLoading = false;
 
   @override
   void initState() {
     super.initState();
-    // Pre-fill email if provided from landing page
+    // Prefill email if provided
     if (widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty) {
       _emailController.text = widget.prefilledEmail!;
       _generateUsernamePreview();
@@ -134,32 +130,6 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
           ),
         );
       }
-    }
-  }
-
-  Future<void> _handleGoogleSignup() async {
-    if (!mounted) return;
-    setState(() => _isGoogleLoading = true);
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.googleLogin();
-
-    if (!mounted) return;
-    setState(() => _isGoogleLoading = false);
-
-    if (success) {
-      if (authProvider.isAdmin) {
-        context.go('/admin');
-      } else {
-        context.go('/home');
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.error ?? 'Google sign-up failed'),
-          backgroundColor: AppColors.errorMain,
-        ),
-      );
     }
   }
 
@@ -274,41 +244,7 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
                             height: 1.5,
                           ),
                         ),
-                        SizedBox(height: AppSpacing.extraLarge),
-                        
-                        // Google Sign Up Button
-                        _buildGoogleSignupButton(isMobile),
-                        
-                        SizedBox(height: AppSpacing.large),
-                        
-                        // Divider with "or"
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Divider(
-                                color: AppColors.warmBrown.withOpacity(0.3),
-                                thickness: 1,
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium),
-                              child: Text(
-                                'or continue with email',
-                                style: AppTypography.caption.copyWith(
-                                  color: AppColors.primaryDark.withOpacity(0.5),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Divider(
-                                color: AppColors.warmBrown.withOpacity(0.3),
-                                thickness: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                        
-                        SizedBox(height: AppSpacing.large),
+                        SizedBox(height: AppSpacing.extraLarge * 1.5),
                         
                         // Form Fields
                         _buildPillTextField(
@@ -745,71 +681,7 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
                   letterSpacing: 0.3,
                 ),
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-      ),
-    );
-  }
-
-  /// Google Sign Up button - pill shaped to match design
-  Widget _buildGoogleSignupButton(bool isMobile) {
-    final maxWidth = isMobile ? double.infinity : 450.0;
-    
-    return Container(
-      constraints: BoxConstraints(maxWidth: maxWidth),
-      height: 52,
-      child: OutlinedButton(
-        onPressed: _isGoogleLoading ? null : _handleGoogleSignup,
-        style: OutlinedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: AppColors.primaryDark,
-          elevation: 2,
-          shadowColor: Colors.black.withOpacity(0.1),
-          side: BorderSide(
-            color: AppColors.warmBrown.withOpacity(0.3),
-            width: 1,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(26),
-          ),
-          padding: EdgeInsets.symmetric(
-            horizontal: AppSpacing.extraLarge,
-            vertical: AppSpacing.medium,
-          ),
-        ),
-        child: _isGoogleLoading
-            ? SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.warmBrown),
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.network(
-                    'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
-                    height: 22,
-                    width: 22,
-                    errorBuilder: (context, error, stackTrace) => Icon(
-                      Icons.g_mobiledata,
-                      size: 26,
-                      color: const Color(0xFF4285F4),
-                    ),
-                  ),
-                  SizedBox(width: AppSpacing.medium),
-                  Text(
-                    'Sign up with Google',
-                    style: AppTypography.button.copyWith(
-                      color: AppColors.primaryDark,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
+                overflow: TextOverflow.visible,
               ),
       ),
     );
