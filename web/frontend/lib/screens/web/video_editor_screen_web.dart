@@ -122,8 +122,18 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         final audioFilePath = savedState['audioFilePath'] as String?;
 
         if (savedVideoPath != null) {
-          // Use saved path (which should be backend URL if blob was uploaded)
-          _persistedVideoPath = savedVideoPath;
+          // Validate saved path is compatible with current environment
+          // Clear stale localhost URLs when in production
+          final isProduction = !_apiService.getMediaUrl('test').contains('localhost');
+          final isLocalhostUrl = savedVideoPath.contains('localhost');
+          
+          if (isProduction && isLocalhostUrl) {
+            print('⚠️ Clearing stale localhost URL from saved state (production environment)');
+            await StatePersistence.clearVideoEditorState();
+            // Don't use stale saved state
+          } else {
+            // Use saved path (which should be backend URL if blob was uploaded)
+            _persistedVideoPath = savedVideoPath;
           
           // Restore trim values
           if (trimStartMs != null) {
@@ -147,6 +157,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           }
 
           print('✅ Restored video editor state from saved state');
+          }
         }
       }
 
