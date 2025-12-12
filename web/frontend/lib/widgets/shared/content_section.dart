@@ -5,7 +5,7 @@ import '../../theme/app_typography.dart';
 import '../web/content_card_web.dart';
 import '../web/disc_card_web.dart';
 
-class ContentSection extends StatelessWidget {
+class ContentSection extends StatefulWidget {
   final String title;
   final List<ContentItem> items;
   final VoidCallback? onViewAll;
@@ -26,23 +26,126 @@ class ContentSection extends StatelessWidget {
   });
 
   @override
+  State<ContentSection> createState() => _ContentSectionState();
+}
+
+class _ContentSectionState extends State<ContentSection> {
+  final ScrollController _scrollController = ScrollController();
+  bool _canScrollLeft = false;
+  bool _canScrollRight = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_updateScrollButtons);
+    // Initial check after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _updateScrollButtons();
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_updateScrollButtons);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _updateScrollButtons() {
+    if (!_scrollController.hasClients) return;
+
+    final position = _scrollController.position;
+    final newCanScrollLeft = position.pixels > 10;
+    final newCanScrollRight = position.pixels < position.maxScrollExtent - 10;
+
+    if (newCanScrollLeft != _canScrollLeft || newCanScrollRight != _canScrollRight) {
+      setState(() {
+        _canScrollLeft = newCanScrollLeft;
+        _canScrollRight = newCanScrollRight;
+      });
+    }
+  }
+
+  void _scrollLeft() {
+    if (!_scrollController.hasClients) return;
+    final currentOffset = _scrollController.offset;
+    final targetOffset = (currentOffset - 400).clamp(0.0, _scrollController.position.maxScrollExtent);
+    _scrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _scrollRight() {
+    if (!_scrollController.hasClients) return;
+    final currentOffset = _scrollController.offset;
+    final targetOffset = (currentOffset + 400).clamp(0.0, _scrollController.position.maxScrollExtent);
+    _scrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) {
+    if (widget.items.isEmpty) {
       return const SizedBox.shrink();
     }
 
     // Web-only deployment - always use web widgets
-    if (useDiscDesign) {
+    if (widget.useDiscDesign) {
       return _buildDiscDesignWeb(context);
-    } else if (isHorizontal) {
+    } else if (widget.isHorizontal) {
       return _buildHorizontalWeb(context);
     } else {
       return _buildGridWeb(context);
     }
   }
 
+  Widget _buildScrollArrow({
+    required IconData icon,
+    required VoidCallback onTap,
+    required bool isLeft,
+  }) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 640;
+    final arrowSize = isMobile ? 16.0 : 20.0;
+    final buttonSize = isMobile ? 32.0 : 40.0;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(buttonSize / 2),
+        child: Container(
+          width: buttonSize,
+          height: buttonSize,
+          decoration: BoxDecoration(
+            color: AppColors.warmBrown.withOpacity(0.9),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(
+            icon,
+            color: Colors.white,
+            size: arrowSize,
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildHorizontalWeb(BuildContext context) {
+    final contentHeight = 280.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -50,35 +153,63 @@ class ContentSection extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              title,
+              widget.title,
               style: AppTypography.heading2.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
-            if (onViewAll != null)
+            if (widget.onViewAll != null)
               TextButton(
-                onPressed: onViewAll,
+                onPressed: widget.onViewAll,
                 child: const Text('View All'),
               ),
           ],
         ),
         const SizedBox(height: 20),
         SizedBox(
-          height: 280, // Increased height for better card visibility
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 4.0), // Add padding for better scroll indication
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              return SizedBox(
-                width: 200, // Slightly wider for better web experience
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 16.0),
-                  child: _buildCard(context, items[index]),
+          height: contentHeight,
+          child: Stack(
+            children: [
+              // Scrollable content
+              ListView.builder(
+                controller: _scrollController,
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                itemCount: widget.items.length,
+                itemBuilder: (context, index) {
+                  return SizedBox(
+                    width: 200,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 16.0),
+                      child: _buildCard(context, widget.items[index]),
+                    ),
+                  );
+                },
+              ),
+              // Left Arrow
+              if (_canScrollLeft)
+                Positioned(
+                  left: 8,
+                  top: contentHeight / 2 - 20,
+                  child: _buildScrollArrow(
+                    icon: Icons.arrow_back_ios,
+                    onTap: _scrollLeft,
+                    isLeft: true,
+                  ),
                 ),
-              );
-            },
+              // Right Arrow
+              if (_canScrollRight)
+                Positioned(
+                  right: 8,
+                  top: contentHeight / 2 - 20,
+                  child: _buildScrollArrow(
+                    icon: Icons.arrow_forward_ios,
+                    onTap: _scrollRight,
+                    isLeft: false,
+                  ),
+                ),
+            ],
           ),
         ),
       ],
@@ -87,6 +218,8 @@ class ContentSection extends StatelessWidget {
 
 
   Widget _buildDiscDesignWeb(BuildContext context) {
+    final contentHeight = 250.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -94,37 +227,65 @@ class ContentSection extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              title,
+              widget.title,
               style: AppTypography.heading2.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
-            if (onViewAll != null)
+            if (widget.onViewAll != null)
               TextButton(
-                onPressed: onViewAll,
+                onPressed: widget.onViewAll,
                 child: const Text('View All'),
               ),
           ],
         ),
         const SizedBox(height: 20),
         SizedBox(
-          height: 250, // Height to accommodate disc + label (increased to prevent overflow)
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 4.0), // Add padding for better scroll indication
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 24.0),
-                child: DiscCardWeb(
-                  item: items[index],
-                  onTap: onItemTap != null ? () => onItemTap!(items[index]) : null,
-                  onPlay: onItemPlay != null ? () => onItemPlay!(items[index]) : null,
-                  size: 180.0,
+          height: contentHeight,
+          child: Stack(
+            children: [
+              // Scrollable content
+              ListView.builder(
+                controller: _scrollController,
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                itemCount: widget.items.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 24.0),
+                    child: DiscCardWeb(
+                      item: widget.items[index],
+                      onTap: widget.onItemTap != null ? () => widget.onItemTap!(widget.items[index]) : null,
+                      onPlay: widget.onItemPlay != null ? () => widget.onItemPlay!(widget.items[index]) : null,
+                      size: 180.0,
+                    ),
+                  );
+                },
+              ),
+              // Left Arrow
+              if (_canScrollLeft)
+                Positioned(
+                  left: 8,
+                  top: contentHeight / 2 - 20,
+                  child: _buildScrollArrow(
+                    icon: Icons.arrow_back_ios,
+                    onTap: _scrollLeft,
+                    isLeft: true,
+                  ),
                 ),
-              );
-            },
+              // Right Arrow
+              if (_canScrollRight)
+                Positioned(
+                  right: 8,
+                  top: contentHeight / 2 - 20,
+                  child: _buildScrollArrow(
+                    icon: Icons.arrow_forward_ios,
+                    onTap: _scrollRight,
+                    isLeft: false,
+                  ),
+                ),
+            ],
           ),
         ),
       ],
@@ -142,15 +303,15 @@ class ContentSection extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              title,
+              widget.title,
               style: AppTypography.heading2.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
-            if (onViewAll != null)
+            if (widget.onViewAll != null)
               TextButton(
-                onPressed: onViewAll,
+                onPressed: widget.onViewAll,
                 child: const Text('View All'),
               ),
           ],
@@ -165,9 +326,9 @@ class ContentSection extends StatelessWidget {
             mainAxisSpacing: 16,
             childAspectRatio: 0.75,
           ),
-          itemCount: items.length,
+          itemCount: widget.items.length,
           itemBuilder: (context, index) {
-            return _buildCard(context, items[index]);
+            return _buildCard(context, widget.items[index]);
           },
         ),
       ],
@@ -178,9 +339,8 @@ class ContentSection extends StatelessWidget {
     // Web-only deployment - always use web widgets
     return ContentCardWeb(
       item: item,
-      onTap: onItemTap != null ? () => onItemTap!(item) : null,
-      onPlay: onItemPlay != null ? () => onItemPlay!(item) : null,
+      onTap: widget.onItemTap != null ? () => widget.onItemTap!(item) : null,
+      onPlay: widget.onItemPlay != null ? () => widget.onItemPlay!(item) : null,
     );
   }
 }
-

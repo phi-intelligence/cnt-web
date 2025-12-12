@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:typed_data';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -9,8 +10,9 @@ import '../../widgets/web/section_container.dart';
 import 'audio_recording_screen.dart';
 import 'audio_preview_screen.dart';
 import 'package:file_picker/file_picker.dart';
-// Conditional import for dart:io (only on non-web platforms)
+// Conditional imports for platform-specific features
 import 'dart:io' if (dart.library.html) '../../utils/file_stub.dart' as io;
+import 'dart:html' if (dart.library.io) '../../utils/html_stub.dart' as html;
 
 /// Audio Podcast Create Screen
 /// Shows options to record audio or upload file
@@ -22,31 +24,61 @@ class AudioPodcastCreateScreen extends StatelessWidget {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.audio,
         allowMultiple: false,
-        withData: kIsWeb, // Load bytes on web since we can't access file path
+        withData: true, // Always load bytes for web compatibility
       );
 
-      if (result != null && result.files.single.path != null && context.mounted) {
-        final audioPath = result.files.single.path!;
+      if (result != null && context.mounted) {
+        final file = result.files.single;
         int fileSize = 0;
         int estimatedDuration = 180; // Default estimate
-        
+        String audioUri;
+
         if (kIsWeb) {
-          // Web: Get file size from bytes
-          final bytes = result.files.single.bytes;
-          if (bytes != null) {
-            fileSize = bytes.length;
+          // Web: Must use bytes since path is unavailable on web platform
+          final bytes = file.bytes;
+          if (bytes == null || bytes.isEmpty) {
+            throw Exception('No audio data available. Please try selecting the file again.');
           }
+          fileSize = bytes.length;
+
+          // Create a blob URL for web playback
+          // Determine MIME type from file extension
+          final fileName = file.name.toLowerCase();
+          String mimeType = 'audio/mpeg'; // default
+          if (fileName.endsWith('.wav')) {
+            mimeType = 'audio/wav';
+          } else if (fileName.endsWith('.webm')) {
+            mimeType = 'audio/webm';
+          } else if (fileName.endsWith('.ogg')) {
+            mimeType = 'audio/ogg';
+          } else if (fileName.endsWith('.m4a')) {
+            mimeType = 'audio/mp4';
+          } else if (fileName.endsWith('.aac')) {
+            mimeType = 'audio/aac';
+          } else if (fileName.endsWith('.flac')) {
+            mimeType = 'audio/flac';
+          }
+
+          final blob = html.Blob([bytes], mimeType);
+          audioUri = html.Url.createObjectUrlFromBlob(blob);
+
+          print('🎵 Web: Created blob URL for audio file: $audioUri (${fileSize} bytes, $mimeType)');
         } else {
-          // Mobile: Use File operations
-          final file = io.File(audioPath);
-          fileSize = await file.length();
+          // Mobile: Use file path
+          final audioPath = file.path;
+          if (audioPath == null || audioPath.isEmpty) {
+            throw Exception('No file path available');
+          }
+          audioUri = audioPath;
+          final ioFile = io.File(audioPath);
+          fileSize = await ioFile.length();
         }
-        
+
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => AudioPreviewScreen(
-              audioUri: audioPath,
+              audioUri: audioUri,
               source: 'file',
               duration: estimatedDuration,
               fileSize: fileSize,

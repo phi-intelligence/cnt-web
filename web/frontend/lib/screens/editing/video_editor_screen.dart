@@ -134,9 +134,50 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> with SingleTicker
       setState(() {
         _isInitializing = false;
         _hasError = true;
-        _errorMessage = e.toString();
+        _errorMessage = _formatVideoError(e);
       });
     }
+  }
+
+  /// Format video errors into user-friendly messages
+  String _formatVideoError(dynamic error) {
+    final errorStr = error.toString();
+
+    if (errorStr.contains('MEDIA_ERR_SRC_NOT_SUPPORTED') ||
+        errorStr.contains('Format error') ||
+        errorStr.contains('format not supported')) {
+      return 'This video format is not supported by your browser.\n\n'
+             'Tip: Try converting your video to MP4 format (H.264 codec) for best compatibility.';
+    }
+
+    if (errorStr.contains('MEDIA_ERR_NETWORK') ||
+        errorStr.contains('network') ||
+        errorStr.contains('Failed to load')) {
+      return 'Failed to load video. Please check your internet connection and try again.';
+    }
+
+    if (errorStr.contains('MEDIA_ERR_DECODE') || errorStr.contains('decode')) {
+      return 'This video file appears to be corrupted or uses an unsupported codec.\n\n'
+             'Tip: Try re-encoding the video or use a different file.';
+    }
+
+    if (errorStr.contains('TimeoutException') || errorStr.contains('timeout')) {
+      return 'Video took too long to load. Please try again or use a smaller file.';
+    }
+
+    if (errorStr.contains('blob:') || errorStr.contains('Blob')) {
+      return 'Unable to process recorded video. Please try recording again.';
+    }
+
+    if (errorStr.contains('Permission') || errorStr.contains('denied')) {
+      return 'Permission denied. Please check file access permissions.';
+    }
+
+    if (errorStr.contains('FileSystemException') || errorStr.contains('No such file')) {
+      return 'Video file not found. The file may have been moved or deleted.';
+    }
+
+    return 'Error loading video: $errorStr';
   }
 
   String _getResolutionFromSize(Size size) {

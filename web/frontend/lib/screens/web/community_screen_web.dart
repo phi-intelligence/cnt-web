@@ -296,9 +296,26 @@ class _CommunityScreenWebState extends State<CommunityScreenWeb> {
                                   },
                                 );
 
-                              return postIdInt != null && widget.postId == postIdInt && _postKeys.containsKey(postIdInt)
+                              // Highlight the target post if navigated from carousel
+                              final isTargetPost = postIdInt != null && widget.postId == postIdInt;
+
+                              return isTargetPost && _postKeys.containsKey(postIdInt)
                                     ? Container(
                                         key: _postKeys[postIdInt],
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(
+                                            color: AppColors.accentMain,
+                                            width: 3,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.accentMain.withOpacity(0.3),
+                                              blurRadius: 12,
+                                              spreadRadius: 2,
+                                            ),
+                                          ],
+                                        ),
                                         child: postCard,
                                       )
                                   : postCard;
