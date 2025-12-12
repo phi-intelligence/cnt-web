@@ -134,7 +134,14 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
 
     if (mounted) {
       if (success) {
-        Navigator.of(dialogContext).pop();
+        // Safely pop the dialog - it might already be dismissed
+        try {
+          if (Navigator.of(dialogContext).canPop()) {
+            Navigator.of(dialogContext).pop();
+          }
+        } catch (e) {
+          print('⚠️ Dialog already dismissed: $e');
+        }
         if (authProvider.isAdmin) {
           context.go('/admin');
         } else {
@@ -160,20 +167,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
           children: [
             _buildHeroSection(),
             _buildMoviesShowcaseSection(),
-            _buildContentCarousel(
-              title: 'Christian Movies',
-              subtitle: 'Faith-filled films for the whole family',
-              items: _featuredMovies,
-              isLoading: _isLoadingContent,
-            ),
-            _buildContentCarousel(
-              title: 'Podcasts & Sermons',
-              subtitle: 'Inspiring audio and video content',
-              items: _featuredPodcasts,
-              isLoading: _isLoadingContent,
-            ),
-            _buildFeaturesSection(),
-            _buildDevicesSection(),
+            _buildPlatformAvailabilitySection(),
             _buildFooter(),
           ],
         ),
@@ -816,6 +810,195 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
           ],
         ),
       ],
+    );
+  }
+
+  /// Platform availability section - showcases web and mobile availability
+  /// Split layout: gradient with text on left, image on right
+  /// Same height as featured movies section
+  Widget _buildPlatformAvailabilitySection() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isMobile = screenWidth < 600;
+    final isTablet = screenWidth >= 600 && screenWidth < 1024;
+    
+    if (isMobile) {
+      return _buildPlatformAvailabilityMobile(screenHeight);
+    }
+    
+    return Container(
+      width: double.infinity,
+      height: screenHeight * 0.85,
+      constraints: BoxConstraints(minHeight: 600),
+      child: Row(
+        children: [
+          // Left side - gradient with text (30%)
+          Expanded(
+            flex: isTablet ? 3 : 3,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    AppColors.primaryDark,
+                    AppColors.primaryDark.withOpacity(0.95),
+                    AppColors.warmBrown.withOpacity(0.9),
+                    AppColors.warmBrown.withOpacity(0.7),
+                  ],
+                  stops: const [0.0, 0.3, 0.7, 1.0],
+                ),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isTablet ? AppSpacing.extraLarge : AppSpacing.extraLarge * 2.5,
+                  vertical: AppSpacing.extraLarge * 2,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Available in Web and Mobile',
+                      style: AppTypography.heading1.copyWith(
+                        color: AppColors.backgroundPrimary,
+                        fontSize: isTablet ? 32 : 40,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Right side - image (70%)
+          Expanded(
+            flex: isTablet ? 7 : 7,
+            child: Stack(
+              children: [
+                // Image
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/images/christnew.png',
+                    fit: BoxFit.cover,
+                    alignment: Alignment.centerRight,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: AppColors.mutedMain,
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.image_not_supported,
+                                color: AppColors.textSecondary,
+                                size: 48,
+                              ),
+                              SizedBox(height: AppSpacing.medium),
+                              Text(
+                                'Image not available',
+                                style: AppTypography.body.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                // Left edge gradient to blend into content
+                Positioned(
+                  top: 0,
+                  bottom: 0,
+                  left: 0,
+                  width: 150,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          AppColors.warmBrown.withOpacity(0.7),
+                          AppColors.warmBrown.withOpacity(0.3),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlatformAvailabilityMobile(double screenHeight) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.primaryDark,
+            AppColors.warmBrown,
+          ],
+        ),
+      ),
+      child: Column(
+        children: [
+          // Text section
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(AppSpacing.extraLarge * 1.5),
+            child: Text(
+              'Available in Web and Mobile',
+              style: AppTypography.heading2.copyWith(
+                color: AppColors.backgroundPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          // Image section
+          Container(
+            width: double.infinity,
+            height: 300,
+            child: Image.asset(
+              'assets/images/christnew.png',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: AppColors.mutedMain,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.image_not_supported,
+                          color: AppColors.textSecondary,
+                          size: 48,
+                        ),
+                        SizedBox(height: AppSpacing.medium),
+                        Text(
+                          'Image not available',
+                          style: AppTypography.body.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
