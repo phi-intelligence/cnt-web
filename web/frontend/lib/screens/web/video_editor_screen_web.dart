@@ -159,29 +159,39 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           if (uploadResult != null) {
             final backendUrl = uploadResult['url'] as String?;
             if (backendUrl != null) {
-              videoPathToUse = backendUrl;
-              _persistedVideoPath = backendUrl;
-              // Save state with backend URL
+              // Convert relative backend path to full URL
+              final fullUrl = _apiService.getMediaUrl(backendUrl);
+              videoPathToUse = fullUrl;
+              _persistedVideoPath = fullUrl;
+              print('✅ Blob URL uploaded to backend: $backendUrl');
+              print('✅ Full media URL: $fullUrl');
+              // Save state with full URL
               await StatePersistence.saveVideoEditorState(
-                videoPath: backendUrl,
+                videoPath: fullUrl,
                 editedVideoPath: _editedVideoPath,
                 trimStart: _trimStart,
                 trimEnd: _trimEnd,
                 audioRemoved: _audioRemoved,
                 audioFilePath: _audioFilePath,
               );
-              print('✅ Blob URL uploaded to backend: $backendUrl');
             }
           }
         } catch (e) {
           print('⚠️ Failed to upload blob URL, using original: $e');
         }
       } else if (_persistedVideoPath == null) {
+        // If not a blob URL, ensure it's a full URL
+        if (!widget.videoPath.startsWith('http://') && !widget.videoPath.startsWith('https://') && !widget.videoPath.startsWith('blob:')) {
+          // It's a relative path from backend, convert to full URL
+          videoPathToUse = _apiService.getMediaUrl(widget.videoPath);
+          print('🔗 Converted relative path to full URL: $videoPathToUse');
+        }
         _persistedVideoPath = videoPathToUse;
       }
 
       // Use persisted path or widget path
       final finalPath = _persistedVideoPath ?? videoPathToUse;
+      print('🎬 Initializing video player with: $finalPath');
       await _initializePlayer(finalPath);
     } catch (e) {
       print('❌ Error initializing from saved state: $e');
@@ -413,9 +423,48 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       setState(() {
         _isInitializing = false;
         _hasError = true;
-        _errorMessage = e.toString();
+        _errorMessage = _formatVideoError(e);
       });
     }
+  }
+
+  /// Format video errors into user-friendly messages
+  String _formatVideoError(dynamic error) {
+    final errorStr = error.toString();
+
+    // MEDIA_ERR_SRC_NOT_SUPPORTED - format not supported by browser
+    if (errorStr.contains('MEDIA_ERR_SRC_NOT_SUPPORTED') ||
+        errorStr.contains('Format error') ||
+        errorStr.contains('format not supported')) {
+      return 'This video format is not supported by your browser.\n\n'
+             'Tip: Try converting your video to MP4 format (H.264 codec) for best compatibility.';
+    }
+
+    // Network/loading errors
+    if (errorStr.contains('MEDIA_ERR_NETWORK') ||
+        errorStr.contains('network') ||
+        errorStr.contains('Failed to load')) {
+      return 'Failed to load video. Please check your internet connection and try again.';
+    }
+
+    // Decode errors
+    if (errorStr.contains('MEDIA_ERR_DECODE') || errorStr.contains('decode')) {
+      return 'This video file appears to be corrupted or uses an unsupported codec.\n\n'
+             'Tip: Try re-encoding the video or use a different file.';
+    }
+
+    // Timeout errors
+    if (errorStr.contains('TimeoutException') || errorStr.contains('timeout')) {
+      return 'Video took too long to load. Please try again or use a smaller file.';
+    }
+
+    // Blob URL errors
+    if (errorStr.contains('blob:') || errorStr.contains('Blob')) {
+      return 'Unable to process recorded video. Please try recording again.';
+    }
+
+    // Generic error with original message
+    return 'Error loading video: $errorStr';
   }
 
   String _getResolutionFromSize(Size size) {
@@ -1447,7 +1496,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     });
 
     try {
-      final inputPath = _editedVideoPath ?? widget.videoPath;
+      // Use _persistedVideoPath (full URL) or _editedVideoPath, not widget.videoPath (may be relative)
+      final inputPath = _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
+      print('🎬 Trimming video with path: $inputPath');
       final outputPath = await _editingService.trimVideo(
         inputPath,
         _trimStart,
@@ -1528,7 +1579,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   }
 
   Future<void> _removeAudio() async {
-    final inputPath = _editedVideoPath ?? widget.videoPath;
+    // Use _persistedVideoPath (full URL) or _editedVideoPath, not widget.videoPath (may be relative)
+    final inputPath = _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
+    print('🎬 Removing audio from video with path: $inputPath');
     
     setState(() {
       _isEditing = true;
@@ -1658,7 +1711,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   }
 
   Future<void> _addAudioTrack(String audioPath) async {
-    final inputPath = _editedVideoPath ?? widget.videoPath;
+    // Use _persistedVideoPath (full URL) or _editedVideoPath, not widget.videoPath (may be relative)
+    final inputPath = _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
+    print('🎬 Adding audio to video with path: $inputPath');
     
     setState(() {
       _isEditing = true;
@@ -1778,8 +1833,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     });
 
     try {
-      // Get the starting video path (edited or original)
-      String currentVideoPath = _editedVideoPath ?? widget.videoPath;
+      // Get the starting video path (edited or original) - use full URL
+      String currentVideoPath = _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
+      print('🎬 Saving video starting with path: $currentVideoPath');
 
       // Step 1: Apply trim if needed
       final needsTrim = _trimStart > Duration.zero || _trimEnd < _videoDuration;

@@ -641,22 +641,25 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
               child: AnimatedOpacity(
                 opacity: _calculateCarouselOpacity(),
                 duration: const Duration(milliseconds: 100),
-                child: _buildHeroSection(),
+                child: IgnorePointer(
+                  ignoring: _calculateCarouselOpacity() < 0.1, // Disable clicks when nearly invisible
+                  child: _buildHeroSection(),
+                ),
               ),
             ),
           ),
           
           // Foreground Layer: Scrollable content in white card
           NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              if (notification is ScrollUpdateNotification) {
-                setState(() {
-                  _scrollOffset = notification.metrics.pixels;
-                });
-              }
-              return false;
-            },
-            child: RefreshIndicator(
+              onNotification: (notification) {
+                if (notification is ScrollUpdateNotification) {
+                  setState(() {
+                    _scrollOffset = notification.metrics.pixels;
+                  });
+                }
+                return false;
+              },
+              child: RefreshIndicator(
               onRefresh: () async {
                 await Future.wait([
                   _fetchPodcasts(),
@@ -674,7 +677,11 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
                 child: Column(
                   children: [
                     // Spacer to push white card down (overlapping carousel)
-                    SizedBox(height: whiteCardTopMargin),
+                    // Wrap in IgnorePointer to prevent ScrollView from capturing events here
+                    IgnorePointer(
+                      ignoring: true, // Ignore all pointer events in this area
+                      child: SizedBox(height: whiteCardTopMargin),
+                    ),
                     
                     // White Floating Card containing all content
                     Container(

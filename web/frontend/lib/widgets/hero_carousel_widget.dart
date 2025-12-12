@@ -226,8 +226,8 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticK
       desktop: screenHeight * 0.5, // 50% for desktop (increased from 30%)
     );
     
-    // Determine if arrows should be shown
-    final showArrows = ResponsiveUtils.isDesktopOrLarger(context) && _items.length > 1;
+    // Show arrows on all screen sizes when there's more than 1 item
+    final showArrows = _items.length > 1;
     
     if (_isLoading) {
       return Container(
@@ -478,43 +478,50 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticK
   }
 
   List<Widget> _buildNavigationArrows(double height) {
+    // Responsive arrow size - smaller on mobile
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final arrowSize = isMobile ? 16.0 : 20.0;
+    final arrowPadding = isMobile ? 6.0 : 8.0;
+    final arrowMargin = isMobile ? 8.0 : 16.0;
+    final buttonRadius = isMobile ? 14.0 : 20.0;
+
     return [
       // Left Arrow
       Positioned(
-        left: 16,
-        top: height / 2 - 20,
+        left: arrowMargin,
+        top: height / 2 - buttonRadius,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: _goToPrevious,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(buttonRadius),
             child: Container(
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(arrowPadding),
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.5),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+              child: Icon(Icons.arrow_back_ios, color: Colors.white, size: arrowSize),
             ),
           ),
         ),
       ),
       // Right Arrow
       Positioned(
-        right: 16,
-        top: height / 2 - 20,
+        right: arrowMargin,
+        top: height / 2 - buttonRadius,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: _goToNext,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(buttonRadius),
             child: Container(
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(arrowPadding),
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.5),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 20),
+              child: Icon(Icons.arrow_forward_ios, color: Colors.white, size: arrowSize),
             ),
           ),
         ),

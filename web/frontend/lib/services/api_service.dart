@@ -1273,8 +1273,11 @@ class ApiService {
     String fieldName,
     String defaultFilename,
   ) async {
+    print('🔍 _createMultipartFileFromSource: source=$source, fieldName=$fieldName');
+    
     // Check if source is a URL
     if (source.startsWith('http://') || source.startsWith('https://')) {
+      print('📥 Downloading file from URL: $source');
       // Network URL - download the file
       try {
         // Don't send auth headers to CloudFront/S3 - public files don't need auth
@@ -1378,7 +1381,11 @@ class ApiService {
         throw Exception('Error converting blob URL to bytes: $e');
       }
     } else {
-      // File path - use fromPath (for mobile)
+      // File path - use fromPath (for mobile only)
+      if (kIsWeb) {
+        throw Exception('File paths are not supported on web. Source must be a URL (http://, https://) or blob URL. Received: $source');
+      }
+      
       try {
         return await http.MultipartFile.fromPath(fieldName, source);
       } catch (e) {
