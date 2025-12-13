@@ -427,7 +427,7 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
                                 ),
                                 decoration: BoxDecoration(
                                   color: AppColors.primaryMain.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(30),
                                   border: Border.all(
                                     color: AppColors.primaryMain,
                                     width: 1,

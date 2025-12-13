@@ -12,6 +12,8 @@ class VoiceBubble extends StatelessWidget {
   final String? heroTag;
   final bool enableHero;
   final Color? labelColor;
+  final Color? backgroundColor;
+  final Color? iconColor;
   final double? size;
 
   const VoiceBubble({
@@ -22,12 +24,16 @@ class VoiceBubble extends StatelessWidget {
     this.heroTag,
     this.enableHero = true,
     this.labelColor,
+    this.backgroundColor,
+    this.iconColor,
     this.size,
   });
 
   @override
   Widget build(BuildContext context) {
     final resolvedLabelColor = labelColor ?? AppColors.textInverse;
+    final resolvedBackgroundColor = backgroundColor ?? AppColors.warmBrown;
+    final resolvedIconColor = iconColor ?? AppColors.accentLight;
     final bubbleSize = size ?? AppSpacing.voiceBubbleSize;
 
     Widget bubble = GestureDetector(
@@ -55,7 +61,7 @@ class VoiceBubble extends StatelessWidget {
                 height: bubbleSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.warmBrown,
+                  color: resolvedBackgroundColor,
                   border: Border.all(
                     color: AppColors.borderPrimary.withOpacity(0.4),
                     width: 1,
@@ -69,7 +75,10 @@ class VoiceBubble extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: _StaticSoundbarGlyph(size: bubbleSize),
+                child: _StaticSoundbarGlyph(
+                  size: bubbleSize,
+                  color: resolvedIconColor,
+                ),
               ),
             ],
           ),
@@ -104,8 +113,12 @@ class VoiceBubble extends StatelessWidget {
 
 class _StaticSoundbarGlyph extends StatelessWidget {
   final double size;
+  final Color color;
   
-  const _StaticSoundbarGlyph({required this.size});
+  const _StaticSoundbarGlyph({
+    required this.size,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +136,7 @@ class _StaticSoundbarGlyph extends StatelessWidget {
           height: bars[index],
           margin: EdgeInsets.only(right: index == bars.length - 1 ? 0 : barSpacing),
           decoration: BoxDecoration(
-            color: AppColors.accentLight,
+            color: color,
             borderRadius: BorderRadius.circular(2 * scale),
           ),
         );

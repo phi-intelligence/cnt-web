@@ -126,7 +126,7 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                           height: 300,
                           decoration: BoxDecoration(
                             color: AppColors.backgroundSecondary,
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                            borderRadius: BorderRadius.circular(24),
                             border: Border.all(color: AppColors.borderPrimary),
                           ),
                           alignment: Alignment.center,
@@ -272,7 +272,7 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                 height: 300,
                 decoration: BoxDecoration(
                   color: AppColors.backgroundSecondary,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                  borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: AppColors.borderPrimary),
                 ),
                 alignment: Alignment.center,
@@ -373,7 +373,7 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
               )
             : null,
         color: enabled ? null : AppColors.backgroundSecondary,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: enabled
               ? AppColors.warmBrown.withOpacity(0.3)

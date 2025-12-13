@@ -169,7 +169,7 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
       showShadow: true,
       child: InkWell(
         onTap: () => _openDraft(draft),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        borderRadius: BorderRadius.circular(24),
         child: Padding(
           padding: EdgeInsets.all(AppSpacing.medium),
           child: Row(
@@ -181,11 +181,11 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
                 height: 80,
                 decoration: BoxDecoration(
                   color: typeInfo['color'].withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                  borderRadius: BorderRadius.circular(24),
                 ),
                 child: draft.thumbnailUrl != null
                     ? ClipRRect(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                        borderRadius: BorderRadius.circular(24),
                         child: Image.network(
                           draft.thumbnailUrl!,
                           fit: BoxFit.cover,
@@ -217,7 +217,7 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
                           ),
                           decoration: BoxDecoration(
                             color: typeInfo['color'].withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                            borderRadius: BorderRadius.circular(30),
                           ),
                           child: Text(
                             typeInfo['label'],
@@ -408,7 +408,7 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
                         gradient: LinearGradient(
                           colors: [AppColors.warmBrown, AppColors.accentMain],
                         ),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(30),
                       ),
                       child: Icon(Icons.drafts_outlined, color: Colors.white, size: 24),
                     ),
@@ -432,7 +432,7 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
                 Container(
                   decoration: BoxDecoration(
                     color: AppColors.backgroundSecondary,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                    borderRadius: BorderRadius.circular(30),
                   ),
                   child: TabBar(
                     controller: _tabController,
@@ -441,7 +441,7 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
                     unselectedLabelColor: AppColors.textSecondary,
                     indicator: BoxDecoration(
                       color: AppColors.warmBrown,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                      borderRadius: BorderRadius.circular(30),
                     ),
                     indicatorSize: TabBarIndicatorSize.tab,
                     dividerColor: Colors.transparent,

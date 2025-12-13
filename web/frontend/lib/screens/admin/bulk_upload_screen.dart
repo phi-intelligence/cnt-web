@@ -283,32 +283,89 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0E8),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.warmBrown),
-          onPressed: () => Navigator.pop(context),
+      backgroundColor: AppColors.backgroundPrimary,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Custom Gradient Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.extraLarge),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.warmBrown,
+                    AppColors.warmBrown.withOpacity(0.85),
+                    AppColors.primaryMain.withOpacity(0.9),
+                  ],
+                ),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.warmBrown.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'Bulk Upload',
+                            style: AppTypography.heading2.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(width: 48), // Balance for back button
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.large),
+                    Text(
+                      'Upload multiple audio and video files at once',
+                      style: AppTypography.body.copyWith(
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.extraLarge),
+                  ],
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: AppSpacing.extraLarge),
+
+            // Main Content with Constraint
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1000),
+                child: Column(
+                  children: [
+                    // Stepper indicator
+                    _buildStepperIndicator(),
+                    const SizedBox(height: AppSpacing.large),
+                    // Content
+                    _buildStepContent(),
+                    const SizedBox(height: AppSpacing.extraLarge),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-        title: Text(
-          'Bulk Upload',
-          style: AppTypography.heading3.copyWith(
-            color: AppColors.primaryDark,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // Stepper indicator
-          _buildStepperIndicator(),
-          const SizedBox(height: AppSpacing.large),
-          // Content
-          Expanded(
-            child: _buildStepContent(),
-          ),
-        ],
       ),
     );
   }
@@ -407,21 +464,29 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
       padding: const EdgeInsets.all(AppSpacing.large),
       child: Column(
         children: [
+          // Re-trigger build
           // Drag and drop zone
-          Expanded(
-            child: GestureDetector(
-              onTap: _pickFiles,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppColors.warmBrown.withOpacity(0.3),
-                    width: 2,
-                    style: BorderStyle.solid,
+          GestureDetector(
+            onTap: _pickFiles,
+            child: Container(
+                  height: 400,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: AppColors.warmBrown.withOpacity(0.3),
+                      width: 2,
+                      style: BorderStyle.solid,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.warmBrown.withOpacity(0.05),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
-                ),
-                child: Center(
+                  child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -461,7 +526,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.warmBrown.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(30),
                           ),
                           child: Text(
                             '${_files.length} file(s) selected',
@@ -477,7 +542,6 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                 ),
               ),
             ),
-          ),
           const SizedBox(height: AppSpacing.large),
           // Selected files preview
           if (_files.isNotEmpty) ...[
@@ -494,7 +558,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                     padding: const EdgeInsets.all(AppSpacing.small),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: AppColors.borderPrimary),
                     ),
                     child: Column(
@@ -533,7 +597,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(30),
                 ),
                 disabledBackgroundColor: AppColors.warmBrown.withOpacity(0.3),
               ),
@@ -559,7 +623,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
           padding: const EdgeInsets.all(AppSpacing.medium),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -605,7 +669,8 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
         ),
         const SizedBox(height: AppSpacing.medium),
         // File list
-        Expanded(
+        SizedBox(
+          height: 400, // Fixed height for list within column
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.large),
             itemCount: _files.length,
@@ -628,7 +693,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                     side: BorderSide(color: AppColors.warmBrown),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(30),
                     ),
                   ),
                   child: const Text('Back'),
@@ -644,7 +709,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(30),
                     ),
                   ),
                   child: Text(
@@ -666,7 +731,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
       padding: const EdgeInsets.all(AppSpacing.medium),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -686,7 +751,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
               color: file.isVideo
                   ? AppColors.accentMain.withOpacity(0.1)
                   : AppColors.warmBrown.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(20),
             ),
             child: Icon(
               file.isVideo ? Icons.videocam : Icons.audiotrack,
@@ -708,11 +773,11 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                     labelText: 'Title',
                     labelStyle: TextStyle(color: AppColors.textSecondary),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(30),
                       borderSide: BorderSide(color: AppColors.borderPrimary),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(30),
                       borderSide: BorderSide(color: AppColors.warmBrown),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
@@ -823,7 +888,8 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
           ),
           const SizedBox(height: AppSpacing.large),
           // Individual file progress
-          Expanded(
+          SizedBox(
+            height: 400,
             child: ListView.builder(
               itemCount: _files.length,
               itemBuilder: (context, index) {
@@ -865,7 +931,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
       padding: const EdgeInsets.all(AppSpacing.medium),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: file.isUploading ? AppColors.warmBrown : AppColors.borderPrimary,
           width: file.isUploading ? 2 : 1,
@@ -992,7 +1058,8 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
           ),
           const SizedBox(height: AppSpacing.large),
           // File results list
-          Expanded(
+          SizedBox(
+            height: 400,
             child: ListView.builder(
               itemCount: _files.length,
               itemBuilder: (context, index) {
@@ -1013,7 +1080,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                     side: BorderSide(color: AppColors.warmBrown),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(30),
                     ),
                   ),
                   child: const Text('Upload More'),
@@ -1028,7 +1095,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(30),
                     ),
                   ),
                   child: const Text('Done'),
@@ -1053,7 +1120,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
       ),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1080,7 +1147,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
       padding: const EdgeInsets.all(AppSpacing.medium),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isSuccess ? AppColors.successMain : AppColors.errorMain,
           width: 1,
@@ -1095,7 +1162,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
               color: isSuccess
                   ? AppColors.successMain.withOpacity(0.1)
                   : AppColors.errorMain.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(20),
             ),
             child: Icon(
               isSuccess ? Icons.check : Icons.close,

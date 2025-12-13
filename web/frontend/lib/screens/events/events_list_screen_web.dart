@@ -141,7 +141,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                             foregroundColor: AppColors.warmBrown,
                             padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24),
+                              borderRadius: BorderRadius.circular(30),
                             ),
                           ),
                         ),
@@ -306,7 +306,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(30),
                 ),
               ),
             ),
@@ -334,7 +334,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.06),
@@ -352,14 +352,14 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                 child: Container(
                   decoration: BoxDecoration(
                     color: AppColors.warmBrown,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                   ),
                   child: Stack(
                     children: [
                       // Cover image if available
                       if (event.coverImage != null && event.coverImage!.isNotEmpty)
                         ClipRRect(
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                           child: Image.network(
                             _apiService.getMediaUrl(event.coverImage!),
                             width: double.infinity,
@@ -386,7 +386,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                                 AppColors.warmBrown.withOpacity(0.7),
                               ],
                             ),
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                           ),
                           child: Center(
                             child: Icon(Icons.event, color: Colors.white38, size: 40),
@@ -401,7 +401,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(30),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.1),
@@ -441,7 +441,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
                               color: Colors.grey.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(30),
                             ),
                             child: Text(
                               'Past',
@@ -463,7 +463,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                               color: event.myAttendanceStatus == 'approved'
                                   ? Colors.green.withOpacity(0.9)
                                   : Colors.orange.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(30),
                             ),
                             child: Text(
                               event.myAttendanceStatus == 'approved' ? 'Attending' : 'Pending',

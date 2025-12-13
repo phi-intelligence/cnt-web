@@ -394,7 +394,7 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(30),
       ),
       child: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),

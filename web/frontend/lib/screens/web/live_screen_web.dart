@@ -95,7 +95,7 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
                     AppColors.primaryMain.withOpacity(0.9),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.warmBrown.withOpacity(0.3),
@@ -184,7 +184,7 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
     return Container(
       margin: EdgeInsets.only(bottom: AppSpacing.large),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
@@ -197,7 +197,7 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
         children: [
           // Background image with gradient overlay
           ClipRRect(
-            borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+            borderRadius: BorderRadius.circular(24),
             child: Container(
               height: 180,
               decoration: BoxDecoration(
@@ -222,7 +222,7 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
           Container(
             padding: EdgeInsets.all(AppSpacing.large),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+              borderRadius: BorderRadius.circular(24),
               border: Border.all(
                 color: AppColors.warmBrown.withOpacity(0.3),
                 width: 1,
@@ -241,7 +241,7 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
                         statusColor.withOpacity(0.8),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                    borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
                         color: statusColor.withOpacity(0.3),
@@ -271,7 +271,7 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
                             ),
                             decoration: BoxDecoration(
                               color: statusColor,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(30),
                             ),
                             child: Text(
                               status,

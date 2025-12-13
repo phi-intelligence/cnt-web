@@ -159,7 +159,7 @@ class _InstagramPostCardState extends State<InstagramPostCard>
       margin: EdgeInsets.only(bottom: AppSpacing.small),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
@@ -169,7 +169,7 @@ class _InstagramPostCardState extends State<InstagramPostCard>
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        borderRadius: BorderRadius.circular(24),
         child: Column(
           mainAxisSize: MainAxisSize.min, // Allow column to shrink
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,7 +342,7 @@ class _InstagramPostCardState extends State<InstagramPostCard>
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: _handleLike,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(30),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
                       child: Icon(
@@ -359,7 +359,7 @@ class _InstagramPostCardState extends State<InstagramPostCard>
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: widget.onComment,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(30),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
                       child: Icon(
@@ -376,7 +376,7 @@ class _InstagramPostCardState extends State<InstagramPostCard>
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: widget.onShare,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(30),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
                       child: Icon(
@@ -393,7 +393,7 @@ class _InstagramPostCardState extends State<InstagramPostCard>
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: widget.onBookmark,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(30),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
                       child: Icon(

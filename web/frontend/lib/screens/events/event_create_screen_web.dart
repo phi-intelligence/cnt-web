@@ -257,7 +257,7 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
                                 AppColors.primaryMain.withOpacity(0.9),
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
                                 color: AppColors.warmBrown.withOpacity(0.25),
@@ -415,7 +415,7 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
                                     padding: EdgeInsets.all(16),
                                     decoration: BoxDecoration(
                                       color: AppColors.backgroundSecondary,
-                                      borderRadius: BorderRadius.circular(16),
+                                      borderRadius: BorderRadius.circular(24),
                                       border: Border.all(
                                         color: AppColors.warmBrown.withOpacity(0.3),
                                       ),
@@ -660,19 +660,19 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
               child: Icon(icon, color: AppColors.warmBrown),
             ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
+              borderRadius: BorderRadius.circular(30),
               borderSide: BorderSide(color: AppColors.borderPrimary),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
+              borderRadius: BorderRadius.circular(30),
               borderSide: BorderSide(color: AppColors.borderPrimary),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
+              borderRadius: BorderRadius.circular(30),
               borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
+              borderRadius: BorderRadius.circular(30),
               borderSide: BorderSide(color: Colors.red),
             ),
             contentPadding: EdgeInsets.symmetric(
@@ -699,7 +699,7 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: BoxDecoration(
             color: AppColors.backgroundSecondary,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: AppColors.warmBrown.withOpacity(0.3),
             ),

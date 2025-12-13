@@ -139,6 +139,8 @@ class WelcomeSectionWeb extends StatelessWidget {
             label: '',
             enableHero: true,
             size: isMobile ? 70.0 : 120.0,
+            backgroundColor: Colors.white,
+            iconColor: AppColors.warmBrown,
           ),
         ),
         SizedBox(height: isMobile ? AppSpacing.small : AppSpacing.medium),

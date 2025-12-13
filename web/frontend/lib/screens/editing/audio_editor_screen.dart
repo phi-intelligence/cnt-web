@@ -1830,7 +1830,7 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.warmBrown.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                    borderRadius: BorderRadius.circular(30),
                     border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
                   ),
                   child: Text(
@@ -2082,7 +2082,7 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.warmBrown.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                    borderRadius: BorderRadius.circular(30),
                     border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
                   ),
                   child: Text(
@@ -2142,7 +2142,7 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.warmBrown.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                    borderRadius: BorderRadius.circular(30),
                     border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
                   ),
                   child: Text(

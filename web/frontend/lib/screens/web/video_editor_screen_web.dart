@@ -789,7 +789,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                         padding: const EdgeInsets.all(AppSpacing.small),
                         decoration: BoxDecoration(
                           color: AppColors.warmBrown.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                          borderRadius: BorderRadius.circular(30),
                         ),
                         child: Icon(
                           Icons.text_fields,
@@ -844,15 +844,15 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                               color: AppColors.textPlaceholder,
                             ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                              borderRadius: BorderRadius.circular(30),
                               borderSide: BorderSide(color: AppColors.borderPrimary),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                              borderRadius: BorderRadius.circular(30),
                               borderSide: BorderSide(color: AppColors.borderPrimary),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                              borderRadius: BorderRadius.circular(30),
                               borderSide: BorderSide(
                                 color: AppColors.warmBrown,
                                 width: 2,
@@ -873,7 +873,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                           padding: const EdgeInsets.all(AppSpacing.large),
                           decoration: BoxDecoration(
                             color: AppColors.backgroundSecondary,
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                            borderRadius: BorderRadius.circular(30),
                             border: Border.all(color: AppColors.borderPrimary),
                           ),
                           child: Column(
@@ -929,7 +929,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                           padding: const EdgeInsets.all(AppSpacing.large),
                           decoration: BoxDecoration(
                             color: AppColors.backgroundSecondary,
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                            borderRadius: BorderRadius.circular(30),
                             border: Border.all(color: AppColors.borderPrimary),
                           ),
                           child: Column(
@@ -972,7 +972,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                           padding: const EdgeInsets.all(AppSpacing.large),
                           decoration: BoxDecoration(
                             color: AppColors.backgroundSecondary,
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                            borderRadius: BorderRadius.circular(30),
                             border: Border.all(color: AppColors.borderPrimary),
                           ),
                           child: Column(
@@ -1066,7 +1066,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                               vertical: AppSpacing.medium,
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                              borderRadius: BorderRadius.circular(30),
                             ),
                           ),
                         ),
@@ -1103,7 +1103,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                               vertical: AppSpacing.medium,
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                              borderRadius: BorderRadius.circular(30),
                             ),
                             elevation: 2,
                           ),
@@ -1169,7 +1169,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               ),
               decoration: BoxDecoration(
                 color: AppColors.warmBrown.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                borderRadius: BorderRadius.circular(30),
                 border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
               ),
               child: Text(
@@ -1241,7 +1241,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               ),
               decoration: BoxDecoration(
                 color: AppColors.warmBrown.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                borderRadius: BorderRadius.circular(30),
                 border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
               ),
               child: Text(
@@ -1299,7 +1299,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               ),
               decoration: BoxDecoration(
                 color: AppColors.warmBrown.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                borderRadius: BorderRadius.circular(30),
                 border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
               ),
               child: Text(
@@ -1535,7 +1535,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           color: isSelected
               ? AppColors.warmBrown.withOpacity(0.1)
               : AppColors.backgroundSecondary,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+          borderRadius: BorderRadius.circular(30),
           border: Border.all(
             color: isSelected
                 ? AppColors.warmBrown
@@ -2274,7 +2274,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.medium),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        borderRadius: BorderRadius.circular(30),
         border: Border.all(color: AppColors.borderPrimary),
       ),
       child: Row(
@@ -2386,7 +2386,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.backgroundSecondary,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+          borderRadius: BorderRadius.circular(30),
           border: Border.all(color: AppColors.borderPrimary),
         ),
         child: IconButton(
@@ -2771,7 +2771,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       height: 140, // Reduced height
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -2790,7 +2790,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _buildTextTrack(),
+                // _buildTextTrack(), // Removed dummy section
                 _buildVideoTrack(),
                 _buildAudioTrack(),
               ],
@@ -3000,7 +3000,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                                     AppColors.accentDark,
                                   ],
                                 ),
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                                borderRadius: BorderRadius.circular(30),
                                 border: Border.all(
                                   color: Colors.white.withOpacity(0.3),
                                   width: 1,
@@ -3097,7 +3097,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                     AppColors.primaryMain.withOpacity(0.1),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                borderRadius: BorderRadius.circular(30),
                 border: Border.all(
                   color: AppColors.warmBrown.withOpacity(0.3),
                 ),
@@ -3181,7 +3181,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                               AppColors.backgroundSecondary,
                             ],
                 ),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                borderRadius: BorderRadius.circular(30),
                 border: Border.all(
                   color: _audioFilePath != null
                       ? AppColors.accentMain.withOpacity(0.3)
@@ -3260,7 +3260,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               padding: const EdgeInsets.all(AppSpacing.large),
               decoration: BoxDecoration(
                 color: AppColors.backgroundSecondary,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderRadius: BorderRadius.circular(30),
                 border: Border.all(color: AppColors.errorMain.withOpacity(0.3)),
               ),
               child: Center(
@@ -3292,7 +3292,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               padding: const EdgeInsets.all(AppSpacing.medium),
               decoration: BoxDecoration(
                 color: AppColors.backgroundSecondary,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderRadius: BorderRadius.circular(30),
                 border: Border.all(color: AppColors.borderPrimary),
               ),
               child: Column(
@@ -3318,7 +3318,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.warmBrown.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                            borderRadius: BorderRadius.circular(30),
                           ),
                           child: Text(
                             _formatTime(_trimStart),
@@ -3406,7 +3406,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.warmBrown.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                            borderRadius: BorderRadius.circular(30),
                           ),
                           child: Text(
                             _formatTime(_trimEnd),
@@ -3502,7 +3502,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                     vertical: AppSpacing.small,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                    borderRadius: BorderRadius.circular(30),
                   ),
                   elevation: 2,
                 ),
@@ -3526,7 +3526,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                 padding: const EdgeInsets.all(AppSpacing.small),
                 decoration: BoxDecoration(
                   color: AppColors.warmBrown.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                  borderRadius: BorderRadius.circular(30),
                 ),
                 child: Icon(
                   Icons.music_note,
@@ -3551,7 +3551,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             padding: const EdgeInsets.all(AppSpacing.large),
             decoration: BoxDecoration(
               color: AppColors.backgroundSecondary,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderRadius: BorderRadius.circular(30),
               border: Border.all(color: AppColors.borderPrimary),
             ),
             child: Row(
@@ -3632,7 +3632,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                       vertical: AppSpacing.medium,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                      borderRadius: BorderRadius.circular(30),
                     ),
                   ),
                 ),
@@ -3651,7 +3651,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                       vertical: AppSpacing.medium,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                      borderRadius: BorderRadius.circular(30),
                     ),
                     elevation: 2,
                   ),
@@ -3677,7 +3677,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                 padding: const EdgeInsets.all(AppSpacing.small),
                 decoration: BoxDecoration(
                   color: AppColors.warmBrown.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                  borderRadius: BorderRadius.circular(30),
                 ),
                 child: Icon(
                   Icons.text_fields,
@@ -3712,7 +3712,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                   vertical: AppSpacing.medium,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderRadius: BorderRadius.circular(30),
                 ),
                 elevation: 2,
               ),
@@ -3735,7 +3735,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               padding: const EdgeInsets.all(AppSpacing.medium),
               decoration: BoxDecoration(
                 color: AppColors.backgroundSecondary,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderRadius: BorderRadius.circular(30),
                 border: Border.all(
                   color: _selectedTextOverlay?.id == overlay.id
                       ? AppColors.warmBrown
@@ -3749,7 +3749,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                     padding: const EdgeInsets.all(AppSpacing.small),
                     decoration: BoxDecoration(
                       color: AppColors.accentMain.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                      borderRadius: BorderRadius.circular(30),
                     ),
                     child: Icon(
                       Icons.text_fields,
@@ -3834,7 +3834,7 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
               height: 100,
               decoration: BoxDecoration(
                 color: _selectedColor,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderRadius: BorderRadius.circular(30),
                 border: Border.all(color: AppColors.borderPrimary),
               ),
               child: Center(
@@ -3912,6 +3912,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.warmBrown,
             foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
           ),
           child: const Text('Select'),
         ),

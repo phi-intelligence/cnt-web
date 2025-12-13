@@ -40,19 +40,28 @@ class CreateScreenWeb extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
       body: Container(
-        padding: ResponsiveGridDelegate.getResponsivePadding(context),
-        child: GridView.builder(
-          gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
-            context,
-            mobile: 1,
-            tablet: 2,
-            desktop: 3,
-            childAspectRatio: aspectRatio,
-            crossAxisSpacing: ResponsiveUtils.getResponsivePadding(context, AppSpacing.extraLarge),
-            mainAxisSpacing: ResponsiveUtils.getResponsivePadding(context, AppSpacing.extraLarge),
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/christimage.png'),
+            fit: BoxFit.cover,
+            opacity: 0.15,
           ),
-          itemCount: _getOptionCards(context).length,
-          itemBuilder: (context, index) => _getOptionCards(context)[index],
+        ),
+        child: Container(
+          padding: ResponsiveGridDelegate.getResponsivePadding(context),
+          child: GridView.builder(
+            gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+              context,
+              mobile: 1,
+              tablet: 2,
+              desktop: 3,
+              childAspectRatio: aspectRatio,
+              crossAxisSpacing: ResponsiveUtils.getResponsivePadding(context, AppSpacing.extraLarge),
+              mainAxisSpacing: ResponsiveUtils.getResponsivePadding(context, AppSpacing.extraLarge),
+            ),
+            itemCount: _getOptionCards(context).length,
+            itemBuilder: (context, index) => _getOptionCards(context)[index],
+          ),
         ),
       ),
     );
@@ -250,8 +259,8 @@ class _OptionCardState extends State<_OptionCard> {
                     colors: widget.hoverColors,
                   )
                 : null,
-            color: _isHovered ? null : Colors.white,
-            borderRadius: BorderRadius.circular(ResponsiveUtils.getResponsivePadding(context, AppSpacing.radiusLarge)),
+            color: _isHovered ? null : Colors.white.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(30),
             border: Border.all(
               color: _isHovered
                   ? widget.hoverColors.first

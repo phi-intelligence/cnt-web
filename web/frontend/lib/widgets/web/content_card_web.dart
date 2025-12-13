@@ -43,7 +43,7 @@ class _ContentCardWebState extends State<ContentCardWeb> {
     );
     
     final cardPadding = ResponsiveUtils.getResponsivePadding(context, AppSpacing.small);
-    final borderRadius = ResponsiveUtils.getResponsivePadding(context, AppSpacing.radiusMedium);
+    final borderRadius = ResponsiveUtils.getResponsivePadding(context, 24.0);
     
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),

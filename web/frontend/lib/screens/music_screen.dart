@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
 
 class MusicScreen extends StatelessWidget {
   const MusicScreen({super.key});
@@ -6,11 +9,21 @@ class MusicScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.backgroundPrimary,
       appBar: AppBar(
-        title: const Text('Music'),
+        title: Text(
+          'Music',
+          style: AppTypography.heading3.copyWith(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: AppColors.textPrimary),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppSpacing.large),
         child: Column(
           children: [
             // View Toggle
@@ -18,28 +31,41 @@ class MusicScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.grid_view),
+                  icon: Icon(Icons.grid_view_rounded, color: AppColors.warmBrown),
                   onPressed: () {},
                 ),
                 IconButton(
-                  icon: const Icon(Icons.list),
+                  icon: Icon(Icons.list_rounded, color: AppColors.textSecondary),
                   onPressed: () {},
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.medium),
             
             // Search Bar
             TextField(
               decoration: InputDecoration(
                 hintText: 'Search music...',
-                prefixIcon: const Icon(Icons.search),
+                hintStyle: AppTypography.body.copyWith(color: AppColors.textPlaceholder),
+                prefixIcon: Icon(Icons.search_rounded, color: AppColors.warmBrown),
+                filled: true,
+                fillColor: Colors.white,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
                 ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.large),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.large),
             
             // Genre Filter
             SingleChildScrollView(
@@ -54,16 +80,16 @@ class MusicScreen extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.large),
             
             // Music Grid
             Expanded(
               child: GridView.builder(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 0.7,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.75,
+                  crossAxisSpacing: AppSpacing.medium,
+                  mainAxisSpacing: AppSpacing.medium,
                 ),
                 itemCount: 12,
                 itemBuilder: (context, index) {
@@ -93,11 +119,27 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
+      padding: const EdgeInsets.only(right: AppSpacing.small),
       child: FilterChip(
-        label: Text(label),
+        label: Text(
+          label,
+          style: AppTypography.bodySmall.copyWith(
+            color: isSelected ? Colors.white : AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         selected: isSelected,
         onSelected: (value) {},
+        backgroundColor: Colors.white,
+        selectedColor: AppColors.warmBrown,
+        checkmarkColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+          side: BorderSide(
+            color: isSelected ? AppColors.warmBrown : AppColors.borderPrimary,
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.small, vertical: AppSpacing.tiny),
       ),
     );
   }
@@ -114,44 +156,61 @@ class _MusicCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Cover Image
-          Container(
-            height: 120,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              color: Colors.grey[300],
+          Expanded(
+            flex: 3,
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                color: AppColors.backgroundSecondary,
+              ),
+              child: Icon(Icons.music_note_rounded, size: 50, color: AppColors.warmBrown.withOpacity(0.5)),
             ),
-            child: const Icon(Icons.music_note, size: 50, color: Colors.grey),
           ),
           
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.medium),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTypography.bodyMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  artist,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
+                  const SizedBox(height: AppSpacing.tiny),
+                  Text(
+                    artist,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -159,4 +218,3 @@ class _MusicCard extends StatelessWidget {
     );
   }
 }
-

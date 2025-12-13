@@ -300,7 +300,7 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
                                   width: double.infinity,
                                   height: 48,
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(25),
+                                    borderRadius: BorderRadius.circular(30),
                                     border: Border.all(
                                       color: AppColors.warmBrown,
                                       width: 2,
@@ -310,7 +310,7 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
                                     color: Colors.transparent,
                                     child: InkWell(
                                       onTap: _handleScanQR,
-                                      borderRadius: BorderRadius.circular(25),
+                                      borderRadius: BorderRadius.circular(30),
                                       child: Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
@@ -451,12 +451,12 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: AppSpacing.medium),
-                    decoration: BoxDecoration(
-                      color: AppColors.backgroundSecondary,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                      border: Border.all(color: AppColors.primaryMain),
-                    ),
-                    child: Row(
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundSecondary,
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: AppColors.primaryMain),
+                  ),
+                  child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.qr_code_scanner, color: AppColors.primaryMain),
@@ -484,7 +484,7 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
                       disabledBackgroundColor: AppColors.textSecondary.withOpacity(0.6),
                       padding: const EdgeInsets.symmetric(vertical: AppSpacing.large),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                        borderRadius: BorderRadius.circular(30),
                       ),
                     ),
                     child: _joining
@@ -541,15 +541,15 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
             filled: true,
             fillColor: AppColors.backgroundSecondary,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
+              borderRadius: BorderRadius.circular(30),
               borderSide: BorderSide(color: AppColors.borderPrimary),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
+              borderRadius: BorderRadius.circular(30),
               borderSide: BorderSide(color: AppColors.borderPrimary),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
+              borderRadius: BorderRadius.circular(30),
               borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
             ),
             contentPadding: EdgeInsets.symmetric(

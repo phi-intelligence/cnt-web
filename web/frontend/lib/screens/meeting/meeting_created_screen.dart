@@ -249,13 +249,13 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                                   Container(
                                     decoration: BoxDecoration(
                                       color: AppColors.warmBrown,
-                                      borderRadius: BorderRadius.circular(20),
+                                      borderRadius: BorderRadius.circular(30),
                                     ),
                                     child: Material(
                                       color: Colors.transparent,
                                       child: InkWell(
                                         onTap: _handleCopyLink,
-                                        borderRadius: BorderRadius.circular(20),
+                                        borderRadius: BorderRadius.circular(30),
                                         child: Padding(
                                           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                           child: Row(
@@ -294,7 +294,7 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                         padding: EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.05),
@@ -358,7 +358,7 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                           gradient: LinearGradient(
                             colors: [AppColors.warmBrown, AppColors.accentMain],
                           ),
-                          borderRadius: BorderRadius.circular(28),
+                          borderRadius: BorderRadius.circular(30),
                           boxShadow: [
                             BoxShadow(
                               color: AppColors.warmBrown.withOpacity(0.4),
@@ -371,7 +371,7 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                           color: Colors.transparent,
                           child: InkWell(
                             onTap: _joining ? null : _handleJoinMeeting,
-                            borderRadius: BorderRadius.circular(28),
+                            borderRadius: BorderRadius.circular(30),
                             child: Center(
                               child: _joining
                                   ? SizedBox(
@@ -607,12 +607,12 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(30),
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
             color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(30),
             border: Border.all(color: color.withOpacity(0.3)),
           ),
           child: Row(

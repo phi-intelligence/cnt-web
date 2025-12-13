@@ -124,6 +124,283 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
     }
   }
 
+  Widget _buildHeroHeader(bool isLargeScreen, {required bool vertical}) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isLargeScreen ? 32 : 24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.warmBrown,
+            AppColors.warmBrown.withOpacity(0.85),
+            AppColors.primaryMain.withOpacity(0.9),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.warmBrown.withOpacity(0.25),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: vertical
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.event_available,
+                    color: Colors.white,
+                    size: 48,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Schedule Your Meeting',
+                  style: AppTypography.heading3.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Set up a meeting time and invite participants to join. You can customize options and share the link easily.',
+                  style: AppTypography.body.copyWith(
+                    color: Colors.white.withOpacity(0.9),
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.event_available,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Schedule Your Meeting',
+                        style: AppTypography.heading3.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Set up a meeting time and invite participants to join',
+                        style: AppTypography.body.copyWith(
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildTipRow(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.warmBrown, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormContent() {
+    return Column(
+      children: [
+        // Meeting Details Section
+        SectionContainer(
+          showShadow: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Meeting Details',
+                style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 20),
+
+              // Meeting Title
+              _buildTextField(
+                label: 'Meeting Title *',
+                controller: _titleController,
+                hint: 'Enter meeting title',
+              ),
+              const SizedBox(height: 16),
+
+              // Description
+              _buildTextField(
+                label: 'Description (Optional)',
+                controller: _descriptionController,
+                hint: 'Enter meeting description',
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Date & Time Section
+        SectionContainer(
+          showShadow: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Date & Time',
+                style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 20),
+
+              // Date Picker
+              _buildDateTimeButton(
+                icon: Icons.calendar_today,
+                label: 'Date',
+                value: _formatDate(_selectedDate),
+                onTap: _selectDate,
+              ),
+              const SizedBox(height: 12),
+
+              // Time Picker
+              _buildDateTimeButton(
+                icon: Icons.access_time,
+                label: 'Time',
+                value: _formatTime(_selectedTime),
+                onTap: _selectTime,
+              ),
+              const SizedBox(height: 16),
+
+              // Duration
+              _buildTextField(
+                label: 'Duration (minutes)',
+                controller: _durationController,
+                hint: '60',
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Meeting Options Section
+        SectionContainer(
+          showShadow: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Meeting Options',
+                style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 16),
+
+              _buildOptionRow(Icons.videocam, 'Video enabled by default'),
+              _buildOptionRow(Icons.mic, 'Microphone enabled by default'),
+              _buildOptionRow(Icons.screen_share, 'Screen sharing allowed'),
+              _buildOptionRow(Icons.lock, 'Waiting room enabled'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 32),
+
+        // Schedule Button - oval/rounded pill button
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          height: 56,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                AppColors.warmBrown,
+                AppColors.accentMain,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.warmBrown.withOpacity(0.4),
+                blurRadius: 15,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _handleSchedule,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+            ),
+            child: _isLoading
+                ? const SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.schedule, color: Colors.white, size: 20),
+                      const SizedBox(width: AppSpacing.small),
+                      Text(
+                        'Schedule Meeting',
+                        style: AppTypography.button.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+        const SizedBox(height: 48),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
@@ -161,228 +438,63 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
               sliver: SliverToBoxAdapter(
                 child: Center(
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: 800),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Hero header section
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(isLargeScreen ? 32 : 24),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                AppColors.warmBrown,
-                                AppColors.warmBrown.withOpacity(0.85),
-                                AppColors.primaryMain.withOpacity(0.9),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.warmBrown.withOpacity(0.25),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Row(
+                    constraints: BoxConstraints(maxWidth: isLargeScreen ? 1200 : 800),
+                    child: isLargeScreen 
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Icon(
-                                  Icons.event_available,
-                                  color: Colors.white,
-                                  size: 32,
-                                ),
-                              ),
-                              SizedBox(width: 20),
+                              // Left Column: Hero & Info
                               Expanded(
+                                flex: 4,
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      'Schedule Your Meeting',
-                                      style: AppTypography.heading3.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
+                                    _buildHeroHeader(isLargeScreen, vertical: true),
+                                    const SizedBox(height: 32),
+                                    // Additional Info / Tips could go here
+                                    Container(
+                                      padding: const EdgeInsets.all(24),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.backgroundSecondary,
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(color: AppColors.borderPrimary.withOpacity(0.5)),
                                       ),
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Set up a meeting time and invite participants to join',
-                                      style: AppTypography.body.copyWith(
-                                        color: Colors.white.withOpacity(0.9),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Meeting Tips',
+                                            style: AppTypography.heading4.copyWith(color: AppColors.warmBrown),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          _buildTipRow(Icons.check_circle_outline, 'Ensure you have a stable internet connection'),
+                                          _buildTipRow(Icons.check_circle_outline, 'Share the link with participants after scheduling'),
+                                          _buildTipRow(Icons.check_circle_outline, 'You can start the meeting early if needed'),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
+                              const SizedBox(width: 32),
+                              // Right Column: Form
+                              Expanded(
+                                flex: 6,
+                                child: Column(
+                                  children: [
+                                    _buildFormContent(),
+                                  ],
+                                ),
+                              ),
                             ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Meeting Details Section
-                        SectionContainer(
-                          showShadow: true,
-                          child: Column(
+                          )
+                        : Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Meeting Details',
-                                style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
-                              ),
-                              const SizedBox(height: 20),
-
-                              // Meeting Title
-                              _buildTextField(
-                                label: 'Meeting Title *',
-                                controller: _titleController,
-                                hint: 'Enter meeting title',
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Description
-                              _buildTextField(
-                                label: 'Description (Optional)',
-                                controller: _descriptionController,
-                                hint: 'Enter meeting description',
-                                maxLines: 3,
-                              ),
+                              _buildHeroHeader(isLargeScreen, vertical: false),
+                              const SizedBox(height: 32),
+                              _buildFormContent(),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Date & Time Section
-                        SectionContainer(
-                          showShadow: true,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Date & Time',
-                                style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
-                              ),
-                              const SizedBox(height: 20),
-
-                              // Date Picker
-                              _buildDateTimeButton(
-                                icon: Icons.calendar_today,
-                                label: 'Date',
-                                value: _formatDate(_selectedDate),
-                                onTap: _selectDate,
-                              ),
-                              const SizedBox(height: 12),
-
-                              // Time Picker
-                              _buildDateTimeButton(
-                                icon: Icons.access_time,
-                                label: 'Time',
-                                value: _formatTime(_selectedTime),
-                                onTap: _selectTime,
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Duration
-                              _buildTextField(
-                                label: 'Duration (minutes)',
-                                controller: _durationController,
-                                hint: '60',
-                                keyboardType: TextInputType.number,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Meeting Options Section
-                        SectionContainer(
-                          showShadow: true,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Meeting Options',
-                                style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
-                              ),
-                              const SizedBox(height: 16),
-
-                              _buildOptionRow(Icons.videocam, 'Video enabled by default'),
-                              _buildOptionRow(Icons.mic, 'Microphone enabled by default'),
-                              _buildOptionRow(Icons.screen_share, 'Screen sharing allowed'),
-                              _buildOptionRow(Icons.lock, 'Waiting room enabled'),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Schedule Button - oval/rounded pill button
-                        const SizedBox(height: 16),
-                        Container(
-                          width: double.infinity,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.warmBrown,
-                                AppColors.accentMain,
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(30),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.warmBrown.withOpacity(0.4),
-                                blurRadius: 15,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _handleSchedule,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                            ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    height: 24,
-                                    width: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                    ),
-                                  )
-                                : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(Icons.schedule, color: Colors.white, size: 20),
-                                      const SizedBox(width: AppSpacing.small),
-                                      Text(
-                                        'Schedule Meeting',
-                                        style: AppTypography.button.copyWith(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(height: 48),
-                      ],
-                    ),
                   ),
                 ),
               ),
@@ -567,15 +679,15 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
             filled: true,
             fillColor: AppColors.backgroundSecondary,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
+              borderRadius: BorderRadius.circular(30),
               borderSide: BorderSide(color: AppColors.borderPrimary),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
+              borderRadius: BorderRadius.circular(30),
               borderSide: BorderSide(color: AppColors.borderPrimary),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 28),
+              borderRadius: BorderRadius.circular(30),
               borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
             ),
             contentPadding: EdgeInsets.symmetric(
@@ -598,12 +710,12 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
       cursor: SystemMouseCursors.click,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(30),
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
             color: AppColors.backgroundSecondary,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(30),
             border: Border.all(
               color: AppColors.warmBrown.withOpacity(0.3),
               width: 1,
@@ -615,7 +727,7 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
                 padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: AppColors.warmBrown.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(30),
                 ),
                 child: Icon(icon, color: AppColors.warmBrown, size: 22),
               ),
@@ -646,7 +758,7 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
                 padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: AppColors.warmBrown.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(30),
                 ),
                 child: Icon(Icons.chevron_right, color: AppColors.warmBrown, size: 20),
               ),
@@ -667,7 +779,7 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
             height: 32,
             decoration: BoxDecoration(
               color: AppColors.warmBrown.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(30),
             ),
             child: Icon(icon, color: AppColors.warmBrown, size: 18),
           ),
@@ -686,7 +798,7 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
             height: 24,
             decoration: BoxDecoration(
               color: AppColors.warmBrown,
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(30),
             ),
             child: Icon(Icons.check, color: Colors.white, size: 16),
           ),

@@ -256,7 +256,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             color: isActive
                 ? AppColors.primaryMain.withOpacity(0.1)
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+            borderRadius: BorderRadius.circular(30),
             border: isActive
                 ? Border.all(
                     color: AppColors.primaryMain,

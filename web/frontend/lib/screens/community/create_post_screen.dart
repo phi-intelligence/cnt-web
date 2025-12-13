@@ -334,7 +334,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       padding: EdgeInsets.symmetric(vertical: AppSpacing.small),
                       decoration: BoxDecoration(
                         color: _postType == 'image' ? AppColors.primaryMain : Colors.transparent,
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                        borderRadius: BorderRadius.circular(30),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -373,7 +373,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       padding: EdgeInsets.symmetric(vertical: AppSpacing.small),
                       decoration: BoxDecoration(
                         color: _postType == 'text' ? AppColors.primaryMain : Colors.transparent,
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                        borderRadius: BorderRadius.circular(30),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,

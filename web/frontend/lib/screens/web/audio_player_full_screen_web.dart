@@ -92,14 +92,14 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
                           AppColors.warmBrown.withOpacity(0.4),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.warmBrown.withOpacity(0.2),
-                          blurRadius: 30,
-                          offset: const Offset(0, 15),
-                        ),
-                      ],
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.warmBrown.withOpacity(0.2),
+                        blurRadius: 30,
+                        offset: const Offset(0, 15),
+                      ),
+                    ],
                     ),
                     child: Icon(
                       Icons.music_note_rounded,
@@ -158,90 +158,108 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
     }
 
     // Responsive layout - use more screen width on larger screens
-    final isWideScreen = screenWidth > 1200;
-    final isMediumScreen = screenWidth > 800;
-    final maxContentWidth = isWideScreen ? 1100.0 : (isMediumScreen ? 900.0 : screenWidth * 0.95);
-    final horizontalPadding = isWideScreen ? 48.0 : (isMediumScreen ? 32.0 : 16.0);
+    final isWideScreen = screenWidth > 1000;
+    final maxContentWidth = isWideScreen ? 1200.0 : screenWidth * 0.95;
+    final horizontalPadding = isWideScreen ? 64.0 : 24.0;
     
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0E8), // Warm background like landing page
       body: SafeArea(
-        child: Center(
-          child: Container(
-            constraints: BoxConstraints(maxWidth: maxContentWidth), // Responsive max width
-            child: Column(
-              children: [
-                // Top Header
-                _buildHeader(),
-                
-                // Content Area (Scrollable)
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                    child: Column(
-                      children: [
-                        SizedBox(height: screenHeight * 0.02),
-                        
-                        // Album Art with Vertical Volume Slider - Responsive layout
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            // On wider screens, show album art larger and centered
-                            final albumArtSize = isWideScreen 
-                                ? 400.0 
-                                : (isMediumScreen ? 350.0 : screenWidth * 0.7);
-                            
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                // Spacer for balance - smaller on mobile
-                                SizedBox(width: isMediumScreen ? 60 : 20),
-                                
-                                // Large Album Art with vinyl effect
-                                _buildAlbumArtCard(track, albumArtSize),
-                                
-                                // Vertical Volume Slider on the right
-                                _buildVerticalVolumeSlider(audioPlayer),
-                              ],
-                            );
-                          },
+        child: Column(
+          children: [
+            // Top Header
+            _buildHeader(),
+            
+            // Content Area
+            Expanded(
+              child: Center(
+                child: Container(
+                  constraints: BoxConstraints(maxWidth: maxContentWidth),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: isWideScreen
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Left Side: Album Art
+                            Expanded(
+                              flex: 5,
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  // Calculate available size for album art by subtracting slider width and spacing
+                                  final availableWidth = constraints.maxWidth - 24 - 60; // 24 spacing + 60 slider
+                                  final size = availableWidth.clamp(200.0, 500.0);
+                                  
+                                  return Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      _buildAlbumArtCard(track, size),
+                                      const SizedBox(width: 24),
+                                      _buildVerticalVolumeSlider(audioPlayer),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 48),
+                            // Right Side: Controls & Info
+                            Expanded(
+                              flex: 6,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _buildTrackInfo(track),
+                                  const SizedBox(height: 32),
+                                  _buildProgressBar(audioPlayer),
+                                  const SizedBox(height: 24),
+                                  _buildPlaybackControls(audioPlayer),
+                                  const SizedBox(height: 24),
+                                  _buildExtraControls(audioPlayer),
+                                  const SizedBox(height: 32),
+                                  _buildDonateButton(track),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      : SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              SizedBox(height: screenHeight * 0.02),
+                              // Album Art with Vertical Volume Slider
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final albumArtSize = screenWidth < 600 ? screenWidth * 0.7 : 350.0;
+                                  return Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SizedBox(width: 40), // Balance spacer
+                                      _buildAlbumArtCard(track, albumArtSize),
+                                      _buildVerticalVolumeSlider(audioPlayer),
+                                    ],
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 24),
+                              _buildTrackInfo(track),
+                              const SizedBox(height: 20),
+                              _buildProgressBar(audioPlayer),
+                              const SizedBox(height: 20),
+                              _buildPlaybackControls(audioPlayer),
+                              const SizedBox(height: 20),
+                              _buildExtraControls(audioPlayer),
+                              const SizedBox(height: 24),
+                              _buildDonateButton(track),
+                              const SizedBox(height: 32),
+                            ],
+                          ),
                         ),
-                        
-                        const SizedBox(height: 28),
-                        
-                        // Track Info
-                        _buildTrackInfo(track),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Progress Bar
-                        _buildProgressBar(audioPlayer),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Playback Controls
-                        _buildPlaybackControls(audioPlayer),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Extra Controls (queue, favorite - without horizontal volume)
-                        _buildExtraControls(audioPlayer),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Donate Button
-                        _buildDonateButton(track),
-                        
-                        // Removed About/Description section for cleaner player UI
-                          
-                        const SizedBox(height: 32),
-                      ],
-                    ),
-                  ),
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -320,7 +338,7 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
         width: size,
         height: size,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
               color: AppColors.warmBrown.withOpacity(0.3),
@@ -336,7 +354,7 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           child: Stack(
             children: [
               // Album Art
@@ -815,64 +833,4 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
     );
   }
 
-  Widget _buildExpandableDescription(ContentItem track) {
-    final description = track.description!;
-    final isLong = description.length > 150;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.warmBrown.withOpacity(0.1),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'About',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.warmBrown,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _isDescriptionExpanded || !isLong
-                ? description
-                : '${description.substring(0, 150)}...',
-            style: AppTypography.body.copyWith(
-              color: AppColors.primaryDark.withOpacity(0.7),
-              height: 1.5,
-            ),
-            maxLines: _isDescriptionExpanded ? null : 3,
-            overflow: _isDescriptionExpanded ? null : TextOverflow.ellipsis,
-          ),
-          if (isLong)
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _isDescriptionExpanded = !_isDescriptionExpanded;
-                });
-              },
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.only(top: 8),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                _isDescriptionExpanded ? 'Show less' : 'Show more',
-                style: TextStyle(
-                  color: AppColors.warmBrown,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }

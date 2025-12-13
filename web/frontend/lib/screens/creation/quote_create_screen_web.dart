@@ -266,7 +266,7 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
               AppColors.accentMain.withOpacity(0.02),
             ],
           ),
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: AppColors.warmBrown.withOpacity(0.2),
             width: 2,
@@ -303,7 +303,7 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
             Colors.white,
           ],
         ),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: AppColors.warmBrown,
           width: 2,
@@ -535,15 +535,15 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
                                           color: AppColors.warmBrown.withOpacity(0.5),
                                         ),
                                         border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                          borderRadius: BorderRadius.circular(30),
                                           borderSide: BorderSide(color: AppColors.borderPrimary),
                                         ),
                                         enabledBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                          borderRadius: BorderRadius.circular(30),
                                           borderSide: BorderSide(color: AppColors.borderPrimary),
                                         ),
                                         focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                          borderRadius: BorderRadius.circular(30),
                                           borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
                                         ),
                                         filled: true,
@@ -569,7 +569,7 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
                                             AppColors.accentMain.withOpacity(0.08),
                                           ],
                                         ),
-                                        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                        borderRadius: BorderRadius.circular(24),
                                         border: Border.all(
                                           color: AppColors.warmBrown.withOpacity(0.4),
                                           width: 1.5,
@@ -688,15 +688,15 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
                                               color: AppColors.warmBrown.withOpacity(0.5),
                                             ),
                                             border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                              borderRadius: BorderRadius.circular(30),
                                               borderSide: BorderSide(color: AppColors.borderPrimary),
                                             ),
                                             enabledBorder: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                              borderRadius: BorderRadius.circular(30),
                                               borderSide: BorderSide(color: AppColors.borderPrimary),
                                             ),
                                             focusedBorder: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                              borderRadius: BorderRadius.circular(30),
                                               borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
                                             ),
                                             filled: true,
@@ -720,7 +720,7 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
                                                 AppColors.accentMain.withOpacity(0.08),
                                               ],
                                             ),
-                                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                            borderRadius: BorderRadius.circular(24),
                                             border: Border.all(
                                               color: AppColors.warmBrown.withOpacity(0.4),
                                               width: 1.5,

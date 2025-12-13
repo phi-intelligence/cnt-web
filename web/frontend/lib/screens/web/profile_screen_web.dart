@@ -101,10 +101,10 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                       height: 80,
                       decoration: BoxDecoration(
                         color: AppColors.warmBrown,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(24),
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(24),
                         child: Image.asset(
                           'assets/images/cnt-dove-logo.png',
                           fit: BoxFit.cover,
@@ -884,7 +884,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.large, horizontal: AppSpacing.medium),
       decoration: BoxDecoration(
         color: AppColors.warmBrown,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: AppColors.warmBrown.withOpacity(0.3),

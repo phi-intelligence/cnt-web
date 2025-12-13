@@ -36,7 +36,7 @@ class StyledFilterChip extends StatelessWidget {
         fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
       ),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        borderRadius: BorderRadius.circular(30),
         side: BorderSide(
           color: selected
               ? (selectedColor ?? AppColors.warmBrown)

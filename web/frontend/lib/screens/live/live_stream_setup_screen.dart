@@ -130,7 +130,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                         Container(
                           decoration: BoxDecoration(
                             color: AppColors.warmBrown.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(30),
                           ),
                           child: IconButton(
                             icon: Icon(Icons.arrow_back, color: AppColors.warmBrown),
@@ -222,15 +222,15 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                                 filled: true,
                                 fillColor: AppColors.backgroundSecondary,
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(28),
+                                  borderRadius: BorderRadius.circular(30),
                                   borderSide: BorderSide(color: AppColors.borderPrimary),
                                 ),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(28),
+                                  borderRadius: BorderRadius.circular(30),
                                   borderSide: BorderSide(color: AppColors.borderPrimary),
                                 ),
                                 focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(28),
+                                  borderRadius: BorderRadius.circular(30),
                                   borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
                                 ),
                                 contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -263,15 +263,15 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                                 filled: true,
                                 fillColor: AppColors.backgroundSecondary,
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(30),
                                   borderSide: BorderSide(color: AppColors.borderPrimary),
                                 ),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(30),
                                   borderSide: BorderSide(color: AppColors.borderPrimary),
                                 ),
                                 focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(30),
                                   borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
                                 ),
                                 contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -290,7 +290,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                         gradient: LinearGradient(
                           colors: [AppColors.warmBrown, AppColors.accentMain],
                         ),
-                        borderRadius: BorderRadius.circular(28),
+                        borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
                             color: AppColors.warmBrown.withOpacity(0.4),
@@ -303,7 +303,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: _isCreating ? null : _startStreamNow,
-                          borderRadius: BorderRadius.circular(28),
+                          borderRadius: BorderRadius.circular(30),
                           child: Center(
                             child: _isCreating
                                 ? SizedBox(
@@ -339,14 +339,14 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                     Container(
                       height: 56,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(28),
+                        borderRadius: BorderRadius.circular(30),
                         border: Border.all(color: AppColors.warmBrown, width: 2),
                       ),
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: _isCreating ? null : _startInstant,
-                          borderRadius: BorderRadius.circular(28),
+                          borderRadius: BorderRadius.circular(30),
                           child: Center(
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,

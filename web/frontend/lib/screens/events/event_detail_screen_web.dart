@@ -251,7 +251,7 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
                                 padding: EdgeInsets.all(16),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(24),
                                   boxShadow: [
                                     BoxShadow(
                                       color: Colors.black.withOpacity(0.08),
@@ -405,7 +405,7 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(30),
       ),
       child: Text(
         text,
@@ -599,7 +599,7 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
                         foregroundColor: Colors.red,
                         side: BorderSide(color: Colors.red),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
+                          borderRadius: BorderRadius.circular(30),
                         ),
                       ),
                       child: provider.isLoading
@@ -617,7 +617,7 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
                         foregroundColor: Colors.white,
                         disabledBackgroundColor: AppColors.warmBrown.withOpacity(0.5),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
+                          borderRadius: BorderRadius.circular(30),
                         ),
                       ),
                       child: provider.isLoading

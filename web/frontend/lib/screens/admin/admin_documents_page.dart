@@ -122,7 +122,7 @@ class _AdminDocumentsPageState extends State<AdminDocumentsPage> {
                               AppColors.warmBrown.withOpacity(0.85),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                          borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
                               color: AppColors.warmBrown.withOpacity(0.3),
@@ -161,7 +161,7 @@ class _AdminDocumentsPageState extends State<AdminDocumentsPage> {
                                   padding: const EdgeInsets.all(AppSpacing.small),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                    borderRadius: BorderRadius.circular(30),
                                   ),
                                   child: const Icon(
                                     Icons.menu_book,
@@ -269,7 +269,7 @@ class _AdminDocumentsPageState extends State<AdminDocumentsPage> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: AppColors.warmBrown.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                      borderRadius: BorderRadius.circular(24),
                                       border: Border.all(
                                         color: AppColors.warmBrown.withOpacity(0.3),
                                       ),
@@ -387,7 +387,7 @@ class _DocumentCardWidgetState extends State<_DocumentCardWidget> {
                     AppColors.warmBrown.withOpacity(0.02),
                   ],
           ),
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: _isHovered
                 ? AppColors.warmBrown
@@ -455,7 +455,7 @@ class _DocumentCardWidgetState extends State<_DocumentCardWidget> {
                   AppColors.accentMain.withOpacity(0.08),
                 ],
         ),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        shape: BoxShape.circle,
         border: Border.all(
           color: _isHovered
               ? AppColors.warmBrown

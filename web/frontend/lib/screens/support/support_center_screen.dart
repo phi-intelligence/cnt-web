@@ -133,7 +133,7 @@ class _SupportCenterScreenState extends State<SupportCenterScreen> {
             AppColors.accentMain.withOpacity(0.04),
           ],
         ),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: AppColors.warmBrown.withOpacity(0.15),
           width: 1,
@@ -281,13 +281,13 @@ class _SupportCenterScreenState extends State<SupportCenterScreen> {
                 labelText: 'Subject',
                 prefixIcon: Icon(Icons.subject, color: AppColors.warmBrown),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                   borderSide: BorderSide(color: AppColors.borderPrimary),
                 ),
                 filled: true,
                 fillColor: AppColors.backgroundSecondary,
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                   borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
                 ),
               ),
@@ -307,13 +307,13 @@ class _SupportCenterScreenState extends State<SupportCenterScreen> {
                 alignLabelWithHint: true,
                 prefixIcon: Icon(Icons.message_outlined, color: AppColors.warmBrown),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                   borderSide: BorderSide(color: AppColors.borderPrimary),
                 ),
                 filled: true,
                 fillColor: AppColors.backgroundSecondary,
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                   borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
                 ),
               ),
@@ -492,7 +492,7 @@ class _SupportCenterScreenState extends State<SupportCenterScreen> {
                     AppColors.accentMain.withOpacity(0.05),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                 border: Border.all(
                   color: AppColors.warmBrown.withOpacity(0.2),
                   width: 1,

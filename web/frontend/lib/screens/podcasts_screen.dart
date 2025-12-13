@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/api_models.dart';
 import '../models/content_item.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
+import '../widgets/shared/image_helper.dart';
 
 class PodcastsScreen extends StatefulWidget {
   const PodcastsScreen({super.key});
@@ -85,41 +89,64 @@ class _PodcastsScreenState extends State<PodcastsScreen> {
   // Responsive grid configuration
   int _getCrossAxisCount(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth < 400) return 1;  // Small phones
-    if (screenWidth < 600) return 2;  // Large phones
-    return 3; // Tablets
+    if (screenWidth < 600) return 1;  // Mobile
+    if (screenWidth < 900) return 2;  // Tablet
+    if (screenWidth < 1200) return 3; // Desktop
+    return 4; // Large Desktop
   }
 
   // Responsive aspect ratio
   double _getChildAspectRatio(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth < 400) return 0.85;  // Small phones: more compact
-    if (screenWidth < 600) return 0.8;   // Large phones
-    return 0.75; // Tablets
+    if (screenWidth < 600) return 0.9;
+    return 0.75; 
   }
 
   @override
   Widget build(BuildContext context) {
     
     return Scaffold(
+      backgroundColor: AppColors.backgroundPrimary,
       appBar: AppBar(
-        title: const Text('Podcasts'),
+        title: Text(
+          'Podcasts',
+          style: AppTypography.heading3.copyWith(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: AppColors.textPrimary),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppSpacing.large),
         child: Column(
           children: [
             // Search Bar
             TextField(
               decoration: InputDecoration(
                 hintText: 'Search podcasts...',
-                prefixIcon: const Icon(Icons.search),
+                hintStyle: AppTypography.body.copyWith(color: AppColors.textPlaceholder),
+                prefixIcon: Icon(Icons.search_rounded, color: AppColors.warmBrown),
+                filled: true,
+                fillColor: Colors.white,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
                 ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.large),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.large),
             
             // Filter Chips
             SingleChildScrollView(
@@ -134,12 +161,16 @@ class _PodcastsScreenState extends State<PodcastsScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.large),
             
             // Podcasts Grid
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.warmBrown),
+                      ),
+                    )
                   : _error != null
                       ? Center(
                           child: Column(
@@ -147,25 +178,36 @@ class _PodcastsScreenState extends State<PodcastsScreen> {
                             children: [
                               Text(
                                 _error!,
-                                style: const TextStyle(color: Colors.red),
+                                style: AppTypography.body.copyWith(color: AppColors.errorMain),
                                 textAlign: TextAlign.center,
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: AppSpacing.medium),
                               ElevatedButton(
                                 onPressed: _fetchPodcasts,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.warmBrown,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                                  ),
+                                ),
                                 child: const Text('Retry'),
                               ),
                             ],
                           ),
                         )
                       : _podcasts.isEmpty
-                          ? const Center(child: Text('No podcasts available'))
+                          ? Center(
+                              child: Text(
+                                'No podcasts available',
+                                style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                              ),
+                            )
                           : GridView.builder(
                               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: _getCrossAxisCount(context),
                                 childAspectRatio: _getChildAspectRatio(context),
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
+                                crossAxisSpacing: AppSpacing.medium,
+                                mainAxisSpacing: AppSpacing.medium,
                               ),
                               itemCount: _podcasts.length,
                               itemBuilder: (context, index) {
@@ -174,6 +216,7 @@ class _PodcastsScreenState extends State<PodcastsScreen> {
                                   title: podcast.title,
                                   creator: podcast.creator ?? 'Unknown',
                                   category: podcast.category ?? 'Podcast',
+                                  coverImage: podcast.coverImage,
                                 );
                               },
                             ),
@@ -197,13 +240,29 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
+      padding: const EdgeInsets.only(right: AppSpacing.small),
       child: FilterChip(
-        label: Text(label),
+        label: Text(
+          label,
+          style: AppTypography.bodySmall.copyWith(
+            color: isSelected ? Colors.white : AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         selected: isSelected,
         onSelected: (value) {
           // TODO: Handle filter selection
         },
+        backgroundColor: Colors.white,
+        selectedColor: AppColors.warmBrown,
+        checkmarkColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+          side: BorderSide(
+            color: isSelected ? AppColors.warmBrown : AppColors.borderPrimary,
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.small, vertical: AppSpacing.tiny),
       ),
     );
   }
@@ -213,20 +272,30 @@ class _PodcastCard extends StatelessWidget {
   final String title;
   final String creator;
   final String category;
+  final String? coverImage;
 
   const _PodcastCard({
     required this.title,
     required this.creator,
     required this.category,
+    this.coverImage,
   });
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 400;
     
-    return Card(
-      elevation: 2,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -236,59 +305,61 @@ class _PodcastCard extends StatelessWidget {
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                color: Colors.grey[300],
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                color: AppColors.backgroundSecondary,
+                image: coverImage != null 
+                    ? DecorationImage(
+                        image: ImageHelper.getImageProvider(coverImage!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              child: Icon(
-                Icons.podcasts, 
-                size: isSmallScreen ? 40 : 50, 
-                color: Colors.grey,
-              ),
+              child: coverImage == null 
+                  ? Icon(Icons.podcasts_rounded, size: 50, color: AppColors.warmBrown.withOpacity(0.5))
+                  : null,
             ),
           ),
           
-          // Content
           Expanded(
             flex: 2,
             child: Padding(
-              padding: EdgeInsets.all(isSmallScreen ? 8.0 : 12.0),
+              padding: const EdgeInsets.all(AppSpacing.medium),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
+                    style: AppTypography.bodyMedium.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: isSmallScreen ? 12 : 14,
+                      color: AppColors.textPrimary,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: isSmallScreen ? 2 : 4),
+                  const SizedBox(height: AppSpacing.tiny),
                   Text(
                     creator,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: isSmallScreen ? 10 : 12,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const Spacer(),
                   Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isSmallScreen ? 6 : 8, 
-                      vertical: isSmallScreen ? 2 : 4
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.small, 
+                      vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      color: AppColors.accentMain.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                     ),
                     child: Text(
                       category,
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 8 : 10,
-                        color: Theme.of(context).colorScheme.primary,
+                      style: AppTypography.label.copyWith(
+                        color: AppColors.accentMain,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),

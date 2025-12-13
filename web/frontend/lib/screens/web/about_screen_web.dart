@@ -135,7 +135,7 @@ class AboutScreenWeb extends StatelessWidget {
                   gradient: LinearGradient(
                     colors: [AppColors.warmBrown, AppColors.accentMain],
                   ),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.warmBrown.withOpacity(0.25),
@@ -145,7 +145,7 @@ class AboutScreenWeb extends StatelessWidget {
                   ],
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderRadius: BorderRadius.circular(24),
                   child: Image.asset(
                     'assets/images/cnt-dove-logo.png',
                     fit: BoxFit.cover,
@@ -282,7 +282,7 @@ class AboutScreenWeb extends StatelessWidget {
                       AppColors.warmBrown.withOpacity(0.1),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                  borderRadius: BorderRadius.circular(24),
                   border: Border.all(
                     color: AppColors.accentMain.withOpacity(0.3),
                     width: 1,
@@ -405,7 +405,7 @@ class AboutScreenWeb extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: AppColors.warmBrown.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: AppColors.warmBrown.withOpacity(0.1),
           width: 1,
@@ -459,7 +459,7 @@ class _FeatureCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.small),
       decoration: BoxDecoration(
         color: AppColors.warmBrown,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: AppColors.warmBrown,
           width: 1,
@@ -472,7 +472,7 @@ class _FeatureCard extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.small),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+              borderRadius: BorderRadius.circular(30),
             ),
             child: Icon(
               icon,
@@ -523,7 +523,7 @@ class _ValueCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.medium),
       decoration: BoxDecoration(
         color: AppColors.warmBrown.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: AppColors.warmBrown.withOpacity(0.15),
           width: 1,

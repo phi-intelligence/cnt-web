@@ -6,6 +6,7 @@ import '../../models/api_models.dart';
 import '../../models/document_asset.dart';
 import '../../screens/bible/bible_document_selector_screen.dart';
 import '../../screens/bible/pdf_viewer_screen.dart';
+import '../../screens/bible/bible_reader_screen.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -71,45 +72,13 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
   final Random _random = Random();
 
   Future<void> _handleBibleReaderTap() async {
-    // If documents exist, show document selector or open first document
-    if (widget.documents.isNotEmpty) {
-      DocumentAsset? selectedDoc = widget.documents.first;
-
-      // If multiple documents exist, allow the user to pick a version
-      if (widget.documents.length > 1) {
-        selectedDoc = await Navigator.push<DocumentAsset>(
-          context,
-          MaterialPageRoute(
-            builder: (_) => BibleDocumentSelectorScreen(documents: widget.documents),
-          ),
-        );
-
-        // User dismissed selector without choosing; fall back to first doc
-        selectedDoc ??= widget.documents.first;
-      }
-
-      final docToOpen = selectedDoc;
-      if (docToOpen == null) return;
-
-      if (widget.onOpenDocument != null) {
-        widget.onOpenDocument!(docToOpen);
-        return;
-      }
-
-      if (!mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => PDFViewerScreen(document: docToOpen),
-        ),
-      );
-    } else if (widget.stories.isNotEmpty) {
-      // If stories exist, open the first story
-      final firstStory = widget.stories.first;
-      if (widget.onOpenStory != null) {
-        widget.onOpenStory!(firstStory);
-      }
-    }
+    // Open the new full-screen Bible Reader interface
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const BibleReaderScreen(),
+      ),
+    );
   }
 
   void _showBibleQuotePopup() {

@@ -7,8 +7,6 @@ import '../utils/responsive_grid_delegate.dart';
 import '../widgets/web/styled_page_header.dart';
 import '../widgets/web/section_container.dart';
 import '../widgets/web/styled_pill_button.dart';
-import 'live/live_stream_viewer.dart';
-// TODO: Consider Jitsi Meet integration for live streaming if needed
 
 class LiveStreamingScreen extends StatefulWidget {
   const LiveStreamingScreen({super.key});
@@ -20,7 +18,6 @@ class LiveStreamingScreen extends StatefulWidget {
 class _LiveStreamingScreenState extends State<LiveStreamingScreen> with SingleTickerProviderStateMixin {
   int _selectedTab = 0;
   late TabController _tabController;
-  // TODO: Add participant list when implementing live streaming
   final List<dynamic> _participants = [];
   bool _isHost = false;
 
@@ -57,7 +54,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> with SingleTi
                   ),
                   StyledPillButton(
                     label: 'Go Live',
-                    icon: Icons.videocam,
+                    icon: Icons.videocam_rounded,
                     onPressed: () => _showCreateStreamDialog(context),
                   ),
                 ],
@@ -67,16 +64,22 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> with SingleTi
               // Tabs
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.backgroundSecondary,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  border: Border.all(color: AppColors.borderPrimary),
                 ),
                 child: TabBar(
                   controller: _tabController,
                   onTap: (index) => setState(() => _selectedTab = index),
-                  labelColor: AppColors.primaryMain,
+                  labelColor: Colors.white,
                   unselectedLabelColor: AppColors.textSecondary,
-                  indicatorColor: AppColors.primaryMain,
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                    color: AppColors.warmBrown,
+                  ),
                   indicatorSize: TabBarIndicatorSize.tab,
+                  padding: EdgeInsets.zero,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.large),
                   tabs: const [
                     Tab(text: 'Live Now'),
                     Tab(text: 'Upcoming'),
@@ -102,34 +105,53 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> with SingleTi
         ),
       );
     } else {
-      // Mobile version (original design)
+      // Mobile version
       return Scaffold(
+        backgroundColor: AppColors.backgroundPrimary,
         appBar: AppBar(
-          title: const Text('Live Streams'),
+          title: Text(
+            'Live Streams',
+            style: AppTypography.heading3.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          iconTheme: IconThemeData(color: AppColors.textPrimary),
           actions: [
-            ElevatedButton.icon(
-              onPressed: () => _showCreateStreamDialog(context),
-              icon: const Icon(Icons.videocam),
-              label: const Text('Go Live'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: StyledPillButton(
+                onPressed: () => _showCreateStreamDialog(context),
+                icon: Icons.videocam_rounded,
+                label: 'Go Live',
+                size: StyledPillButtonSize.small,
               ),
             ),
-            const SizedBox(width: 8),
           ],
         ),
         body: Column(
           children: [
             // Tabs
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              margin: const EdgeInsets.all(AppSpacing.medium),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                border: Border.all(color: AppColors.borderPrimary),
+              ),
               child: TabBar(
                 controller: _tabController,
                 onTap: (index) => setState(() => _selectedTab = index),
-                labelColor: Colors.red,
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: Colors.red,
+                labelColor: Colors.white,
+                unselectedLabelColor: AppColors.textSecondary,
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  color: AppColors.warmBrown,
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                padding: EdgeInsets.zero,
                 tabs: const [
                   Tab(text: 'Live Now'),
                   Tab(text: 'Upcoming'),
@@ -170,11 +192,14 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> with SingleTi
         );
         if (isWeb) {
           return Padding(
-            padding: EdgeInsets.only(bottom: AppSpacing.medium),
+            padding: const EdgeInsets.only(bottom: AppSpacing.medium),
             child: card,
           );
         }
-        return card;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.medium),
+          child: card,
+        );
       },
     );
   }
@@ -194,11 +219,14 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> with SingleTi
         );
         if (isWeb) {
           return Padding(
-            padding: EdgeInsets.only(bottom: AppSpacing.medium),
+            padding: const EdgeInsets.only(bottom: AppSpacing.medium),
             child: card,
           );
         }
-        return card;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.medium),
+          child: card,
+        );
       },
     );
   }
@@ -219,11 +247,14 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> with SingleTi
         );
         if (isWeb) {
           return Padding(
-            padding: EdgeInsets.only(bottom: AppSpacing.medium),
+            padding: const EdgeInsets.only(bottom: AppSpacing.medium),
             child: card,
           );
         }
-        return card;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.medium),
+          child: card,
+        );
       },
     );
   }
@@ -236,25 +267,27 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> with SingleTi
   }
 
   Future<void> _joinStream(BuildContext context, int streamId) async {
-    // TODO: Implement Jitsi Meet room join for live streaming
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => LiveStreamViewer(streamId: streamId),
+        builder: (context) => _MockLiveStreamViewer(streamId: streamId),
       ),
     );
   }
 
   void _setReminder(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Reminder set!')),
+      SnackBar(
+        content: const Text('Reminder set!'),
+        backgroundColor: AppColors.warmBrown,
+      ),
     );
   }
 
   void _watchReplay(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const VideoPlayerWidget()),
+      MaterialPageRoute(builder: (context) => _MockVideoPlayerWidget()),
     );
   }
 }
@@ -283,6 +316,8 @@ class _StreamCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isWeb = kIsWeb;
+    
+    // Content structure
     final cardContent = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -293,13 +328,13 @@ class _StreamCard extends StatelessWidget {
               height: isWeb ? 250 : 200,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: AppColors.backgroundTertiary,
+                color: AppColors.backgroundSecondary,
                 borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(isWeb ? AppSpacing.radiusLarge : 4),
-                  topRight: Radius.circular(isWeb ? AppSpacing.radiusLarge : 4),
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
                 ),
               ),
-              child: Icon(Icons.videocam, size: 60, color: AppColors.textTertiary),
+              child: Icon(Icons.videocam_rounded, size: 60, color: AppColors.textSecondary.withOpacity(0.5)),
             ),
             if (isLive)
               Positioned(
@@ -308,8 +343,14 @@ class _StreamCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.errorMain,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.errorMain.withOpacity(0.4),
+                        blurRadius: 8,
+                      ),
+                    ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -340,7 +381,7 @@ class _StreamCard extends StatelessWidget {
         
         // Info
         Padding(
-          padding: EdgeInsets.all(isWeb ? AppSpacing.medium : 12),
+          padding: EdgeInsets.all(AppSpacing.medium),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -360,21 +401,21 @@ class _StreamCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.tiny),
                 Text(
                   '$viewerCount viewers',
-                  style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+                  style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
                 ),
               ],
               if (scheduledTime != null) ...[
                 const SizedBox(height: AppSpacing.tiny),
                 Text(
                   'Starts: ${scheduledTime!.toString().split('.')[0]}',
-                  style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+                  style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
                 ),
               ],
               if (duration != null) ...[
                 const SizedBox(height: AppSpacing.tiny),
                 Text(
                   'Duration: ${duration!.inHours}h ${duration!.inMinutes.remainder(60)}m',
-                  style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+                  style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
                 ),
               ],
             ],
@@ -383,27 +424,28 @@ class _StreamCard extends StatelessWidget {
       ],
     );
 
-    if (isWeb) {
-      return MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: SectionContainer(
-          showShadow: true,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-            child: cardContent,
+    // Wrapper
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-        ),
-      );
-    } else {
-      return Card(
-        margin: const EdgeInsets.only(bottom: 16),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
           child: cardContent,
         ),
-      );
-    }
+      ),
+    );
   }
 }
 
@@ -411,12 +453,12 @@ class _CreateStreamDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: AppColors.backgroundSecondary,
+      backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        borderRadius: BorderRadius.circular(30),
       ),
       child: Container(
-        padding: EdgeInsets.all(AppSpacing.extraLarge),
+        padding: const EdgeInsets.all(AppSpacing.extraLarge),
         constraints: const BoxConstraints(maxWidth: 500),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -426,6 +468,7 @@ class _CreateStreamDialog extends StatelessWidget {
               'Create Live Stream',
               style: AppTypography.heading3.copyWith(
                 color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: AppSpacing.large),
@@ -438,17 +481,18 @@ class _CreateStreamDialog extends StatelessWidget {
                 filled: true,
                 fillColor: AppColors.backgroundPrimary,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                   borderSide: BorderSide(color: AppColors.borderPrimary),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                   borderSide: BorderSide(color: AppColors.borderPrimary),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                  borderSide: BorderSide(color: AppColors.primaryMain, width: 2),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
                 ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.large, vertical: AppSpacing.medium),
               ),
             ),
             const SizedBox(height: AppSpacing.medium),
@@ -462,17 +506,19 @@ class _CreateStreamDialog extends StatelessWidget {
                 filled: true,
                 fillColor: AppColors.backgroundPrimary,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide(color: AppColors.borderPrimary),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                  borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide(color: AppColors.borderPrimary),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                  borderSide: BorderSide(color: AppColors.primaryMain, width: 2),
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
                 ),
+                alignLabelWithHint: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.large, vertical: AppSpacing.medium),
               ),
             ),
             const SizedBox(height: AppSpacing.large),
@@ -492,7 +538,7 @@ class _CreateStreamDialog extends StatelessWidget {
                 const SizedBox(width: AppSpacing.medium),
                 StyledPillButton(
                   label: 'Start Stream',
-                  icon: Icons.videocam,
+                  icon: Icons.videocam_rounded,
                   onPressed: () {
                     Navigator.pop(context);
                     // TODO: Create stream
@@ -508,10 +554,10 @@ class _CreateStreamDialog extends StatelessWidget {
   }
 }
 
-class LiveStreamViewer extends StatelessWidget {
+class _MockLiveStreamViewer extends StatelessWidget {
   final int streamId;
 
-  const LiveStreamViewer({super.key, required this.streamId});
+  const _MockLiveStreamViewer({required this.streamId});
 
   @override
   Widget build(BuildContext context) {
@@ -539,13 +585,9 @@ class LiveStreamViewer extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(16),
-                    child: const Text(
+                    child: Text(
                       'Chat',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: AppTypography.heading4.copyWith(color: Colors.white),
                     ),
                   ),
                   
@@ -574,13 +616,23 @@ class LiveStreamViewer extends StatelessWidget {
                               hintText: 'Type a message...',
                               hintStyle: const TextStyle(color: Colors.grey),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide(color: Colors.white24),
                               ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide(color: Colors.white24),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide(color: AppColors.warmBrown),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                             ),
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.send, color: Colors.white),
+                          icon: const Icon(Icons.send_rounded, color: Colors.white),
                           onPressed: () {},
                         ),
                       ],
@@ -598,14 +650,26 @@ class LiveStreamViewer extends StatelessWidget {
             right: 316,
             child: Row(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black45,
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
                 ),
                 const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.minimize, color: Colors.white),
-                  onPressed: () {},
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black45,
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.fullscreen_rounded, color: Colors.white),
+                    onPressed: () {},
+                  ),
                 ),
               ],
             ),
@@ -634,8 +698,8 @@ class _ChatMessage extends StatelessWidget {
         children: [
           Text(
             username,
-            style: const TextStyle(
-              color: Colors.blue,
+            style: TextStyle(
+              color: AppColors.warmBrown,
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
@@ -651,14 +715,12 @@ class _ChatMessage extends StatelessWidget {
   }
 }
 
-class VideoPlayerWidget extends StatelessWidget {
-  const VideoPlayerWidget({super.key});
-
+class _MockVideoPlayerWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: Text('Video Player')),
+      backgroundColor: Colors.black,
+      body: Center(child: Text('Video Player', style: TextStyle(color: Colors.white))),
     );
   }
 }
-
