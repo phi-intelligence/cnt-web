@@ -41,6 +41,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
   final ApiService _api = ApiService();
   final GlobalKey _audioPodcastsKey = GlobalKey();
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey<HeroCarouselWidgetState> _heroCarouselKey = GlobalKey<HeroCarouselWidgetState>();
   
   List<ContentItem> _audioPodcasts = [];
   List<ContentItem> _videoPodcasts = [];
@@ -93,6 +94,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
     _scrollController.dispose();
     super.dispose();
   }
+
   
   // Calculate carousel opacity based on scroll position
   double _calculateCarouselOpacity() {
@@ -661,6 +663,9 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
               },
               child: RefreshIndicator(
               onRefresh: () async {
+                // Refresh hero carousel if key is available
+                _heroCarouselKey.currentState?.refresh();
+                
                 await Future.wait([
                   _fetchPodcasts(),
                   _fetchBibleStories(),
@@ -1001,6 +1006,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
       width: double.infinity,
       height: isMobile ? screenHeight * 0.35 : screenHeight * 0.5,
       child: HeroCarouselWidget(
+        key: _heroCarouselKey,
         onItemTap: (postId) {
           Navigator.of(context).push(
             MaterialPageRoute(

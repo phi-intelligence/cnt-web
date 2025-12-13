@@ -19,8 +19,9 @@ class HeroCarouselWidget extends StatefulWidget {
   });
 
   @override
-  State<HeroCarouselWidget> createState() => _HeroCarouselWidgetState();
+  State<HeroCarouselWidget> createState() => HeroCarouselWidgetState();
 }
+
 
 /// Simple carousel item model for community posts
 class _CarouselItem {
@@ -37,7 +38,7 @@ class _CarouselItem {
   });
 }
 
-class _HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKeepAliveClientMixin {
+class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
   List<_CarouselItem> _items = [];
@@ -45,6 +46,7 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticK
   Timer? _autoScrollTimer;
   bool _isUserInteracting = false;
   final Set<String> _loadedImages = {}; // Track loaded images to prevent duplicate logging
+  DateTime? _lastLoadTime; // Track when items were last loaded
   
   @override
   bool get wantKeepAlive => true; // Keep widget alive to prevent unnecessary rebuilds
@@ -52,13 +54,57 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticK
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadItems();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopAutoScroll();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Refresh when app becomes visible again (useful after admin deletes content)
+    if (state == AppLifecycleState.resumed && mounted) {
+      // Only refresh if data is older than 30 seconds to avoid excessive API calls
+      if (_lastLoadTime == null || 
+          DateTime.now().difference(_lastLoadTime!).inSeconds > 30) {
+        _loadItems();
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(HeroCarouselWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If widget is rebuilt, refresh data (e.g., after navigation back)
+    if (mounted && _lastLoadTime != null) {
+      // Refresh if data is older than 60 seconds
+      if (DateTime.now().difference(_lastLoadTime!).inSeconds > 60) {
+        _loadItems();
+      }
+    }
+  }
+
+  /// Public method to refresh carousel items (e.g., when posts are deleted)
+  Future<void> refresh() async {
+    await _loadItems();
   }
 
   Future<void> _loadItems() async {
     try {
       print('🖼️ Hero Carousel: Fetching approved community posts with images...');
       final apiService = ApiService();
+      
+      // Clear previous loaded images cache to prevent stale references
+      _loadedImages.clear();
+      
+      // Stop auto-scroll during reload
+      _stopAutoScroll();
       
       // Fetch latest approved community posts (backend filters by approved_only=true and image_url)
       final posts = await apiService.getCommunityPosts(
@@ -67,7 +113,8 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticK
       );
       print('🖼️ Hero Carousel: Fetched ${posts.length} approved community posts');
       
-      // Convert posts to carousel items (backend already filters by image_url)
+      // Convert posts to carousel items
+      // Backend already filters to only return posts with image_url (both image posts and text posts converted to quote images)
       final items = <_CarouselItem>[];
       for (final post in posts) {
         final imageUrl = post['image_url'] as String?;
@@ -75,6 +122,8 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticK
         final isApproved = post['is_approved'] ?? false;
         final postType = post['post_type'] as String? ?? 'image';
         
+        // Backend already filters by image_url, but double-check for safety
+        // This includes both: post_type='image' posts AND post_type='text' posts converted to quote images
         if (imageUrl != null && imageUrl.isNotEmpty) {
           // Get full media URL (handles both regular images and generated quote images)
           final fullImageUrl = apiService.getMediaUrl(imageUrl);
@@ -125,11 +174,14 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticK
           _items = items;
           _isLoading = false;
           _currentIndex = 0;
+          _lastLoadTime = DateTime.now(); // Update last load time
         });
         
-        // Start auto-scroll if we have items
+        // Start auto-scroll if we have items, otherwise stop it
         if (_items.isNotEmpty) {
           _startAutoScroll();
+        } else {
+          _stopAutoScroll();
         }
       }
     } catch (e, stackTrace) {
@@ -205,12 +257,6 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticK
     _changePage(index);
   }
 
-  @override
-  void dispose() {
-    _stopAutoScroll();
-    _pageController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -242,11 +288,44 @@ class _HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticK
     if (_items.isEmpty) {
       return Container(
         height: carouselHeight,
-        color: Colors.black,
-        child: const Center(
-          child: Text(
-            'No posts with images available',
-            style: TextStyle(color: Colors.white),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black,
+              Colors.grey[900]!,
+            ],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.image_not_supported_outlined,
+                color: Colors.white.withOpacity(0.5),
+                size: 64,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No featured posts available',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Community posts with images will appear here',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 14,
+                ),
+              ),
+            ],
           ),
         ),
       );

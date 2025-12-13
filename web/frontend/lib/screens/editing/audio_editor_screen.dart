@@ -1031,43 +1031,27 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
   }
 
   Future<void> _reloadPlayer(String path) async {
-    print('🔄 Reloading player with path: $path');
     await _player?.dispose();
     _player = AudioPlayer();
     
     // Check if path is network URL, blob URL, or local file
     final isNetwork = path.startsWith('http') || path.startsWith('blob:');
     
-    try {
-      if (isNetwork || kIsWeb) {
-        // On web or for network URLs, use setUrl
-        print('🎵 Setting audio URL: $path');
-        await _player!.setUrl(path);
-      } else {
-        // On mobile, use setFilePath for local files
-        await _player!.setFilePath(path);
-      }
-    } catch (e) {
-      print('❌ Error setting audio source: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading audio: $e'),
-            backgroundColor: AppColors.errorMain,
-          ),
-        );
-      }
-      return;
+    if (isNetwork || kIsWeb) {
+      // On web or for network URLs, use setUrl
+      await _player!.setUrl(path);
+    } else {
+      // On mobile, use setFilePath for local files
+      await _player!.setFilePath(path);
     }
     
     // Wait for duration to be available (same as video editor)
     Duration? duration = _player!.duration;
     int attempts = 0;
-    while ((duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) && attempts < 20) {
-      await Future.delayed(const Duration(milliseconds: 150));
+    while ((duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) && attempts < 10) {
+      await Future.delayed(const Duration(milliseconds: 100));
       duration = _player!.duration;
       attempts++;
-      print('🕒 Waiting for duration... attempt $attempts, duration: $duration');
     }
     
     if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
@@ -1076,12 +1060,8 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
       return;
     }
     
-    print('✅ Audio duration after reload: $duration');
-    
     setState(() {
       _audioDuration = duration!;
-      // Reset trim values to full audio range after successful edit
-      _trimStart = Duration.zero;
       _trimEnd = _audioDuration;
     });
   }

@@ -30,44 +30,44 @@ class AppThemeData {
       shadow: AppColors.foregroundPrimary.withValues(alpha: 0.1),
     ),
     
-    // Card theme
+    // Card theme - Premium Soft Rounded
     cardTheme: CardThemeData(
       color: AppColors.cardBackground,
       elevation: 2,
       shadowColor: AppColors.foregroundPrimary.withOpacity(0.1),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        borderRadius: BorderRadius.circular(24), // Increased from medium (16) to 24
         side: BorderSide(color: AppColors.cardBorder, width: 1),
       ),
       margin: EdgeInsets.all(AppSpacing.small),
     ),
 
-    // Input decoration theme
+    // Input decoration theme - Pill Shaped
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.backgroundSecondary,
       contentPadding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.medium,
-        vertical: AppSpacing.small,
+        horizontal: AppSpacing.large, // Increased padding for pill shape
+        vertical: AppSpacing.medium,
       ),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+        borderRadius: BorderRadius.circular(30), // Full Pill Shape
         borderSide: BorderSide(color: AppColors.borderPrimary, width: 1),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+        borderRadius: BorderRadius.circular(30),
         borderSide: BorderSide(color: AppColors.borderPrimary, width: 1),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+        borderRadius: BorderRadius.circular(30),
         borderSide: BorderSide(color: AppColors.borderFocus, width: 2),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+        borderRadius: BorderRadius.circular(30),
         borderSide: BorderSide(color: AppColors.errorMain, width: 1),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+        borderRadius: BorderRadius.circular(30),
         borderSide: BorderSide(color: AppColors.errorMain, width: 2),
       ),
     ),
@@ -119,32 +119,30 @@ class AppThemeData {
       type: BottomNavigationBarType.fixed,
     ),
 
-    // Dialog theme
+    // Dialog theme - Soft Rounded
     dialogTheme: DialogThemeData(
       backgroundColor: AppColors.cardBackground,
       elevation: 8,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(AppSpacing.radiusMedium)),
+        borderRadius: BorderRadius.all(Radius.circular(24)), // Increased radius
       ),
       titleTextStyle: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
       contentTextStyle: AppTypography.body.copyWith(color: AppColors.textSecondary),
     ),
 
-    // Button themes
+    // Button themes - Pill Shaped (Stadium)
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primaryMain,
         foregroundColor: AppColors.textInverse,
         elevation: 2,
         padding: EdgeInsets.symmetric(
-          horizontal: AppSpacing.medium,
-          vertical: AppSpacing.small,
+          horizontal: AppSpacing.large,
+          vertical: AppSpacing.medium,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
-        ),
+        shape: const StadiumBorder(), // Full Pill Shape
         textStyle: AppTypography.button,
-        minimumSize: const Size(double.infinity, AppSpacing.minTouchTarget),
+        minimumSize: const Size(double.infinity, 48), // Taller touch target
       ),
     ),
 
@@ -152,15 +150,13 @@ class AppThemeData {
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primaryMain,
         padding: EdgeInsets.symmetric(
-          horizontal: AppSpacing.medium,
-          vertical: AppSpacing.small,
+          horizontal: AppSpacing.large,
+          vertical: AppSpacing.medium,
         ),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(AppSpacing.radiusSmall)),
-        ),
+        shape: const StadiumBorder(), // Full Pill Shape
         side: const BorderSide(color: AppColors.primaryMain, width: 2),
         textStyle: AppTypography.button,
-        minimumSize: const Size(double.infinity, AppSpacing.minTouchTarget),
+        minimumSize: const Size(double.infinity, 48),
       ),
     ),
 
@@ -168,14 +164,12 @@ class AppThemeData {
       style: TextButton.styleFrom(
         foregroundColor: AppColors.primaryMain,
         padding: EdgeInsets.symmetric(
-          horizontal: AppSpacing.medium,
+          horizontal: AppSpacing.large,
           vertical: AppSpacing.small,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
-        ),
+        shape: const StadiumBorder(), // Full Pill Shape
         textStyle: AppTypography.button,
-        minimumSize: const Size(0, AppSpacing.minTouchTarget),
+        minimumSize: const Size(0, 48),
       ),
     ),
 
@@ -192,7 +186,7 @@ class AppThemeData {
       space: 1,
     ),
 
-    // Chip theme
+    // Chip theme - Pill Shaped
     chipTheme: ChipThemeData(
       backgroundColor: AppColors.backgroundSecondary,
       deleteIconColor: AppColors.textSecondary,
@@ -205,7 +199,7 @@ class AppThemeData {
       labelStyle: AppTypography.bodySmall,
       padding: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+        borderRadius: BorderRadius.circular(30), // Full Pill Shape
         side: const BorderSide(color: AppColors.borderPrimary, width: 1),
       ),
     ),
@@ -215,7 +209,7 @@ class AppThemeData {
       backgroundColor: AppColors.cardBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppSpacing.radiusLarge),
+          top: Radius.circular(32), // large rounded top corners
         ),
       ),
     ),
@@ -240,12 +234,52 @@ class AppThemeData {
       error: AppColors.errorMain,
       onError: AppColors.textInverse,
     ),
-    // Similar structure but with dark colors
+    // Dark Theme - Pill Oriented
     cardTheme: CardThemeData(
       color: const Color(0xFF1A1D29),
       elevation: 4,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(AppSpacing.radiusMedium)),
+        borderRadius: BorderRadius.all(Radius.circular(24)),
+      ),
+    ),
+    // Input Decoration - Dark
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xFF2A2D39),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.large,
+        vertical: AppSpacing.medium,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30),
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30),
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30),
+        borderSide: BorderSide(color: AppColors.primaryMain, width: 2),
+      ),
+    ),
+    // Button themes - Dark Pill
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primaryMain,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        shape: const StadiumBorder(),
+        minimumSize: const Size(double.infinity, 48),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.primaryMain,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        shape: const StadiumBorder(),
+        side: const BorderSide(color: AppColors.primaryMain, width: 2),
+         minimumSize: const Size(double.infinity, 48),
       ),
     ),
   );

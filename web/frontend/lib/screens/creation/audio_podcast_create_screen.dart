@@ -125,73 +125,64 @@ class AudioPodcastCreateScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
       body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/christimage.png'),
-            fit: BoxFit.cover,
-            opacity: 0.15,
-          ),
-        ),
-        child: Container(
-          padding: ResponsiveGridDelegate.getResponsivePadding(context),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with back button
-              Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                    onPressed: () => Navigator.pop(context),
+        padding: ResponsiveGridDelegate.getResponsivePadding(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with back button
+            Row(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                Expanded(
+                  child: StyledPageHeader(
+                    title: 'Create Audio Podcast',
+                    size: StyledPageHeaderSize.h2,
                   ),
-                  Expanded(
-                    child: StyledPageHeader(
-                      title: 'Create Audio Podcast',
-                      size: StyledPageHeaderSize.h2,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.extraLarge),
+            
+            // Options Grid
+            Expanded(
+              child: SectionContainer(
+                showShadow: true,
+                child: Padding(
+                  padding: EdgeInsets.all(AppSpacing.large),
+                  child: GridView.builder(
+                    gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+                      context,
+                      desktop: 2,
+                      tablet: 2,
+                      mobile: 1,
+                      childAspectRatio: 1.5,
+                      crossAxisSpacing: AppSpacing.large,
+                      mainAxisSpacing: AppSpacing.large,
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.extraLarge),
-              
-              // Options Grid
-              Expanded(
-                child: SectionContainer(
-                  showShadow: true,
-                  child: Padding(
-                    padding: EdgeInsets.all(AppSpacing.large),
-                    child: GridView.builder(
-                      gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+                    itemCount: options.length,
+                    itemBuilder: (context, index) {
+                      final option = options[index];
+                      // Alternate hover colors: orange for odd (1), brown for even (2)
+                      final hoverColors = index % 2 == 0
+                          ? [AppColors.accentMain, AppColors.accentDark] // Orange
+                          : [AppColors.warmBrown, AppColors.primaryMain]; // Brown
+                      return _buildOptionCard(
                         context,
-                        desktop: 2,
-                        tablet: 2,
-                        mobile: 1,
-                        childAspectRatio: 1.5,
-                        crossAxisSpacing: AppSpacing.large,
-                        mainAxisSpacing: AppSpacing.large,
-                      ),
-                      itemCount: options.length,
-                      itemBuilder: (context, index) {
-                        final option = options[index];
-                        // Alternate hover colors: orange for odd (1), brown for even (2)
-                        final hoverColors = index % 2 == 0
-                            ? [AppColors.accentMain, AppColors.accentDark] // Orange
-                            : [AppColors.warmBrown, AppColors.primaryMain]; // Brown
-                        return _buildOptionCard(
-                          context,
-                          icon: option['icon'] as IconData,
-                          title: option['title'] as String,
-                          description: option['description'] as String,
-                          hoverColors: hoverColors,
-                          onTap: option['onTap'] as VoidCallback,
-                        );
-                      },
-                    ),
+                        icon: option['icon'] as IconData,
+                        title: option['title'] as String,
+                        description: option['description'] as String,
+                        hoverColors: hoverColors,
+                        onTap: option['onTap'] as VoidCallback,
+                      );
+                    },
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
