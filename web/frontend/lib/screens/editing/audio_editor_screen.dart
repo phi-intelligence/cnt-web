@@ -765,17 +765,64 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.audio,
         allowMultiple: true,
+        withData: true, // Required on web to get bytes
       );
 
       if (result != null && result.files.isNotEmpty) {
         setState(() {
-          _filesToMerge = result.files.map((file) => file.path!).whereType<String>().toList();
+          _isEditing = true;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${_filesToMerge.length} file(s) selected for merge')),
-        );
+        
+        final List<String> uploadedPaths = [];
+        
+        for (final file in result.files) {
+          if (kIsWeb) {
+            // On web, upload bytes to get URL
+            if (file.bytes != null) {
+              try {
+                // Create blob URL from bytes for upload
+                final blob = html.Blob([file.bytes!], 'audio/${file.extension ?? 'webm'}');
+                final blobUrl = html.Url.createObjectUrlFromBlob(blob);
+                
+                // Upload to get backend URL
+                final uploadResult = await _apiService.uploadTemporaryMedia(blobUrl, 'audio');
+                if (uploadResult != null && uploadResult['url'] != null) {
+                  uploadedPaths.add(uploadResult['url'] as String);
+                }
+                
+                // Revoke blob URL to free memory
+                html.Url.revokeObjectUrl(blobUrl);
+              } catch (e) {
+                print('Error uploading audio file: $e');
+              }
+            }
+          } else {
+            // On mobile/desktop, use file path
+            if (file.path != null) {
+              uploadedPaths.add(file.path!);
+            }
+          }
+        }
+        
+        setState(() {
+          _filesToMerge = uploadedPaths;
+          _isEditing = false;
+        });
+        
+        if (uploadedPaths.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${uploadedPaths.length} file(s) selected for merge')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No files could be processed')),
+          );
+        }
       }
     } catch (e) {
+      setState(() {
+        _isEditing = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error selecting files: $e')),
       );

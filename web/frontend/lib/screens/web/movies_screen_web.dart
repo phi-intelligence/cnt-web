@@ -6,7 +6,6 @@ import '../../widgets/shared/loading_shimmer.dart';
 import '../../widgets/shared/empty_state.dart';
 import '../../widgets/web/content_card_web.dart';
 import '../../widgets/web/styled_search_field.dart';
-import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_filter_chip.dart';
 import '../../services/api_service.dart';
@@ -148,13 +147,6 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            StyledPageHeader(
-              title: 'Movies',
-              size: StyledPageHeaderSize.h1,
-            ),
-            const SizedBox(height: AppSpacing.extraLarge),
-            
             // Search and Filter Section
             SectionContainer(
               child: Column(

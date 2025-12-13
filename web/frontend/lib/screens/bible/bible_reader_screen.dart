@@ -21,6 +21,10 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
   int _currentPage = 1;
   int _totalPages = 0;
   bool _showSidebar = true;
+  double _currentZoom = 1.0;
+  static const double _minZoom = 0.5;
+  static const double _maxZoom = 3.0;
+  static const double _zoomStep = 0.25;
   
   // Bible PDF URL from S3
   static const String _biblePdfUrl = 'https://cnt-web-media.s3.eu-west-2.amazonaws.com/documents/doc_c4f436f7-9df5-449f-92cc-2aeb7a048180.pdf';
@@ -463,6 +467,73 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Zoom Out Button
+          Container(
+            decoration: BoxDecoration(
+              color: _currentZoom > _minZoom
+                  ? AppColors.warmBrown.withOpacity(0.1)
+                  : AppColors.backgroundSecondary,
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.zoom_out,
+                color: _currentZoom > _minZoom ? AppColors.warmBrown : AppColors.textTertiary,
+                size: 22,
+              ),
+              tooltip: 'Zoom Out',
+              onPressed: _currentZoom > _minZoom ? _zoomOut : null,
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Zoom Level Display
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundSecondary,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '${(_currentZoom * 100).toInt()}%',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Zoom In Button
+          Container(
+            decoration: BoxDecoration(
+              color: _currentZoom < _maxZoom
+                  ? AppColors.warmBrown.withOpacity(0.1)
+                  : AppColors.backgroundSecondary,
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.zoom_in,
+                color: _currentZoom < _maxZoom ? AppColors.warmBrown : AppColors.textTertiary,
+                size: 22,
+              ),
+              tooltip: 'Zoom In',
+              onPressed: _currentZoom < _maxZoom ? _zoomIn : null,
+            ),
+          ),
+          
+          const SizedBox(width: 20),
+          
+          // Divider
+          Container(
+            width: 1,
+            height: 30,
+            color: AppColors.borderPrimary,
+          ),
+          
+          const SizedBox(width: 20),
+          
           // Previous Page
           Container(
             decoration: BoxDecoration(
@@ -476,6 +547,7 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
                 Icons.chevron_left,
                 color: _currentPage > 1 ? AppColors.warmBrown : AppColors.textTertiary,
               ),
+              tooltip: 'Previous Page',
               onPressed: _currentPage > 1 
                   ? () => _pdfController?.previousPage(
                       duration: const Duration(milliseconds: 300),
@@ -484,7 +556,7 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
                   : null,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           
           // Page Info
           Container(
@@ -503,7 +575,7 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           
           // Next Page
           Container(
@@ -518,6 +590,7 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
                 Icons.chevron_right,
                 color: _currentPage < _totalPages ? AppColors.warmBrown : AppColors.textTertiary,
               ),
+              tooltip: 'Next Page',
               onPressed: _currentPage < _totalPages 
                   ? () => _pdfController?.nextPage(
                       duration: const Duration(milliseconds: 300),
@@ -529,6 +602,24 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
         ],
       ),
     );
+  }
+
+  void _zoomIn() {
+    if (_currentZoom < _maxZoom) {
+      setState(() {
+        _currentZoom = (_currentZoom + _zoomStep).clamp(_minZoom, _maxZoom);
+      });
+      // Note: PdfViewPinch handles zoom via gestures; this is for UI feedback
+      // For programmatic zoom, you'd need to use the controller if supported
+    }
+  }
+
+  void _zoomOut() {
+    if (_currentZoom > _minZoom) {
+      setState(() {
+        _currentZoom = (_currentZoom - _zoomStep).clamp(_minZoom, _maxZoom);
+      });
+    }
   }
 
   void _showPageJumpDialog() {

@@ -6,7 +6,6 @@ import '../../theme/app_typography.dart';
 import '../../providers/search_provider.dart';
 import '../../widgets/web/content_card_web.dart';
 import '../../widgets/web/styled_search_field.dart';
-import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/styled_filter_chip.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/shared/loading_shimmer.dart';
@@ -173,13 +172,6 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
-                  StyledPageHeader(
-                    title: 'Search',
-                    size: StyledPageHeaderSize.h1,
-                  ),
-                  const SizedBox(height: AppSpacing.extraLarge),
-
                   // Search and Filter Section
                   SectionContainer(
                     child: Column(

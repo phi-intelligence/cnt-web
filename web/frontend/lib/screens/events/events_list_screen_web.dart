@@ -233,23 +233,222 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
       return _buildEmptyState(emptyTitle, emptySubtitle);
     }
 
-    final crossAxisCount = isLargeScreen ? 3 : (isMediumScreen ? 2 : 1);
-
+    // Use list layout for compact horizontal cards
     return RefreshIndicator(
       color: AppColors.warmBrown,
       onRefresh: _loadData,
-      child: GridView.builder(
+      child: ListView.builder(
         padding: EdgeInsets.all(isLargeScreen ? 32 : 16),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          childAspectRatio: 1.1,
-          crossAxisSpacing: 20,
-          mainAxisSpacing: 20,
-        ),
         itemCount: events.length,
         itemBuilder: (context, index) {
-          return _buildEventCard(events[index]);
+          return Padding(
+            padding: EdgeInsets.only(bottom: 12),
+            child: _buildCompactEventCard(events[index], isLargeScreen),
+          );
         },
+      ),
+    );
+  }
+
+  Widget _buildCompactEventCard(EventModel event, bool isLargeScreen) {
+    final dateFormat = DateFormat('EEE, MMM d');
+    final timeFormat = DateFormat('h:mm a');
+    
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => EventDetailScreenWeb(eventId: event.id),
+            ),
+          );
+        },
+        child: Container(
+          height: isLargeScreen ? 100 : 90,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(50), // Pill shape
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Date pill on the left
+              Container(
+                width: isLargeScreen ? 80 : 70,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: event.isPast 
+                        ? [Colors.grey.shade400, Colors.grey.shade500]
+                        : [AppColors.warmBrown, AppColors.warmBrown.withOpacity(0.8)],
+                  ),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(50),
+                    bottomLeft: Radius.circular(50),
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      DateFormat('MMM').format(event.eventDate).toUpperCase(),
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    Text(
+                      event.eventDate.day.toString(),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Content
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Title
+                      Text(
+                        event.title,
+                        style: AppTypography.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 4),
+                      // Time and location
+                      Row(
+                        children: [
+                          Icon(Icons.access_time, size: 12, color: AppColors.textSecondary),
+                          SizedBox(width: 4),
+                          Text(
+                            timeFormat.format(event.eventDate),
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                          if (event.location != null) ...[
+                            SizedBox(width: 12),
+                            Icon(Icons.location_on, size: 12, color: AppColors.textSecondary),
+                            SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                event.location!,
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              // Status and attendees on the right
+              Padding(
+                padding: EdgeInsets.only(right: 16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Status badge
+                    if (event.isPast)
+                      _buildStatusPill('Past', Colors.grey)
+                    else if (event.isAttending)
+                      _buildStatusPill(
+                        event.myAttendanceStatus == 'approved' ? 'Going' : 'Pending',
+                        event.myAttendanceStatus == 'approved' ? Colors.green : Colors.orange,
+                      ),
+                    SizedBox(height: 6),
+                    // Attendees
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.people_outline, size: 14, color: AppColors.warmBrown),
+                        SizedBox(width: 4),
+                        Text(
+                          '${event.attendeesCount}',
+                          style: TextStyle(
+                            color: AppColors.warmBrown,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Arrow indicator
+              Container(
+                width: 50,
+                decoration: BoxDecoration(
+                  color: AppColors.warmBrown.withOpacity(0.08),
+                  borderRadius: BorderRadius.only(
+                    topRight: Radius.circular(50),
+                    bottomRight: Radius.circular(50),
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.chevron_right,
+                    color: AppColors.warmBrown,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusPill(String text, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -366,313 +565,5 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
     );
   }
 
-  Widget _buildEventCard(EventModel event) {
-    final dateFormat = DateFormat('EEE, MMM d');
-    final timeFormat = DateFormat('h:mm a');
-    
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => EventDetailScreenWeb(eventId: event.id),
-            ),
-          );
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Cover Image or Date Header
-              Expanded(
-                flex: 2,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.warmBrown,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  ),
-                  child: Stack(
-                    children: [
-                      // Cover image if available
-                      if (event.coverImage != null && event.coverImage!.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                          child: Image.network(
-                            _apiService.getMediaUrl(event.coverImage!),
-                            width: double.infinity,
-                            height: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: AppColors.warmBrown,
-                              child: Center(
-                                child: Icon(Icons.event, color: Colors.white38, size: 40),
-                              ),
-                            ),
-                          ),
-                        )
-                      else
-                        Container(
-                          width: double.infinity,
-                          height: double.infinity,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                AppColors.warmBrown,
-                                AppColors.warmBrown.withOpacity(0.7),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                          ),
-                          child: Center(
-                            child: Icon(Icons.event, color: Colors.white38, size: 40),
-                          ),
-                        ),
-                      
-                      // Date badge
-                      Positioned(
-                        top: 12,
-                        left: 12,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(30),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 4,
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              Text(
-                                DateFormat('MMM').format(event.eventDate).toUpperCase(),
-                                style: TextStyle(
-                                  color: AppColors.warmBrown,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                event.eventDate.day.toString(),
-                                style: TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      
-                      // Status badge
-                      if (event.isPast)
-                        Positioned(
-                          top: 12,
-                          right: 12,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Text(
-                              'Past',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        )
-                      else if (event.isAttending)
-                        Positioned(
-                          top: 12,
-                          right: 12,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: event.myAttendanceStatus == 'approved'
-                                  ? Colors.green.withOpacity(0.9)
-                                  : Colors.orange.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Text(
-                              event.myAttendanceStatus == 'approved' ? 'Attending' : 'Pending',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              
-              // Content
-              Expanded(
-                flex: 3,
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Title
-                      Text(
-                        event.title,
-                        style: AppTypography.heading4.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      
-                      SizedBox(height: 8),
-                      
-                      // Time
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 14,
-                            color: AppColors.textSecondary,
-                          ),
-                          SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              '${dateFormat.format(event.eventDate)} at ${timeFormat.format(event.eventDate)}',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                      if (event.location != null) ...[
-                        SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on,
-                              size: 14,
-                              color: AppColors.textSecondary,
-                            ),
-                            SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                event.location!,
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                      
-                      Spacer(),
-                      
-                      // Host and Attendees
-                      Row(
-                        children: [
-                          // Host avatar
-                          CircleAvatar(
-                            radius: 14,
-                            backgroundColor: AppColors.warmBrown.withOpacity(0.2),
-                            backgroundImage: event.host?.avatar != null && event.host!.avatar!.isNotEmpty
-                                ? NetworkImage(_apiService.getMediaUrl(event.host!.avatar!))
-                                : null,
-                            child: event.host?.avatar == null || event.host!.avatar!.isEmpty
-                                ? Icon(
-                                    Icons.person,
-                                    size: 14,
-                                    color: AppColors.warmBrown,
-                                  )
-                                : null,
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              event.host?.name ?? 'Unknown Host',
-                              style: TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          
-                          // Attendees count
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.warmBrown.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.people,
-                                  size: 14,
-                                  color: AppColors.warmBrown,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  event.maxAttendees > 0
-                                      ? '${event.attendeesCount}/${event.maxAttendees}'
-                                      : '${event.attendeesCount}',
-                                  style: TextStyle(
-                                    color: AppColors.warmBrown,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 

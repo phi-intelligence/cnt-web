@@ -151,9 +151,11 @@ class _InstagramPostCardState extends State<InstagramPostCard>
             : DateTime.tryParse(createdAt.toString()))
         : null;
     
-    // For text posts, don't show image even if image_url exists (image is for carousel only)
+    // Show generated quote images for text posts as well
     final isTextPost = postType == 'text';
-    final shouldShowImage = !isTextPost && imageUrl != null && imageUrl.toString().isNotEmpty;
+    final hasImage = imageUrl != null && imageUrl.toString().isNotEmpty;
+    // Show image for all posts that have image_url (including text posts with generated quote images)
+    final shouldShowImage = hasImage;
 
     return Container(
       margin: EdgeInsets.only(bottom: AppSpacing.small),
@@ -293,8 +295,8 @@ class _InstagramPostCardState extends State<InstagramPostCard>
                 ),
               ),
             )
-          else if (isTextPost)
-            // Text post content (Facebook-style) - show text prominently
+          else if (isTextPost && !hasImage)
+            // Text post content without image (Facebook-style) - show text prominently
             Container(
               padding: EdgeInsets.all(AppSpacing.large),
               child: Column(
