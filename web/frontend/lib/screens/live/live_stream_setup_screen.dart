@@ -98,6 +98,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 768;
+    final isDesktop = screenWidth >= 1024;
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
@@ -115,269 +116,88 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
         child: SafeArea(
           child: SingleChildScrollView(
             padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 16 : 32,
+              horizontal: isMobile ? 16 : (isDesktop ? 64 : 32),
               vertical: 24,
             ),
             child: Center(
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: 500),
+                constraints: BoxConstraints(maxWidth: isDesktop ? 1200 : 800),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Header with back button
-                    Row(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.warmBrown.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: IconButton(
-                            icon: Icon(Icons.arrow_back, color: AppColors.warmBrown),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            'Go Live',
-                            style: AppTypography.heading3.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Stream Setup Card
+                    // Header with gradient background
                     Container(
-                      padding: EdgeInsets.all(24),
+                      padding: EdgeInsets.all(isDesktop ? 32 : 24),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            AppColors.warmBrown,
+                            AppColors.warmBrown.withOpacity(0.85),
+                            AppColors.primaryMain.withOpacity(0.9),
+                          ],
+                        ),
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.warmBrown.withOpacity(0.1),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Header Icon
-                            Center(
-                              child: Container(
-                                width: 80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [AppColors.warmBrown, AppColors.accentMain],
-                                  ),
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.warmBrown.withOpacity(0.3),
-                                      blurRadius: 15,
-                                      offset: const Offset(0, 6),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(Icons.live_tv, size: 40, color: Colors.white),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            
-                            Center(
-                              child: Text(
-                                'Stream Details',
-                                style: AppTypography.heading4.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Stream Title Label
-                            Text(
-                              'Stream Title *',
-                              style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextFormField(
-                              controller: _titleController,
-                              style: AppTypography.body.copyWith(color: AppColors.textPrimary),
-                              decoration: InputDecoration(
-                                hintText: 'Enter a title for your live stream',
-                                hintStyle: TextStyle(color: AppColors.textTertiary),
-                                filled: true,
-                                fillColor: AppColors.backgroundSecondary,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide: BorderSide(color: AppColors.borderPrimary),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide: BorderSide(color: AppColors.borderPrimary),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
-                                ),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter a stream title';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Description Label
-                            Text(
-                              'Description (Optional)',
-                              style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextFormField(
-                              controller: _descriptionController,
-                              maxLines: 3,
-                              style: AppTypography.body.copyWith(color: AppColors.textPrimary),
-                              decoration: InputDecoration(
-                                hintText: 'Add a description for your stream',
-                                hintStyle: TextStyle(color: AppColors.textTertiary),
-                                filled: true,
-                                fillColor: AppColors.backgroundSecondary,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide: BorderSide(color: AppColors.borderPrimary),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide: BorderSide(color: AppColors.borderPrimary),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
-                                ),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Start Stream Button - Pill shaped with gradient
-                    Container(
-                      height: 56,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [AppColors.warmBrown, AppColors.accentMain],
-                        ),
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.warmBrown.withOpacity(0.4),
+                            color: AppColors.warmBrown.withOpacity(0.3),
                             blurRadius: 15,
                             offset: const Offset(0, 6),
                           ),
                         ],
                       ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _isCreating ? null : _startStreamNow,
-                          borderRadius: BorderRadius.circular(30),
-                          child: Center(
-                            child: _isCreating
-                                ? SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                    ),
-                                  )
-                                : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.videocam, color: Colors.white, size: 24),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        'Start Live Stream',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                      child: Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: IconButton(
+                              icon: Icon(Icons.arrow_back, color: Colors.white),
+                              onPressed: () => Navigator.pop(context),
+                            ),
                           ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Instant Start Button - Outlined pill
-                    Container(
-                      height: 56,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(color: AppColors.warmBrown, width: 2),
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _isCreating ? null : _startInstant,
-                          borderRadius: BorderRadius.circular(30),
-                          child: Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.flash_on, color: AppColors.warmBrown, size: 24),
-                                const SizedBox(width: 12),
                                 Text(
-                                  'Quick Start',
-                                  style: TextStyle(
-                                    color: AppColors.warmBrown,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
+                                  'Go Live',
+                                  style: AppTypography.heading2.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  'Share your message with the community',
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: Colors.white.withOpacity(0.8),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ),
+                          Container(
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.live_tv, color: Colors.white, size: 28),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 12),
-
-                    // Help text
-                    Text(
-                      'Quick Start generates a default title automatically',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
+                    
+                    // Main content - responsive layout
+                    if (isDesktop)
+                      _buildDesktopLayout()
+                    else
+                      _buildMobileLayout(),
                   ],
                 ),
               ),
@@ -387,5 +207,333 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
       ),
     );
   }
-}
 
+  Widget _buildDesktopLayout() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Left side - Stream form
+        Expanded(
+          flex: 3,
+          child: _buildStreamFormCard(),
+        ),
+        const SizedBox(width: 32),
+        // Right side - Tips and info
+        Expanded(
+          flex: 2,
+          child: _buildStreamTipsCard(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return Column(
+      children: [
+        _buildStreamFormCard(),
+        const SizedBox(height: 24),
+        _buildStreamTipsCard(),
+      ],
+    );
+  }
+
+  Widget _buildStreamTipsCard() {
+    return Container(
+      padding: EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.warmBrown.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.warmBrown.withOpacity(0.15), AppColors.accentMain.withOpacity(0.1)],
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.tips_and_updates, color: AppColors.warmBrown),
+              ),
+              const SizedBox(width: 12),
+              Text('Tips for a Great Stream', style: AppTypography.heading4.copyWith(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildTipItem(Icons.lightbulb_outline, 'Good Lighting', 'Position yourself facing a light source for clear visibility.'),
+          _buildTipItem(Icons.mic_outlined, 'Clear Audio', 'Use a quiet environment and speak clearly.'),
+          _buildTipItem(Icons.wifi, 'Stable Internet', 'A strong connection ensures smooth streaming.'),
+          _buildTipItem(Icons.camera_alt_outlined, 'Frame Yourself', 'Keep your face centered and well-framed.'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTipItem(IconData icon, String title, String description) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.warmBrown.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: AppColors.warmBrown, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.bold)),
+                Text(description, style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStreamFormCard() {
+    return Container(
+      padding: EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.warmBrown.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header Icon
+            Center(
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.warmBrown, AppColors.accentMain],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.warmBrown.withOpacity(0.3),
+                      blurRadius: 15,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.live_tv, size: 40, color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            Center(
+              child: Text(
+                'Stream Details',
+                style: AppTypography.heading4.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Stream Title Label
+            Text(
+              'Stream Title *',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _titleController,
+              style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Enter a title for your live stream',
+                hintStyle: TextStyle(color: AppColors.textTertiary),
+                filled: true,
+                fillColor: AppColors.backgroundSecondary,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
+                ),
+                contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter a stream title';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 20),
+
+            // Description Label
+            Text(
+              'Description (Optional)',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _descriptionController,
+              maxLines: 3,
+              style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Add a description for your stream',
+                hintStyle: TextStyle(color: AppColors.textTertiary),
+                filled: true,
+                fillColor: AppColors.backgroundSecondary,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
+                ),
+                contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Start Stream Button - Pill shaped with gradient
+            Container(
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.warmBrown, AppColors.accentMain],
+                ),
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.warmBrown.withOpacity(0.4),
+                    blurRadius: 15,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _isCreating ? null : _startStreamNow,
+                  borderRadius: BorderRadius.circular(30),
+                  child: Center(
+                    child: _isCreating
+                        ? SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.videocam, color: Colors.white, size: 24),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Start Live Stream',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Instant Start Button - Outlined pill
+            Container(
+              height: 56,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: AppColors.warmBrown, width: 2),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _isCreating ? null : _startInstant,
+                  borderRadius: BorderRadius.circular(30),
+                  child: Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.flash_on, color: AppColors.warmBrown, size: 24),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Quick Start',
+                          style: TextStyle(
+                            color: AppColors.warmBrown,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Help text
+            Text(
+              'Quick Start generates a default title automatically',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

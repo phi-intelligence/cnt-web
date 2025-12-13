@@ -261,17 +261,50 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.warmBrown.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.event_busy,
-                size: 56,
-                color: AppColors.warmBrown,
-              ),
+            // Decorative circles background
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.warmBrown.withOpacity(0.05),
+                        AppColors.accentMain.withOpacity(0.05),
+                      ],
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 110,
+                  height: 110,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.warmBrown.withOpacity(0.08),
+                  ),
+                ),
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.warmBrown.withOpacity(0.15),
+                        AppColors.accentMain.withOpacity(0.1),
+                      ],
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.event_busy,
+                    size: 36,
+                    color: AppColors.warmBrown.withOpacity(0.7),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             Text(
@@ -289,24 +322,41 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const EventCreateScreenWeb()),
-                );
-                if (result != null) {
-                  _loadData();
-                }
-              },
-              icon: Icon(Icons.add),
-              label: Text('Host an Event'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.warmBrown,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
+            // Gradient pill button
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.warmBrown, AppColors.accentMain],
+                ),
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.warmBrown.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const EventCreateScreenWeb()),
+                  );
+                  if (result != null) {
+                    _loadData();
+                  }
+                },
+                icon: Icon(Icons.add),
+                label: Text('Host an Event'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
                 ),
               ),
             ),

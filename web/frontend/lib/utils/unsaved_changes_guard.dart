@@ -19,21 +19,28 @@ class UnsavedChangesGuard {
     return showDialog<bool>(
       context: context,
       barrierDismissible: false,
+      barrierColor: AppColors.warmBrown.withOpacity(0.3), // Theme-colored overlay
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(30), // Pill-shaped dialog
         ),
+        backgroundColor: Colors.white,
         title: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(8),
+              padding: EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.warmBrown.withOpacity(0.15),
+                    AppColors.accentMain.withOpacity(0.1),
+                  ],
+                ),
+                shape: BoxShape.circle,
               ),
               child: Icon(
-                Icons.warning_amber_rounded,
-                color: Colors.orange,
+                Icons.save_outlined,
+                color: AppColors.warmBrown,
                 size: 24,
               ),
             ),
@@ -44,49 +51,88 @@ class UnsavedChangesGuard {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
           ],
         ),
-        content: Text(
-          message,
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 14,
+        content: Container(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            message,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+              height: 1.5,
+            ),
           ),
         ),
+        actionsPadding: EdgeInsets.fromLTRB(20, 0, 20, 20),
         actions: [
-          TextButton(
+          // Discard button - pill shaped outline
+          OutlinedButton(
             onPressed: () => Navigator.pop(context, false), // Discard
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.errorMain,
+              side: BorderSide(color: AppColors.errorMain.withOpacity(0.5)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
             child: Text(
               discardLabel,
-              style: TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontWeight: FontWeight.w500),
             ),
           ),
+          // Cancel button - text only
           TextButton(
             onPressed: () => Navigator.pop(context, null), // Cancel
-            child: Text(
-              cancelLabel,
-              style: TextStyle(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true), // Save Draft
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warmBrown,
-              foregroundColor: Colors.white,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(30),
               ),
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
-            child: Text(saveLabel),
+            child: Text(cancelLabel),
+          ),
+          // Save Draft button - gradient pill
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.warmBrown, AppColors.accentMain],
+              ),
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.warmBrown.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context, true), // Save Draft
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.save_outlined, size: 18),
+                  SizedBox(width: 8),
+                  Text(saveLabel, style: TextStyle(fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -102,25 +148,33 @@ class UnsavedChangesGuard {
   }) async {
     final result = await showDialog<bool>(
       context: context,
+      barrierColor: AppColors.warmBrown.withOpacity(0.3),
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(30),
         ),
-        title: Text(title),
+        backgroundColor: Colors.white,
+        title: Text(title, style: TextStyle(color: AppColors.textPrimary)),
         content: Text(
           message,
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: AppColors.textSecondary, height: 1.5),
         ),
+        actionsPadding: EdgeInsets.fromLTRB(20, 0, 20, 20),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel'),
+            style: TextButton.styleFrom(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            ),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.errorMain,
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             ),
             child: Text('Discard'),
           ),
@@ -138,17 +192,24 @@ class UnsavedChangesGuard {
   }) async {
     final result = await showDialog<bool>(
       context: context,
+      barrierColor: AppColors.warmBrown.withOpacity(0.3),
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(30),
         ),
+        backgroundColor: Colors.white,
         title: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(8),
+              padding: EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.warmBrown.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.warmBrown.withOpacity(0.15),
+                    AppColors.accentMain.withOpacity(0.1),
+                  ],
+                ),
+                shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.restore,
@@ -163,6 +224,7 @@ class UnsavedChangesGuard {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
@@ -177,15 +239,24 @@ class UnsavedChangesGuard {
               style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 14,
+                height: 1.5,
               ),
             ),
             if (lastSavedTime != null) ...[
               SizedBox(height: 8),
-              Text(
-                'Last saved: $lastSavedTime',
-                style: TextStyle(
-                  color: AppColors.textTertiary,
-                  fontSize: 12,
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.warmBrown.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Text(
+                  'Last saved: $lastSavedTime',
+                  style: TextStyle(
+                    color: AppColors.warmBrown,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
@@ -195,29 +266,50 @@ class UnsavedChangesGuard {
               style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 14,
+                height: 1.5,
               ),
             ),
           ],
         ),
+        actionsPadding: EdgeInsets.fromLTRB(20, 0, 20, 20),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            ),
             child: Text(
               'Start Fresh',
               style: TextStyle(color: AppColors.textSecondary),
             ),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warmBrown,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.warmBrown, AppColors.accentMain],
               ),
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.warmBrown.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
-            child: Text('Resume Draft'),
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              ),
+              child: Text('Resume Draft', style: TextStyle(fontWeight: FontWeight.w600)),
+            ),
           ),
         ],
       ),
@@ -230,15 +322,24 @@ class UnsavedChangesGuard {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle, color: Colors.white, size: 20),
+            Container(
+              padding: EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.check, color: Colors.white, size: 16),
+            ),
             SizedBox(width: 12),
-            Text('Draft saved successfully!'),
+            Text('Draft saved successfully!', style: TextStyle(fontWeight: FontWeight.w500)),
           ],
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: AppColors.successMain,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        margin: EdgeInsets.all(16),
         duration: Duration(seconds: 2),
       ),
     );
@@ -250,16 +351,27 @@ class UnsavedChangesGuard {
       SnackBar(
         content: Row(
           children: [
-            Icon(Icons.error_outline, color: Colors.white, size: 20),
+            Container(
+              padding: EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.close, color: Colors.white, size: 16),
+            ),
             SizedBox(width: 12),
             Expanded(
-              child: Text(message ?? 'Failed to save draft. Please try again.'),
+              child: Text(
+                message ?? 'Failed to save draft. Please try again.',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
             ),
           ],
         ),
-        backgroundColor: Colors.red,
+        backgroundColor: AppColors.errorMain,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        margin: EdgeInsets.all(16),
         duration: Duration(seconds: 3),
       ),
     );

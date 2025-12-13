@@ -346,18 +346,50 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: AppColors.warmBrown.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                type == 'all' ? Icons.folder_open_outlined : typeInfo['icon'],
-                size: 50,
-                color: AppColors.warmBrown.withOpacity(0.5),
-              ),
+            // Decorative circles background
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.warmBrown.withOpacity(0.05),
+                        AppColors.accentMain.withOpacity(0.05),
+                      ],
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 110,
+                  height: 110,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.warmBrown.withOpacity(0.08),
+                  ),
+                ),
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.warmBrown.withOpacity(0.15),
+                        AppColors.accentMain.withOpacity(0.1),
+                      ],
+                    ),
+                  ),
+                  child: Icon(
+                    type == 'all' ? Icons.folder_open_outlined : typeInfo['icon'],
+                    size: 36,
+                    color: AppColors.warmBrown.withOpacity(0.7),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppSpacing.large),
             Text(
@@ -373,6 +405,34 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
                 color: AppColors.textTertiary,
               ),
               textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.large),
+            // Create button
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.warmBrown, AppColors.accentMain],
+                ),
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.warmBrown.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                onPressed: () => context.push('/create'),
+                icon: Icon(Icons.add, color: Colors.white),
+                label: Text('Create Content', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.large, vertical: AppSpacing.medium),
+                ),
+              ),
             ),
           ],
         ),

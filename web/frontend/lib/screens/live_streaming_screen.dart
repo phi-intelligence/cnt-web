@@ -126,7 +126,6 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> with SingleTi
                 onPressed: () => _showCreateStreamDialog(context),
                 icon: Icons.videocam_rounded,
                 label: 'Go Live',
-                size: StyledPillButtonSize.small,
               ),
             ),
           ],

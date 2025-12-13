@@ -2766,9 +2766,10 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   }
 
   Widget _buildTimelineSection() {
+    // Simplified controls - replacing complex timeline with clean pill-shaped UI
     return Container(
       margin: const EdgeInsets.only(top: AppSpacing.medium),
-      height: 140, // Reduced height
+      padding: EdgeInsets.all(AppSpacing.medium),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
@@ -2781,20 +2782,396 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Timeline Header
-          _buildTimelineHeader(),
-          
-          // Timeline Tracks - Compact
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
+          // Playback Progress Bar
+          _buildSimplifiedProgressBar(),
+          const SizedBox(height: AppSpacing.medium),
+          // Editing Controls Row
+          _buildSimplifiedEditingControls(),
+        ],
+      ),
+    );
+  }
+
+  /// Simplified progress bar with current position
+  Widget _buildSimplifiedProgressBar() {
+    return Column(
+      children: [
+        // Time display
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium, vertical: AppSpacing.small),
+              decoration: BoxDecoration(
+                color: AppColors.warmBrown.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Text(
+                _formatTime(_currentPosition),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.warmBrown,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium, vertical: AppSpacing.small),
+              decoration: BoxDecoration(
+                color: AppColors.backgroundSecondary,
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Text(
+                _formatTime(_videoDuration),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.small),
+        // Progress slider
+        SliderTheme(
+          data: SliderThemeData(
+            activeTrackColor: AppColors.warmBrown,
+            inactiveTrackColor: AppColors.warmBrown.withOpacity(0.2),
+            thumbColor: AppColors.warmBrown,
+            overlayColor: AppColors.warmBrown.withOpacity(0.1),
+            trackHeight: 6,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+          ),
+          child: Slider(
+            value: _videoDuration.inMilliseconds > 0
+                ? (_currentPosition.inMilliseconds / _videoDuration.inMilliseconds).clamp(0.0, 1.0)
+                : 0.0,
+            onChanged: (value) {
+              final newPosition = Duration(milliseconds: (value * _videoDuration.inMilliseconds).round());
+              _controller?.seekTo(newPosition);
+              setState(() {
+                _currentPosition = newPosition;
+                _playheadPosition = value;
+              });
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Simplified editing controls
+  Widget _buildSimplifiedEditingControls() {
+    return Wrap(
+      spacing: AppSpacing.medium,
+      runSpacing: AppSpacing.medium,
+      alignment: WrapAlignment.center,
+      children: [
+        // Trim Start
+        _buildControlPill(
+          icon: Icons.content_cut,
+          label: 'Trim Start',
+          value: _formatTime(_trimStart),
+          onTap: () => _showTrimStartPicker(),
+        ),
+        // Trim End
+        _buildControlPill(
+          icon: Icons.content_cut,
+          label: 'Trim End',
+          value: _formatTime(_trimEnd != Duration.zero ? _trimEnd : _videoDuration),
+          onTap: () => _showTrimEndPicker(),
+        ),
+        // Audio Toggle
+        _buildTogglePill(
+          icon: _audioRemoved ? Icons.volume_off : Icons.volume_up,
+          label: _audioRemoved ? 'Audio Removed' : 'Audio On',
+          isActive: !_audioRemoved,
+          onTap: () {
+            setState(() {
+              _audioRemoved = !_audioRemoved;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(_audioRemoved ? 'Audio removed from video' : 'Audio restored'),
+                backgroundColor: AppColors.warmBrown,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              ),
+            );
+          },
+        ),
+        // Play/Pause
+        _buildActionPill(
+          icon: _isPlaying ? Icons.pause : Icons.play_arrow,
+          label: _isPlaying ? 'Pause' : 'Play',
+          isPrimary: true,
+          onTap: _togglePlayPause,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildControlPill({
+    required IconData icon,
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(30),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium, vertical: AppSpacing.small),
+        decoration: BoxDecoration(
+          color: AppColors.backgroundSecondary,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: AppColors.borderPrimary),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: AppColors.warmBrown, size: 18),
+            const SizedBox(width: AppSpacing.small),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // _buildTextTrack(), // Removed dummy section
-                _buildVideoTrack(),
-                _buildAudioTrack(),
+                Text(
+                  label,
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTogglePill({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(30),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium, vertical: AppSpacing.small),
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.warmBrown.withOpacity(0.1) : AppColors.errorMain.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: isActive ? AppColors.warmBrown : AppColors.errorMain,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isActive ? AppColors.warmBrown : AppColors.errorMain,
+              size: 18,
+            ),
+            const SizedBox(width: AppSpacing.small),
+            Text(
+              label,
+              style: AppTypography.bodySmall.copyWith(
+                color: isActive ? AppColors.warmBrown : AppColors.errorMain,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionPill({
+    required IconData icon,
+    required String label,
+    required bool isPrimary,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(30),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: AppSpacing.large, vertical: AppSpacing.small + 4),
+        decoration: BoxDecoration(
+          gradient: isPrimary
+              ? LinearGradient(
+                  colors: [AppColors.warmBrown, AppColors.accentMain],
+                )
+              : null,
+          color: isPrimary ? null : AppColors.backgroundSecondary,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: isPrimary
+              ? [
+                  BoxShadow(
+                    color: AppColors.warmBrown.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isPrimary ? Colors.white : AppColors.textSecondary,
+              size: 20,
+            ),
+            const SizedBox(width: AppSpacing.small),
+            Text(
+              label,
+              style: AppTypography.button.copyWith(
+                color: isPrimary ? Colors.white : AppColors.textSecondary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showTrimStartPicker() {
+    _showTimePicker(
+      title: 'Set Trim Start',
+      initialTime: _trimStart,
+      maxTime: _trimEnd != Duration.zero ? _trimEnd : _videoDuration,
+      onTimeSelected: (time) {
+        setState(() {
+          _trimStart = time;
+        });
+        _controller?.seekTo(time);
+      },
+    );
+  }
+
+  void _showTrimEndPicker() {
+    _showTimePicker(
+      title: 'Set Trim End',
+      initialTime: _trimEnd != Duration.zero ? _trimEnd : _videoDuration,
+      minTime: _trimStart,
+      maxTime: _videoDuration,
+      onTimeSelected: (time) {
+        setState(() {
+          _trimEnd = time;
+        });
+      },
+    );
+  }
+
+  void _showTimePicker({
+    required String title,
+    required Duration initialTime,
+    Duration? minTime,
+    Duration? maxTime,
+    required Function(Duration) onTimeSelected,
+  }) {
+    final minutes = initialTime.inMinutes;
+    final seconds = initialTime.inSeconds % 60;
+    int selectedMinutes = minutes;
+    int selectedSeconds = seconds;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        title: Text(title, style: AppTypography.heading3),
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Minutes
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Minutes', style: AppTypography.caption),
+                const SizedBox(height: 8),
+                Container(
+                  width: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundSecondary,
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: DropdownButton<int>(
+                    value: selectedMinutes,
+                    underline: const SizedBox(),
+                    isExpanded: true,
+                    items: List.generate(
+                      (maxTime?.inMinutes ?? 60) + 1,
+                      (i) => DropdownMenuItem(value: i, child: Center(child: Text('$i'))),
+                    ),
+                    onChanged: (v) {
+                      if (v != null) selectedMinutes = v;
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 16),
+            Text(':', style: AppTypography.heading2),
+            const SizedBox(width: 16),
+            // Seconds
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Seconds', style: AppTypography.caption),
+                const SizedBox(height: 8),
+                Container(
+                  width: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundSecondary,
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: DropdownButton<int>(
+                    value: selectedSeconds,
+                    underline: const SizedBox(),
+                    isExpanded: true,
+                    items: List.generate(
+                      60,
+                      (i) => DropdownMenuItem(value: i, child: Center(child: Text('${i.toString().padLeft(2, '0')}'))),
+                    ),
+                    onChanged: (v) {
+                      if (v != null) selectedSeconds = v;
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final time = Duration(minutes: selectedMinutes, seconds: selectedSeconds);
+              onTimeSelected(time);
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.warmBrown,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            ),
+            child: const Text('Apply', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

@@ -1212,7 +1212,7 @@ class ApiService {
     }
   }
 
-  /// Download file from URL
+  /// Download file from URL to path
   Future<String> downloadFile(
     String url,
     String savePath, {
@@ -1230,6 +1230,21 @@ class ApiService {
         return savePath;
       }
       throw Exception('Failed to download file: HTTP ${streamedResponse.statusCode}');
+    } catch (e) {
+      throw Exception('Error downloading file: $e');
+    }
+  }
+
+  /// Download file bytes from URL (for in-memory use like PDF viewing)
+  Future<List<int>> downloadFileBytes(String url) async {
+    try {
+      final uri = Uri.parse(url.startsWith('http') ? url : '$mediaBaseUrl$url');
+      final response = await http.get(uri).timeout(const Duration(minutes: 5));
+      
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
+      }
+      throw Exception('Failed to download file: HTTP ${response.statusCode}');
     } catch (e) {
       throw Exception('Error downloading file: $e');
     }
@@ -3189,8 +3204,10 @@ class ApiService {
       ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => ContentDraft.fromJson(json as Map<String, dynamic>)).toList();
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        // Backend returns {drafts: [...], total: ..., skip: ..., limit: ...}
+        final List<dynamic> draftsJson = responseData['drafts'] ?? [];
+        return draftsJson.map((json) => ContentDraft.fromJson(json as Map<String, dynamic>)).toList();
       }
       throw Exception('Failed to fetch drafts: HTTP ${response.statusCode}');
     } catch (e) {

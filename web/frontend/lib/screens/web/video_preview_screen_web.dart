@@ -887,26 +887,12 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Action Buttons
-          Row(
-            children: [
-              Expanded(
-                child: StyledPillButton(
-                  label: 'Edit',
-                  icon: Icons.edit,
-                  onPressed: _handleEdit,
-                  variant: StyledPillButtonVariant.outlined,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.small),
-              Expanded(
-                child: StyledPillButton(
-                  label: 'Captions',
-                  icon: Icons.closed_caption,
-                  onPressed: _handleAddCaptions,
-                  variant: StyledPillButtonVariant.outlined,
-                ),
-              ),
-            ],
+          // Edit Video button (Captions removed - description field serves same purpose)
+          StyledPillButton(
+            label: 'Edit Video',
+            icon: Icons.edit,
+            onPressed: _handleEdit,
+            variant: StyledPillButtonVariant.outlined,
           ),
           const SizedBox(height: AppSpacing.large),
           
@@ -931,15 +917,15 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
               hintText: 'Enter podcast title',
               hintStyle: TextStyle(color: AppColors.textPlaceholder),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderRadius: BorderRadius.circular(30),
                 borderSide: BorderSide(color: AppColors.borderPrimary),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderRadius: BorderRadius.circular(30),
                 borderSide: BorderSide(color: AppColors.borderPrimary),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderRadius: BorderRadius.circular(30),
                 borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
               ),
               filled: true,
@@ -962,15 +948,15 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
               hintText: 'Enter podcast description',
               hintStyle: TextStyle(color: AppColors.textPlaceholder),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderRadius: BorderRadius.circular(24),
                 borderSide: BorderSide(color: AppColors.borderPrimary),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderRadius: BorderRadius.circular(24),
                 borderSide: BorderSide(color: AppColors.borderPrimary),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderRadius: BorderRadius.circular(24),
                 borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
               ),
               filled: true,

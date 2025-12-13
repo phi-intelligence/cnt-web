@@ -458,34 +458,54 @@ class _FeatureCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.small),
       decoration: BoxDecoration(
-        color: AppColors.warmBrown,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: AppColors.warmBrown,
+          color: AppColors.warmBrown.withOpacity(0.2),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.warmBrown.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // Circle icon container
           Container(
-            padding: const EdgeInsets.all(AppSpacing.small),
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(30),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppColors.warmBrown, AppColors.accentMain],
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.warmBrown.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: Icon(
               icon,
               color: Colors.white,
-              size: 20,
+              size: 22,
             ),
           ),
-          const SizedBox(height: AppSpacing.tiny),
+          const SizedBox(height: AppSpacing.small),
           Text(
             title,
             style: AppTypography.bodySmall.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: AppColors.textPrimary,
               fontSize: 12,
             ),
             textAlign: TextAlign.center,
@@ -493,7 +513,7 @@ class _FeatureCard extends StatelessWidget {
           Text(
             description,
             style: AppTypography.caption.copyWith(
-              color: Colors.white.withOpacity(0.9),
+              color: AppColors.textSecondary,
               fontSize: 10,
             ),
             textAlign: TextAlign.center,

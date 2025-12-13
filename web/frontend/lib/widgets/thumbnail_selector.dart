@@ -105,8 +105,22 @@ class _ThumbnailSelectorState extends State<ThumbnailSelector> {
     }
   }
 
+  /// Check if URL is a blob URL (browser-only, can't be processed server-side)
+  bool _isBlobUrl(String? url) {
+    if (url == null) return false;
+    return url.startsWith('blob:');
+  }
+
   Future<void> _generateFromVideo() async {
     if (widget.videoUrl == null) return;
+
+    // Check if it's a blob URL - can't generate thumbnail from blob URLs
+    if (_isBlobUrl(widget.videoUrl)) {
+      setState(() {
+        _errorMessage = 'Thumbnail will be auto-generated when you publish. You can also upload a custom thumbnail.';
+      });
+      return;
+    }
 
     setState(() {
       _isGenerating = true;
@@ -162,38 +176,65 @@ class _ThumbnailSelectorState extends State<ThumbnailSelector> {
 
         // Video-specific options
         if (widget.isVideo) ...[
-          ElevatedButton.icon(
-            onPressed: _isGenerating ? null : _generateFromVideo,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warmBrown,
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.large,
-                vertical: AppSpacing.medium,
+          // Show info message for blob URLs
+          if (_isBlobUrl(widget.videoUrl)) ...[
+            Container(
+              padding: EdgeInsets.all(AppSpacing.medium),
+              decoration: BoxDecoration(
+                color: AppColors.warmBrown.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
               ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-              ),
-              elevation: 2,
-            ),
-            icon: _isGenerating
-                ? SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: AppColors.warmBrown, size: 20),
+                  const SizedBox(width: AppSpacing.small),
+                  Expanded(
+                    child: Text(
+                      'Thumbnail will be auto-generated when you publish',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.warmBrown,
+                      ),
                     ),
-                  )
-                : const Icon(Icons.image),
-            label: Text(
-              _isGenerating ? 'Generating...' : 'Generate from Video',
-              style: AppTypography.button.copyWith(
-                color: Colors.white,
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(height: 8),
+            const SizedBox(height: 12),
+          ] else ...[
+            ElevatedButton.icon(
+              onPressed: _isGenerating ? null : _generateFromVideo,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.warmBrown,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.large,
+                  vertical: AppSpacing.medium,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                elevation: 2,
+              ),
+              icon: _isGenerating
+                  ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(Icons.image),
+              label: Text(
+                _isGenerating ? 'Generating...' : 'Generate from Video',
+                style: AppTypography.button.copyWith(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
         ],
 
         // Audio-specific: Default thumbnails grid
@@ -253,7 +294,7 @@ class _ThumbnailSelectorState extends State<ThumbnailSelector> {
               vertical: AppSpacing.medium,
             ),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+              borderRadius: BorderRadius.circular(30),
             ),
             elevation: 2,
           ),
