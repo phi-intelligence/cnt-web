@@ -24,6 +24,10 @@ import '../screens/artist/artist_profile_screen.dart';
 import '../screens/artist/artist_profile_manage_screen.dart';
 import '../screens/creation/quote_create_screen_web.dart';
 import '../screens/admin/bulk_upload_screen.dart';
+import '../screens/events/events_list_screen_web.dart';
+import '../screens/events/event_create_screen_web.dart';
+import '../screens/events/event_detail_screen_web.dart';
+import '../screens/drafts/my_drafts_screen.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'web_navigation.dart';
@@ -371,6 +375,54 @@ GoRouter createAppRouter(AuthProvider authProvider) {
             isVideo: true,
           );
         },
+      ),
+      
+      // Events routes
+      GoRoute(
+        path: '/events',
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: EventsListScreenWeb()),
+        ),
+      ),
+      GoRoute(
+        path: '/events/create',
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: EventCreateScreenWeb()),
+        ),
+      ),
+      GoRoute(
+        path: '/events/:id',
+        pageBuilder: (context, state) {
+          final id = state.pathParameters['id'];
+          if (id == null) {
+            return _buildPageWithoutTransition(
+              context,
+              state,
+              const Scaffold(body: Center(child: Text('Event ID is required'))),
+            );
+          }
+          return _buildPageWithoutTransition(
+            context,
+            state,
+            WebNavigationLayout(
+              child: EventDetailScreenWeb(eventId: int.parse(id)),
+            ),
+          );
+        },
+      ),
+      
+      // My Drafts route
+      GoRoute(
+        path: '/my-drafts',
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: MyDraftsScreen()),
+        ),
       ),
     ],
   );

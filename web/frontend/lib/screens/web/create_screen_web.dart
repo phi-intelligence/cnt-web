@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -13,6 +14,7 @@ import '../../utils/responsive_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../admin/admin_documents_page.dart';
 import '../admin/bulk_upload_screen.dart';
+import '../events/events_list_screen_web.dart';
 
 /// Web Create Screen - Full implementation
 class CreateScreenWeb extends StatelessWidget {
@@ -123,42 +125,51 @@ class CreateScreenWeb extends StatelessWidget {
           const QuoteCreateScreenWeb(),
         ),
       ),
+      // Events card for all users
       _buildOptionCard(
         context,
-        title: 'Document',
-        description: 'Upload and manage documents',
-        icon: Icons.description,
+        title: 'Events',
+        description: 'Host or join community events',
+        icon: Icons.event,
         hoverColors: brownHover, // 6 - brown
-        onTap: () {
-          final authProvider = Provider.of<AuthProvider>(context, listen: false);
-          if (authProvider.isAdmin) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const AdminDocumentsPage(),
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Document upload is only available for administrators.'),
-                duration: Duration(seconds: 3),
-              ),
-            );
-          }
-        },
+        onTap: () => _navigateToScreen(
+          context,
+          const EventsListScreenWeb(),
+        ),
+      ),
+      // My Drafts card - access saved drafts
+      _buildOptionCard(
+        context,
+        title: 'My Drafts',
+        description: 'Continue editing saved work',
+        icon: Icons.drafts_outlined,
+        hoverColors: orangeHover, // 7 - orange
+        onTap: () => context.push('/my-drafts'),
       ),
     ];
     
-    // Add Bulk Upload card for admins only
+    // Add Document and Bulk Upload cards for admins only
     if (authProvider.isAdmin) {
+      cards.add(
+        _buildOptionCard(
+          context,
+          title: 'Document',
+          description: 'Upload and manage documents',
+          icon: Icons.description,
+          hoverColors: brownHover, // 8 - brown (admin only)
+          onTap: () => _navigateToScreen(
+            context,
+            const AdminDocumentsPage(),
+          ),
+        ),
+      );
       cards.add(
         _buildOptionCard(
           context,
           title: 'Bulk Upload',
           description: 'Upload multiple podcasts at once',
           icon: Icons.cloud_upload,
-          hoverColors: orangeHover, // 7 - orange (admin only)
+          hoverColors: orangeHover, // 9 - orange (admin only)
           onTap: () => _navigateToScreen(
             context,
             const BulkUploadScreen(),

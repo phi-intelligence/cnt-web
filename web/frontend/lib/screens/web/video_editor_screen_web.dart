@@ -8,7 +8,9 @@ import '../../theme/app_typography.dart';
 import '../../services/video_editing_service.dart';
 import '../../services/api_service.dart';
 import '../../models/text_overlay.dart';
+import '../../models/content_draft.dart';
 import '../../utils/state_persistence.dart';
+import '../../utils/unsaved_changes_guard.dart';
 import 'package:video_player/video_player.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -80,6 +82,10 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   String? _editedVideoPath;
   String? _persistedVideoPath; // Track the persisted path (backend URL if blob was uploaded)
   final _uuid = const Uuid();
+  
+  // Draft state
+  int? _draftId;
+  bool _isSavingDraft = false;
 
   @override
   void initState() {
@@ -107,6 +113,87 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
            _audioRemoved ||
            _audioFilePath != null ||
            _textOverlays.isNotEmpty;
+  }
+
+  /// Save current editing state as a draft
+  Future<bool> _saveDraft() async {
+    if (_isSavingDraft) return false;
+    
+    setState(() {
+      _isSavingDraft = true;
+    });
+    
+    try {
+      // Prepare editing state
+      final editingState = <String, dynamic>{
+        'trim_start': _trimStart.inMilliseconds,
+        'trim_end': _trimEnd.inMilliseconds,
+        'audio_removed': _audioRemoved,
+        'audio_file_path': _audioFilePath,
+        'text_overlays': _textOverlays.map((o) => o.toJson()).toList(),
+        'resolution': _resolution,
+        'fps': _fps,
+      };
+      
+      final draftData = {
+        'draft_type': DraftType.videoPodcast.value,
+        'title': _projectTitle ?? widget.title ?? 'Video Draft',
+        'original_media_url': _persistedVideoPath ?? widget.videoPath,
+        'edited_media_url': _editedVideoPath,
+        'editing_state': editingState,
+        'duration': _videoDuration.inSeconds,
+        'status': DraftStatus.editing.value,
+      };
+      
+      Map<String, dynamic> result;
+      
+      if (_draftId != null) {
+        // Update existing draft
+        result = await _apiService.updateDraft(_draftId!, draftData);
+      } else {
+        // Create new draft
+        result = await _apiService.createDraft(draftData);
+        _draftId = result['id'] as int?;
+      }
+      
+      if (!mounted) return false;
+      
+      UnsavedChangesGuard.showDraftSavedToast(context);
+      return true;
+    } catch (e) {
+      print('Error saving draft: $e');
+      if (mounted) {
+        UnsavedChangesGuard.showDraftErrorToast(context, message: 'Failed to save draft: $e');
+      }
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingDraft = false;
+        });
+      }
+    }
+  }
+
+  /// Handle back button with unsaved changes confirmation
+  Future<bool> _handleBackPressed() async {
+    if (!_hasUnsavedChanges() && _editedVideoPath == null) {
+      return true; // Allow navigation
+    }
+    
+    final result = await UnsavedChangesGuard.showUnsavedChangesDialog(context);
+    
+    if (result == null) {
+      // User cancelled - stay on page
+      return false;
+    } else if (result) {
+      // User wants to save draft
+      final saved = await _saveDraft();
+      return saved; // Navigate only if save was successful
+    } else {
+      // User wants to discard
+      return true;
+    }
   }
 
   /// Initialize editor from saved state or widget parameters
@@ -2128,45 +2215,55 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 768;
 
-    return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      body: Container(
-        padding: EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
-        child: Column(
-          children: [
-            // Header - Fixed at top
-            _buildHeader(),
-            const SizedBox(height: AppSpacing.large),
-            
-            // Main Content Area
-            Expanded(
-              child: isMobile
-                  ? SingleChildScrollView(
-                      child: Column(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _handleBackPressed();
+        if (shouldPop && mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.backgroundPrimary,
+        body: Container(
+          padding: EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
+          child: Column(
+            children: [
+              // Header - Fixed at top
+              _buildHeader(),
+              const SizedBox(height: AppSpacing.large),
+              
+              // Main Content Area
+              Expanded(
+                child: isMobile
+                    ? SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            _buildMobileLayout(),
+                            const SizedBox(height: AppSpacing.large),
+                            _buildTimelineSection(),
+                            _buildEditingToolsPanel(),
+                            const SizedBox(height: AppSpacing.extraLarge),
+                          ],
+                        ),
+                      )
+                    : Column(
                         children: [
-                          _buildMobileLayout(),
+                          // Desktop Layout (Row with Expanded - needs proper constraints)
+                          Expanded(
+                            child: _buildDesktopLayout(),
+                          ),
                           const SizedBox(height: AppSpacing.large),
+                          // Timeline Section (fixed height)
                           _buildTimelineSection(),
+                          // Editing Tools Panel
                           _buildEditingToolsPanel(),
-                          const SizedBox(height: AppSpacing.extraLarge),
                         ],
                       ),
-                    )
-                  : Column(
-                      children: [
-                        // Desktop Layout (Row with Expanded - needs proper constraints)
-                        Expanded(
-                          child: _buildDesktopLayout(),
-                        ),
-                        const SizedBox(height: AppSpacing.large),
-                        // Timeline Section (fixed height)
-                        _buildTimelineSection(),
-                        // Editing Tools Panel
-                        _buildEditingToolsPanel(),
-                      ],
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2184,7 +2281,12 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         children: [
           IconButton(
             icon: Icon(Icons.arrow_back, color: AppColors.warmBrown),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () async {
+              final shouldPop = await _handleBackPressed();
+              if (shouldPop && mounted) {
+                Navigator.of(context).pop();
+              }
+            },
             tooltip: 'Back',
           ),
           Expanded(
@@ -2237,6 +2339,30 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                 },
               ),
               const SizedBox(width: AppSpacing.medium),
+              // Save Draft button
+              OutlinedButton.icon(
+                onPressed: (_isSavingDraft || _isEditing) ? null : _saveDraft,
+                icon: _isSavingDraft 
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.warmBrown,
+                        ),
+                      )
+                    : Icon(Icons.bookmark_border, size: 18),
+                label: Text(_isSavingDraft ? 'Saving...' : 'Save Draft'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.warmBrown,
+                  side: BorderSide(color: AppColors.warmBrown),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.small),
               StyledPillButton(
                 label: _isEditing ? 'Processing...' : 'Save & Continue',
                 icon: Icons.save,

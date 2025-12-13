@@ -11,6 +11,8 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../services/api_service.dart';
+import '../../models/content_draft.dart';
+import '../../utils/unsaved_changes_guard.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -30,6 +32,82 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   bool _isSubmitting = false;
   bool _isUploadingImage = false;
   String _postType = 'image';  // 'image' or 'text'
+  
+  // Draft state
+  int? _draftId;
+  bool _isSavingDraft = false;
+  final ApiService _draftApiService = ApiService();
+
+  /// Check if there are unsaved changes
+  bool _hasUnsavedChanges() {
+    return _captionController.text.trim().isNotEmpty ||
+           _selectedImage != null ||
+           _selectedImageBytes != null ||
+           _uploadedImageUrl != null;
+  }
+
+  /// Save current state as a draft
+  Future<bool> _saveDraft() async {
+    if (_isSavingDraft) return false;
+    
+    setState(() {
+      _isSavingDraft = true;
+    });
+    
+    try {
+      final draftData = {
+        'draft_type': DraftType.communityPost.value,
+        'content': _captionController.text.trim(),
+        'original_media_url': _uploadedImageUrl,
+        'category': _postType,
+        'status': DraftStatus.editing.value,
+      };
+      
+      Map<String, dynamic> result;
+      
+      if (_draftId != null) {
+        result = await _draftApiService.updateDraft(_draftId!, draftData);
+      } else {
+        result = await _draftApiService.createDraft(draftData);
+        _draftId = result['id'] as int?;
+      }
+      
+      if (!mounted) return false;
+      
+      UnsavedChangesGuard.showDraftSavedToast(context);
+      return true;
+    } catch (e) {
+      print('Error saving draft: $e');
+      if (mounted) {
+        UnsavedChangesGuard.showDraftErrorToast(context, message: 'Failed to save draft: $e');
+      }
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingDraft = false;
+        });
+      }
+    }
+  }
+
+  /// Handle back button with unsaved changes confirmation
+  Future<bool> _handleBackPressed() async {
+    if (!_hasUnsavedChanges()) {
+      return true;
+    }
+    
+    final result = await UnsavedChangesGuard.showUnsavedChangesDialog(context);
+    
+    if (result == null) {
+      return false;
+    } else if (result) {
+      final saved = await _saveDraft();
+      return saved;
+    } else {
+      return true;
+    }
+  }
 
   @override
   void dispose() {

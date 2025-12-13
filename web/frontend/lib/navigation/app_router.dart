@@ -13,6 +13,7 @@ import '../providers/documents_provider.dart';
 import '../providers/notification_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/artist_provider.dart';
+import '../providers/event_provider.dart';
 import '../services/websocket_service.dart';
 import '../theme/app_theme.dart';
 import 'app_routes.dart';
@@ -69,6 +70,7 @@ class _AppRouterState extends State<AppRouter> {
         ChangeNotifierProvider(create: (_) => DocumentsProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => ArtistProvider()),
+        ChangeNotifierProvider(create: (_) => EventProvider()),
       ],
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {

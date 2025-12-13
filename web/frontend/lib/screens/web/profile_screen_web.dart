@@ -1019,6 +1019,15 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
           ),
           _buildDivider(),
           _buildSettingItem(
+            icon: Icons.drafts_outlined,
+            title: 'My Drafts',
+            subtitle: 'View and manage saved drafts',
+            onTap: () {
+              context.push('/my-drafts');
+            },
+          ),
+          _buildDivider(),
+          _buildSettingItem(
             icon: isAdmin ? Icons.support_agent : Icons.help_outline,
             title: isAdmin ? 'Support Inbox' : 'Help & Support',
             subtitle: supportSubtitle,

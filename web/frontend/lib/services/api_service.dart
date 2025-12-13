@@ -8,6 +8,7 @@ import '../models/api_models.dart';
 import '../models/content_item.dart';
 import '../models/support_message.dart';
 import '../models/document_asset.dart';
+import '../models/content_draft.dart';
 import '../config/app_config.dart';
 import 'auth_service.dart';
 
@@ -2865,6 +2866,407 @@ class ApiService {
       throw Exception('Failed to get followers: HTTP ${response.statusCode}');
     } catch (e) {
       throw Exception('Error getting followers: $e');
+    }
+  }
+
+  // ============ Events API Methods ============
+
+  /// Create a new event
+  Future<Map<String, dynamic>> createEvent({
+    required String title,
+    String? description,
+    required DateTime eventDate,
+    String? location,
+    double? latitude,
+    double? longitude,
+    int? maxAttendees,
+    String? coverImage,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'title': title,
+        'description': description,
+        'event_date': eventDate.toIso8601String(),
+        'location': location,
+        'latitude': latitude,
+        'longitude': longitude,
+        'max_attendees': maxAttendees ?? 0,
+        'cover_image': coverImage,
+      }..removeWhere((k, v) => v == null);
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/events/'),
+        headers: await _getHeaders(),
+        body: json.encode(body),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      throw Exception('Failed to create event: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error creating event: $e');
+    }
+  }
+
+  /// Get list of events
+  Future<Map<String, dynamic>> getEvents({
+    int skip = 0,
+    int limit = 20,
+    String? statusFilter,
+    bool upcomingOnly = false,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'skip': skip.toString(),
+        'limit': limit.toString(),
+      };
+      if (statusFilter != null) queryParams['status_filter'] = statusFilter;
+      if (upcomingOnly) queryParams['upcoming_only'] = 'true';
+
+      final uri = Uri.parse('$baseUrl/events/').replace(queryParameters: queryParams);
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      throw Exception('Failed to fetch events: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error fetching events: $e');
+    }
+  }
+
+  /// Get event details by ID
+  Future<Map<String, dynamic>> getEvent(int eventId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/events/$eventId'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      throw Exception('Failed to fetch event: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error fetching event: $e');
+    }
+  }
+
+  /// Update an event
+  Future<Map<String, dynamic>> updateEvent(int eventId, Map<String, dynamic> data) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/events/$eventId'),
+        headers: await _getHeaders(),
+        body: json.encode(data),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      throw Exception('Failed to update event: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error updating event: $e');
+    }
+  }
+
+  /// Request to join an event
+  Future<Map<String, dynamic>> joinEvent(int eventId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/events/$eventId/join'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      throw Exception('Failed to join event: HTTP ${response.statusCode} - ${response.body}');
+    } catch (e) {
+      throw Exception('Error joining event: $e');
+    }
+  }
+
+  /// Leave an event
+  Future<bool> leaveEvent(int eventId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/events/$eventId/leave'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      return response.statusCode == 200;
+    } catch (e) {
+      throw Exception('Error leaving event: $e');
+    }
+  }
+
+  /// Get event attendees
+  Future<List<dynamic>> getEventAttendees(int eventId, {String? statusFilter}) async {
+    try {
+      var uri = Uri.parse('$baseUrl/events/$eventId/attendees');
+      if (statusFilter != null) {
+        uri = uri.replace(queryParameters: {'status_filter': statusFilter});
+      }
+
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as List<dynamic>;
+      }
+      throw Exception('Failed to fetch attendees: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error fetching attendees: $e');
+    }
+  }
+
+  /// Update attendee status (approve/reject)
+  Future<bool> updateAttendeeStatus(int eventId, int userId, String status) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/events/$eventId/attendees/$userId'),
+        headers: await _getHeaders(),
+        body: json.encode({'status': status}),
+      ).timeout(const Duration(seconds: 10));
+
+      return response.statusCode == 200;
+    } catch (e) {
+      throw Exception('Error updating attendee status: $e');
+    }
+  }
+
+  /// Get my hosted events
+  Future<List<dynamic>> getMyHostedEvents() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/events/my/hosted'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as List<dynamic>;
+      }
+      throw Exception('Failed to fetch hosted events: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error fetching hosted events: $e');
+    }
+  }
+
+  /// Get events I'm attending
+  Future<List<dynamic>> getMyAttendingEvents() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/events/my/attending'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as List<dynamic>;
+      }
+      throw Exception('Failed to fetch attending events: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error fetching attending events: $e');
+    }
+  }
+
+  /// Delete/cancel an event
+  Future<bool> deleteEvent(int eventId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/events/$eventId'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      return response.statusCode == 200;
+    } catch (e) {
+      throw Exception('Error deleting event: $e');
+    }
+  }
+
+  // ============ Content Drafts API Methods ============
+
+  /// Create a new content draft (raw API)
+  Future<Map<String, dynamic>> createDraft(Map<String, dynamic> draftData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/drafts/'),
+        headers: await _getHeaders(),
+        body: json.encode(draftData),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      throw Exception('Failed to create draft: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error creating draft: $e');
+    }
+  }
+
+  /// Create a new content draft with typed parameters (convenience method)
+  Future<Map<String, dynamic>> createContentDraft({
+    required String draftType,
+    String? title,
+    String? description,
+    String? originalMediaUrl,
+    String? editedMediaUrl,
+    String? thumbnailUrl,
+    String? content,
+    String? category,
+    Map<String, dynamic>? editingState,
+    int? duration,
+    String status = 'editing',
+  }) async {
+    final draftData = <String, dynamic>{
+      'draft_type': draftType,
+      'title': title,
+      'description': description,
+      'original_media_url': originalMediaUrl,
+      'edited_media_url': editedMediaUrl,
+      'thumbnail_url': thumbnailUrl,
+      'content': content,
+      'category': category,
+      'editing_state': editingState,
+      'duration': duration,
+      'status': status,
+    }..removeWhere((k, v) => v == null);
+
+    return createDraft(draftData);
+  }
+
+  /// Get list of user's drafts (raw API)
+  Future<Map<String, dynamic>> getDraftsRaw({
+    String? draftType,
+    int skip = 0,
+    int limit = 20,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'skip': skip.toString(),
+        'limit': limit.toString(),
+      };
+      if (draftType != null) queryParams['draft_type'] = draftType;
+
+      final uri = Uri.parse('$baseUrl/drafts/').replace(queryParameters: queryParams);
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      throw Exception('Failed to fetch drafts: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error fetching drafts: $e');
+    }
+  }
+
+  /// Get list of user's drafts as ContentDraft objects
+  Future<List<ContentDraft>> getDrafts({
+    String? draftType,
+    int skip = 0,
+    int limit = 100,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'skip': skip.toString(),
+        'limit': limit.toString(),
+      };
+      if (draftType != null) queryParams['draft_type'] = draftType;
+
+      final uri = Uri.parse('$baseUrl/drafts/').replace(queryParameters: queryParams);
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => ContentDraft.fromJson(json as Map<String, dynamic>)).toList();
+      }
+      throw Exception('Failed to fetch drafts: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error fetching drafts: $e');
+    }
+  }
+
+  /// Get a specific draft by ID
+  Future<Map<String, dynamic>> getDraft(int draftId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/drafts/$draftId'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      throw Exception('Failed to fetch draft: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error fetching draft: $e');
+    }
+  }
+
+  /// Update an existing draft
+  Future<Map<String, dynamic>> updateDraft(int draftId, Map<String, dynamic> draftData) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/drafts/$draftId'),
+        headers: await _getHeaders(),
+        body: json.encode(draftData),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      throw Exception('Failed to update draft: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error updating draft: $e');
+    }
+  }
+
+  /// Delete a draft
+  Future<bool> deleteDraft(int draftId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/drafts/$draftId'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      return response.statusCode == 200;
+    } catch (e) {
+      throw Exception('Error deleting draft: $e');
+    }
+  }
+
+  /// Get drafts by type
+  Future<Map<String, dynamic>> getDraftsByType(String draftType, {int skip = 0, int limit = 20}) async {
+    try {
+      final queryParams = <String, String>{
+        'skip': skip.toString(),
+        'limit': limit.toString(),
+      };
+
+      final uri = Uri.parse('$baseUrl/drafts/type/$draftType').replace(queryParameters: queryParams);
+      final response = await http.get(
+        uri,
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      throw Exception('Failed to fetch drafts by type: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error fetching drafts by type: $e');
     }
   }
 }

@@ -10,6 +10,8 @@ import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_grid_delegate.dart';
+import '../../utils/unsaved_changes_guard.dart';
+import '../../services/api_service.dart';
 
 /// Web Quote Creation Screen - Simple text input for creating quotes
 /// Backend automatically generates image with predefined templates
@@ -24,11 +26,88 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
   final _formKey = GlobalKey<FormState>();
   final _quoteController = TextEditingController();
   bool _isSubmitting = false;
+  bool _hasUnsavedChanges = false;
+  bool _isSavingDraft = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _quoteController.addListener(_onContentChanged);
+  }
 
   @override
   void dispose() {
+    _quoteController.removeListener(_onContentChanged);
     _quoteController.dispose();
     super.dispose();
+  }
+
+  void _onContentChanged() {
+    final hasContent = _quoteController.text.trim().isNotEmpty;
+    if (hasContent != _hasUnsavedChanges) {
+      setState(() => _hasUnsavedChanges = hasContent);
+    }
+  }
+
+  Future<void> _saveDraft() async {
+    if (_quoteController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a quote to save as draft'),
+          backgroundColor: AppColors.warningMain,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSavingDraft = true);
+
+    try {
+      final quoteText = _quoteController.text.trim();
+      await ApiService().createContentDraft(
+        draftType: 'quote_post',
+        title: quoteText.length > 50 ? '${quoteText.substring(0, 50)}...' : quoteText,
+        content: quoteText,
+        category: 'General',
+        editingState: {
+          'quote_text': quoteText,
+        },
+      );
+
+      if (!mounted) return;
+
+      setState(() => _hasUnsavedChanges = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Quote draft saved successfully'),
+          backgroundColor: AppColors.successMain,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save draft: $e'),
+          backgroundColor: AppColors.errorMain,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingDraft = false);
+      }
+    }
+  }
+
+  Future<bool> _handleWillPop() async {
+    if (!_hasUnsavedChanges) return true;
+
+    final result = await UnsavedChangesGuard.showUnsavedChangesDialog(context);
+    if (result == null) return false; // Cancel
+    if (result == true) {
+      await _saveDraft();
+    }
+    return true; // Discard or after saving
   }
 
   Future<void> _submit() async {
@@ -287,46 +366,64 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
     final screenWidth = MediaQuery.of(context).size.width;
     final maxContentWidth = ResponsiveGridDelegate.getMaxContentWidth(context);
 
-    return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      body: Stack(
-        children: [
-          // Background pattern/gradient
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.warmBrown.withOpacity(0.03),
-                    AppColors.accentMain.withOpacity(0.02),
-                    Colors.white,
-                  ],
+    return PopScope(
+      canPop: !_hasUnsavedChanges,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _handleWillPop();
+        if (shouldPop && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.backgroundPrimary,
+        body: Stack(
+          children: [
+            // Background pattern/gradient
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.warmBrown.withOpacity(0.03),
+                      AppColors.accentMain.withOpacity(0.02),
+                      Colors.white,
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          Container(
-            padding: ResponsiveGridDelegate.getResponsivePadding(context),
-            child: Center(
-              child: SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: maxContentWidth,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header with decorative quote icon
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                          Expanded(
-                            child: Row(
+            Container(
+              padding: ResponsiveGridDelegate.getResponsivePadding(context),
+              child: Center(
+                child: SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: maxContentWidth,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header with decorative quote icon
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                              onPressed: () async {
+                                if (_hasUnsavedChanges) {
+                                  final shouldPop = await _handleWillPop();
+                                  if (shouldPop && context.mounted) {
+                                    Navigator.of(context).pop();
+                                  }
+                                } else {
+                                  Navigator.of(context).pop();
+                                }
+                              },
+                            ),
+                            Expanded(
+                              child: Row(
                               children: [
                                 Container(
                                   padding: EdgeInsets.all(AppSpacing.small),
@@ -355,6 +452,25 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
                               ],
                             ),
                           ),
+                            // Save Draft button
+                            if (_hasUnsavedChanges)
+                              TextButton.icon(
+                                onPressed: _isSavingDraft ? null : _saveDraft,
+                                icon: _isSavingDraft
+                                    ? SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: AppColors.warmBrown,
+                                        ),
+                                      )
+                                    : Icon(Icons.save_outlined, color: AppColors.warmBrown),
+                                label: Text(
+                                  _isSavingDraft ? 'Saving...' : 'Save Draft',
+                                  style: TextStyle(color: AppColors.warmBrown),
+                                ),
+                              ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.extraLarge),
@@ -664,8 +780,8 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
                                     _buildQuotePreview(),
                                   ],
                                 ),
-                              ],
-                            );
+                      ],
+                    );
                           }
                         },
                       ),
@@ -676,6 +792,7 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

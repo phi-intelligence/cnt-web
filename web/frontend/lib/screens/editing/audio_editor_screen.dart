@@ -15,6 +15,8 @@ import '../../services/audio_editing_service.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import '../../utils/state_persistence.dart';
+import '../../utils/unsaved_changes_guard.dart';
+import '../../models/content_draft.dart';
 import 'package:just_audio/just_audio.dart';
 import 'dart:html' if (dart.library.io) '../../utils/file_stub.dart' as html;
 import 'dart:async';
@@ -58,6 +60,10 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
   String? _editedAudioPath;
   String? _persistedAudioPath; // Track the persisted path (backend URL if blob was uploaded)
   final ApiService _apiService = ApiService();
+  
+  // Draft state
+  int? _draftId;
+  bool _isSavingDraft = false;
 
   @override
   void initState() {
@@ -81,6 +87,79 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
            _fadeInDuration != Duration.zero ||
            _fadeOutDuration != Duration.zero ||
            _filesToMerge.isNotEmpty;
+  }
+
+  /// Save current editing state as a draft
+  Future<bool> _saveDraft() async {
+    if (_isSavingDraft) return false;
+    
+    setState(() {
+      _isSavingDraft = true;
+    });
+    
+    try {
+      final editingState = <String, dynamic>{
+        'trim_start': _trimStart.inMilliseconds,
+        'trim_end': _trimEnd.inMilliseconds,
+        'fade_in_duration': _fadeInDuration.inMilliseconds,
+        'fade_out_duration': _fadeOutDuration.inMilliseconds,
+        'files_to_merge': _filesToMerge,
+      };
+      
+      final draftData = {
+        'draft_type': DraftType.audioPodcast.value,
+        'title': widget.title ?? 'Audio Draft',
+        'original_media_url': _persistedAudioPath ?? widget.audioPath,
+        'edited_media_url': _editedAudioPath,
+        'editing_state': editingState,
+        'duration': _audioDuration.inSeconds,
+        'status': DraftStatus.editing.value,
+      };
+      
+      Map<String, dynamic> result;
+      
+      if (_draftId != null) {
+        result = await _apiService.updateDraft(_draftId!, draftData);
+      } else {
+        result = await _apiService.createDraft(draftData);
+        _draftId = result['id'] as int?;
+      }
+      
+      if (!mounted) return false;
+      
+      UnsavedChangesGuard.showDraftSavedToast(context);
+      return true;
+    } catch (e) {
+      print('Error saving draft: $e');
+      if (mounted) {
+        UnsavedChangesGuard.showDraftErrorToast(context, message: 'Failed to save draft: $e');
+      }
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingDraft = false;
+        });
+      }
+    }
+  }
+
+  /// Handle back button with unsaved changes confirmation
+  Future<bool> _handleBackPressed() async {
+    if (!_hasUnsavedChanges() && _editedAudioPath == null) {
+      return true;
+    }
+    
+    final result = await UnsavedChangesGuard.showUnsavedChangesDialog(context);
+    
+    if (result == null) {
+      return false;
+    } else if (result) {
+      final saved = await _saveDraft();
+      return saved;
+    } else {
+      return true;
+    }
   }
 
   /// Initialize editor from saved state or widget parameters
