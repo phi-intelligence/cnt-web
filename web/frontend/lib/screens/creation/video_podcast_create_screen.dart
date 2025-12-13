@@ -119,8 +119,16 @@ class VideoPodcastCreateScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
       body: Container(
-        padding: ResponsiveGridDelegate.getResponsivePadding(context),
-        child: Column(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/christimage.png'),
+            fit: BoxFit.cover,
+            opacity: 0.15,
+          ),
+        ),
+        child: Container(
+          padding: ResponsiveGridDelegate.getResponsivePadding(context),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header with back button
@@ -177,6 +185,7 @@ class VideoPodcastCreateScreen extends StatelessWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
     );

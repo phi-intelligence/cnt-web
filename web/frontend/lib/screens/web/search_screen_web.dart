@@ -166,10 +166,18 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
-      body: SafeArea(
-        child: Container(
-          padding: ResponsiveGridDelegate.getResponsivePadding(context),
-              child: Column(
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/jesus-teaching.png'),
+            fit: BoxFit.cover,
+            opacity: 0.08,
+          ),
+        ),
+        child: SafeArea(
+          child: Container(
+            padding: ResponsiveGridDelegate.getResponsivePadding(context),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Search and Filter Section
@@ -296,6 +304,7 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
             ),
           ),
         ),
+      ),
     );
   }
 

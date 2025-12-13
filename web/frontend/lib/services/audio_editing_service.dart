@@ -65,13 +65,28 @@ class AudioEditingService {
     try {
       print('🎵 AudioEditingService.trimAudio called');
       print('   Input path: $inputPath');
-      print('   Start time: ${startTime.inSeconds}s');
-      print('   End time: ${endTime.inSeconds}s');
+      print('   Start time: ${startTime.inSeconds}s (${startTime.inMilliseconds}ms)');
+      print('   End time: ${endTime.inSeconds}s (${endTime.inMilliseconds}ms)');
+      print('   Duration to trim: ${(endTime - startTime).inSeconds}s');
+      
+      // Validate parameters
+      if (startTime >= endTime) {
+        final error = 'Invalid trim range: start (${startTime.inSeconds}s) must be less than end (${endTime.inSeconds}s)';
+        print('❌ $error');
+        onError?.call(error);
+        return null;
+      }
+      
+      // Use seconds with decimal precision for more accurate trimming
+      final startSeconds = startTime.inMilliseconds / 1000.0;
+      final endSeconds = endTime.inMilliseconds / 1000.0;
+      
+      print('🎵 Calling API with startSeconds=$startSeconds, endSeconds=$endSeconds');
       
       final result = await _apiService.trimAudio(
         inputPath,
-        startTime.inSeconds.toDouble(),
-        endTime.inSeconds.toDouble(),
+        startSeconds,
+        endSeconds,
       );
 
       print('🎵 Audio trim API response: $result');
@@ -88,7 +103,7 @@ class AudioEditingService {
       // On web, return the URL directly
       if (kIsWeb) {
         final constructedUrl = _constructMediaUrl(outputUrl);
-        print('🎵 Constructed media URL: $constructedUrl');
+        print('🎵 Constructed media URL for web: $constructedUrl');
         return constructedUrl;
       }
 
@@ -101,9 +116,14 @@ class AudioEditingService {
           ? outputUrl 
           : ApiService.mediaBaseUrl + outputUrl;
       
-      // Add authentication headers for download
-      final authService = AuthService();
-      final headers = await authService.getAuthHeaders();
+      print('🎵 Downloading trimmed audio from: $fullUrl');
+      
+      // Add authentication headers for download (only if not CloudFront/S3)
+      Map<String, String>? headers;
+      if (!fullUrl.contains('cloudfront.net') && !fullUrl.contains('.s3.')) {
+        final authService = AuthService();
+        headers = await authService.getAuthHeaders();
+      }
       
       final response = await http.get(
         Uri.parse(fullUrl),
@@ -113,12 +133,16 @@ class AudioEditingService {
       if (response.statusCode == 200) {
         final file = io.File(savePath);
         await file.writeAsBytes(response.bodyBytes);
+        print('✅ Trimmed audio downloaded to: $savePath');
         return savePath;
       }
 
-      onError?.call('Failed to download edited audio');
+      final error = 'Failed to download edited audio: HTTP ${response.statusCode}';
+      print('❌ $error');
+      onError?.call(error);
       return null;
     } catch (e) {
+      print('❌ Error in trimAudio: $e');
       onError?.call('Error trimming audio: $e');
       return null;
     }

@@ -26,6 +26,9 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
   static const double _maxZoom = 3.0;
   static const double _zoomStep = 0.25;
   
+  // TransformationController for programmatic zoom control
+  final TransformationController _transformationController = TransformationController();
+  
   // Bible PDF URL from S3
   static const String _biblePdfUrl = 'https://cnt-web-media.s3.eu-west-2.amazonaws.com/documents/doc_c4f436f7-9df5-449f-92cc-2aeb7a048180.pdf';
 
@@ -74,6 +77,7 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
   @override
   void dispose() {
     _pdfController?.dispose();
+    _transformationController.dispose();
     super.dispose();
   }
 
@@ -340,19 +344,34 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
         Expanded(
           child: Stack(
             children: [
-              // PDF View
-              PdfViewPinch(
-                controller: _pdfController!,
-                onDocumentLoaded: (document) {
-                  setState(() => _totalPages = document.pagesCount);
+              // PDF View with InteractiveViewer for programmatic zoom
+              InteractiveViewer(
+                transformationController: _transformationController,
+                minScale: _minZoom,
+                maxScale: _maxZoom,
+                boundaryMargin: const EdgeInsets.all(double.infinity),
+                onInteractionEnd: (details) {
+                  // Update zoom level display when user manually zooms
+                  final scale = _transformationController.value.getMaxScaleOnAxis();
+                  if (scale != _currentZoom) {
+                    setState(() {
+                      _currentZoom = scale.clamp(_minZoom, _maxZoom);
+                    });
+                  }
                 },
-                onPageChanged: (page) {
-                  setState(() => _currentPage = page);
-                },
-                builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
-                  options: const DefaultBuilderOptions(),
-                  documentLoaderBuilder: (_) => _buildLoadingState(),
-                  errorBuilder: (_, error) => _buildErrorState(),
+                child: PdfViewPinch(
+                  controller: _pdfController!,
+                  onDocumentLoaded: (document) {
+                    setState(() => _totalPages = document.pagesCount);
+                  },
+                  onPageChanged: (page) {
+                    setState(() => _currentPage = page);
+                  },
+                  builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
+                    options: const DefaultBuilderOptions(),
+                    documentLoaderBuilder: (_) => _buildLoadingState(),
+                    errorBuilder: (_, error) => _buildErrorState(),
+                  ),
                 ),
               ),
               
@@ -606,20 +625,55 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
 
   void _zoomIn() {
     if (_currentZoom < _maxZoom) {
-      setState(() {
-        _currentZoom = (_currentZoom + _zoomStep).clamp(_minZoom, _maxZoom);
-      });
-      // Note: PdfViewPinch handles zoom via gestures; this is for UI feedback
-      // For programmatic zoom, you'd need to use the controller if supported
+      final newZoom = (_currentZoom + _zoomStep).clamp(_minZoom, _maxZoom);
+      _applyZoom(newZoom);
     }
   }
 
   void _zoomOut() {
     if (_currentZoom > _minZoom) {
-      setState(() {
-        _currentZoom = (_currentZoom - _zoomStep).clamp(_minZoom, _maxZoom);
-      });
+      final newZoom = (_currentZoom - _zoomStep).clamp(_minZoom, _maxZoom);
+      _applyZoom(newZoom);
     }
+  }
+  
+  void _applyZoom(double newZoom) {
+    // Get the current transformation matrix
+    final Matrix4 currentMatrix = _transformationController.value.clone();
+    final double currentScale = currentMatrix.getMaxScaleOnAxis();
+    
+    // Calculate the scale factor to apply
+    final double scaleFactor = newZoom / currentScale;
+    
+    // Get the viewport center for zooming towards the center
+    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox != null) {
+      final Offset center = renderBox.size.center(Offset.zero);
+      
+      // Create a new transformation matrix that scales around the center
+      final Matrix4 newMatrix = Matrix4.identity()
+        ..translate(center.dx, center.dy)
+        ..scale(newZoom)
+        ..translate(-center.dx / newZoom, -center.dy / newZoom);
+      
+      // Apply with animation
+      _transformationController.value = newMatrix;
+    } else {
+      // Fallback: just scale without centering
+      final Matrix4 newMatrix = Matrix4.identity()..scale(newZoom);
+      _transformationController.value = newMatrix;
+    }
+    
+    setState(() {
+      _currentZoom = newZoom;
+    });
+  }
+  
+  void _resetZoom() {
+    _transformationController.value = Matrix4.identity();
+    setState(() {
+      _currentZoom = 1.0;
+    });
   }
 
   void _showPageJumpDialog() {

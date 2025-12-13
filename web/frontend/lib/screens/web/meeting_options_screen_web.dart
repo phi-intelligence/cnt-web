@@ -88,66 +88,145 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
       },
     ];
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      body: Container(
-        padding: ResponsiveGridDelegate.getResponsivePadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with back button
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                  onPressed: () => Navigator.pop(context),
+      backgroundColor: const Color(0xFFF5F0E8),
+      body: Stack(
+        children: [
+          // Background: Full image - positioned to the right (like register screen)
+          Positioned(
+            top: isMobile ? -30 : 0,
+            bottom: isMobile ? null : 0,
+            right: isMobile ? -screenWidth * 0.4 : -50,
+            height: isMobile ? MediaQuery.of(context).size.height * 0.6 : null,
+            width: isMobile ? screenWidth * 1.3 : screenWidth * 0.65,
+            child: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: const AssetImage('assets/images/jesus.png'),
+                  fit: isMobile ? BoxFit.contain : BoxFit.cover,
+                  alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
                 ),
+              ),
+            ),
+          ),
+          
+          // Gradient overlay from left - for content readability
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: isMobile
+                      ? [
+                          const Color(0xFFF5F0E8),
+                          const Color(0xFFF5F0E8).withOpacity(0.98),
+                          const Color(0xFFF5F0E8).withOpacity(0.85),
+                          const Color(0xFFF5F0E8).withOpacity(0.4),
+                          Colors.transparent,
+                        ]
+                      : [
+                          const Color(0xFFF5F0E8),
+                          const Color(0xFFF5F0E8).withOpacity(0.99),
+                          const Color(0xFFF5F0E8).withOpacity(0.95),
+                          const Color(0xFFF5F0E8).withOpacity(0.7),
+                          const Color(0xFFF5F0E8).withOpacity(0.3),
+                          Colors.transparent,
+                        ],
+                  stops: isMobile
+                      ? const [0.0, 0.2, 0.4, 0.6, 0.8]
+                      : const [0.0, 0.25, 0.4, 0.5, 0.6, 0.75],
+                ),
+              ),
+            ),
+          ),
+          
+          // Main content
+          Container(
+            padding: ResponsiveGridDelegate.getResponsivePadding(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with back button
+                Row(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.warmBrown.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: IconButton(
+                        icon: Icon(Icons.arrow_back, color: AppColors.warmBrown),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.medium),
+                    Container(
+                      padding: EdgeInsets.all(AppSpacing.small),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [AppColors.warmBrown, AppColors.accentMain],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.group,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.medium),
+                    Expanded(
+                      child: StyledPageHeader(
+                        title: 'Meeting Options',
+                        size: StyledPageHeaderSize.h2,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.extraLarge),
+
+                // Options Grid
                 Expanded(
-                  child: StyledPageHeader(
-                    title: 'Meeting Options',
-                    size: StyledPageHeaderSize.h2,
+                  child: SectionContainer(
+                    showShadow: true,
+                    child: Padding(
+                      padding: EdgeInsets.all(AppSpacing.large),
+                      child: GridView.builder(
+                        gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+                          context,
+                          desktop: 3,
+                          tablet: 2,
+                          mobile: 1,
+                          childAspectRatio: 1.2,
+                          crossAxisSpacing: AppSpacing.large,
+                          mainAxisSpacing: AppSpacing.large,
+                        ),
+                        itemCount: options.length,
+                        itemBuilder: (context, index) {
+                          final option = options[index];
+                          // Alternate hover colors: orange for odd (1, 3), brown for even (2)
+                          final hoverColors = index % 2 == 0
+                              ? [AppColors.accentMain, AppColors.accentDark] // Orange
+                              : [AppColors.warmBrown, AppColors.primaryMain]; // Brown
+                          return _buildOptionCard(
+                            title: option['title'] as String,
+                            icon: option['icon'] as IconData,
+                            hoverColors: hoverColors,
+                            onTap: option['onTap'] as VoidCallback,
+                          );
+                        },
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.extraLarge),
-
-            // Options Grid
-            Expanded(
-              child: SectionContainer(
-                showShadow: true,
-                child: Padding(
-                  padding: EdgeInsets.all(AppSpacing.large),
-                  child: GridView.builder(
-                    gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
-                      context,
-                      desktop: 3,
-                      tablet: 2,
-                      mobile: 1,
-                      childAspectRatio: 1.2,
-                      crossAxisSpacing: AppSpacing.large,
-                      mainAxisSpacing: AppSpacing.large,
-                    ),
-                    itemCount: options.length,
-                    itemBuilder: (context, index) {
-                      final option = options[index];
-                      // Alternate hover colors: orange for odd (1, 3), brown for even (2)
-                      final hoverColors = index % 2 == 0
-                          ? [AppColors.accentMain, AppColors.accentDark] // Orange
-                          : [AppColors.warmBrown, AppColors.primaryMain]; // Brown
-                      return _buildOptionCard(
-                        title: option['title'] as String,
-                        icon: option['icon'] as IconData,
-                        hoverColors: hoverColors,
-                        onTap: option['onTap'] as VoidCallback,
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
