@@ -568,11 +568,27 @@ class ApiService {
       });
 
       if (bytes != null) {
+        // Determine content type from file extension
+        http.MediaType contentType = http.MediaType('image', 'jpeg'); // Default fallback
+        final lowerFileName = fileName.toLowerCase();
+        if (lowerFileName.endsWith('.jpg') || lowerFileName.endsWith('.jpeg')) {
+          contentType = http.MediaType('image', 'jpeg');
+        } else if (lowerFileName.endsWith('.png')) {
+          contentType = http.MediaType('image', 'png');
+        } else if (lowerFileName.endsWith('.gif')) {
+          contentType = http.MediaType('image', 'gif');
+        } else if (lowerFileName.endsWith('.webp')) {
+          contentType = http.MediaType('image', 'webp');
+        } else if (lowerFileName.endsWith('.bmp')) {
+          contentType = http.MediaType('image', 'bmp');
+        }
+        
         request.files.add(
           http.MultipartFile.fromBytes(
             'file',
             bytes,
             filename: fileName,
+            contentType: contentType,
           ),
         );
       } else if (filePath != null && filePath.isNotEmpty) {
