@@ -1099,7 +1099,16 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
   Widget build(BuildContext context) {
     if (kIsWeb) {
       // Web version with design system
-      return Scaffold(
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          final shouldPop = await _handleBackPressed();
+          if (shouldPop && mounted) {
+            Navigator.of(context).pop();
+          }
+        },
+        child: Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
         body: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),
@@ -1116,7 +1125,13 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
                     children: [
                       IconButton(
                         icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () async {
+                          final shouldPop = await _handleBackPressed();
+                          if (shouldPop && mounted) {
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        tooltip: 'Back',
                       ),
                       Expanded(
                         child: StyledPageHeader(
@@ -1124,11 +1139,41 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
                           size: StyledPageHeaderSize.h2,
                         ),
                       ),
+                      // Save Draft button
+                      Padding(
+                        padding: const EdgeInsets.only(right: AppSpacing.small),
+                        child: IntrinsicWidth(
+                          child: OutlinedButton.icon(
+                            onPressed: (_isSavingDraft || _isEditing) ? null : _saveDraft,
+                            icon: _isSavingDraft
+                                ? SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.warmBrown,
+                                    ),
+                                  )
+                                : Icon(Icons.bookmark_border, size: 18),
+                            label: Text(_isSavingDraft ? 'Saving...' : 'Save Draft'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.warmBrown,
+                              side: BorderSide(color: AppColors.warmBrown),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            ),
+                          ),
+                        ),
+                      ),
                       if (_editedAudioPath != null)
-                        StyledPillButton(
-                          label: 'Export',
-                          icon: Icons.download,
-                          onPressed: _handleExport,
+                        Flexible(
+                          child: StyledPillButton(
+                            label: 'Export',
+                            icon: Icons.download,
+                            onPressed: _handleExport,
+                          ),
                         ),
                     ],
                   ),
@@ -1173,6 +1218,7 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
             ),
           ),
         ),
+      ),
       );
     } else {
       // Mobile version (original design)
@@ -1560,40 +1606,50 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
         ],
       );
     } else if (EditorResponsive.isTablet(context)) {
-      // Tablet: Side-by-side with different ratios
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Audio Player Section (Left - 35%)
-          Expanded(
-            flex: 35,
-            child: _buildAudioPlayerSection(),
+      // Tablet: Side-by-side with different ratios, centered
+      return Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 1200),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Audio Player Section (Left - 35%)
+              Expanded(
+                flex: 35,
+                child: _buildAudioPlayerSection(),
+              ),
+              const SizedBox(width: AppSpacing.large),
+              // Editing Tools Panel (Right - 65%)
+              Expanded(
+                flex: 65,
+                child: _buildEditingToolsPanel(),
+              ),
+            ],
           ),
-          const SizedBox(width: AppSpacing.large),
-          // Editing Tools Panel (Right - 65%)
-          Expanded(
-            flex: 65,
-            child: _buildEditingToolsPanel(),
-          ),
-        ],
+        ),
       );
     } else {
-      // Desktop: Original layout
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Audio Player Section (Left - 40%)
-          Expanded(
-            flex: 40,
-            child: _buildAudioPlayerSection(),
+      // Desktop: Centered layout
+      return Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 1400),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Audio Player Section (Left - 40%)
+              Expanded(
+                flex: 40,
+                child: _buildAudioPlayerSection(),
+              ),
+              const SizedBox(width: AppSpacing.large),
+              // Editing Tools Panel (Right - 60%)
+              Expanded(
+                flex: 60,
+                child: _buildEditingToolsPanel(),
+              ),
+            ],
           ),
-          const SizedBox(width: AppSpacing.large),
-          // Editing Tools Panel (Right - 60%)
-          Expanded(
-            flex: 60,
-            child: _buildEditingToolsPanel(),
-          ),
-        ],
+        ),
       );
     }
   }

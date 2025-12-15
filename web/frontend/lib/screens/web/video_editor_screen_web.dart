@@ -2310,39 +2310,44 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               ],
             ),
           ),
-          // Action buttons
-          Row(
-            children: [
-              _buildHeaderButton(
-                icon: Icons.undo,
-                tooltip: 'Undo',
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Undo feature coming soon'),
-                      backgroundColor: AppColors.infoMain,
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: AppSpacing.small),
-              _buildHeaderButton(
-                icon: Icons.redo,
-                tooltip: 'Redo',
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Redo feature coming soon'),
-                      backgroundColor: AppColors.infoMain,
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: AppSpacing.medium),
-              // Save Draft button
-              OutlinedButton.icon(
+          // Action buttons - inline in the Row with padding
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.small),
+            child: _buildHeaderButton(
+              icon: Icons.undo,
+              tooltip: 'Undo',
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Undo feature coming soon'),
+                    backgroundColor: AppColors.infoMain,
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.medium),
+            child: _buildHeaderButton(
+              icon: Icons.redo,
+              tooltip: 'Redo',
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Redo feature coming soon'),
+                    backgroundColor: AppColors.infoMain,
+                  ),
+                );
+              },
+            ),
+          ),
+          // Save Draft button - wrapped in IntrinsicWidth to constrain
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.small),
+            child: IntrinsicWidth(
+              child: OutlinedButton.icon(
                 onPressed: (_isSavingDraft || _isEditing) ? null : _saveDraft,
-                icon: _isSavingDraft 
+                icon: _isSavingDraft
                     ? SizedBox(
                         width: 16,
                         height: 16,
@@ -2362,14 +2367,18 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
               ),
-              const SizedBox(width: AppSpacing.small),
-              StyledPillButton(
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.small),
+            child: IntrinsicWidth(
+              child: StyledPillButton(
                 label: _isEditing ? 'Processing...' : 'Save & Continue',
                 icon: Icons.save,
                 onPressed: _isEditing ? null : _handleSave,
                 isLoading: _isEditing,
               ),
-            ],
+            ),
           ),
         ],
       ),

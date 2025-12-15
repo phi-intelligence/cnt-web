@@ -6,8 +6,10 @@ import '../../models/event.dart';
 import '../../providers/event_provider.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/web/section_container.dart';
+import '../../widgets/web/styled_pill_button.dart';
 import 'event_create_screen_web.dart';
 import 'event_detail_screen_web.dart';
 
@@ -47,168 +49,218 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    final isTablet = screenWidth >= 600 && screenWidth < 1024;
     final isLargeScreen = screenWidth > 1200;
     final isMediumScreen = screenWidth > 768;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      body: CustomScrollView(
-        slivers: [
-          // App Bar
-          SliverAppBar(
-            backgroundColor: AppColors.backgroundPrimary,
-            elevation: 0,
-            pinned: true,
-            expandedHeight: 160,
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-              onPressed: () => Navigator.pop(context),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
+      backgroundColor: const Color(0xFFF5F0E8),
+      body: SizedBox(
+        width: double.infinity,
+        height: screenHeight,
+        child: Stack(
+          children: [
+            // Background image positioned to the right
+            Positioned(
+              top: isMobile ? -30 : 0,
+              bottom: isMobile ? null : 0,
+              right: isMobile ? -screenWidth * 0.4 : -50,
+              height: isMobile ? screenHeight * 0.6 : null,
+              width: isMobile ? screenWidth * 1.3 : screenWidth * 0.65,
+              child: Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.warmBrown,
-                      AppColors.warmBrown.withOpacity(0.85),
-                      AppColors.primaryMain.withOpacity(0.9),
-                    ],
+                  image: DecorationImage(
+                    image: const AssetImage('assets/images/Jesus-crowd.png'),
+                    fit: isMobile ? BoxFit.contain : BoxFit.cover,
+                    alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
                   ),
                 ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      isLargeScreen ? 80 : (isMediumScreen ? 48 : 24),
-                      60,
-                      isLargeScreen ? 80 : (isMediumScreen ? 48 : 24),
-                      20,
+              ),
+            ),
+            
+            // Gradient overlay from left
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: isMobile
+                        ? [
+                            const Color(0xFFF5F0E8),
+                            const Color(0xFFF5F0E8).withOpacity(0.98),
+                            const Color(0xFFF5F0E8).withOpacity(0.85),
+                            const Color(0xFFF5F0E8).withOpacity(0.4),
+                            Colors.transparent,
+                          ]
+                        : [
+                            const Color(0xFFF5F0E8),
+                            const Color(0xFFF5F0E8).withOpacity(0.99),
+                            const Color(0xFFF5F0E8).withOpacity(0.95),
+                            const Color(0xFFF5F0E8).withOpacity(0.7),
+                            const Color(0xFFF5F0E8).withOpacity(0.3),
+                            Colors.transparent,
+                          ],
+                    stops: isMobile
+                        ? const [0.0, 0.2, 0.4, 0.6, 0.8]
+                        : const [0.0, 0.25, 0.4, 0.5, 0.6, 0.75],
+                  ),
+                ),
+              ),
+            ),
+            
+            // Content positioned centered/right-aligned
+            Positioned(
+              left: isMobile ? 0 : (screenWidth * 0.15),
+              top: 0,
+              bottom: 0,
+              right: 0,
+              child: SafeArea(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Padding(
+                      padding: EdgeInsets.only(
+                        left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
+                        right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                        top: isMobile ? 20 : 40,
+                      ),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.arrow_back, color: AppColors.primaryDark),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Community Events',
+                                  style: AppTypography.getResponsiveHeroTitle(context).copyWith(
+                                    color: AppColors.primaryDark,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isMobile ? 28 : (isTablet ? 36 : 42),
+                                    height: 1.1,
+                                  ),
+                                ),
+                                SizedBox(height: AppSpacing.small),
+                                Text(
+                                  'Join or host events to connect with the community',
+                                  style: AppTypography.getResponsiveBody(context).copyWith(
+                                    color: AppColors.primaryDark.withOpacity(0.7),
+                                    fontSize: isMobile ? 14 : 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: AppSpacing.medium),
+                          Flexible(
+                            child: StyledPillButton(
+                              label: 'Host Event',
+                              icon: Icons.add,
+                              onPressed: () async {
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const EventCreateScreenWeb()),
+                                );
+                                if (result != null) {
+                                  _loadData();
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Icon(
-                            Icons.event,
-                            color: Colors.white,
-                            size: 32,
-                          ),
-                        ),
-                        SizedBox(width: 20),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Community Events',
-                                style: AppTypography.heading2.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Join or host events to connect with the community',
-                                style: AppTypography.body.copyWith(
-                                  color: Colors.white.withOpacity(0.9),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Create Event Button
-                        ElevatedButton.icon(
-                          onPressed: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const EventCreateScreenWeb()),
-                            );
-                            if (result != null) {
-                              _loadData();
-                            }
-                          },
-                          icon: Icon(Icons.add, size: 20),
-                          label: Text('Host Event'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: AppColors.warmBrown,
-                            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
+                    
+                    SizedBox(height: AppSpacing.large),
+                    
+                    // Tabs
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: AppColors.borderPrimary,
+                              width: 1,
                             ),
                           ),
                         ),
-                      ],
+                        child: TabBar(
+                          controller: _tabController,
+                          labelColor: AppColors.warmBrown,
+                          unselectedLabelColor: AppColors.textSecondary,
+                          indicatorColor: AppColors.warmBrown,
+                          indicatorWeight: 3,
+                          labelStyle: AppTypography.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          tabs: const [
+                            Tab(text: 'All Events'),
+                            Tab(text: 'My Events'),
+                            Tab(text: 'Attending'),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ),
-            ),
-            bottom: PreferredSize(
-              preferredSize: Size.fromHeight(48),
-              child: Container(
-                color: AppColors.backgroundPrimary,
-                child: TabBar(
-                  controller: _tabController,
-                  indicatorColor: AppColors.warmBrown,
-                  labelColor: AppColors.warmBrown,
-                  unselectedLabelColor: AppColors.textSecondary,
-                  indicatorWeight: 3,
-                  labelStyle: TextStyle(fontWeight: FontWeight.w600),
-                  tabs: const [
-                    Tab(text: 'All Events'),
-                    Tab(text: 'My Events'),
-                    Tab(text: 'Attending'),
+                    
+                    // Tab Content
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                          vertical: AppSpacing.medium,
+                        ),
+                        child: Consumer<EventProvider>(
+                          builder: (context, provider, _) {
+                            return TabBarView(
+                              controller: _tabController,
+                              children: [
+                                _buildEventsList(
+                                  provider.events,
+                                  provider.isLoading,
+                                  'No events found',
+                                  'Be the first to create a community event!',
+                                  isLargeScreen,
+                                  isMediumScreen,
+                                ),
+                                _buildEventsList(
+                                  provider.myHostedEvents,
+                                  provider.isLoading,
+                                  'No hosted events',
+                                  'Create your first event and invite the community!',
+                                  isLargeScreen,
+                                  isMediumScreen,
+                                ),
+                                _buildEventsList(
+                                  provider.myAttendingEvents,
+                                  provider.isLoading,
+                                  'Not attending any events',
+                                  'Browse events and request to join!',
+                                  isLargeScreen,
+                                  isMediumScreen,
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-          ),
-          
-          // Content
-          SliverFillRemaining(
-            child: Consumer<EventProvider>(
-              builder: (context, provider, _) {
-                return TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildEventsList(
-                      provider.events,
-                      provider.isLoading,
-                      'No events found',
-                      'Be the first to create a community event!',
-                      isLargeScreen,
-                      isMediumScreen,
-                    ),
-                    _buildEventsList(
-                      provider.myHostedEvents,
-                      provider.isLoading,
-                      'No hosted events',
-                      'Create your first event and invite the community!',
-                      isLargeScreen,
-                      isMediumScreen,
-                    ),
-                    _buildEventsList(
-                      provider.myAttendingEvents,
-                      provider.isLoading,
-                      'Not attending any events',
-                      'Browse events and request to join!',
-                      isLargeScreen,
-                      isMediumScreen,
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -107,37 +107,87 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
+      final screenHeight = MediaQuery.of(context).size.height;
       final screenWidth = MediaQuery.of(context).size.width;
       final isMobile = screenWidth < 600;
-      final isDesktop = screenWidth > 900;
+      final isTablet = screenWidth >= 600 && screenWidth < 1024;
       
-      // Web version with improved design - uses space on desktop
+      // Web version with background image pattern
       return Scaffold(
-        backgroundColor: AppColors.backgroundPrimary,
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.warmBrown.withOpacity(0.05),
-                AppColors.backgroundPrimary,
-                AppColors.accentMain.withOpacity(0.02),
-              ],
-            ),
-          ),
-          child: SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 16 : 40,
-                vertical: 24,
+        backgroundColor: const Color(0xFFF5F0E8),
+        body: SizedBox(
+          width: double.infinity,
+          height: screenHeight,
+          child: Stack(
+            children: [
+              // Background image positioned to the right
+              Positioned(
+                top: isMobile ? -30 : 0,
+                bottom: isMobile ? null : 0,
+                right: isMobile ? -screenWidth * 0.4 : -50,
+                height: isMobile ? screenHeight * 0.6 : null,
+                width: isMobile ? screenWidth * 1.3 : screenWidth * 0.65,
+                child: Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: const AssetImage('assets/images/thumbnail1.jpg'),
+                      fit: isMobile ? BoxFit.contain : BoxFit.cover,
+                      alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
+                    ),
+                  ),
+                ),
               ),
-              child: Center(
-                child: isDesktop 
-                  ? _buildDesktopLayout()
-                  : _buildMobileLayout(isMobile),
+              // Gradient overlay from left
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: isMobile
+                          ? [
+                              const Color(0xFFF5F0E8),
+                              const Color(0xFFF5F0E8).withOpacity(0.98),
+                              const Color(0xFFF5F0E8).withOpacity(0.85),
+                              const Color(0xFFF5F0E8).withOpacity(0.4),
+                              Colors.transparent,
+                            ]
+                          : [
+                              const Color(0xFFF5F0E8),
+                              const Color(0xFFF5F0E8).withOpacity(0.99),
+                              const Color(0xFFF5F0E8).withOpacity(0.95),
+                              const Color(0xFFF5F0E8).withOpacity(0.7),
+                              const Color(0xFFF5F0E8).withOpacity(0.3),
+                              Colors.transparent,
+                            ],
+                      stops: isMobile
+                          ? const [0.0, 0.2, 0.4, 0.6, 0.8]
+                          : const [0.0, 0.25, 0.4, 0.5, 0.6, 0.75],
+                    ),
+                  ),
+                ),
               ),
-            ),
+              // Content positioned centered/right-aligned
+              Positioned(
+                left: isMobile ? 0 : (screenWidth * 0.15),
+                top: 0,
+                bottom: 0,
+                right: 0,
+                child: SafeArea(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.only(
+                      left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
+                      right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                      top: isMobile ? 20 : 40,
+                      bottom: AppSpacing.extraLarge,
+                    ),
+                    child: isMobile
+                        ? _buildMobileLayout(true)
+                        : _buildDesktopLayout(),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -330,7 +380,7 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
   // Desktop layout with side panel for meeting tips
   Widget _buildDesktopLayout() {
     return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: 1000),
+      constraints: const BoxConstraints(maxWidth: 1000),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -338,8 +388,8 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
           Expanded(
             flex: 4,
             child: Container(
-              padding: EdgeInsets.all(32),
-              margin: EdgeInsets.only(right: 24),
+              padding: const EdgeInsets.all(32),
+              margin: const EdgeInsets.only(right: 24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
@@ -388,7 +438,7 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.tips_and_updates, size: 48, color: Colors.white),
+                          const Icon(Icons.tips_and_updates, size: 48, color: Colors.white),
                           const SizedBox(height: 20),
                           Text(
                             'Meeting Tips',
@@ -415,7 +465,7 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
           // Right side - Meeting details
           Expanded(
             flex: 5,
-            child: _buildMobileLayout(false),
+            child: _buildMeetingDetailsCard(),
           ),
         ],
       ),
@@ -424,11 +474,11 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
 
   Widget _buildTipItem(IconData icon, String text) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(10),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
@@ -451,39 +501,14 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
     );
   }
 
-  // Mobile layout - can be reused in desktop right side
-  Widget _buildMobileLayout(bool isMobile) {
+  // Meeting details card - used in desktop right side and mobile
+  Widget _buildMeetingDetailsCard() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Back button row
-        Row(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.warmBrown.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: IconButton(
-                icon: Icon(Icons.arrow_back, color: AppColors.warmBrown),
-                onPressed: _handleBack,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Text(
-              'Meeting Created',
-              style: AppTypography.heading3.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 32),
-
         // Success Card
         Container(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
@@ -722,6 +747,44 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
           ),
         ),
         const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  // Mobile layout - for mobile only
+  Widget _buildMobileLayout(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Back button row
+        Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.warmBrown.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: IconButton(
+                icon: Icon(Icons.arrow_back, color: AppColors.warmBrown),
+                onPressed: _handleBack,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                'Meeting Created',
+                style: AppTypography.getResponsiveHeroTitle(context).copyWith(
+                  color: AppColors.primaryDark,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
+                  height: 1.1,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 32),
+        _buildMeetingDetailsCard(),
       ],
     );
   }

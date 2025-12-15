@@ -340,19 +340,25 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
         Expanded(
           child: Stack(
             children: [
-              // PDF View
-              PdfViewPinch(
-                controller: _pdfController!,
-                onDocumentLoaded: (document) {
-                  setState(() => _totalPages = document.pagesCount);
-                },
-                onPageChanged: (page) {
-                  setState(() => _currentPage = page);
-                },
-                builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
-                  options: const DefaultBuilderOptions(),
-                  documentLoaderBuilder: (_) => _buildLoadingState(),
-                  errorBuilder: (_, error) => _buildErrorState(),
+              // PDF View with zoom support
+              Center(
+                child: Transform.scale(
+                  scale: _currentZoom,
+                  alignment: Alignment.center,
+                  child: PdfViewPinch(
+                    controller: _pdfController!,
+                    onDocumentLoaded: (document) {
+                      setState(() => _totalPages = document.pagesCount);
+                    },
+                    onPageChanged: (page) {
+                      setState(() => _currentPage = page);
+                    },
+                    builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
+                      options: const DefaultBuilderOptions(),
+                      documentLoaderBuilder: (_) => _buildLoadingState(),
+                      errorBuilder: (_, error) => _buildErrorState(),
+                    ),
+                  ),
                 ),
               ),
               

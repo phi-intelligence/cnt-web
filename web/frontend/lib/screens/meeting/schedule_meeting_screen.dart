@@ -43,6 +43,19 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
       initialDate: _selectedDate,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.warmBrown,
+              onPrimary: Colors.white,
+              surface: AppColors.backgroundSecondary,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
@@ -404,102 +417,124 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
-      // Web version with web design system - improved layout
+      // Web version with register page design pattern
+      final screenHeight = MediaQuery.of(context).size.height;
       final screenWidth = MediaQuery.of(context).size.width;
-      final isLargeScreen = screenWidth > 1200;
-      final isMediumScreen = screenWidth > 768;
+      final isMobile = screenWidth < 600;
+      final isTablet = screenWidth >= 600 && screenWidth < 1024;
       
       return Scaffold(
-        backgroundColor: AppColors.backgroundPrimary,
-        body: CustomScrollView(
-          slivers: [
-            // App Bar with back button
-            SliverAppBar(
-              backgroundColor: AppColors.backgroundPrimary,
-              elevation: 0,
-              pinned: true,
-              leading: IconButton(
-                icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                onPressed: () => Navigator.pop(context),
-              ),
-              title: Text(
-                'Schedule Meeting',
-                style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
-              ),
-              centerTitle: false,
-            ),
-            
-            // Main content
-            SliverPadding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isLargeScreen ? 64 : (isMediumScreen ? 32 : 16),
-                vertical: 24,
-              ),
-              sliver: SliverToBoxAdapter(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: isLargeScreen ? 1200 : 800),
-                    child: isLargeScreen 
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Left Column: Hero & Info
-                              Expanded(
-                                flex: 4,
-                                child: Column(
-                                  children: [
-                                    _buildHeroHeader(isLargeScreen, vertical: true),
-                                    const SizedBox(height: 32),
-                                    // Additional Info / Tips could go here
-                                    Container(
-                                      padding: const EdgeInsets.all(24),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.backgroundSecondary,
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(color: AppColors.borderPrimary.withOpacity(0.5)),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Meeting Tips',
-                                            style: AppTypography.heading4.copyWith(color: AppColors.warmBrown),
-                                          ),
-                                          const SizedBox(height: 16),
-                                          _buildTipRow(Icons.check_circle_outline, 'Ensure you have a stable internet connection'),
-                                          _buildTipRow(Icons.check_circle_outline, 'Share the link with participants after scheduling'),
-                                          _buildTipRow(Icons.check_circle_outline, 'You can start the meeting early if needed'),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 32),
-                              // Right Column: Form
-                              Expanded(
-                                flex: 6,
-                                child: Column(
-                                  children: [
-                                    _buildFormContent(),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          )
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildHeroHeader(isLargeScreen, vertical: false),
-                              const SizedBox(height: 32),
-                              _buildFormContent(),
-                            ],
-                          ),
+        backgroundColor: const Color(0xFFF5F0E8),
+        body: SizedBox(
+          width: double.infinity,
+          height: screenHeight,
+          child: Stack(
+            children: [
+              // Background image positioned to the right
+              Positioned(
+                top: isMobile ? -30 : 0,
+                bottom: isMobile ? null : 0,
+                right: isMobile ? -screenWidth * 0.4 : -50,
+                height: isMobile ? screenHeight * 0.6 : null,
+                width: isMobile ? screenWidth * 1.3 : screenWidth * 0.65,
+                child: Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: const AssetImage('assets/images/jesus-teaching.png'),
+                      fit: isMobile ? BoxFit.contain : BoxFit.cover,
+                      alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+              
+              // Gradient overlay from left
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: isMobile
+                          ? [
+                              const Color(0xFFF5F0E8),
+                              const Color(0xFFF5F0E8).withOpacity(0.98),
+                              const Color(0xFFF5F0E8).withOpacity(0.85),
+                              const Color(0xFFF5F0E8).withOpacity(0.4),
+                              Colors.transparent,
+                            ]
+                          : [
+                              const Color(0xFFF5F0E8),
+                              const Color(0xFFF5F0E8).withOpacity(0.99),
+                              const Color(0xFFF5F0E8).withOpacity(0.95),
+                              const Color(0xFFF5F0E8).withOpacity(0.7),
+                              const Color(0xFFF5F0E8).withOpacity(0.3),
+                              Colors.transparent,
+                            ],
+                      stops: isMobile
+                          ? const [0.0, 0.2, 0.4, 0.6, 0.8]
+                          : const [0.0, 0.25, 0.4, 0.5, 0.6, 0.75],
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Content positioned centered/right-aligned
+              Positioned(
+                left: isMobile ? 0 : (screenWidth * 0.15),
+                top: 0,
+                bottom: 0,
+                right: 0,
+                child: SafeArea(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.only(
+                      left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
+                      right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                      top: isMobile ? 20 : 40,
+                      bottom: AppSpacing.extraLarge,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header with back button
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.arrow_back, color: AppColors.primaryDark),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                            Expanded(
+                              child: Text(
+                                'Schedule Meeting',
+                                style: AppTypography.getResponsiveHeroTitle(context).copyWith(
+                                  color: AppColors.primaryDark,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: isMobile ? 28 : (isTablet ? 36 : 42),
+                                  height: 1.1,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: AppSpacing.small),
+                        Text(
+                          'Set up a meeting time and invite participants',
+                          style: AppTypography.getResponsiveBody(context).copyWith(
+                            color: AppColors.primaryDark.withOpacity(0.7),
+                            fontSize: isMobile ? 14 : 16,
+                          ),
+                        ),
+                        SizedBox(height: AppSpacing.extraLarge * 1.5),
+                        
+                        // Form content
+                        _buildFormContentWeb(isMobile),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     } else {
@@ -648,6 +683,207 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
         ),
       );
     }
+  }
+
+  Widget _buildFormContentWeb(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Meeting Title
+        _buildPillTextField(
+          controller: _titleController,
+          hintText: 'Meeting Title',
+          icon: Icons.event,
+          isMobile: isMobile,
+        ),
+        SizedBox(height: AppSpacing.medium),
+        
+        // Description
+        _buildPillTextField(
+          controller: _descriptionController,
+          hintText: 'Description (Optional)',
+          icon: Icons.description_outlined,
+          maxLines: 3,
+          isMobile: isMobile,
+        ),
+        SizedBox(height: AppSpacing.medium),
+        
+        // Date Picker
+        _buildPillDateButton(
+          icon: Icons.calendar_today,
+          label: 'Date',
+          value: _formatDate(_selectedDate),
+          onTap: _selectDate,
+          isMobile: isMobile,
+        ),
+        SizedBox(height: AppSpacing.medium),
+        
+        // Time Picker
+        _buildPillDateButton(
+          icon: Icons.access_time,
+          label: 'Time',
+          value: _formatTime(_selectedTime),
+          onTap: _selectTime,
+          isMobile: isMobile,
+        ),
+        SizedBox(height: AppSpacing.medium),
+        
+        // Duration
+        _buildPillTextField(
+          controller: _durationController,
+          hintText: 'Duration (minutes)',
+          icon: Icons.timer,
+          keyboardType: TextInputType.number,
+          isMobile: isMobile,
+        ),
+        SizedBox(height: AppSpacing.extraLarge * 1.5),
+        
+        // Schedule Button
+        Container(
+          constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 450.0),
+          child: StyledPillButton(
+            label: 'Schedule Meeting',
+            icon: Icons.schedule,
+            onPressed: _isLoading ? null : _handleSchedule,
+            isLoading: _isLoading,
+            width: double.infinity,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPillTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required IconData icon,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    required bool isMobile,
+  }) {
+    final maxWidth = isMobile ? double.infinity : 450.0;
+    
+    return Container(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(maxLines > 1 ? 20 : 30),
+        border: Border.all(
+          color: AppColors.warmBrown.withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        style: AppTypography.body.copyWith(
+          color: AppColors.primaryDark,
+          fontSize: isMobile ? 14 : 15,
+        ),
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: AppTypography.body.copyWith(
+            color: AppColors.primaryDark.withOpacity(0.4),
+            fontSize: isMobile ? 14 : 15,
+          ),
+          prefixIcon: Padding(
+            padding: EdgeInsets.only(left: AppSpacing.large, right: AppSpacing.small),
+            child: Icon(
+              icon,
+              color: AppColors.warmBrown.withOpacity(0.7),
+              size: 20,
+            ),
+          ),
+          prefixIconConstraints: const BoxConstraints(minWidth: 48),
+          border: InputBorder.none,
+          filled: false,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.large,
+            vertical: maxLines > 1 ? AppSpacing.medium : AppSpacing.medium + 4,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPillDateButton({
+    required IconData icon,
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+    required bool isMobile,
+  }) {
+    final maxWidth = isMobile ? double.infinity : 450.0;
+    
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        padding: EdgeInsets.symmetric(
+          horizontal: AppSpacing.large,
+          vertical: AppSpacing.medium + 4,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: AppColors.warmBrown.withOpacity(0.2),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: AppColors.warmBrown.withOpacity(0.7),
+              size: 20,
+            ),
+            SizedBox(width: AppSpacing.medium),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.primaryDark.withOpacity(0.6),
+                      fontSize: 12,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    value,
+                    style: AppTypography.body.copyWith(
+                      color: AppColors.primaryDark,
+                      fontSize: isMobile ? 14 : 15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: AppColors.warmBrown.withOpacity(0.5),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildTextField({

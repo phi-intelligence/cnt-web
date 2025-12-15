@@ -561,6 +561,7 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
           prefixIconConstraints: const BoxConstraints(minWidth: 48),
           suffixIcon: suffixIcon,
           border: InputBorder.none,
+          filled: false,
           contentPadding: EdgeInsets.symmetric(
             horizontal: AppSpacing.large,
             vertical: maxLines > 1 ? AppSpacing.medium : AppSpacing.medium + 4,

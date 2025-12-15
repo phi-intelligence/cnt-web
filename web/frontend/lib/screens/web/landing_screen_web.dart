@@ -21,7 +21,6 @@ class LandingScreenWeb extends StatefulWidget {
 }
 
 class _LandingScreenWebState extends State<LandingScreenWeb> {
-  final _emailController = TextEditingController();
   final _loginFormKey = GlobalKey<FormState>();
   final _usernameOrEmailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -41,7 +40,6 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
 
   @override
   void dispose() {
-    _emailController.dispose();
     _usernameOrEmailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -78,14 +76,10 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   }
 
   Future<void> _handleGetStarted() async {
-    // Navigate directly to register page (email is optional pre-fill)
+    // Navigate directly to register page
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => RegisterScreenWeb(
-          prefilledEmail: _emailController.text.trim().isNotEmpty 
-              ? _emailController.text.trim() 
-              : null,
-        ),
+        builder: (_) => RegisterScreenWeb(),
       ),
     );
   }
@@ -107,9 +101,9 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
       _passwordController.text,
     );
 
-    setState(() => _isLoading = false);
-
     if (mounted) {
+      setState(() => _isLoading = false);
+
       if (success) {
         Navigator.of(context).pop();
         context.go('/home');
@@ -130,9 +124,8 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.googleLogin();
 
-    setState(() => _isLoading = false);
-
     if (mounted) {
+      setState(() => _isLoading = false);
       if (success) {
         // Safely pop the dialog - it might already be dismissed
         try {
@@ -337,41 +330,6 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Email input - pill shaped
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: AppColors.warmBrown.withOpacity(0.3),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: TextField(
-              controller: _emailController,
-              style: AppTypography.body.copyWith(color: AppColors.primaryDark),
-              decoration: InputDecoration(
-                hintText: 'Email address',
-                hintStyle: AppTypography.body.copyWith(
-                  color: AppColors.primaryDark.withOpacity(0.4),
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: AppSpacing.extraLarge,
-                  vertical: AppSpacing.medium + 4,
-                ),
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-          ),
-          SizedBox(height: AppSpacing.large),
           // Buttons row
           Row(
             children: [
@@ -414,42 +372,6 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Email input - pill shaped
-        Container(
-          width: 400,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: AppColors.warmBrown.withOpacity(0.3),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: TextField(
-            controller: _emailController,
-            style: AppTypography.body.copyWith(color: AppColors.primaryDark),
-            decoration: InputDecoration(
-              hintText: 'Email address',
-              hintStyle: AppTypography.body.copyWith(
-                color: AppColors.primaryDark.withOpacity(0.4),
-              ),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.extraLarge,
-                vertical: AppSpacing.medium + 4,
-              ),
-            ),
-            keyboardType: TextInputType.emailAddress,
-          ),
-        ),
-        SizedBox(height: AppSpacing.large),
         // Buttons row
         Row(
           children: [
@@ -1745,8 +1667,12 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                 // Email field
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.mutedMain,
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: AppColors.warmBrown.withOpacity(0.2),
+                      width: 1,
+                    ),
                   ),
                   child: TextFormField(
                     controller: _usernameOrEmailController,
@@ -1764,6 +1690,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                       ),
                       prefixIcon: Icon(Icons.email_outlined, color: AppColors.warmBrown),
                       border: InputBorder.none,
+                      filled: false,
                       contentPadding: EdgeInsets.all(AppSpacing.medium),
                     ),
                   ),
@@ -1773,8 +1700,12 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                 // Password field
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.mutedMain,
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: AppColors.warmBrown.withOpacity(0.2),
+                      width: 1,
+                    ),
                   ),
                   child: TextFormField(
                     controller: _passwordController,
@@ -1804,6 +1735,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                         },
                       ),
                       border: InputBorder.none,
+                      filled: false,
                       contentPadding: EdgeInsets.all(AppSpacing.medium),
                     ),
                   ),

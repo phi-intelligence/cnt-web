@@ -56,9 +56,7 @@ class StyledPillButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (variant == StyledPillButtonVariant.outlined || variant == StyledPillButtonVariant.outlinedLight) {
-      return SizedBox(
-        width: width,
-        child: OutlinedButton(
+      Widget button = OutlinedButton(
           onPressed: isLoading ? null : onPressed,
           style: OutlinedButton.styleFrom(
             foregroundColor: _foregroundColor,
@@ -78,13 +76,15 @@ class StyledPillButton extends StatelessWidget {
                 : AppColors.textSecondary,
           ),
           child: _buildButtonContent(),
-        ),
-      );
+        );
+      
+      if (width != null) {
+        return SizedBox(width: width, child: button);
+      }
+      return IntrinsicWidth(child: button);
     }
 
-    return SizedBox(
-      width: width,
-      child: ElevatedButton(
+    Widget button = ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.warmBrown,
@@ -101,8 +101,12 @@ class StyledPillButton extends StatelessWidget {
           disabledForegroundColor: AppColors.textInverse.withOpacity(0.7),
         ),
         child: _buildButtonContent(),
-      ),
-    );
+      );
+    
+    if (width != null) {
+      return SizedBox(width: width, child: button);
+    }
+    return IntrinsicWidth(child: button);
   }
 
   Widget _buildButtonContent() {

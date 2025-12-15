@@ -74,97 +74,178 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    final isTablet = screenWidth >= 600 && screenWidth < 1024;
+
     return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      body: Container(
-        padding: ResponsiveGridDelegate.getResponsivePadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: const Color(0xFFF5F0E8),
+      body: SizedBox(
+        width: double.infinity,
+        height: screenHeight,
+        child: Stack(
           children: [
-            // Header with gradient background
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(AppSpacing.extraLarge),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.warmBrown,
-                    AppColors.warmBrown.withOpacity(0.85),
-                    AppColors.primaryMain.withOpacity(0.9),
+            // Background image positioned to the right
+            Positioned(
+              top: isMobile ? -30 : 0,
+              bottom: isMobile ? null : 0,
+              right: isMobile ? -screenWidth * 0.4 : -50,
+              height: isMobile ? screenHeight * 0.6 : null,
+              width: isMobile ? screenWidth * 1.3 : screenWidth * 0.65,
+              child: Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: const AssetImage('assets/images/jesus-teaching.png'),
+                    fit: isMobile ? BoxFit.contain : BoxFit.cover,
+                    alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
+                  ),
+                ),
+              ),
+            ),
+            
+            // Gradient overlay from left
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: isMobile
+                        ? [
+                            const Color(0xFFF5F0E8),
+                            const Color(0xFFF5F0E8).withOpacity(0.98),
+                            const Color(0xFFF5F0E8).withOpacity(0.85),
+                            const Color(0xFFF5F0E8).withOpacity(0.4),
+                            Colors.transparent,
+                          ]
+                        : [
+                            const Color(0xFFF5F0E8),
+                            const Color(0xFFF5F0E8).withOpacity(0.99),
+                            const Color(0xFFF5F0E8).withOpacity(0.95),
+                            const Color(0xFFF5F0E8).withOpacity(0.7),
+                            const Color(0xFFF5F0E8).withOpacity(0.3),
+                            Colors.transparent,
+                          ],
+                    stops: isMobile
+                        ? const [0.0, 0.2, 0.4, 0.6, 0.8]
+                        : const [0.0, 0.25, 0.4, 0.5, 0.6, 0.75],
+                  ),
+                ),
+              ),
+            ),
+            
+            // Content positioned centered/right-aligned
+            Positioned(
+              left: isMobile ? 0 : (screenWidth * 0.15),
+              top: 0,
+              bottom: 0,
+              right: 0,
+              child: SafeArea(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Padding(
+                      padding: EdgeInsets.only(
+                        left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
+                        right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                        top: isMobile ? 20 : 40,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Live Streams',
+                                  style: AppTypography.getResponsiveHeroTitle(context).copyWith(
+                                    color: AppColors.primaryDark,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isMobile ? 28 : (isTablet ? 36 : 42),
+                                    height: 1.1,
+                                  ),
+                                ),
+                                SizedBox(height: AppSpacing.small),
+                                Text(
+                                  'Watch and join live streams',
+                                  style: AppTypography.getResponsiveBody(context).copyWith(
+                                    color: AppColors.primaryDark.withOpacity(0.7),
+                                    fontSize: isMobile ? 14 : 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(width: AppSpacing.medium),
+                          StyledPillButton(
+                            label: 'Go Live',
+                            icon: Icons.videocam,
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Create stream coming soon')),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    SizedBox(height: AppSpacing.large),
+                    
+                    // Tabs with brown underline indicator
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: AppColors.borderPrimary,
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: TabBar(
+                          controller: _tabController,
+                          labelColor: AppColors.warmBrown,
+                          unselectedLabelColor: AppColors.textSecondary,
+                          indicatorColor: AppColors.warmBrown,
+                          indicatorWeight: 3,
+                          labelStyle: AppTypography.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          tabs: const [
+                            Tab(text: 'Live Now'),
+                            Tab(text: 'Upcoming'),
+                            Tab(text: 'Past'),
+                          ],
+                        ),
+                      ),
+                    ),
+                    
+                    // Tab Content
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                          vertical: AppSpacing.medium,
+                        ),
+                        child: TabBarView(
+                          controller: _tabController,
+                          children: [
+                            _buildLiveStreams(),
+                            _buildUpcomingStreams(),
+                            _buildPastStreams(),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.warmBrown.withOpacity(0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Live Streams',
-                    style: AppTypography.heading1.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  StyledPillButton(
-                    label: 'Go Live',
-                    icon: Icons.videocam,
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Create stream coming soon')),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.large),
-            
-            // Tabs with brown underline indicator
-            Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: AppColors.borderPrimary,
-                    width: 1,
-                  ),
-                ),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                labelColor: AppColors.warmBrown,
-                unselectedLabelColor: AppColors.textSecondary,
-                indicatorColor: AppColors.warmBrown,
-                indicatorWeight: 3,
-                labelStyle: AppTypography.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-                tabs: const [
-                  Tab(text: 'Live Now'),
-                  Tab(text: 'Upcoming'),
-                  Tab(text: 'Past'),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.medium),
-            
-            // Tab Content
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildLiveStreams(),
-                  _buildUpcomingStreams(),
-                  _buildPastStreams(),
-                ],
               ),
             ),
           ],
@@ -222,11 +303,19 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
           Container(
             padding: EdgeInsets.all(AppSpacing.large),
             decoration: BoxDecoration(
+              color: Colors.white,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: AppColors.warmBrown.withOpacity(0.3),
+                color: AppColors.warmBrown.withOpacity(0.2),
                 width: 1,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: [

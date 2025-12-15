@@ -84,6 +84,11 @@ class VideoPodcastCreateScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    final isTablet = screenWidth >= 600 && screenWidth < 1024;
+
     final List<Map<String, dynamic>> options = [
       {
         'icon': Icons.videocam,
@@ -116,70 +121,218 @@ class VideoPodcastCreateScreen extends StatelessWidget {
       },
     ];
 
-    return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      body: Container(
-        padding: ResponsiveGridDelegate.getResponsivePadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with back button
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                Expanded(
-                  child: StyledPageHeader(
-                    title: 'Create Video Podcast',
-                    size: StyledPageHeaderSize.h2,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.extraLarge),
-            
-            // Options Grid
-            Expanded(
-              child: SectionContainer(
-                showShadow: true,
-                child: Padding(
-                  padding: EdgeInsets.all(AppSpacing.large),
-                  child: GridView.builder(
-                    gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
-                      context,
-                      desktop: 2,
-                      tablet: 2,
-                      mobile: 1,
-                      childAspectRatio: 1.5,
-                      crossAxisSpacing: AppSpacing.large,
-                      mainAxisSpacing: AppSpacing.large,
+    if (kIsWeb) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F0E8),
+        body: SizedBox(
+          width: double.infinity,
+          height: screenHeight,
+          child: Stack(
+            children: [
+              // Background image positioned to the right
+              Positioned(
+                top: isMobile ? -30 : 0,
+                bottom: isMobile ? null : 0,
+                right: isMobile ? -screenWidth * 0.4 : -50,
+                height: isMobile ? screenHeight * 0.6 : null,
+                width: isMobile ? screenWidth * 1.3 : screenWidth * 0.65,
+                child: Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: const AssetImage('assets/images/christimage.png'),
+                      fit: isMobile ? BoxFit.contain : BoxFit.cover,
+                      alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
                     ),
-                    itemCount: options.length,
-                    itemBuilder: (context, index) {
-                      final option = options[index];
-                      // Alternate hover colors: orange for odd (1), brown for even (2)
-                      final hoverColors = index % 2 == 0
-                          ? [AppColors.accentMain, AppColors.accentDark] // Orange
-                          : [AppColors.warmBrown, AppColors.primaryMain]; // Brown
-                      return _buildOptionCard(
-                        context,
-                        icon: option['icon'] as IconData,
-                        title: option['title'] as String,
-                        description: option['description'] as String,
-                        hoverColors: hoverColors,
-                        onTap: option['onTap'] as VoidCallback,
-                      );
-                    },
                   ),
                 ),
               ),
-            ),
-          ],
+              // Gradient overlay from left
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: isMobile
+                          ? [
+                              const Color(0xFFF5F0E8),
+                              const Color(0xFFF5F0E8).withOpacity(0.98),
+                              const Color(0xFFF5F0E8).withOpacity(0.85),
+                              const Color(0xFFF5F0E8).withOpacity(0.4),
+                              Colors.transparent,
+                            ]
+                          : [
+                              const Color(0xFFF5F0E8),
+                              const Color(0xFFF5F0E8).withOpacity(0.99),
+                              const Color(0xFFF5F0E8).withOpacity(0.95),
+                              const Color(0xFFF5F0E8).withOpacity(0.7),
+                              const Color(0xFFF5F0E8).withOpacity(0.3),
+                              Colors.transparent,
+                            ],
+                      stops: isMobile
+                          ? const [0.0, 0.2, 0.4, 0.6, 0.8]
+                          : const [0.0, 0.25, 0.4, 0.5, 0.6, 0.75],
+                    ),
+                  ),
+                ),
+              ),
+              // Content positioned centered/right-aligned
+              Positioned(
+                left: isMobile ? 0 : (screenWidth * 0.15),
+                top: 0,
+                bottom: 0,
+                right: 0,
+                child: SafeArea(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.only(
+                      left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
+                      right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                      top: isMobile ? 20 : 40,
+                      bottom: AppSpacing.extraLarge,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header with back button
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.arrow_back, color: AppColors.primaryDark),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                            Expanded(
+                              child: Text(
+                                'Create Video Podcast',
+                                style: AppTypography.getResponsiveHeroTitle(context).copyWith(
+                                  color: AppColors.primaryDark,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: isMobile ? 28 : (isTablet ? 36 : 42),
+                                  height: 1.1,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: AppSpacing.small),
+                        Text(
+                          'Record a new video or choose from your gallery',
+                          style: AppTypography.getResponsiveBody(context).copyWith(
+                            color: AppColors.primaryDark.withOpacity(0.7),
+                            fontSize: isMobile ? 14 : 16,
+                          ),
+                        ),
+                        SizedBox(height: AppSpacing.extraLarge * 1.5),
+                        
+                        // Options Grid - centered on page
+                        Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: isMobile ? double.infinity : 700,
+                            ),
+                            child: GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: isMobile ? 1 : 2,
+                                crossAxisSpacing: AppSpacing.large,
+                                mainAxisSpacing: AppSpacing.large,
+                                childAspectRatio: 1.1,
+                              ),
+                              itemCount: options.length,
+                              itemBuilder: (context, index) {
+                                final option = options[index];
+                                // Alternate hover colors: orange for odd (1), brown for even (2)
+                                final hoverColors = index % 2 == 0
+                                    ? [AppColors.accentMain, AppColors.accentDark] // Orange
+                                    : [AppColors.warmBrown, AppColors.primaryMain]; // Brown
+                                return _buildOptionCard(
+                                  context,
+                                  icon: option['icon'] as IconData,
+                                  title: option['title'] as String,
+                                  description: option['description'] as String,
+                                  hoverColors: hoverColors,
+                                  onTap: option['onTap'] as VoidCallback,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      // Mobile version (original design)
+      return Scaffold(
+        backgroundColor: AppColors.backgroundPrimary,
+        body: Container(
+          padding: ResponsiveGridDelegate.getResponsivePadding(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with back button
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  Expanded(
+                    child: StyledPageHeader(
+                      title: 'Create Video Podcast',
+                      size: StyledPageHeaderSize.h2,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.extraLarge),
+              
+              // Options Grid
+              Expanded(
+                child: SectionContainer(
+                  showShadow: true,
+                  child: Padding(
+                    padding: EdgeInsets.all(AppSpacing.large),
+                    child: GridView.builder(
+                      gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+                        context,
+                        desktop: 2,
+                        tablet: 2,
+                        mobile: 1,
+                        childAspectRatio: 1.5,
+                        crossAxisSpacing: AppSpacing.large,
+                        mainAxisSpacing: AppSpacing.large,
+                      ),
+                      itemCount: options.length,
+                      itemBuilder: (context, index) {
+                        final option = options[index];
+                        // Alternate hover colors: orange for odd (1), brown for even (2)
+                        final hoverColors = index % 2 == 0
+                            ? [AppColors.accentMain, AppColors.accentDark] // Orange
+                            : [AppColors.warmBrown, AppColors.primaryMain]; // Brown
+                        return _buildOptionCard(
+                          context,
+                          icon: option['icon'] as IconData,
+                          title: option['title'] as String,
+                          description: option['description'] as String,
+                          hoverColors: hoverColors,
+                          onTap: option['onTap'] as VoidCallback,
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildOptionCard(
@@ -268,13 +421,14 @@ class _OptionCardState extends State<_OptionCard> {
                     ),
                   ],
           ),
-          padding: const EdgeInsets.all(AppSpacing.extraLarge),
+          padding: const EdgeInsets.all(AppSpacing.large),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 80,
-                height: 80,
+                width: 70,
+                height: 70,
                 decoration: BoxDecoration(
                   color: _isHovered
                       ? Colors.white.withOpacity(0.2)
@@ -292,49 +446,56 @@ class _OptionCardState extends State<_OptionCard> {
                   color: _isHovered
                       ? Colors.white
                       : AppColors.warmBrown,
-                  size: 40,
+                  size: 36,
                 ),
-              ),
-              const SizedBox(height: AppSpacing.medium),
-              Text(
-                widget.title,
-                style: AppTypography.heading3.copyWith(
-                  color: _isHovered
-                      ? Colors.white
-                      : AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.small),
-              Text(
-                widget.description,
-                style: AppTypography.body.copyWith(
-                  color: _isHovered
-                      ? Colors.white.withOpacity(0.9)
-                      : AppColors.textSecondary,
+              Flexible(
+                child: Text(
+                  widget.title,
+                  style: AppTypography.heading4.copyWith(
+                    color: _isHovered
+                        ? Colors.white
+                        : AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppSpacing.tiny),
+              Flexible(
+                child: Text(
+                  widget.description,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: _isHovered
+                        ? Colors.white.withOpacity(0.9)
+                        : AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               if (_isHovered) ...[
-                const SizedBox(height: AppSpacing.medium),
+                const SizedBox(height: AppSpacing.small),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       'Get Started',
-                      style: AppTypography.bodyMedium.copyWith(
+                      style: AppTypography.bodySmall.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.small),
+                    const SizedBox(width: AppSpacing.tiny),
                     Icon(
                       Icons.arrow_forward,
                       color: Colors.white,
-                      size: 18,
+                      size: 16,
                     ),
                   ],
                 ),

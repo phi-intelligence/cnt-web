@@ -22,6 +22,11 @@ class MeetingOptionsScreenWeb extends StatefulWidget {
 class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    final isTablet = screenWidth >= 600 && screenWidth < 1024;
+
     final List<Map<String, dynamic>> options = [
       {
         'title': 'Instant Meeting',
@@ -89,59 +94,139 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
     ];
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      body: Container(
-        padding: ResponsiveGridDelegate.getResponsivePadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: const Color(0xFFF5F0E8),
+      body: SizedBox(
+        width: double.infinity,
+        height: screenHeight,
+        child: Stack(
           children: [
-            // Header with back button
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                Expanded(
-                  child: StyledPageHeader(
-                    title: 'Meeting Options',
-                    size: StyledPageHeaderSize.h2,
+            // Background image positioned to the right
+            Positioned(
+              top: isMobile ? -30 : 0,
+              bottom: isMobile ? null : 0,
+              right: isMobile ? -screenWidth * 0.4 : -50,
+              height: isMobile ? screenHeight * 0.6 : null,
+              width: isMobile ? screenWidth * 1.3 : screenWidth * 0.65,
+              child: Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: const AssetImage('assets/images/jesus-teaching.png'),
+                    fit: isMobile ? BoxFit.contain : BoxFit.cover,
+                    alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
                   ),
                 ),
-              ],
+              ),
             ),
-            const SizedBox(height: AppSpacing.extraLarge),
+            // Gradient overlay from left
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: isMobile
+                        ? [
+                            const Color(0xFFF5F0E8),
+                            const Color(0xFFF5F0E8).withOpacity(0.98),
+                            const Color(0xFFF5F0E8).withOpacity(0.85),
+                            const Color(0xFFF5F0E8).withOpacity(0.4),
+                            Colors.transparent,
+                          ]
+                        : [
+                            const Color(0xFFF5F0E8),
+                            const Color(0xFFF5F0E8).withOpacity(0.99),
+                            const Color(0xFFF5F0E8).withOpacity(0.95),
+                            const Color(0xFFF5F0E8).withOpacity(0.7),
+                            const Color(0xFFF5F0E8).withOpacity(0.3),
+                            Colors.transparent,
+                          ],
+                    stops: isMobile
+                        ? const [0.0, 0.2, 0.4, 0.6, 0.8]
+                        : const [0.0, 0.25, 0.4, 0.5, 0.6, 0.75],
+                  ),
+                ),
+              ),
+            ),
+            // Content positioned centered
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              right: 0,
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
+                    right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
+                    top: isMobile ? 20 : 40,
+                    bottom: AppSpacing.extraLarge,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header with back button
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.arrow_back, color: AppColors.primaryDark),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                          Expanded(
+                            child: Text(
+                              'Meeting Options',
+                              style: AppTypography.getResponsiveHeroTitle(context).copyWith(
+                                color: AppColors.primaryDark,
+                                fontWeight: FontWeight.bold,
+                                fontSize: isMobile ? 28 : (isTablet ? 36 : 42),
+                                height: 1.1,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: AppSpacing.small),
+                      Text(
+                        'Choose how you want to connect with others',
+                        style: AppTypography.getResponsiveBody(context).copyWith(
+                          color: AppColors.primaryDark.withOpacity(0.7),
+                          fontSize: isMobile ? 14 : 16,
+                        ),
+                      ),
+                      SizedBox(height: AppSpacing.extraLarge * 2),
 
-            // Options Grid
-            Expanded(
-              child: SectionContainer(
-                showShadow: true,
-                child: Padding(
-                  padding: EdgeInsets.all(AppSpacing.large),
-                  child: GridView.builder(
-                    gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
-                      context,
-                      desktop: 3,
-                      tablet: 2,
-                      mobile: 1,
-                      childAspectRatio: 1.2,
-                      crossAxisSpacing: AppSpacing.large,
-                      mainAxisSpacing: AppSpacing.large,
-                    ),
-                    itemCount: options.length,
-                    itemBuilder: (context, index) {
-                      final option = options[index];
-                      // Alternate hover colors: orange for odd (1, 3), brown for even (2)
-                      final hoverColors = index % 2 == 0
-                          ? [AppColors.accentMain, AppColors.accentDark] // Orange
-                          : [AppColors.warmBrown, AppColors.primaryMain]; // Brown
-                      return _buildOptionCard(
-                        title: option['title'] as String,
-                        icon: option['icon'] as IconData,
-                        hoverColors: hoverColors,
-                        onTap: option['onTap'] as VoidCallback,
-                      );
-                    },
+                      // Centered Options Grid
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: isMobile ? double.infinity : 1000,
+                          ),
+                          child: GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: isMobile ? 1 : (isTablet ? 2 : 3),
+                              crossAxisSpacing: AppSpacing.large,
+                              mainAxisSpacing: AppSpacing.large,
+                              childAspectRatio: isMobile ? 1.5 : 1.2,
+                            ),
+                            itemCount: options.length,
+                            itemBuilder: (context, index) {
+                              final option = options[index];
+                              // Alternate hover colors: orange for odd (1, 3), brown for even (2)
+                              final hoverColors = index % 2 == 0
+                                  ? [AppColors.accentMain, AppColors.accentDark] // Orange
+                                  : [AppColors.warmBrown, AppColors.primaryMain]; // Brown
+                              return _buildOptionCard(
+                                title: option['title'] as String,
+                                icon: option['icon'] as IconData,
+                                hoverColors: hoverColors,
+                                onTap: option['onTap'] as VoidCallback,
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -233,9 +318,10 @@ class _OptionCardState extends State<_OptionCard> {
                     ),
                   ],
           ),
-          padding: const EdgeInsets.all(AppSpacing.extraLarge),
+          padding: const EdgeInsets.all(AppSpacing.large),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 70,
@@ -261,33 +347,38 @@ class _OptionCardState extends State<_OptionCard> {
                 ),
               ),
               const SizedBox(height: AppSpacing.medium),
-              Text(
-                widget.title,
-                style: AppTypography.heading3.copyWith(
-                  color: _isHovered
-                      ? Colors.white
-                      : AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
+              Flexible(
+                child: Text(
+                  widget.title,
+                  style: AppTypography.heading4.copyWith(
+                    color: _isHovered
+                        ? Colors.white
+                        : AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                textAlign: TextAlign.center,
               ),
               if (_isHovered) ...[
-                const SizedBox(height: AppSpacing.medium),
+                const SizedBox(height: AppSpacing.small),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       'Get Started',
-                      style: AppTypography.bodyMedium.copyWith(
+                      style: AppTypography.bodySmall.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.small),
+                    const SizedBox(width: AppSpacing.tiny),
                     Icon(
                       Icons.arrow_forward,
                       color: Colors.white,
-                      size: 18,
+                      size: 16,
                     ),
                   ],
                 ),

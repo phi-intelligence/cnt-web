@@ -86,162 +86,286 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
-      // Web version with web design system
-      return Scaffold(
-        backgroundColor: AppColors.backgroundPrimary,
-        body: Container(
-          padding: ResponsiveGridDelegate.getResponsivePadding(context),
-          child: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: ResponsiveGridDelegate.getMaxContentWidth(context),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header with back button
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      Expanded(
-                        child: StyledPageHeader(
-                          title: 'Check Your Setup',
-                          size: StyledPageHeaderSize.h2,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.extraLarge),
+      // Web version with register page design pattern
+      final screenHeight = MediaQuery.of(context).size.height;
+      final screenWidth = MediaQuery.of(context).size.width;
+      final isMobile = screenWidth < 600;
+      final isTablet = screenWidth >= 600 && screenWidth < 1024;
 
-                  // Preview Section
-                  SectionContainer(
-                    showShadow: true,
-                    child: Column(
-                      children: [
-                        // Preview placeholder
-                        Container(
-                          height: 300,
-                          decoration: BoxDecoration(
-                            color: AppColors.backgroundSecondary,
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: AppColors.borderPrimary),
-                          ),
-                          alignment: Alignment.center,
-                          child: cameraEnabled
-                              ? Icon(Icons.videocam, size: 80, color: AppColors.primaryMain)
-                              : Icon(Icons.videocam_off, size: 80, color: AppColors.textSecondary),
-                        ),
-                        const SizedBox(height: AppSpacing.large),
-                        Text(
-                          'Room: ${widget.roomName}',
-                          style: AppTypography.body.copyWith(color: AppColors.textSecondary),
-                        ),
-                      ],
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F0E8),
+        body: SizedBox(
+          width: double.infinity,
+          height: screenHeight,
+          child: Stack(
+            children: [
+              // Background image positioned to the right
+              Positioned(
+                top: isMobile ? -30 : 0,
+                bottom: isMobile ? null : 0,
+                right: isMobile ? -screenWidth * 0.4 : -50,
+                height: isMobile ? screenHeight * 0.6 : null,
+                width: isMobile ? screenWidth * 1.3 : screenWidth * 0.65,
+                child: Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: const AssetImage('assets/images/jesus.png'),
+                      fit: isMobile ? BoxFit.contain : BoxFit.cover,
+                      alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.large),
-
-                  // Device Settings Section
-                  SectionContainer(
-                    showShadow: true,
+                ),
+              ),
+              
+              // Gradient overlay from left
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: isMobile
+                          ? [
+                              const Color(0xFFF5F0E8),
+                              const Color(0xFFF5F0E8).withOpacity(0.98),
+                              const Color(0xFFF5F0E8).withOpacity(0.85),
+                              const Color(0xFFF5F0E8).withOpacity(0.4),
+                              Colors.transparent,
+                            ]
+                          : [
+                              const Color(0xFFF5F0E8),
+                              const Color(0xFFF5F0E8).withOpacity(0.99),
+                              const Color(0xFFF5F0E8).withOpacity(0.95),
+                              const Color(0xFFF5F0E8).withOpacity(0.7),
+                              const Color(0xFFF5F0E8).withOpacity(0.3),
+                              Colors.transparent,
+                            ],
+                      stops: isMobile
+                          ? const [0.0, 0.2, 0.4, 0.6, 0.8]
+                          : const [0.0, 0.25, 0.4, 0.5, 0.6, 0.75],
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Content positioned centered/right-aligned
+              Positioned(
+                left: isMobile ? 0 : (screenWidth * 0.15),
+                top: 0,
+                bottom: 0,
+                right: 0,
+                child: SafeArea(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.only(
+                      left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
+                      right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                      top: isMobile ? 20 : 40,
+                      bottom: AppSpacing.extraLarge,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Header with back button
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.arrow_back, color: AppColors.primaryDark),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                            Expanded(
+                              child: Text(
+                                'Check Your Setup',
+                                style: AppTypography.getResponsiveHeroTitle(context).copyWith(
+                                  color: AppColors.primaryDark,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: isMobile ? 28 : (isTablet ? 36 : 42),
+                                  height: 1.1,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: AppSpacing.small),
                         Text(
-                          'Device Settings',
-                          style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+                          'Configure your camera and microphone before joining',
+                          style: AppTypography.getResponsiveBody(context).copyWith(
+                            color: AppColors.primaryDark.withOpacity(0.7),
+                            fontSize: isMobile ? 14 : 16,
+                          ),
                         ),
-                        const SizedBox(height: AppSpacing.large),
-                        // Device Controls Grid
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final screenWidth = MediaQuery.of(context).size.width;
-                            final isMobile = screenWidth < 768;
-                            
-                            if (isMobile) {
-                              // Mobile: Stack vertically
-                              return Column(
-                                children: [
-                                  _buildDeviceControlCard(
-                                    icon: cameraEnabled ? Icons.videocam : Icons.videocam_off,
-                                    title: 'Camera',
-                                    subtitle: cameraEnabled ? 'On' : 'Off',
-                                    enabled: cameraEnabled,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        cameraEnabled = value;
-                                      });
-                                    },
+                        SizedBox(height: AppSpacing.extraLarge * 1.5),
+
+                        // Preview Section - Pill-shaped container
+                        Container(
+                          constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 500.0),
+                          padding: EdgeInsets.all(AppSpacing.large),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: AppColors.warmBrown.withOpacity(0.2),
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              // Preview placeholder
+                              Container(
+                                height: 300,
+                                decoration: BoxDecoration(
+                                  color: AppColors.backgroundSecondary,
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: AppColors.warmBrown.withOpacity(0.2),
                                   ),
-                                  const SizedBox(height: AppSpacing.medium),
-                                  _buildDeviceControlCard(
-                                    icon: micEnabled ? Icons.mic : Icons.mic_off,
-                                    title: 'Microphone',
-                                    subtitle: micEnabled ? 'On' : 'Off',
-                                    enabled: micEnabled,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        micEnabled = value;
-                                      });
-                                    },
-                                  ),
-                                ],
-                              );
-                            } else {
-                              // Desktop: Side by side
-                              return Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildDeviceControlCard(
-                                      icon: cameraEnabled ? Icons.videocam : Icons.videocam_off,
-                                      title: 'Camera',
-                                      subtitle: cameraEnabled ? 'On' : 'Off',
-                                      enabled: cameraEnabled,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          cameraEnabled = value;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: AppSpacing.large),
-                                  Expanded(
-                                    child: _buildDeviceControlCard(
-                                      icon: micEnabled ? Icons.mic : Icons.mic_off,
-                                      title: 'Microphone',
-                                      subtitle: micEnabled ? 'On' : 'Off',
-                                      enabled: micEnabled,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          micEnabled = value;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              );
-                            }
-                          },
+                                ),
+                                alignment: Alignment.center,
+                                child: cameraEnabled
+                                    ? Icon(Icons.videocam, size: 80, color: AppColors.warmBrown)
+                                    : Icon(Icons.videocam_off, size: 80, color: AppColors.textSecondary),
+                              ),
+                              const SizedBox(height: AppSpacing.large),
+                              Text(
+                                'Room: ${widget.roomName}',
+                                style: AppTypography.body.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        SizedBox(height: AppSpacing.large),
+
+                        // Device Settings Section
+                        Container(
+                          constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 500.0),
+                          padding: EdgeInsets.all(AppSpacing.large),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: AppColors.warmBrown.withOpacity(0.2),
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Device Settings',
+                                style: AppTypography.heading4.copyWith(
+                                  color: AppColors.primaryDark,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.large),
+                              // Device Controls Grid
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final screenWidth = MediaQuery.of(context).size.width;
+                                  final isMobile = screenWidth < 768;
+                                  
+                                  if (isMobile) {
+                                    // Mobile: Stack vertically
+                                    return Column(
+                                      children: [
+                                        _buildDeviceControlCard(
+                                          icon: cameraEnabled ? Icons.videocam : Icons.videocam_off,
+                                          title: 'Camera',
+                                          subtitle: cameraEnabled ? 'On' : 'Off',
+                                          enabled: cameraEnabled,
+                                          onChanged: (value) {
+                                            setState(() {
+                                              cameraEnabled = value;
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(height: AppSpacing.medium),
+                                        _buildDeviceControlCard(
+                                          icon: micEnabled ? Icons.mic : Icons.mic_off,
+                                          title: 'Microphone',
+                                          subtitle: micEnabled ? 'On' : 'Off',
+                                          enabled: micEnabled,
+                                          onChanged: (value) {
+                                            setState(() {
+                                              micEnabled = value;
+                                            });
+                                          },
+                                        ),
+                                      ],
+                                    );
+                                  } else {
+                                    // Desktop: Side by side
+                                    return Row(
+                                      children: [
+                                        Expanded(
+                                          child: _buildDeviceControlCard(
+                                            icon: cameraEnabled ? Icons.videocam : Icons.videocam_off,
+                                            title: 'Camera',
+                                            subtitle: cameraEnabled ? 'On' : 'Off',
+                                            enabled: cameraEnabled,
+                                            onChanged: (value) {
+                                              setState(() {
+                                                cameraEnabled = value;
+                                              });
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: AppSpacing.large),
+                                        Expanded(
+                                          child: _buildDeviceControlCard(
+                                            icon: micEnabled ? Icons.mic : Icons.mic_off,
+                                            title: 'Microphone',
+                                            subtitle: micEnabled ? 'On' : 'Off',
+                                            enabled: micEnabled,
+                                            onChanged: (value) {
+                                              setState(() {
+                                                micEnabled = value;
+                                              });
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: AppSpacing.extraLarge),
+
+                        // Join button
+                        Container(
+                          constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 500.0),
+                          child: StyledPillButton(
+                            label: 'Join Meeting',
+                            icon: Icons.meeting_room,
+                            onPressed: _onJoin,
+                            width: double.infinity,
+                          ),
+                        ),
+                        SizedBox(height: AppSpacing.extraLarge),
                       ],
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.extraLarge),
-
-                  // Join button
-                  StyledPillButton(
-                    label: 'Join Meeting',
-                    icon: Icons.meeting_room,
-                    onPressed: _onJoin,
-                    width: double.infinity,
-                  ),
-                  const SizedBox(height: AppSpacing.extraLarge),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       );
@@ -372,23 +496,21 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                 ],
               )
             : null,
-        color: enabled ? null : AppColors.backgroundSecondary,
-        borderRadius: BorderRadius.circular(24),
+        color: enabled ? null : Colors.white,
+        borderRadius: BorderRadius.circular(30),
         border: Border.all(
           color: enabled
               ? AppColors.warmBrown.withOpacity(0.3)
-              : AppColors.borderPrimary,
+              : AppColors.warmBrown.withOpacity(0.2),
           width: enabled ? 2 : 1,
         ),
-        boxShadow: enabled
-            ? [
-                BoxShadow(
-                  color: AppColors.warmBrown.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
