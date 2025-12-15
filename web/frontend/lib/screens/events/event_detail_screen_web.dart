@@ -8,6 +8,7 @@ import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/web/section_container.dart';
+import '../../widgets/web/styled_pill_button.dart';
 
 class EventDetailScreenWeb extends StatefulWidget {
   final int eventId;
@@ -591,45 +592,18 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
           if (!event.isPast)
             SizedBox(
               width: double.infinity,
-              height: 48,
               child: event.isAttending
-                  ? OutlinedButton(
+                  ? StyledPillButton(
+                      label: provider.isLoading ? 'Processing...' : 'Leave Event',
+                      icon: Icons.exit_to_app,
                       onPressed: provider.isLoading ? null : _handleLeave,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: BorderSide(color: Colors.red),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: provider.isLoading
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text('Leave Event'),
+                      variant: StyledPillButtonVariant.outlined,
                     )
-                  : ElevatedButton(
+                  : StyledPillButton(
+                      label: provider.isLoading ? 'Processing...' : 'Request to Join',
+                      icon: Icons.add_reaction,
                       onPressed: (provider.isLoading || event.isFull) ? null : _handleJoin,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.warmBrown,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: AppColors.warmBrown.withOpacity(0.5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: provider.isLoading
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text('Request to Join'),
+                      variant: StyledPillButtonVariant.filled,
                     ),
             ),
         ],

@@ -4,6 +4,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
 import '../shared/image_helper.dart';
+import '../../widgets/web/styled_pill_button.dart';
 import 'admin_status_badge.dart';
 
 /// Content card for admin management pages
@@ -82,7 +83,7 @@ class AdminContentCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
         side: BorderSide(
           color: isSelected 
-              ? AppColors.primaryMain 
+              ? AppColors.warmBrown 
               : AppColors.cardBorder,
           width: isSelected ? 2 : 1,
         ),
@@ -100,7 +101,7 @@ class AdminContentCard extends StatelessWidget {
                 Checkbox(
                   value: isSelected,
                   onChanged: (value) => onSelectionChanged?.call(value ?? false),
-                  activeColor: AppColors.primaryMain,
+                  activeColor: AppColors.warmBrown,
                 ),
                 const SizedBox(width: AppSpacing.small),
               ],
@@ -201,21 +202,22 @@ class AdminContentCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (onApprove != null)
-                      _buildPillButton(
+                      StyledPillButton(
                         label: 'Approve',
                         icon: Icons.check,
-                        color: AppColors.successMain,
                         onPressed: onApprove,
+                        variant: StyledPillButtonVariant.filled,
+                        width: 100,
                       ),
                     if (onApprove != null && onReject != null)
                       const SizedBox(height: AppSpacing.tiny),
                     if (onReject != null)
-                      _buildPillButton(
+                      StyledPillButton(
                         label: 'Reject',
                         icon: Icons.close,
-                        color: AppColors.errorMain,
                         onPressed: onReject,
-                        isOutlined: true,
+                        variant: StyledPillButtonVariant.outlined,
+                        width: 100,
                       ),
                   ],
                 ),
@@ -228,21 +230,22 @@ class AdminContentCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (onArchive != null)
-                      _buildPillButton(
+                      StyledPillButton(
                         label: 'Archive',
                         icon: Icons.archive_outlined,
-                        color: AppColors.warmBrown,
                         onPressed: onArchive,
+                        variant: StyledPillButtonVariant.outlined,
+                        width: 100,
                       ),
                     if (onArchive != null && onDelete != null)
                       const SizedBox(height: AppSpacing.tiny),
                     if (onDelete != null)
-                      _buildPillButton(
+                      StyledPillButton(
                         label: 'Delete',
                         icon: Icons.delete_outline,
-                        color: AppColors.errorMain,
                         onPressed: onDelete,
-                        isOutlined: true,
+                        variant: StyledPillButtonVariant.outlined,
+                        width: 100,
                       ),
                   ],
                 ),
@@ -266,46 +269,4 @@ class AdminContentCard extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildPillButton({
-    required String label,
-    required IconData icon,
-    required Color color,
-    required VoidCallback? onPressed,
-    bool isOutlined = false,
-  }) {
-    if (isOutlined) {
-      return OutlinedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 16),
-        label: Text(label, style: AppTypography.caption.copyWith(fontWeight: FontWeight.w600)),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: color,
-          side: BorderSide(color: color, width: 1.5),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(999),
-          ),
-          minimumSize: const Size(80, 32),
-        ),
-      );
-    }
-    
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 16),
-      label: Text(label, style: AppTypography.caption.copyWith(fontWeight: FontWeight.w600)),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
-        ),
-        elevation: 0,
-        minimumSize: const Size(80, 32),
-      ),
-    );
-  }
 }
-

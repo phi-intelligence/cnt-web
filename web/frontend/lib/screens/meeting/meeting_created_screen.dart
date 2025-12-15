@@ -110,7 +110,6 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
       final screenHeight = MediaQuery.of(context).size.height;
       final screenWidth = MediaQuery.of(context).size.width;
       final isMobile = screenWidth < 600;
-      final isTablet = screenWidth >= 600 && screenWidth < 1024;
       
       // Web version with background image pattern
       return Scaffold(
@@ -174,16 +173,18 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                 bottom: 0,
                 right: 0,
                 child: SafeArea(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.only(
-                      left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
-                      right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
-                      top: isMobile ? 20 : 40,
-                      bottom: AppSpacing.extraLarge,
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.only(
+                        left: isMobile ? AppSpacing.large : 0,
+                        right: isMobile ? AppSpacing.large : 0,
+                        top: isMobile ? 20 : 40,
+                        bottom: AppSpacing.extraLarge,
+                      ),
+                      child: isMobile
+                          ? _buildMobileLayout(true)
+                          : _buildCenteredDesktopLayout(),
                     ),
-                    child: isMobile
-                        ? _buildMobileLayout(true)
-                        : _buildDesktopLayout(),
                   ),
                 ),
               ),
@@ -377,96 +378,22 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
     }
   }
 
-  // Desktop layout with side panel for meeting tips
-  Widget _buildDesktopLayout() {
+  // Centered desktop layout - removes sidebar tips
+  Widget _buildCenteredDesktopLayout() {
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 1000),
-      child: Row(
+      constraints: const BoxConstraints(maxWidth: 800), // Slightly wider width
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Left side - Meeting tips/info
-          Expanded(
-            flex: 4,
-            child: Container(
-              padding: const EdgeInsets.all(32),
-              margin: const EdgeInsets.only(right: 24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.warmBrown, AppColors.accentMain],
-                ),
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.warmBrown.withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Decorative circles
-                  Stack(
-                    children: [
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          width: 100,
-                          height: 100,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.1),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        right: 50,
-                        top: 50,
-                        child: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.08),
-                          ),
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.tips_and_updates, size: 48, color: Colors.white),
-                          const SizedBox(height: 20),
-                          Text(
-                            'Meeting Tips',
-                            style: AppTypography.heading3.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          _buildTipItem(Icons.mic_off, 'Mute when not speaking'),
-                          _buildTipItem(Icons.video_camera_front, 'Ensure good lighting'),
-                          _buildTipItem(Icons.wifi, 'Check your internet connection'),
-                          _buildTipItem(Icons.headphones, 'Use headphones for better audio'),
-                          _buildTipItem(Icons.share, 'Share link with participants'),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+          // Back button
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context),
+            icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+            label: Text('Back to Options', style: AppTypography.body.copyWith(color: AppColors.textPrimary)),
           ),
+          const SizedBox(height: 32),
           
-          // Right side - Meeting details
-          Expanded(
-            flex: 5,
-            child: _buildMeetingDetailsCard(),
-          ),
+          Center(child: _buildMeetingDetailsCard()),
         ],
       ),
     );

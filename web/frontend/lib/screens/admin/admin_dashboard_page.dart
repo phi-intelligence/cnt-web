@@ -9,6 +9,7 @@ import '../admin/admin_documents_page.dart';
 import '../../widgets/shared/empty_state.dart';
 import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
+import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
 
@@ -95,13 +96,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.large),
-            ElevatedButton(
+            StyledPillButton(
+              label: 'Retry',
+              icon: Icons.refresh,
               onPressed: _loadStats,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryMain,
-                foregroundColor: AppColors.textInverse,
-              ),
-              child: const Text('Retry'),
             ),
           ],
         ),

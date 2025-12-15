@@ -126,6 +126,7 @@ class StyledPillButton extends StatelessWidget {
       style: AppTypography.button.copyWith(
         color: _foregroundColor,
       ),
+      overflow: TextOverflow.ellipsis,
     );
 
     if (icon == null) {
@@ -142,7 +143,7 @@ class StyledPillButton extends StatelessWidget {
             color: _foregroundColor,
           ),
           const SizedBox(width: 8),
-          textWidget,
+          Flexible(child: textWidget),
         ],
       );
     }
@@ -150,7 +151,7 @@ class StyledPillButton extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        textWidget,
+        Flexible(child: textWidget),
         const SizedBox(width: 8),
         Icon(
           icon,

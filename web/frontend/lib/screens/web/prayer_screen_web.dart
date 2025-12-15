@@ -5,7 +5,8 @@ import '../../theme/app_typography.dart';
 import '../../widgets/shared/empty_state.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/responsive_grid_delegate.dart';
-import '../../utils/dimension_utils.dart';
+import '../../widgets/web/styled_page_header.dart';
+import '../../widgets/web/styled_pill_button.dart';
 
 /// Web Prayer Screen - Prayer requests and community prayers
 class PrayerScreenWeb extends StatefulWidget {
@@ -45,48 +46,21 @@ class _PrayerScreenWebState extends State<PrayerScreenWeb> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Prayer Requests',
-                  style: AppTypography.heading1.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    _showCreatePrayerDialog(context);
-                  },
-                  icon: const Icon(Icons.add),
-                  label: Text(
-                    'Submit Prayer',
-                    style: AppTypography.body.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryMain,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: AppSpacing.large,
-                      vertical: AppSpacing.medium,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    elevation: 2,
-                  ),
-                ),
-              ],
+            StyledPageHeader(
+              title: 'Prayer Requests',
+              size: StyledPageHeaderSize.h1,
+              actionLabel: 'Submit Prayer',
+              actionIcon: Icons.add,
+              onAction: () => _showCreatePrayerDialog(context),
             ),
             const SizedBox(height: AppSpacing.large),
             
             // Prayers List
             Expanded(
-              child: _prayers.isEmpty
-                  ? const EmptyState(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _prayers.isEmpty
+                      ? const EmptyState(
                       icon: Icons.favorite,
                       title: 'No Prayer Requests',
                       message: 'Submit a prayer request to share with the community',
@@ -211,7 +185,8 @@ class _PrayerScreenWebState extends State<PrayerScreenWeb> {
               ),
             ),
           ),
-          ElevatedButton(
+          StyledPillButton(
+            label: 'Submit',
             onPressed: () {
               // TODO: Submit prayer
               Navigator.pop(context);
@@ -222,20 +197,6 @@ class _PrayerScreenWebState extends State<PrayerScreenWeb> {
                 ),
               );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryMain,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              'Submit',
-              style: AppTypography.body.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
           ),
         ],
       ),

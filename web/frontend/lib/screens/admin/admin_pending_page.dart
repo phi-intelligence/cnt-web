@@ -44,20 +44,20 @@ class _RejectReasonDialogState extends State<_RejectReasonDialog> {
         maxLines: 3,
       ),
       actions: [
-        TextButton(
+        StyledPillButton(
+          label: 'Cancel',
+          icon: Icons.close,
           onPressed: () => Navigator.pop(context),
-          child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          variant: StyledPillButtonVariant.outlined,
+          width: 100,
         ),
-        ElevatedButton(
+        const SizedBox(width: AppSpacing.small),
+        StyledPillButton(
+          label: 'Reject',
+          icon: Icons.check, // Or warning icon? Sticking to check for "Confirm Action" or keep close? Using 'check' as 'Confirm Rejection'.
           onPressed: () => Navigator.pop(context, _controller.text),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.errorMain,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-          child: const Text('Reject'),
+          variant: StyledPillButtonVariant.filled,
+          width: 100,
         ),
       ],
     );

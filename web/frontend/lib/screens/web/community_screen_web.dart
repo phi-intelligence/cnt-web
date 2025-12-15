@@ -6,6 +6,8 @@ import '../../theme/app_typography.dart';
 import '../../widgets/shared/loading_shimmer.dart';
 import '../../widgets/shared/empty_state.dart';
 import '../../widgets/community/instagram_post_card.dart';
+import '../../widgets/web/styled_page_header.dart';
+import '../../widgets/web/styled_pill_button.dart';
 import '../../providers/community_provider.dart';
 import '../community/comment_screen.dart';
 import '../../utils/responsive_grid_delegate.dart';
@@ -157,17 +159,12 @@ class _CommunityScreenWebState extends State<CommunityScreenWeb> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Community',
-                      style: AppTypography.heading2.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    _buildCreatePill(),
-                  ],
+                StyledPageHeader(
+                  title: 'Community',
+                  size: StyledPageHeaderSize.h1,
+                  actionLabel: 'New Post',
+                  actionIcon: Icons.add,
+                  onAction: _handleCreatePost,
                 ),
                 const SizedBox(height: AppSpacing.large),
                 
@@ -331,45 +328,5 @@ class _CommunityScreenWebState extends State<CommunityScreenWeb> {
     );
   }
 
-  Widget _buildCreatePill() {
-    return GestureDetector(
-      onTap: _handleCreatePost,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.medium,
-          vertical: AppSpacing.small,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.warmBrown.withOpacity(0.95),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.warmBrown.withOpacity(0.25),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          border: Border.all(
-            color: Colors.white.withOpacity(0.2),
-            width: 1.5,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.add, color: AppColors.textInverse, size: 20),
-            const SizedBox(width: 6),
-            Text(
-              'New Post',
-              style: AppTypography.body.copyWith(
-                color: AppColors.textInverse,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 }

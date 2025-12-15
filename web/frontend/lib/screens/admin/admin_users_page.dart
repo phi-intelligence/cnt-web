@@ -67,8 +67,12 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                     )
                   : null,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                borderRadius: BorderRadius.circular(30), // Pill shape
                 borderSide: BorderSide(color: AppColors.borderPrimary),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
               ),
               filled: true,
               fillColor: AppColors.backgroundPrimary,

@@ -12,6 +12,7 @@ import 'admin/admin_dashboard_page.dart';
 import 'admin/admin_pending_page.dart';
 import 'admin/admin_approved_page.dart';
 import 'admin/admin_users_page.dart';
+import '../widgets/admin/admin_web_layout.dart';
 
 /// Main Admin Dashboard Screen with navigation
 /// Navigation: Dashboard, Pending, Approved, Users
@@ -81,106 +82,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildWebLayout() {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      body: Row(
-        children: [
-          // Side Navigation
-          Container(
-            width: 280,
-            decoration: BoxDecoration(
-              color: AppColors.cardBackground,
-              border: Border(
-                right: BorderSide(
-                  color: AppColors.borderPrimary,
-                  width: 1,
-                ),
-              ),
-            ),
-            child: Column(
-              children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.large),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryMain,
-                    border: Border(
-                      bottom: BorderSide(
-                        color: AppColors.borderPrimary,
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.admin_panel_settings,
-                        color: AppColors.textInverse,
-                        size: AppSpacing.iconSizeLarge,
-                      ),
-                      const SizedBox(width: AppSpacing.small),
-                      Expanded(
-                        child: Text(
-                          'Admin Panel',
-                          style: AppTypography.heading3.copyWith(
-                            color: AppColors.textInverse,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Navigation Items
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppSpacing.medium,
-                    ),
-                    children: [
-                      for (int i = 0; i < _navItems.length; i++)
-                        _buildNavItem(i, isWeb: true),
-                    ],
-                  ),
-                ),
-
-                // Logout Button
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.medium),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: BorderSide(
-                        color: AppColors.borderPrimary,
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _handleLogout,
-                      icon: const Icon(Icons.logout),
-                      label: const Text('Logout'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.errorMain,
-                        side: BorderSide(color: AppColors.errorMain),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppSpacing.medium,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Main Content
-          Expanded(
-            child: _pages[_currentIndex],
-          ),
-        ],
-      ),
+    return AdminWebLayout(
+      currentIndex: _currentIndex,
+      navItems: _navItems,
+      onNavigate: _navigateToPage,
+      onLogout: () async {
+        await _handleLogout();
+      },
+      child: _pages[_currentIndex],
     );
   }
 
@@ -194,7 +103,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             color: AppColors.textInverse,
           ),
         ),
-        backgroundColor: AppColors.primaryMain,
+        backgroundColor: AppColors.warmBrown,
         foregroundColor: AppColors.textInverse,
         elevation: 0,
         actions: [

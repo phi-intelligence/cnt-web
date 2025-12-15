@@ -5,8 +5,11 @@ import 'package:intl/intl.dart';
 import '../../models/event.dart';
 import '../../providers/event_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
-import '../../widgets/web/section_container.dart';
+import '../../utils/platform_helper.dart';
+import '../../widgets/web/styled_page_header.dart';
+import '../../widgets/web/styled_pill_button.dart';
 import 'location_picker_screen_web.dart';
 
 /// Data class to hold location result
@@ -206,411 +209,216 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isLargeScreen = screenWidth > 1200;
-    final isMediumScreen = screenWidth > 768;
+    final isMobile = PlatformHelper.getScreenType(screenWidth) == ScreenType.mobile;
 
+    return isMobile 
+        ? _buildMobileLayout(context)
+        : _buildDesktopLayout(context);
+  }
+
+  Widget _buildDesktopLayout(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      body: CustomScrollView(
-        slivers: [
-          // App Bar
-          SliverAppBar(
-            backgroundColor: AppColors.backgroundPrimary,
-            elevation: 0,
-            pinned: true,
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: Text(
-              'Create Event',
-              style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
-            ),
-            centerTitle: false,
-          ),
-          
-          // Content
-          SliverPadding(
-            padding: EdgeInsets.symmetric(
-              horizontal: isLargeScreen ? 64 : (isMediumScreen ? 32 : 16),
-              vertical: 24,
-            ),
-            sliver: SliverToBoxAdapter(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: 700),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: Row(
+        children: [
+          // Left Side - Form (40% width)
+          Expanded(
+            flex: 4,
+            child: Container(
+              color: AppColors.backgroundPrimary,
+              child: Column(
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(AppSpacing.large),
+                    child: Row(
                       children: [
-                        // Hero Header
-                        Container(
-                          padding: EdgeInsets.all(isLargeScreen ? 32 : 24),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                AppColors.warmBrown,
-                                AppColors.warmBrown.withOpacity(0.85),
-                                AppColors.primaryMain.withOpacity(0.9),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.warmBrown.withOpacity(0.25),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Row(
+                        const BackButton(),
+                        Text(
+                          'Back to Events',
+                          style: AppTypography.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Form Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(AppSpacing.xxl),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 600),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Icon(
-                                  Icons.event,
-                                  color: Colors.white,
-                                  size: 32,
-                                ),
+                              StyledPageHeader(
+                                title: 'Host an Event',
+                                // Subtitle removed as it is not supported in StyledPageHeader
+                                // subtitle: 'Create an event and invite the community to join.',
                               ),
-                              SizedBox(width: 20),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Host a Community Event',
-                                      style: AppTypography.heading3.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
+                              const SizedBox(height: AppSpacing.large),
+
+                              // Form Sections
+                              _buildFormSection(
+                                title: 'Event Details',
+                                children: [
+                                  _buildTextField(
+                                    controller: _titleController,
+                                    label: 'Event Title',
+                                    hint: 'e.g., Weekly Bible Study',
+                                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                                  ),
+                                  const SizedBox(height: AppSpacing.medium),
+                                  _buildTextField(
+                                    controller: _descriptionController,
+                                    label: 'Description',
+                                    hint: 'What is this event about?',
+                                    maxLines: 4,
+                                  ),
+                                ],
+                              ),
+                              
+                              const SizedBox(height: AppSpacing.large),
+                              
+                              _buildFormSection(
+                                title: 'Date & Time',
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: _buildDateTimePicker(
+                                          icon: Icons.calendar_today,
+                                          label: 'Date',
+                                          value: DateFormat('MMM d, yyyy').format(_selectedDate),
+                                          onTap: _selectDate,
+                                        ),
                                       ),
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Create an event and invite the community to join',
-                                      style: AppTypography.body.copyWith(
-                                        color: Colors.white.withOpacity(0.9),
+                                      const SizedBox(width: AppSpacing.medium),
+                                      Expanded(
+                                        child: _buildDateTimePicker(
+                                          icon: Icons.access_time,
+                                          label: 'Time',
+                                          value: _selectedTime.format(context),
+                                          onTap: _selectTime,
+                                        ),
                                       ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: AppSpacing.large),
+
+                              _buildFormSection(
+                                title: 'Location',
+                                children: [
+                                  _buildLocationPicker(),
+                                  if (_selectedLocation == null) ...[
+                                    const SizedBox(height: AppSpacing.medium),
+                                    const Text('Or enter address manually:', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                                    const SizedBox(height: 8),
+                                    _buildTextField(
+                                      controller: _locationController,
+                                      label: 'Address',
+                                      hint: 'Enter full address',
                                     ),
                                   ],
-                                ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
-                        
-                        SizedBox(height: 32),
-                        
-                        // Event Details Section
-                        SectionContainer(
-                          showShadow: true,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Event Details',
-                                style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
-                              ),
-                              SizedBox(height: 20),
-                              
-                              // Event Title
-                              _buildTextField(
-                                controller: _titleController,
-                                label: 'Event Title *',
-                                hint: 'Enter event title',
-                                icon: Icons.title,
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter a title';
-                                  }
-                                  if (value.trim().length < 3) {
-                                    return 'Title must be at least 3 characters';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              
-                              SizedBox(height: 16),
-                              
-                              // Description
-                              _buildTextField(
-                                controller: _descriptionController,
-                                label: 'Description (Optional)',
-                                hint: 'What is this event about?',
-                                icon: Icons.description,
-                                maxLines: 4,
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        SizedBox(height: 24),
-                        
-                        // Date & Time Section
-                        SectionContainer(
-                          showShadow: true,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Date & Time',
-                                style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
-                              ),
-                              SizedBox(height: 20),
-                              
-                              Row(
+
+                              const SizedBox(height: AppSpacing.large),
+
+                              _buildFormSection(
+                                title: 'Capacity',
                                 children: [
-                                  // Date Picker
-                                  Expanded(
-                                    child: _buildDateTimePicker(
-                                      icon: Icons.calendar_today,
-                                      label: 'Date',
-                                      value: DateFormat('MMM d, yyyy').format(_selectedDate),
-                                      onTap: _selectDate,
-                                    ),
+                                  _buildTextField(
+                                    controller: _maxAttendeesController,
+                                    label: 'Max Attendees',
+                                    hint: 'Leave empty for unlimited',
+                                    keyboardType: TextInputType.number,
                                   ),
-                                  SizedBox(width: 16),
-                                  // Time Picker
-                                  Expanded(
-                                    child: _buildDateTimePicker(
-                                      icon: Icons.access_time,
-                                      label: 'Time',
-                                      value: _selectedTime.format(context),
-                                      onTap: _selectTime,
-                                    ),
+                                ],
+                              ),
+
+                              const SizedBox(height: AppSpacing.extraLarge),
+
+                              // Actions
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  StyledPillButton(
+                                    label: 'Cancel',
+                                    icon: Icons.close,
+                                    onPressed: () => Navigator.pop(context),
+                                    variant: StyledPillButtonVariant.outlined,
+                                  ),
+                                  const SizedBox(width: AppSpacing.medium),
+                                  StyledPillButton(
+                                    label: _isSubmitting ? 'Creating...' : 'Create Event',
+                                    icon: _isSubmitting ? null : Icons.check,
+                                    onPressed: _isSubmitting ? null : _handleSubmit,
+                                    variant: StyledPillButtonVariant.filled,
                                   ),
                                 ],
                               ),
                             ],
                           ),
                         ),
-                        
-                        SizedBox(height: 24),
-                        
-                        // Location Section
-                        SectionContainer(
-                          showShadow: true,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Location',
-                                style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
-                              ),
-                              SizedBox(height: 20),
-                              
-                              // Location picker button
-                              MouseRegion(
-                                cursor: SystemMouseCursors.click,
-                                child: GestureDetector(
-                                  onTap: _selectLocation,
-                                  child: Container(
-                                    padding: EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.backgroundSecondary,
-                                      borderRadius: BorderRadius.circular(24),
-                                      border: Border.all(
-                                        color: AppColors.warmBrown.withOpacity(0.3),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: EdgeInsets.all(10),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.warmBrown.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Icon(
-                                            Icons.location_on,
-                                            color: AppColors.warmBrown,
-                                            size: 22,
-                                          ),
-                                        ),
-                                        SizedBox(width: 16),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'Event Location (Optional)',
-                                                style: TextStyle(
-                                                  color: AppColors.textSecondary,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                              SizedBox(height: 4),
-                                              Text(
-                                                _selectedLocation != null
-                                                    ? _selectedLocation!.address.isNotEmpty
-                                                        ? _selectedLocation!.address
-                                                        : 'Location selected'
-                                                    : 'Click to select on map',
-                                                style: TextStyle(
-                                                  color: _selectedLocation != null
-                                                      ? AppColors.textPrimary
-                                                      : AppColors.textSecondary,
-                                                  fontSize: 14,
-                                                  fontWeight: _selectedLocation != null
-                                                      ? FontWeight.w500
-                                                      : FontWeight.normal,
-                                                ),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Icon(
-                                          Icons.map,
-                                          color: AppColors.warmBrown.withOpacity(0.6),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              
-                              if (_selectedLocation != null)
-                                Padding(
-                                  padding: EdgeInsets.only(top: 8),
-                                  child: Align(
-                                    alignment: Alignment.centerRight,
-                                    child: TextButton.icon(
-                                      onPressed: () {
-                                        setState(() {
-                                          _selectedLocation = null;
-                                          _locationController.clear();
-                                        });
-                                      },
-                                      icon: Icon(
-                                        Icons.clear,
-                                        size: 16,
-                                        color: AppColors.textSecondary,
-                                      ),
-                                      label: Text(
-                                        'Clear location',
-                                        style: TextStyle(
-                                          color: AppColors.textSecondary,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              
-                              SizedBox(height: 16),
-                              
-                              // Or enter manually
-                              Text(
-                                'Or enter address manually:',
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              _buildTextField(
-                                controller: _locationController,
-                                label: 'Address',
-                                hint: 'Enter event address',
-                                icon: Icons.edit_location_alt,
-                              ),
-                            ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Right Side - Image (60% width)
+          Expanded(
+            flex: 6,
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/Jesus-crowd.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerRight,
+                    end: Alignment.centerLeft,
+                    colors: [
+                      Colors.black.withOpacity(0.2),
+                      Colors.black.withOpacity(0.4),
+                    ],
+                  ),
+                ),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(AppSpacing.xxl),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.event, size: 80, color: Colors.white.withOpacity(0.9)),
+                        const SizedBox(height: AppSpacing.large),
+                        Text(
+                          'Gather Together in His Name',
+                          style: AppTypography.heroTitle.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
                           ),
+                          textAlign: TextAlign.center,
                         ),
-                        
-                        SizedBox(height: 24),
-                        
-                        // Capacity Section
-                        SectionContainer(
-                          showShadow: true,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Capacity',
-                                style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
-                              ),
-                              SizedBox(height: 20),
-                              
-                              _buildTextField(
-                                controller: _maxAttendeesController,
-                                label: 'Max Attendees (Optional)',
-                                hint: 'Leave empty for unlimited',
-                                icon: Icons.group,
-                                keyboardType: TextInputType.number,
-                              ),
-                            ],
+                        const SizedBox(height: AppSpacing.medium),
+                        Text(
+                          'For where two or three gather in my name, there am I with them.\nMatthew 18:20',
+                          style: AppTypography.heading4.copyWith(
+                            color: Colors.white.withOpacity(0.9),
+                            fontStyle: FontStyle.italic,
                           ),
+                          textAlign: TextAlign.center,
                         ),
-                        
-                        SizedBox(height: 32),
-                        
-                        // Create Button
-                        Container(
-                          width: double.infinity,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.warmBrown,
-                                AppColors.accentMain,
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(30),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.warmBrown.withOpacity(0.4),
-                                blurRadius: 15,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            onPressed: _isSubmitting ? null : _handleSubmit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                            ),
-                            child: _isSubmitting
-                                ? SizedBox(
-                                    height: 24,
-                                    width: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                    ),
-                                  )
-                                : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.event_available, color: Colors.white, size: 20),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Create Event',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                        
-                        SizedBox(height: 48),
                       ],
                     ),
                   ),
@@ -623,65 +431,135 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    int maxLines = 1,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
-  }) {
+  Widget _buildMobileLayout(BuildContext context) {
+    // Keep a simplified version of the original layout for mobile
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('New Event'),
+        backgroundColor: AppColors.backgroundPrimary,
+        elevation: 0,
+        foregroundColor: AppColors.textPrimary,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.medium),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              _buildFormSection(
+                title: 'Event Details',
+                children: [
+                  _buildTextField(
+                    controller: _titleController,
+                    label: 'Title',
+                    hint: 'Event Title',
+                    validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                  ),
+                  const SizedBox(height: AppSpacing.medium),
+                   _buildTextField(
+                    controller: _descriptionController,
+                    label: 'Description',
+                    hint: 'Details...',
+                    maxLines: 3,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.medium),
+              _buildFormSection(
+                  title: 'Date & Time',
+                  children: [
+                     _buildDateTimePicker(
+                      icon: Icons.calendar_today,
+                      label: 'Date',
+                      value: DateFormat('MMM d, yyyy').format(_selectedDate),
+                      onTap: _selectDate,
+                    ),
+                    const SizedBox(height: AppSpacing.small),
+                    _buildDateTimePicker(
+                      icon: Icons.access_time,
+                      label: 'Time',
+                      value: _selectedTime.format(context),
+                      onTap: _selectTime,
+                    ),
+                  ],
+              ),
+              const SizedBox(height: AppSpacing.large),
+              StyledPillButton(
+                label: 'Create Event',
+                variant: StyledPillButtonVariant.filled,
+                onPressed: _handleSubmit,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormSection({required String title, required List<Widget> children}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
+          title,
+          style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
         ),
-        SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          maxLines: maxLines,
-          keyboardType: keyboardType,
-          validator: validator,
-          style: TextStyle(color: AppColors.textPrimary),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: AppColors.textTertiary),
-            filled: true,
-            fillColor: AppColors.backgroundSecondary,
-            prefixIcon: Padding(
-              padding: EdgeInsets.only(left: 16, right: 12),
-              child: Icon(icon, color: AppColors.warmBrown),
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30),
-              borderSide: BorderSide(color: AppColors.borderPrimary),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30),
-              borderSide: BorderSide(color: AppColors.borderPrimary),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30),
-              borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30),
-              borderSide: BorderSide(color: Colors.red),
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: maxLines > 1 ? 16 : 14,
-            ),
-          ),
-        ),
+        const SizedBox(height: AppSpacing.medium),
+        ...children,
       ],
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildLocationPicker() {
+    return InkWell(
+      onTap: _selectLocation,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.medium),
+        decoration: BoxDecoration(
+          color: AppColors.backgroundSecondary,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderPrimary),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.location_on, color: AppColors.warmBrown),
+            const SizedBox(width: AppSpacing.medium),
+            Expanded(
+              child: Text(
+                _selectedLocation?.address ?? 'Select Location on Map',
+                style: _selectedLocation != null 
+                    ? AppTypography.body 
+                    : AppTypography.body.copyWith(color: AppColors.textSecondary),
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+          ],
+        ),
+      ),
     );
   }
 
@@ -691,59 +569,27 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
     required String value,
     required VoidCallback onTap,
   }) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(
-            color: AppColors.backgroundSecondary,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: AppColors.warmBrown.withOpacity(0.3),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: AppColors.borderPrimary),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: AppColors.textSecondary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                value,
+                style: AppTypography.body.copyWith(fontWeight: FontWeight.w500),
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.warmBrown.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: AppColors.warmBrown, size: 20),
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 12,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      value,
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                color: AppColors.warmBrown.withOpacity(0.6),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );

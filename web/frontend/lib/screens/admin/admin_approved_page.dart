@@ -112,20 +112,20 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
           borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
         ),
         actions: [
-          TextButton(
+          StyledPillButton(
+            label: 'Cancel',
+            icon: Icons.close,
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            variant: StyledPillButtonVariant.outlined,
+            width: 100,
           ),
-          ElevatedButton(
+          const SizedBox(width: AppSpacing.small),
+          StyledPillButton(
+            label: 'Delete',
+            icon: Icons.delete_outline,
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.errorMain,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-            child: const Text('Delete'),
+            variant: StyledPillButtonVariant.outlined, // Outlined Brown for Negative actions per plan
+            width: 100,
           ),
         ],
       ),
@@ -503,7 +503,7 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
               showApproveReject: false,
               showDeleteArchive: true,
               onDelete: () => _handleDelete(item),
-              onArchive: () => _handleArchive(item),
+              // onArchive: () => _handleArchive(item), // Removed per user request
             ),
           );
         },

@@ -10,14 +10,11 @@ import '../../widgets/web/styled_search_field.dart';
 import '../../widgets/web/styled_filter_chip.dart';
 import '../../widgets/web/section_container.dart';
 import '../../services/api_service.dart';
-import '../../models/api_models.dart';
 import '../../models/content_item.dart';
 import '../../providers/audio_player_provider.dart';
-import '../../widgets/video_player.dart';
-import '../video/video_player_full_screen.dart';
 import 'video_podcast_detail_screen_web.dart';
 import '../../utils/responsive_grid_delegate.dart';
-import '../../utils/dimension_utils.dart';
+import '../../widgets/web/styled_pill_button.dart';
 
 /// Web Podcasts Screen - Full implementation
 class PodcastsScreenWeb extends StatefulWidget {
@@ -178,104 +175,258 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
 
   @override
   Widget build(BuildContext context) {
+    // Select a featured podcast (first one)
+    final featuredPodcast = _podcasts.isNotEmpty ? _podcasts.first : null;
+
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
-      body: Container(
-        padding: ResponsiveGridDelegate.getResponsivePadding(context),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Search and Filter Section
-                SectionContainer(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      body: CustomScrollView(
+        slivers: [
+          // Hero Section
+          if (featuredPodcast != null && !_isLoading)
+            SliverToBoxAdapter(
+               child: _buildHeroSection(featuredPodcast),
+            )
+          else if (!_isLoading)
+             SliverToBoxAdapter(
+               child: Container(
+                 height: 400,
+                 color: Colors.black,
+                 child: Stack(
+                    fit: StackFit.expand,
                     children: [
-                  // Search Bar
-                      StyledSearchField(
-                    controller: _searchController,
-                      hintText: 'Search podcasts...',
-                        onChanged: (_) => _filterPodcasts(),
-                  ),
-                  
-                  const SizedBox(height: AppSpacing.medium),
-                  
-                  // Podcast Type Chips (Audio/Video only)
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: _podcastTypes.map((type) {
-                        final isSelected = type == _selectedType;
-                        return Padding(
-                          padding: EdgeInsets.only(right: AppSpacing.small),
-                          child: StyledFilterChip(
-                            label: type,
-                            selected: isSelected,
-                            onSelected: (selected) {
-                              setState(() {
-                                _selectedType = type;
-                              });
-                              _filterPodcasts();
-                            },
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                    ],
-                    ),
-                  ),
-                  
-                const SizedBox(height: AppSpacing.extraLarge),
-                  
-                  // Podcasts Grid
-                  Expanded(
-                    child: _isLoading
-                        ? GridView.builder(
-                            padding: EdgeInsets.zero,
-                            gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
-                              context,
-                              desktop: 4,
-                              tablet: 3,
-                              mobile: 2,
-                              childAspectRatio: _getChildAspectRatio(context), // Dynamic aspect ratio
-                              crossAxisSpacing: AppSpacing.medium,
-                              mainAxisSpacing: AppSpacing.medium,
-                            ),
-                            itemCount: 8,
-                            itemBuilder: (context, index) {
-                              return const LoadingShimmer(width: double.infinity, height: 250);
-                            },
-                          )
-                        : _filteredPodcasts.isEmpty
-                            ? const EmptyState(
-                                icon: Icons.podcasts,
-                                title: 'No Podcasts Found',
-                                message: 'Try adjusting your search or filters',
-                              )
-                            : GridView.builder(
-                                padding: EdgeInsets.zero,
-                                gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
-                                  context,
-                                  desktop: 4,
-                                  tablet: 3,
-                                  mobile: 2,
-                                  childAspectRatio: _getChildAspectRatio(context), // Dynamic aspect ratio
-                                  crossAxisSpacing: AppSpacing.medium,
-                                  mainAxisSpacing: AppSpacing.medium,
+                       Container(
+                         decoration: BoxDecoration(
+                           gradient: LinearGradient(
+                             colors: [AppColors.warmBrown.withOpacity(0.3), Colors.black],
+                             begin: Alignment.topCenter,
+                             end: Alignment.bottomCenter
+                           )
+                         ),
+                       ),
+                       Center(
+                         child: Column(
+                           mainAxisSize: MainAxisSize.min,
+                           children: [
+                             Icon(Icons.mic, size: 64, color: Colors.white.withOpacity(0.5)),
+                             SizedBox(height: AppSpacing.medium),
+                             Text('Explore Podcasts', style: AppTypography.heading1.copyWith(color: Colors.white)),
+                           ],
+                         ),
+                       )
+                    ]
+                 ),
+               )
+             ),
+
+          // Search and Filter Section
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: ResponsiveGridDelegate.getResponsivePadding(context),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: AppSpacing.large),
+                  SectionContainer(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        StyledSearchField(
+                          controller: _searchController,
+                          hintText: 'Search podcasts...',
+                          onChanged: (_) => _filterPodcasts(),
+                        ),
+                        const SizedBox(height: AppSpacing.medium),
+                        // Type Chips
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: _podcastTypes.map((type) {
+                              final isSelected = type == _selectedType;
+                              return Padding(
+                                padding: EdgeInsets.only(right: AppSpacing.small),
+                                child: StyledFilterChip(
+                                  label: type,
+                                  selected: isSelected,
+                                  onSelected: (selected) {
+                                    setState(() {
+                                      _selectedType = type;
+                                    });
+                                    _filterPodcasts();
+                                  },
                                 ),
-                                itemCount: _filteredPodcasts.length,
-                                itemBuilder: (context, index) {
-                                  final podcast = _filteredPodcasts[index];
-                                  return ContentCardWeb(
-                                    item: podcast,
-                                    onTap: () => _handleItemTap(podcast),
-                                    onPlay: () => _handlePlay(podcast),
-                                  );
-                                },
-                              ),
-                ),
-              ],
-        ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.extraLarge),
+                ],
+              ),
+            ),
+          ),
+
+          // Podcasts Grid
+          SliverPadding(
+            padding: ResponsiveGridDelegate.getResponsivePadding(context),
+            sliver: _isLoading
+                ? SliverGrid(
+                    gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+                      context,
+                      desktop: 4,
+                      tablet: 3,
+                      mobile: 2,
+                      childAspectRatio: _getChildAspectRatio(context),
+                      crossAxisSpacing: AppSpacing.medium,
+                      mainAxisSpacing: AppSpacing.medium,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => const LoadingShimmer(width: double.infinity, height: 250),
+                      childCount: 8,
+                    ),
+                  )
+                : _filteredPodcasts.isEmpty
+                    ? SliverToBoxAdapter(
+                        child: const EmptyState(
+                          icon: Icons.podcasts,
+                          title: 'No Podcasts Found',
+                          message: 'Try adjusting your search or filters',
+                        ),
+                      )
+                    : SliverGrid(
+                        gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+                          context,
+                          desktop: 4,
+                          tablet: 3,
+                          mobile: 2,
+                          childAspectRatio: _getChildAspectRatio(context),
+                          crossAxisSpacing: AppSpacing.medium,
+                          mainAxisSpacing: AppSpacing.medium,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final podcast = _filteredPodcasts[index];
+                            return ContentCardWeb(
+                              item: podcast,
+                              onTap: () => _handleItemTap(podcast),
+                              onPlay: () => _handlePlay(podcast),
+                            );
+                          },
+                          childCount: _filteredPodcasts.length,
+                        ),
+                      ),
+          ),
+          
+          SliverToBoxAdapter(child: SizedBox(height: AppSpacing.extraLarge * 2)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroSection(ContentItem item) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 1024;
+    final height = isDesktop ? 500.0 : 400.0;
+
+    return SizedBox(
+      height: height,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background Image
+          if (item.coverImage != null)
+             Image.network(
+               item.coverImage!, // Item coverImage is already full URL from map function
+               fit: BoxFit.cover,
+               errorBuilder: (_, __, ___) => Container(color: Colors.black),
+             )
+          else
+             Container(color: Colors.black),
+
+          // Gradient Overlay
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.2),
+                  Colors.black.withOpacity(0.6),
+                  AppColors.backgroundPrimary,
+                ],
+                stops: const [0.0, 0.6, 1.0],
+              ),
+            ),
+          ),
+
+          // Content
+          Positioned(
+            bottom: AppSpacing.extraLarge,
+            left: 0,
+            right: 0,
+            child: Padding(
+              padding: ResponsiveGridDelegate.getResponsivePadding(context),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                   Container(
+                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                     decoration: BoxDecoration(
+                       color: AppColors.warmBrown,
+                       borderRadius: BorderRadius.circular(20),
+                     ),
+                     child: Text(
+                       'LATEST EPISODE',
+                       style: AppTypography.caption.copyWith(
+                         color: Colors.white,
+                         fontWeight: FontWeight.bold,
+                         letterSpacing: 1.2,
+                       ),
+                     ),
+                   ),
+                   const SizedBox(height: AppSpacing.medium),
+                   Text(
+                     item.title,
+                     style: AppTypography.heading1.copyWith(
+                       color: Colors.white,
+                       fontSize: isDesktop ? 56 : 32,
+                       fontWeight: FontWeight.bold,
+                       height: 1.1,
+                     ),
+                     maxLines: 2,
+                     overflow: TextOverflow.ellipsis,
+                   ),
+                   if (item.description != null) ...[
+                     const SizedBox(height: AppSpacing.medium),
+                     SizedBox(
+                       width: isDesktop ? screenWidth * 0.5 : screenWidth,
+                       child: Text(
+                         item.description!,
+                         style: AppTypography.body.copyWith(
+                           color: Colors.white.withOpacity(0.9),
+                           fontSize: isDesktop ? 18 : 16,
+                           height: 1.5,
+                         ),
+                         maxLines: isDesktop ? 3 : 2,
+                         overflow: TextOverflow.ellipsis,
+                       ),
+                     ),
+                   ],
+                   const SizedBox(height: AppSpacing.large),
+                   StyledPillButton(
+                     label: 'Play Now',
+                     icon: Icons.play_arrow,
+                     onPressed: () => _handlePlay(item),
+                     width: 180,
+                   ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

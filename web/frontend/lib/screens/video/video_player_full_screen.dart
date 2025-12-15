@@ -60,8 +60,14 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
   
   // Seek/Scrubbing
   bool _isScrubbing = false;
+  bool _isSeeking = false;
   double _scrubValue = 0.0;
   bool _wasPlayingBeforeScrub = false;
+  
+  // Duration management
+  Duration? _validDuration;
+  bool _durationError = false;
+  String? _durationErrorMessage;
   
   // Mouse movement detection
   Timer? _hideControlsTimer;
@@ -165,8 +171,15 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
   
   void _skipForward() {
     if (_controller == null || !_controller!.value.isInitialized) return;
+    
+    final validDuration = _getValidDuration();
+    if (validDuration == null) {
+      debugPrint('VideoPlayer: Cannot skip forward - no valid duration available');
+      return;
+    }
+    
     final newPosition = _controller!.value.position + const Duration(seconds: 10);
-    final maxPosition = _controller!.value.duration;
+    final maxPosition = validDuration;
     _controller!.seekTo(newPosition > maxPosition ? maxPosition : newPosition);
     _showControlsWithAutoHide();
   }
@@ -201,13 +214,207 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
     _controller?.setPlaybackSpeed(speed);
   }
 
+  /// Get valid duration from any available source
+  /// Checks in order: controller duration, _validDuration, widget duration
+  /// Returns null only if no valid duration is available from any source
+  Duration? _getValidDuration() {
+    // First, check controller duration (most reliable)
+    if (_controller != null && _controller!.value.isInitialized) {
+      final controllerDuration = _controller!.value.duration;
+      if (controllerDuration != null &&
+          controllerDuration != Duration.zero &&
+          controllerDuration.inMilliseconds > 0 &&
+          controllerDuration.inSeconds.isFinite &&
+          !controllerDuration.inSeconds.isNaN &&
+          !controllerDuration.inSeconds.isInfinite) {
+        debugPrint('VideoPlayer: Using controller duration: ${controllerDuration.inSeconds}s');
+        return controllerDuration;
+      }
+    }
+    
+    // Second, check _validDuration
+    if (_validDuration != null &&
+        _validDuration != Duration.zero &&
+        _validDuration!.inMilliseconds > 0 &&
+        _validDuration!.inSeconds.isFinite &&
+        !_validDuration!.inSeconds.isNaN &&
+        !_validDuration!.inSeconds.isInfinite) {
+      debugPrint('VideoPlayer: Using _validDuration: ${_validDuration!.inSeconds}s');
+      return _validDuration;
+    }
+    
+    // Third, fall back to widget-provided duration
+    if (widget.duration > 0) {
+      debugPrint('VideoPlayer: Using widget duration: ${widget.duration}s');
+      return Duration(seconds: widget.duration);
+    }
+    
+    // No valid duration available
+    debugPrint('VideoPlayer: No valid duration available from any source');
+    return null;
+  }
+
+  /// Ensure video duration is available and valid
+  /// Attempts to load metadata if duration is not immediately available
+  Future<Duration> _ensureDurationAvailable() async {
+    if (_controller == null || !_controller!.value.isInitialized) {
+      debugPrint('VideoPlayer: Controller not initialized, cannot get duration');
+      throw Exception('Video controller not initialized');
+    }
+
+    Duration? duration = _controller!.value.duration;
+    debugPrint('VideoPlayer: Initial duration check: ${duration?.inSeconds}s');
+
+    // Check if duration is valid
+    bool isDurationValid = duration != null &&
+        duration != Duration.zero &&
+        duration.inMilliseconds > 0 &&
+        duration.inSeconds.isFinite &&
+        !duration.inSeconds.isNaN &&
+        !duration.inSeconds.isInfinite;
+
+    if (isDurationValid) {
+      debugPrint('VideoPlayer: Duration is valid: ${duration.inSeconds}s');
+      return duration;
+    }
+
+    debugPrint('VideoPlayer: Duration invalid, attempting to load metadata...');
+
+    // Try to trigger metadata loading by seeking to a large position and back
+    try {
+      debugPrint('VideoPlayer: Attempting seek-based metadata load...');
+      await _controller!.seekTo(const Duration(seconds: 999999));
+      await Future.delayed(const Duration(milliseconds: 200));
+      await _controller!.seekTo(Duration.zero);
+      await Future.delayed(const Duration(milliseconds: 200));
+      duration = _controller!.value.duration;
+      
+      isDurationValid = duration != null &&
+          duration != Duration.zero &&
+          duration.inMilliseconds > 0 &&
+          duration.inSeconds.isFinite &&
+          !duration.inSeconds.isNaN &&
+          !duration.inSeconds.isInfinite;
+
+      if (isDurationValid) {
+        debugPrint('VideoPlayer: Duration loaded via seek: ${duration.inSeconds}s');
+        return duration;
+      }
+    } catch (e) {
+      debugPrint('VideoPlayer: Seek-based metadata load failed: $e');
+    }
+
+    // Alternative: Try playing briefly and pausing
+    try {
+      debugPrint('VideoPlayer: Attempting play-based metadata load...');
+      final wasPlaying = _controller!.value.isPlaying;
+      await _controller!.play();
+      await Future.delayed(const Duration(milliseconds: 500));
+      await _controller!.pause();
+      await Future.delayed(const Duration(milliseconds: 200));
+      duration = _controller!.value.duration;
+      
+      isDurationValid = duration != null &&
+          duration != Duration.zero &&
+          duration.inMilliseconds > 0 &&
+          duration.inSeconds.isFinite &&
+          !duration.inSeconds.isNaN &&
+          !duration.inSeconds.isInfinite;
+
+      if (isDurationValid) {
+        debugPrint('VideoPlayer: Duration loaded via play: ${duration.inSeconds}s');
+        if (wasPlaying) {
+          await _controller!.play();
+        }
+        return duration;
+      }
+    } catch (e) {
+      debugPrint('VideoPlayer: Play-based metadata load failed: $e');
+    }
+
+    // Wait with retries for duration to become available
+    int attempts = 0;
+    while (!isDurationValid && attempts < 30) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      duration = _controller!.value.duration;
+      
+      isDurationValid = duration != null &&
+          duration != Duration.zero &&
+          duration.inMilliseconds > 0 &&
+          duration.inSeconds.isFinite &&
+          !duration.inSeconds.isNaN &&
+          !duration.inSeconds.isInfinite;
+
+      if (isDurationValid) {
+        debugPrint('VideoPlayer: Duration loaded after ${attempts + 1} retries: ${duration.inSeconds}s');
+        return duration;
+      }
+      attempts++;
+    }
+
+    // Final check after longer wait
+    if (!isDurationValid) {
+      await Future.delayed(const Duration(seconds: 1));
+      duration = _controller!.value.duration;
+      
+      isDurationValid = duration != null &&
+          duration != Duration.zero &&
+          duration.inMilliseconds > 0 &&
+          duration.inSeconds.isFinite &&
+          !duration.inSeconds.isNaN &&
+          !duration.inSeconds.isInfinite;
+    }
+
+    // Use widget's provided duration as fallback (don't throw if available)
+    if (!isDurationValid && widget.duration > 0) {
+      debugPrint('VideoPlayer: Using widget-provided duration as fallback: ${widget.duration}s');
+      return Duration(seconds: widget.duration);
+    }
+
+    // Only throw if we truly have no duration source available
+    if (!isDurationValid && widget.duration <= 0) {
+      debugPrint('VideoPlayer: Could not determine video duration and no widget duration available');
+      throw Exception('Video duration is not available. The video may be corrupted or in an unsupported format.');
+    }
+    
+    // If we get here, we should have widget duration (shouldn't happen, but return it)
+    return Duration(seconds: widget.duration);
+  }
+
   Future<void> _initializePlayer() async {
     try {
       final videoUrl = _currentItem.videoUrl ?? widget.videoUrl;
+      debugPrint('VideoPlayer: Initializing player for URL: $videoUrl');
       _controller = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
       await _controller!.initialize();
-      await _controller!.play();
+      debugPrint('VideoPlayer: Controller initialized');
       
+      // Ensure duration is available before proceeding
+      try {
+        _validDuration = await _ensureDurationAvailable();
+        debugPrint('VideoPlayer: Valid duration obtained: ${_validDuration!.inSeconds}s');
+        _durationError = false;
+        _durationErrorMessage = null;
+      } catch (e) {
+        debugPrint('VideoPlayer: Error ensuring duration: $e');
+        // Only set error flag if we truly have no duration available
+        final fallbackDuration = _getValidDuration();
+        if (fallbackDuration != null) {
+          // We have a fallback duration, so don't set error flag
+          _validDuration = fallbackDuration;
+          _durationError = false;
+          _durationErrorMessage = null;
+          debugPrint('VideoPlayer: Using fallback duration: ${fallbackDuration.inSeconds}s');
+        } else {
+          // No duration available at all
+          _durationError = true;
+          _durationErrorMessage = e.toString();
+          _validDuration = null;
+          debugPrint('VideoPlayer: No duration available from any source');
+        }
+      }
+      
+      await _controller!.play();
       _controller!.addListener(_videoListener);
       
       if (mounted) {
@@ -217,10 +424,13 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
         });
       }
     } catch (e) {
+      debugPrint('VideoPlayer: Error initializing player: $e');
       if (mounted) {
         setState(() {
           _isInitializing = false;
           _hasError = true;
+          _durationError = true;
+          _durationErrorMessage = e.toString();
         });
       }
     }
@@ -231,6 +441,29 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
     
     // Don't update position during scrubbing
     if (_isScrubbing) return;
+    
+    // Don't update position during seeking
+    if (_isSeeking) return;
+    
+    // Check if duration becomes available after initialization
+    if (_validDuration == null || _durationError) {
+      final controllerDuration = _controller!.value.duration;
+      final isDurationValid = controllerDuration != null &&
+          controllerDuration != Duration.zero &&
+          controllerDuration.inMilliseconds > 0 &&
+          controllerDuration.inSeconds.isFinite &&
+          !controllerDuration.inSeconds.isNaN &&
+          !controllerDuration.inSeconds.isInfinite;
+      
+      if (isDurationValid) {
+        debugPrint('VideoPlayer: Duration detected in listener: ${controllerDuration.inSeconds}s');
+        setState(() {
+          _validDuration = controllerDuration;
+          _durationError = false;
+          _durationErrorMessage = null;
+        });
+      }
+    }
     
     setState(() {
       // Update current time for seek callback
@@ -313,17 +546,104 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
   Future<void> _seekTo(int seconds) async {
     if (_controller == null || !_controller!.value.isInitialized) {
       debugPrint('VideoPlayer: Cannot seek - controller not initialized');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Video is not ready for seeking'),
+            duration: Duration(seconds: 2),
+            backgroundColor: AppColors.errorMain,
+          ),
+        );
+      }
       return;
     }
     
+    // Get valid duration from any available source
+    Duration? durationToUse = _getValidDuration();
+    
+    if (durationToUse == null) {
+      debugPrint('VideoPlayer: Cannot seek - no valid duration available');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Seeking is not available for this video'),
+            duration: Duration(seconds: 2),
+            backgroundColor: AppColors.errorMain,
+          ),
+        );
+      }
+      return;
+    }
+    
+    // Set seeking flag synchronously to prevent listener from interfering
+    _isSeeking = true;
+    
     try {
-      final duration = _controller!.value.duration.inSeconds;
-      final clamped = seconds.clamp(0, duration);
-      debugPrint('VideoPlayer: Seeking to ${clamped}s (requested: ${seconds}s, duration: ${duration}s)');
+      // Use the valid duration we found
+      final maxSeconds = durationToUse.inSeconds;
+      final clamped = seconds.clamp(0, maxSeconds);
+      debugPrint('VideoPlayer: Seeking to ${clamped}s (requested: ${seconds}s, max: ${maxSeconds}s)');
+      
+      // Update current time immediately to prevent UI flicker
+      if (mounted) {
+        setState(() {
+          _currentTime = clamped;
+        });
+      }
+      
       await _controller!.seekTo(Duration(seconds: clamped));
-      debugPrint('VideoPlayer: Seek completed successfully');
+      
+      // Wait and verify the seek actually happened
+      // Check multiple times to ensure position is stable
+      int attempts = 0;
+      int actualPosition = clamped;
+      while (attempts < 10) {
+        await Future.delayed(const Duration(milliseconds: 50));
+        final currentPos = _controller!.value.position.inSeconds;
+        if ((currentPos - clamped).abs() < 2) {
+          // Position is close to what we requested
+          actualPosition = currentPos;
+          break;
+        }
+        attempts++;
+      }
+      
+      debugPrint('VideoPlayer: Seek completed - actual position: ${actualPosition}s (requested: ${clamped}s)');
+      
+      // Update _validDuration if controller now has a valid duration
+      if (_controller!.value.duration != Duration.zero &&
+          _controller!.value.duration.inMilliseconds > 0 &&
+          _controller!.value.duration.inSeconds.isFinite) {
+        if (mounted) {
+          setState(() {
+            _validDuration = _controller!.value.duration;
+            _durationError = false;
+            _durationErrorMessage = null;
+            _currentTime = actualPosition;
+            _isSeeking = false; // Clear seeking flag after updating position
+          });
+        }
+      } else if (mounted) {
+        setState(() {
+          _currentTime = actualPosition;
+          _isSeeking = false; // Clear seeking flag after updating position
+        });
+      }
     } catch (e) {
       debugPrint('VideoPlayer: Error during seek: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Seek failed: ${e.toString()}'),
+            duration: const Duration(seconds: 2),
+            backgroundColor: AppColors.errorMain,
+          ),
+        );
+        // Clear seeking flag even on error
+        setState(() {
+          _isSeeking = false;
+        });
+      }
     }
   }
   
@@ -364,6 +684,9 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
       _hasError = false;
       _currentIndex = newIndex;
       _currentTime = 0;
+      _validDuration = null;
+      _durationError = false;
+      _durationErrorMessage = null;
     });
 
     await _initializePlayer();
@@ -620,42 +943,72 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                                 overlayRadius: 16,
                               ),
                             ),
-                            child: Slider(
-                              value: _isScrubbing
-                                  ? _scrubValue
-                                  : _currentTime.toDouble(),
-                              min: 0.0,
-                              max: (_controller != null && _controller!.value.isInitialized
-                                      ? _controller!.value.duration.inSeconds.toDouble()
-                                      : widget.duration.toDouble())
-                                  .clamp(1.0, double.infinity), // Minimum 1 to avoid division by zero
-                              activeColor: Colors.white,
-                              inactiveColor: Colors.white.withOpacity(0.3),
-                              thumbColor: Colors.white,
-                              onChangeStart: (value) {
-                                setState(() {
-                                  _isScrubbing = true;
-                                  _scrubValue = value;
-                                  _wasPlayingBeforeScrub = _controller?.value.isPlaying ?? false;
-                                });
-                                _controller?.pause();
-                              },
-                              onChanged: (value) {
-                                setState(() {
-                                  _scrubValue = value;
-                                  _currentTime = value.toInt();
-                                });
-                                widget.onSeek?.call(_currentTime);
-                              },
-                              onChangeEnd: (value) async {
-                                await _seekTo(value.toInt());
-                                setState(() {
-                                  _isScrubbing = false;
-                                });
-                                if (_wasPlayingBeforeScrub) {
-                                  _controller?.play();
-                                  _startControlsTimer();
+                            child: Builder(
+                              builder: (context) {
+                                // Calculate max value using _getValidDuration() helper
+                                final validDuration = _getValidDuration();
+                                double maxValue = 1.0;
+                                
+                                if (validDuration != null) {
+                                  maxValue = validDuration.inSeconds.toDouble();
                                 }
+                                
+                                // Ensure minimum value of 1.0 to avoid division by zero
+                                maxValue = maxValue.clamp(1.0, double.infinity);
+                                
+                                debugPrint('VideoPlayer: Slider max value: ${maxValue}s (from _getValidDuration)');
+                                
+                                // Check if we have any valid duration before allowing seeking
+                                final canSeek = validDuration != null;
+                                
+                                return Slider(
+                                  value: _isScrubbing
+                                      ? _scrubValue.clamp(0.0, maxValue)
+                                      : _currentTime.toDouble().clamp(0.0, maxValue),
+                                  min: 0.0,
+                                  max: maxValue,
+                                  activeColor: canSeek ? Colors.white : Colors.white.withOpacity(0.5),
+                                  inactiveColor: canSeek ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.2),
+                                  thumbColor: Colors.white,
+                                  onChangeStart: (value) {
+                                    if (!canSeek) {
+                                      debugPrint('VideoPlayer: Seeking disabled - no valid duration available');
+                                      return;
+                                    }
+                                    setState(() {
+                                      _isScrubbing = true;
+                                      _scrubValue = value;
+                                      _wasPlayingBeforeScrub = _controller?.value.isPlaying ?? false;
+                                    });
+                                    _controller?.pause();
+                                  },
+                                  onChanged: (value) {
+                                    if (!canSeek) {
+                                      return;
+                                    }
+                                    setState(() {
+                                      _scrubValue = value;
+                                      _currentTime = value.toInt();
+                                    });
+                                    widget.onSeek?.call(_currentTime);
+                                  },
+                                  onChangeEnd: (value) async {
+                                    if (!canSeek) {
+                                      setState(() {
+                                        _isScrubbing = false;
+                                      });
+                                      return;
+                                    }
+                                    await _seekTo(value.toInt());
+                                    setState(() {
+                                      _isScrubbing = false;
+                                    });
+                                    if (_wasPlayingBeforeScrub) {
+                                      _controller?.play();
+                                      _startControlsTimer();
+                                    }
+                                  },
+                                );
                               },
                             ),
                           ),
@@ -686,7 +1039,7 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                           ),
                         ),
                         Text(
-                          _formatTime(_controller?.value.duration.inSeconds ?? widget.duration),
+                          _formatTime(_getValidDuration()?.inSeconds ?? widget.duration),
                           style: AppTypography.caption.copyWith(
                             color: Colors.white.withOpacity(0.7),
                             fontSize: 12,
