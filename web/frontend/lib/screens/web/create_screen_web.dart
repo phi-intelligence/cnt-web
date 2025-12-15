@@ -12,9 +12,9 @@ import '../live/live_stream_start_screen.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
 import '../../providers/auth_provider.dart';
-import '../admin/admin_documents_page.dart';
 import '../admin/bulk_upload_screen.dart';
 import '../events/events_list_screen_web.dart';
+import '../creation/movie_create_screen.dart';
 
 /// Web Create Screen - Full implementation
 class CreateScreenWeb extends StatelessWidget {
@@ -157,18 +157,18 @@ class CreateScreenWeb extends StatelessWidget {
       ),
     ];
     
-    // Add Document and Bulk Upload cards for admins only
+    // Add Movie and Bulk Upload cards for admins only
     if (authProvider.isAdmin) {
       cards.add(
         _buildOptionCard(
           context,
-          title: 'Document',
-          description: 'Upload and manage documents',
-          icon: Icons.description,
+          title: 'Movie',
+          description: 'Upload and manage movies',
+          icon: Icons.movie,
           hoverColors: brownHover, // 8 - brown (admin only)
           onTap: () => _navigateToScreen(
             context,
-            const AdminDocumentsPage(),
+            const MovieCreateScreen(),
           ),
         ),
       );

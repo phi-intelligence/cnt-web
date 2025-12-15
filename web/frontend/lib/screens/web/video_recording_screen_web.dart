@@ -10,11 +10,17 @@ import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
 import '../../utils/web_video_recorder.dart';
 import 'video_preview_screen_web.dart';
+import 'movie_preview_screen_web.dart';
 
-/// Web Video Recording Screen - Record video podcasts
+/// Web Video Recording Screen - Record video podcasts or movies
 /// Matches web app theme and avoids dart:io dependencies
 class VideoRecordingScreenWeb extends StatefulWidget {
-  const VideoRecordingScreenWeb({super.key});
+  final String previewType; // 'podcast' or 'movie'
+  
+  const VideoRecordingScreenWeb({
+    super.key,
+    this.previewType = 'podcast', // Default to podcast for backward compatibility
+  });
 
   @override
   State<VideoRecordingScreenWeb> createState() => _VideoRecordingScreenWebState();
@@ -236,20 +242,34 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
         return;
       }
 
-      // Navigate to web preview screen
+      // Navigate to appropriate preview screen
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => VideoPreviewScreenWeb(
-              videoUri: videoFile.path,
-              source: 'camera',
-              duration: _recordingDuration,
-              fileSize: fileSize,
+        if (widget.previewType == 'movie') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MoviePreviewScreenWeb(
+                videoUri: videoFile.path,
+                source: 'camera',
+                duration: _recordingDuration,
+                fileSize: fileSize,
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => VideoPreviewScreenWeb(
+                videoUri: videoFile.path,
+                source: 'camera',
+                duration: _recordingDuration,
+                fileSize: fileSize,
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       print('❌ Error stopping video recording: $e');

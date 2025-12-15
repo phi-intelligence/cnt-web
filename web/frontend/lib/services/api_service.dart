@@ -2692,6 +2692,70 @@ class ApiService {
     }
   }
 
+  /// Create movie with all metadata fields
+  Future<Map<String, dynamic>> createMovie({
+    required String title,
+    String? description,
+    required String videoUrl,
+    String? coverImage,
+    int? duration,
+    String? director,
+    String? cast,
+    DateTime? releaseDate,
+    double? rating,
+    int? categoryId,
+    bool isFeatured = false,
+    String status = 'pending', // Default to pending, but admins can set to 'approved'
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'title': title,
+        'video_url': videoUrl,
+        if (description != null) 'description': description,
+        if (coverImage != null) 'cover_image': coverImage,
+        if (duration != null) 'duration': duration,
+        if (director != null) 'director': director,
+        if (cast != null) 'cast': cast,
+        if (releaseDate != null) 'release_date': releaseDate.toIso8601String(),
+        if (rating != null) 'rating': rating,
+        if (categoryId != null) 'category_id': categoryId,
+        'is_featured': isFeatured,
+        'status': status, // Admins can set to 'approved', others default to 'pending'
+      };
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/movies/'),
+        headers: await _getHeaders(),
+        body: json.encode(body),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+      throw Exception('Failed to create movie: HTTP ${response.statusCode} ${response.body}');
+    } catch (e) {
+      throw Exception('Error creating movie: $e');
+    }
+  }
+
+  /// Get all categories
+  Future<List<Category>> getCategories() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/categories/'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => Category.fromJson(json as Map<String, dynamic>)).toList();
+      }
+      throw Exception('Failed to load categories: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error fetching categories: $e');
+    }
+  }
+
   // ============================================
   // ARTIST API METHODS
   // ============================================

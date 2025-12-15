@@ -576,7 +576,9 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
     }
     
     // Set seeking flag synchronously to prevent listener from interfering
-    _isSeeking = true;
+    setState(() {
+      _isSeeking = true;
+    });
     
     try {
       // Use the valid duration we found
@@ -584,62 +586,37 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
       final clamped = seconds.clamp(0, maxSeconds);
       debugPrint('VideoPlayer: Seeking to ${clamped}s (requested: ${seconds}s, max: ${maxSeconds}s)');
       
-      // Update current time immediately to prevent UI flicker
-      if (mounted) {
-        setState(() {
-          _currentTime = clamped;
-        });
-      }
-      
+      // Perform the seek operation
       await _controller!.seekTo(Duration(seconds: clamped));
       
-      // Wait and verify the seek actually happened
-      // Check multiple times to ensure position is stable
-      int attempts = 0;
-      int actualPosition = clamped;
-      while (attempts < 10) {
-        await Future.delayed(const Duration(milliseconds: 50));
-        final currentPos = _controller!.value.position.inSeconds;
-        if ((currentPos - clamped).abs() < 2) {
-          // Position is close to what we requested
-          actualPosition = currentPos;
-          break;
-        }
-        attempts++;
-      }
+      // Wait briefly for seek to complete
+      await Future.delayed(const Duration(milliseconds: 100));
       
+      // Get the actual position after seek
+      final actualPosition = _controller!.value.position.inSeconds;
       debugPrint('VideoPlayer: Seek completed - actual position: ${actualPosition}s (requested: ${clamped}s)');
       
-      // Update _validDuration if controller now has a valid duration
-      if (_controller!.value.duration != Duration.zero &&
-          _controller!.value.duration.inMilliseconds > 0 &&
-          _controller!.value.duration.inSeconds.isFinite) {
-        if (mounted) {
-          setState(() {
+      // Update state once with final values
+      if (mounted) {
+        setState(() {
+          _currentTime = actualPosition;
+          _isSeeking = false;
+          
+          // Update _validDuration if controller now has a valid duration
+          if (_controller!.value.duration != Duration.zero &&
+              _controller!.value.duration.inMilliseconds > 0 &&
+              _controller!.value.duration.inSeconds.isFinite) {
             _validDuration = _controller!.value.duration;
             _durationError = false;
             _durationErrorMessage = null;
-            _currentTime = actualPosition;
-            _isSeeking = false; // Clear seeking flag after updating position
-          });
-        }
-      } else if (mounted) {
-        setState(() {
-          _currentTime = actualPosition;
-          _isSeeking = false; // Clear seeking flag after updating position
+          }
         });
       }
     } catch (e) {
       debugPrint('VideoPlayer: Error during seek: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Seek failed: ${e.toString()}'),
-            duration: const Duration(seconds: 2),
-            backgroundColor: AppColors.errorMain,
-          ),
-        );
-        // Clear seeking flag even on error
+        // Clear seeking flag even on error, but don't show error to user
+        // (seeking errors are common and usually not critical)
         setState(() {
           _isSeeking = false;
         });
