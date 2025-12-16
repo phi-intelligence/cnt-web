@@ -60,13 +60,19 @@ class ResponsiveAppBar extends StatelessWidget implements PreferredSizeWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
                     child: Image.asset(
-                      'assets/images/cnt-dove-logo.png',
+                      'assets/images/CNT-LOGO.png',
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        return Icon(
-                          Icons.church,
-                          size: 20,
-                          color: Colors.white,
+                        return Image.asset(
+                          'assets/images/cnt-dove-logo.png',
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.church,
+                              size: 20,
+                              color: Colors.white,
+                            );
+                          },
                         );
                       },
                     ),

@@ -7,6 +7,7 @@ import '../../widgets/admin/admin_content_card.dart';
 import '../../widgets/shared/empty_state.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
+import '../../widgets/web/styled_filter_chip.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
 
@@ -52,8 +53,12 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
+    _tabController.addListener(() {
+      setState(() {}); // Update UI when tab changes
+    });
     _loadAllContent();
   }
+
 
   @override
   void dispose() {
@@ -173,20 +178,20 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
           borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
         ),
         actions: [
-          TextButton(
+          StyledPillButton(
+            label: 'Cancel',
+            icon: Icons.close,
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            variant: StyledPillButtonVariant.outlined,
+            width: 100,
           ),
-          ElevatedButton(
+          const SizedBox(width: AppSpacing.small),
+          StyledPillButton(
+            label: 'Archive',
+            icon: Icons.archive_outlined,
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warmBrown,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-            child: const Text('Archive'),
+            variant: StyledPillButtonVariant.filled,
+            width: 100,
           ),
         ],
       ),
@@ -247,28 +252,58 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
           // Header
           _buildHeader(),
           
-          // Tab Bar
+          // Tab Bar - Using StyledFilterChip for better design
           Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.large,
+              vertical: AppSpacing.medium,
+            ),
             color: Colors.white,
-            child: TabBar(
-              controller: _tabController,
-              indicatorColor: AppColors.warmBrown,
-              labelColor: AppColors.warmBrown,
-              unselectedLabelColor: AppColors.textSecondary,
-              labelStyle: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.bold),
-              tabs: [
-                Tab(text: 'All (${_allContent.length})'),
-                Tab(text: 'Podcasts (${_podcasts.length})'),
-                Tab(text: 'Movies (${_movies.length})'),
-                Tab(text: 'Posts (${_posts.length})'),
+            child: Row(
+              children: [
+                StyledFilterChip(
+                  label: 'All',
+                  selected: _tabController.index == 0,
+                  count: _allContent.length,
+                  onTap: () {
+                    _tabController.animateTo(0);
+                  },
+                ),
+                const SizedBox(width: AppSpacing.small),
+                StyledFilterChip(
+                  label: 'Podcasts',
+                  selected: _tabController.index == 1,
+                  count: _podcasts.length,
+                  onTap: () {
+                    _tabController.animateTo(1);
+                  },
+                ),
+                const SizedBox(width: AppSpacing.small),
+                StyledFilterChip(
+                  label: 'Movies',
+                  selected: _tabController.index == 2,
+                  count: _movies.length,
+                  onTap: () {
+                    _tabController.animateTo(2);
+                  },
+                ),
+                const SizedBox(width: AppSpacing.small),
+                StyledFilterChip(
+                  label: 'Posts',
+                  selected: _tabController.index == 3,
+                  count: _posts.length,
+                  onTap: () {
+                    _tabController.animateTo(3);
+                  },
+                ),
               ],
             ),
           ),
           
           // Tab Content
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
+            child: IndexedStack(
+              index: _tabController.index,
               children: [
                 _buildContentList(_allContent, 'approved content'),
                 _buildPodcastsTab(),
@@ -415,30 +450,14 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
   }
 
   Widget _buildFilterChip(String label, bool isSelected) {
-    return GestureDetector(
+    return StyledFilterChip(
+      label: label,
+      selected: isSelected,
       onTap: () {
         setState(() {
           _podcastFilter = label;
         });
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.warmBrown : Colors.transparent,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: isSelected ? AppColors.warmBrown : AppColors.borderPrimary,
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: AppTypography.caption.copyWith(
-            color: isSelected ? Colors.white : AppColors.textSecondary,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ),
     );
   }
 

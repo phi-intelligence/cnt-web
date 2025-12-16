@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:video_player/video_player.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -38,6 +39,10 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
   int _currentHeroIndex = 0;
   late PageController _heroPageController;
   Timer? _heroTimer;
+  
+  // Video Preview Controllers for Carousel
+  Map<int, VideoPlayerController?> _previewControllers = {};
+  Map<int, Timer?> _previewTimers = {};
 
   @override
   void initState() {
@@ -52,6 +57,15 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
     _searchController.dispose();
     _heroTimer?.cancel();
     _heroPageController.dispose();
+    // Dispose all video controllers
+    for (var controller in _previewControllers.values) {
+      controller?.dispose();
+    }
+    for (var timer in _previewTimers.values) {
+      timer?.cancel();
+    }
+    _previewControllers.clear();
+    _previewTimers.clear();
     super.dispose();
   }
 
@@ -122,8 +136,9 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
       _movies = moviesData;
       _filteredMovies = List.from(_movies);
       
-      // Start timer once movies are loaded
+      // Initialize video previews for carousel movies
       if (_movies.isNotEmpty) {
+        _initializeCarouselPreviews(_movies.take(5).toList());
         _startHeroTimer();
       }
     } catch (e) {
@@ -142,6 +157,91 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
       _selectedCategory = category;
     });
     _fetchMovies();
+  }
+
+  Future<void> _initializeCarouselPreviews(List<ContentItem> movies) async {
+    // Dispose existing controllers
+    for (var controller in _previewControllers.values) {
+      controller?.dispose();
+    }
+    for (var timer in _previewTimers.values) {
+      timer?.cancel();
+    }
+    _previewControllers.clear();
+    _previewTimers.clear();
+
+    // Initialize previews for each movie
+    for (var movie in movies) {
+      if (movie.videoUrl != null && movie.videoUrl!.isNotEmpty) {
+        try {
+          final controller = VideoPlayerController.networkUrl(
+            Uri.parse(_api.getMediaUrl(movie.videoUrl!)),
+          );
+          
+          await controller.initialize();
+          await controller.setVolume(0.0);
+          await controller.setLooping(true);
+          
+          // If preview times exist, seek to start time
+          if (movie.previewStartTime != null) {
+            await controller.seekTo(Duration(seconds: movie.previewStartTime!));
+          } else {
+            await controller.seekTo(Duration.zero);
+          }
+          
+          await controller.play();
+          
+          // Set up loop timer if preview end time exists
+          if (movie.previewStartTime != null && movie.previewEndTime != null) {
+            final previewDuration = movie.previewEndTime! - movie.previewStartTime!;
+            _previewTimers[movie.id.hashCode] = Timer.periodic(
+              Duration(seconds: previewDuration),
+              (timer) {
+                if (_previewControllers[movie.id.hashCode] != null &&
+                    _previewControllers[movie.id.hashCode]!.value.isInitialized) {
+                  _previewControllers[movie.id.hashCode]!.seekTo(
+                    Duration(seconds: movie.previewStartTime!),
+                  );
+                }
+              },
+            );
+          } else {
+            // Default 60 second loop
+            _previewTimers[movie.id.hashCode] = Timer.periodic(
+              const Duration(seconds: 60),
+              (timer) {
+                if (_previewControllers[movie.id.hashCode] != null &&
+                    _previewControllers[movie.id.hashCode]!.value.isInitialized) {
+                  _previewControllers[movie.id.hashCode]!.seekTo(Duration.zero);
+                }
+              },
+            );
+          }
+          
+          _previewControllers[movie.id.hashCode] = controller;
+        } catch (e) {
+          print('Error initializing preview for movie ${movie.id}: $e');
+        }
+      }
+    }
+    
+    // Play first video, pause others
+    if (movies.isNotEmpty && _previewControllers.isNotEmpty) {
+      for (int i = 0; i < movies.length; i++) {
+        final controller = _previewControllers[movies[i].id.hashCode];
+        if (controller != null && controller.value.isInitialized) {
+          if (i == 0) {
+            controller.play();
+          } else {
+            controller.pause();
+          }
+        }
+      }
+    }
+    
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _handleMovieTap(ContentItem item) {
@@ -336,6 +436,17 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
               setState(() {
                 _currentHeroIndex = index;
               });
+              // Pause previous video and play current
+              for (int i = 0; i < movies.length; i++) {
+                final controller = _previewControllers[movies[i].id.hashCode];
+                if (controller != null && controller.value.isInitialized) {
+                  if (i == index) {
+                    controller.play();
+                  } else {
+                    controller.pause();
+                  }
+                }
+              }
             },
             itemBuilder: (context, index) {
               final item = movies[index];
@@ -393,12 +504,29 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
   Widget _buildHeroItem(ContentItem item, double height) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 1024;
+    
+    // Check if we have a video preview controller for this movie
+    final previewController = _previewControllers[item.id.hashCode];
+    final hasVideoPreview = previewController != null && 
+                           previewController.value.isInitialized;
 
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Background Image
-        if (item.coverImage != null)
+        // Background Video Preview or Image
+        if (hasVideoPreview)
+          ClipRect(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              clipBehavior: Clip.hardEdge,
+              child: SizedBox(
+                width: previewController!.value.size.width,
+                height: previewController.value.size.height,
+                child: VideoPlayer(previewController),
+              ),
+            ),
+          )
+        else if (item.coverImage != null)
            Image.network(
              _api.getMediaUrl(item.coverImage!),
              fit: BoxFit.cover,

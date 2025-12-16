@@ -27,22 +27,28 @@ class StreamNotificationBanner extends StatelessWidget {
         final margin = ResponsiveUtils.getResponsivePadding(context, AppSpacing.medium);
         final padding = ResponsiveUtils.getResponsivePadding(context, AppSpacing.medium);
 
-        return Container(
-          margin: EdgeInsets.all(margin),
-          padding: EdgeInsets.all(padding),
-          decoration: BoxDecoration(
-            color: AppColors.primaryMain,
-            borderRadius: BorderRadius.circular(ResponsiveUtils.getResponsivePadding(context, 12)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
+        return ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: double.infinity,
           ),
-          child: isMobile ? _buildMobileLayout(context, notification, notificationProvider) 
-                         : _buildDesktopLayout(context, notification, notificationProvider),
+          child: Container(
+            margin: EdgeInsets.all(margin),
+            padding: EdgeInsets.all(padding),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: AppColors.primaryMain,
+              borderRadius: BorderRadius.circular(ResponsiveUtils.getResponsivePadding(context, 12)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: isMobile ? _buildMobileLayout(context, notification, notificationProvider) 
+                           : _buildDesktopLayout(context, notification, notificationProvider),
+          ),
         );
       },
     );
@@ -53,71 +59,84 @@ class StreamNotificationBanner extends StatelessWidget {
     LiveStreamNotification notification,
     NotificationProvider notificationProvider,
   ) {
-    return Row(
-      children: [
-        // Live indicator
-        Container(
-          width: 12,
-          height: 12,
-          decoration: const BoxDecoration(
-            color: Colors.red,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.medium),
-        // Notification content
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '${notification.hostName} started a live stream',
-                style: AppTypography.body.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Live indicator
+            Container(
+              width: 12,
+              height: 12,
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.medium),
+            // Notification content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${notification.hostName} started a live stream',
+                    style: AppTypography.body.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    notification.streamTitle,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: Colors.white70,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.medium),
+            // Join button
+            Flexible(
+              child: ElevatedButton(
+                onPressed: () => _handleJoinStream(context, notification),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppColors.primaryMain,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.medium,
+                    vertical: AppSpacing.small,
+                  ),
+                ),
+                child: Text(
+                  'Join',
+                  style: AppTypography.button.copyWith(
+                    color: AppColors.primaryMain,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                notification.streamTitle,
-                style: AppTypography.bodySmall.copyWith(
-                  color: Colors.white70,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(width: AppSpacing.small),
+            // Dismiss button
+            IconButton(
+              onPressed: () => notificationProvider.dismissNotification(),
+              icon: const Icon(Icons.close, color: Colors.white, size: 20),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(
+                minWidth: 40,
+                minHeight: 40,
               ),
-            ],
-          ),
-        ),
-        const SizedBox(width: AppSpacing.medium),
-        // Join button
-        ElevatedButton(
-          onPressed: () => _handleJoinStream(context, notification),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: AppColors.primaryMain,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.medium,
-              vertical: AppSpacing.small,
             ),
-          ),
-          child: Text(
-            'Join',
-            style: AppTypography.button.copyWith(
-              color: AppColors.primaryMain,
-            ),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.small),
-        // Dismiss button
-        IconButton(
-          onPressed: () => notificationProvider.dismissNotification(),
-          icon: const Icon(Icons.close, color: Colors.white, size: 20),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
@@ -126,76 +145,88 @@ class StreamNotificationBanner extends StatelessWidget {
     LiveStreamNotification notification,
     NotificationProvider notificationProvider,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Header row with live indicator and dismiss
-        Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 10,
-              height: 10,
-              decoration: const BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.small),
-            Expanded(
-              child: Text(
-                '${notification.hostName} started a live stream',
-                style: AppTypography.bodySmall.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
+            // Header row with live indicator and dismiss
+            Row(
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+                const SizedBox(width: AppSpacing.small),
+                Expanded(
+                  child: Text(
+                    '${notification.hostName} started a live stream',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => notificationProvider.dismissNotification(),
+                  icon: const Icon(Icons.close, color: Colors.white, size: 18),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
+                ),
+              ],
             ),
-            IconButton(
-              onPressed: () => notificationProvider.dismissNotification(),
-              icon: const Icon(Icons.close, color: Colors.white, size: 18),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+            const SizedBox(height: AppSpacing.small),
+            // Stream title
+            Text(
+              notification.streamTitle,
+              style: AppTypography.bodySmall.copyWith(
+                color: Colors.white70,
+                fontSize: 12,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: AppSpacing.small),
+            // Join button (full width on mobile)
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: constraints.maxWidth,
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => _handleJoinStream(context, notification),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primaryMain,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.small,
+                    ),
+                  ),
+                  child: Text(
+                    'Join Stream',
+                    style: AppTypography.button.copyWith(
+                      color: AppColors.primaryMain,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ],
-        ),
-        const SizedBox(height: AppSpacing.small),
-        // Stream title
-        Text(
-          notification.streamTitle,
-          style: AppTypography.bodySmall.copyWith(
-            color: Colors.white70,
-            fontSize: 12,
-          ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: AppSpacing.small),
-        // Join button (full width on mobile)
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () => _handleJoinStream(context, notification),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.primaryMain,
-              padding: const EdgeInsets.symmetric(
-                vertical: AppSpacing.small,
-              ),
-            ),
-            child: Text(
-              'Join Stream',
-              style: AppTypography.button.copyWith(
-                color: AppColors.primaryMain,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 

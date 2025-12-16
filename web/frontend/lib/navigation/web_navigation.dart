@@ -144,7 +144,12 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
                 // Notification banner at top
                 const StreamNotificationBanner(),
                 // Main content
-                Expanded(child: widget.child),
+                Expanded(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: widget.child,
+                  ),
+                ),
                 // Global Audio Player at bottom
                 const GlobalAudioPlayer(),
               ],
@@ -160,7 +165,9 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
               const StreamNotificationBanner(),
               // Rest of content
               Expanded(
-                child: Row(
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Row(
                 children: [
                   // Sidebar Navigation
                   Container(
@@ -300,13 +307,19 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
                                     ),
                                     child: ClipOval(
                                       child: Image.asset(
-                                        'assets/images/cnt-dove-logo.png',
+                                        'assets/images/CNT-LOGO.png',
                                         fit: BoxFit.cover,
                                         errorBuilder: (context, error, stackTrace) {
-                                          return Icon(
-                                            Icons.church,
-                                            color: Colors.white,
-                                            size: 40,
+                                          return Image.asset(
+                                            'assets/images/cnt-dove-logo.png',
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return Icon(
+                                                Icons.church,
+                                                color: Colors.white,
+                                                size: 40,
+                                              );
+                                            },
                                           );
                                         },
                                       ),
@@ -380,6 +393,7 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
                     child: widget.child,
                   ),
                 ],
+                  ),
                 ),
               ),
               // Global Audio Player at bottom

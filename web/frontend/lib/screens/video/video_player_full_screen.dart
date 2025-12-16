@@ -69,6 +69,9 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
   bool _durationError = false;
   String? _durationErrorMessage;
   
+  // Autoplay management
+  bool _autoplayBlocked = false;
+  
   // Mouse movement detection
   Timer? _hideControlsTimer;
   bool _isMouseOverVideo = false;
@@ -81,7 +84,16 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
   // Playback speed
   double _playbackSpeed = 1.0;
   final List<double> _availableSpeeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
-  
+
+  // Duration logging throttle - only log when source changes
+  String? _lastLoggedDurationSource;
+
+  // Buffering state tracking
+  bool _isBuffering = false;
+  DateTime? _lastPositionUpdate;
+  int _lastKnownPosition = 0;
+  Timer? _stallWatchdog;
+
   // Focus node for keyboard shortcuts
   final FocusNode _focusNode = FocusNode();
 
@@ -215,10 +227,50 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
   }
 
   /// Get valid duration from any available source
-  /// Checks in order: controller duration, _validDuration, widget duration
+  /// Checks in order: widget duration (database), _validDuration, controller duration
+  /// Widget duration is most reliable as it comes from the database
   /// Returns null only if no valid duration is available from any source
   Duration? _getValidDuration() {
-    // First, check controller duration (most reliable)
+    // First, check widget-provided duration (most reliable, from database)
+    if (widget.duration > 0) {
+      final widgetDuration = Duration(seconds: widget.duration);
+
+      // If controller duration is available, check if it's suspiciously different
+      if (_controller != null && _controller!.value.isInitialized) {
+        final controllerDuration = _controller!.value.duration;
+        if (controllerDuration != null &&
+            controllerDuration != Duration.zero &&
+            controllerDuration.inMilliseconds > 0 &&
+            controllerDuration.inSeconds.isFinite &&
+            !controllerDuration.inSeconds.isNaN &&
+            !controllerDuration.inSeconds.isInfinite) {
+          // Sanity check: if controller duration is less than 10% of widget duration, it's likely wrong
+          // Trust widget duration instead
+          final controllerSeconds = controllerDuration.inSeconds;
+          final widgetSeconds = widget.duration;
+          if (controllerSeconds < widgetSeconds * 0.1) {
+            _logDurationSource('widget_override', 'Controller duration ($controllerSeconds s) is suspiciously small compared to widget duration ($widgetSeconds s), using widget duration');
+            return widgetDuration;
+          }
+        }
+      }
+
+      _logDurationSource('widget', 'Using widget duration: ${widget.duration}s');
+      return widgetDuration;
+    }
+
+    // Second, check _validDuration (cached validated duration)
+    if (_validDuration != null &&
+        _validDuration != Duration.zero &&
+        _validDuration!.inMilliseconds > 0 &&
+        _validDuration!.inSeconds.isFinite &&
+        !_validDuration!.inSeconds.isNaN &&
+        !_validDuration!.inSeconds.isInfinite) {
+      _logDurationSource('cached', 'Using _validDuration: ${_validDuration!.inSeconds}s');
+      return _validDuration;
+    }
+
+    // Third, fall back to controller duration (only if widget duration not available)
     if (_controller != null && _controller!.value.isInitialized) {
       final controllerDuration = _controller!.value.duration;
       if (controllerDuration != null &&
@@ -227,31 +279,22 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
           controllerDuration.inSeconds.isFinite &&
           !controllerDuration.inSeconds.isNaN &&
           !controllerDuration.inSeconds.isInfinite) {
-        debugPrint('VideoPlayer: Using controller duration: ${controllerDuration.inSeconds}s');
+        _logDurationSource('controller', 'Using controller duration: ${controllerDuration.inSeconds}s');
         return controllerDuration;
       }
     }
-    
-    // Second, check _validDuration
-    if (_validDuration != null &&
-        _validDuration != Duration.zero &&
-        _validDuration!.inMilliseconds > 0 &&
-        _validDuration!.inSeconds.isFinite &&
-        !_validDuration!.inSeconds.isNaN &&
-        !_validDuration!.inSeconds.isInfinite) {
-      debugPrint('VideoPlayer: Using _validDuration: ${_validDuration!.inSeconds}s');
-      return _validDuration;
-    }
-    
-    // Third, fall back to widget-provided duration
-    if (widget.duration > 0) {
-      debugPrint('VideoPlayer: Using widget duration: ${widget.duration}s');
-      return Duration(seconds: widget.duration);
-    }
-    
+
     // No valid duration available
-    debugPrint('VideoPlayer: No valid duration available from any source');
+    _logDurationSource('none', 'No valid duration available from any source');
     return null;
+  }
+
+  /// Helper to log duration source only when it changes (throttled logging)
+  void _logDurationSource(String source, String message) {
+    if (_lastLoggedDurationSource != source) {
+      _lastLoggedDurationSource = source;
+      debugPrint('VideoPlayer: $message');
+    }
   }
 
   /// Ensure video duration is available and valid
@@ -332,10 +375,17 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
       debugPrint('VideoPlayer: Play-based metadata load failed: $e');
     }
 
-    // Wait with retries for duration to become available
+    // Wait with retries for duration to become available (increased attempts and delays)
     int attempts = 0;
-    while (!isDurationValid && attempts < 30) {
-      await Future.delayed(const Duration(milliseconds: 200));
+    const int maxAttempts = 50; // Increased from 30
+    while (!isDurationValid && attempts < maxAttempts) {
+      // Use exponential backoff for longer waits
+      final delayMs = attempts < 10 
+          ? 200 
+          : attempts < 20 
+              ? 500 
+              : 1000;
+      await Future.delayed(Duration(milliseconds: delayMs));
       duration = _controller!.value.duration;
       
       isDurationValid = duration != null &&
@@ -352,9 +402,9 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
       attempts++;
     }
 
-    // Final check after longer wait
+    // Final check after longer wait (increased wait time)
     if (!isDurationValid) {
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(seconds: 2)); // Increased from 1 second
       duration = _controller!.value.duration;
       
       isDurationValid = duration != null &&
@@ -390,32 +440,78 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
       debugPrint('VideoPlayer: Controller initialized');
       
       // Ensure duration is available before proceeding
-      try {
-        _validDuration = await _ensureDurationAvailable();
-        debugPrint('VideoPlayer: Valid duration obtained: ${_validDuration!.inSeconds}s');
+      // First check if widget provides duration (database duration is most reliable)
+      if (widget.duration > 0) {
+        _validDuration = Duration(seconds: widget.duration);
         _durationError = false;
         _durationErrorMessage = null;
-      } catch (e) {
-        debugPrint('VideoPlayer: Error ensuring duration: $e');
-        // Only set error flag if we truly have no duration available
-        final fallbackDuration = _getValidDuration();
-        if (fallbackDuration != null) {
-          // We have a fallback duration, so don't set error flag
-          _validDuration = fallbackDuration;
+        debugPrint('VideoPlayer: Using widget-provided duration (from database): ${_validDuration!.inSeconds}s');
+      } else {
+        // If no widget duration, try to extract from video metadata
+        try {
+          _validDuration = await _ensureDurationAvailable();
+          debugPrint('VideoPlayer: Valid duration obtained from video metadata: ${_validDuration!.inSeconds}s');
           _durationError = false;
           _durationErrorMessage = null;
-          debugPrint('VideoPlayer: Using fallback duration: ${fallbackDuration.inSeconds}s');
-        } else {
-          // No duration available at all
-          _durationError = true;
-          _durationErrorMessage = e.toString();
-          _validDuration = null;
-          debugPrint('VideoPlayer: No duration available from any source');
+        } catch (e) {
+          debugPrint('VideoPlayer: Duration detection failed: $e');
+          // Check if we have any fallback duration
+          final fallbackDuration = _getValidDuration();
+          if (fallbackDuration != null) {
+            _validDuration = fallbackDuration;
+            debugPrint('VideoPlayer: Using fallback duration: ${fallbackDuration.inSeconds}s');
+          } else {
+            // No duration available - but DON'T treat this as an error
+            // Video can still play, just seeking will be disabled until duration is detected
+            _validDuration = null;
+            debugPrint('VideoPlayer: Duration unknown - playback will continue, seeking disabled until duration detected');
+          }
+          // Never set _durationError to true - we want playback to work regardless
+          _durationError = false;
+          _durationErrorMessage = null;
         }
       }
       
-      await _controller!.play();
+      // Attempt to play video with error handling for autoplay restrictions
+      debugPrint('VideoPlayer: Attempting to play video');
+      try {
+        await _controller!.play();
+
+        // Wait briefly and verify playback actually started
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        final isActuallyPlaying = _controller!.value.isPlaying;
+        final isBuffering = _controller!.value.isBuffering;
+        final currentPosition = _controller!.value.position.inMilliseconds;
+
+        if (isActuallyPlaying && !isBuffering) {
+          debugPrint('VideoPlayer: Video started playing successfully (position: ${currentPosition}ms)');
+          _autoplayBlocked = false;
+          _isBuffering = false;
+        } else if (isBuffering) {
+          debugPrint('VideoPlayer: Video is buffering - waiting for content');
+          _autoplayBlocked = false;
+          _isBuffering = true;
+        } else {
+          // play() succeeded but video isn't actually playing yet
+          debugPrint('VideoPlayer: play() returned but video not yet playing (isPlaying: $isActuallyPlaying, isBuffering: $isBuffering)');
+          _isBuffering = true;
+        }
+
+        // Initialize position tracking for stall detection
+        _lastPositionUpdate = DateTime.now();
+        _lastKnownPosition = currentPosition ~/ 1000;
+
+      } catch (e) {
+        debugPrint('VideoPlayer: Autoplay blocked by browser: $e');
+        _autoplayBlocked = true;
+        // Don't treat autoplay blocking as a fatal error - user can click play button
+      }
+
       _controller!.addListener(_videoListener);
+
+      // Start watchdog timer to detect stalled playback
+      _startStallWatchdog();
       
       if (mounted) {
         setState(() {
@@ -429,8 +525,7 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
         setState(() {
           _isInitializing = false;
           _hasError = true;
-          _durationError = true;
-          _durationErrorMessage = e.toString();
+          // Note: Don't set _durationError here - this is a video loading error, not a duration issue
         });
       }
     }
@@ -438,15 +533,51 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
 
   void _videoListener() {
     if (!mounted || _controller == null) return;
-    
+
     // Don't update position during scrubbing
     if (_isScrubbing) return;
-    
+
     // Don't update position during seeking
     if (_isSeeking) return;
-    
+
+    // Track buffering state from controller
+    final isControllerBuffering = _controller!.value.isBuffering;
+    final currentPosition = _controller!.value.position.inSeconds;
+
+    // Check if position is advancing (video is actually playing)
+    final positionAdvanced = currentPosition != _lastKnownPosition;
+
+    // Update buffering state
+    if (isControllerBuffering && !_isBuffering) {
+      debugPrint('VideoPlayer: Buffering started');
+      setState(() => _isBuffering = true);
+    } else if (!isControllerBuffering && _isBuffering && positionAdvanced) {
+      // Only clear buffering if position is actually advancing
+      debugPrint('VideoPlayer: Buffering ended - playback resumed');
+      setState(() => _isBuffering = false);
+    }
+
+    // Track position updates for stall detection
+    if (positionAdvanced) {
+      _lastPositionUpdate = DateTime.now();
+      _lastKnownPosition = currentPosition;
+      // If we were showing buffering due to stall, clear it
+      if (_isBuffering && !isControllerBuffering) {
+        setState(() => _isBuffering = false);
+      }
+    }
+
+    // Detect when video starts playing (to clear autoplay blocked flag)
+    if (_autoplayBlocked && _controller!.value.isPlaying) {
+      debugPrint('VideoPlayer: Video started playing - clearing autoplay blocked flag');
+      setState(() {
+        _autoplayBlocked = false;
+      });
+    }
+
     // Check if duration becomes available after initialization
-    if (_validDuration == null || _durationError) {
+    // Only update if _validDuration is null or there's an error, AND widget duration is not available
+    if ((_validDuration == null || _durationError) && widget.duration <= 0) {
       final controllerDuration = _controller!.value.duration;
       final isDurationValid = controllerDuration != null &&
           controllerDuration != Duration.zero &&
@@ -454,7 +585,7 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
           controllerDuration.inSeconds.isFinite &&
           !controllerDuration.inSeconds.isNaN &&
           !controllerDuration.inSeconds.isInfinite;
-      
+
       if (isDurationValid) {
         debugPrint('VideoPlayer: Duration detected in listener: ${controllerDuration.inSeconds}s');
         setState(() {
@@ -464,13 +595,42 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
         });
       }
     }
-    
+
     setState(() {
       // Update current time for seek callback
       final position = _controller!.value.position;
       _currentTime = position.inSeconds;
       widget.onSeek?.call(_currentTime);
     });
+  }
+
+  /// Start watchdog timer to detect stalled playback
+  /// Checks every 2 seconds if position is advancing while supposedly playing
+  void _startStallWatchdog() {
+    _stallWatchdog?.cancel();
+    _stallWatchdog = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (!mounted || _controller == null) return;
+
+      // Only check if video is supposed to be playing and not scrubbing/seeking
+      if (_controller!.value.isPlaying && !_isScrubbing && !_isSeeking) {
+        // If position hasn't updated in 5+ seconds while playing, video is stalled
+        if (_lastPositionUpdate != null) {
+          final timeSinceLastUpdate = DateTime.now().difference(_lastPositionUpdate!);
+          if (timeSinceLastUpdate > const Duration(seconds: 5)) {
+            if (!_isBuffering) {
+              debugPrint('VideoPlayer: Stall detected - no position update for ${timeSinceLastUpdate.inSeconds}s');
+              setState(() => _isBuffering = true);
+            }
+          }
+        }
+      }
+    });
+  }
+
+  /// Stop the stall watchdog timer
+  void _stopStallWatchdog() {
+    _stallWatchdog?.cancel();
+    _stallWatchdog = null;
   }
 
   void _startControlsTimer() {
@@ -535,7 +695,18 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
     if (_controller!.value.isPlaying) {
       await _controller!.pause();
     } else {
-      await _controller!.play();
+      try {
+        await _controller!.play();
+        debugPrint('VideoPlayer: Video started playing via user interaction');
+        // Clear autoplay blocked flag when user manually starts playback
+        if (_autoplayBlocked) {
+          setState(() {
+            _autoplayBlocked = false;
+          });
+        }
+      } catch (e) {
+        debugPrint('VideoPlayer: Error playing video: $e');
+      }
     }
     setState(() {
       _showControls = true;
@@ -603,12 +774,36 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
           _isSeeking = false;
           
           // Update _validDuration if controller now has a valid duration
+          // BUT only if widget duration is not available, or if controller duration is reasonable
           if (_controller!.value.duration != Duration.zero &&
               _controller!.value.duration.inMilliseconds > 0 &&
               _controller!.value.duration.inSeconds.isFinite) {
-            _validDuration = _controller!.value.duration;
-            _durationError = false;
-            _durationErrorMessage = null;
+            final controllerDuration = _controller!.value.duration;
+            
+            // Don't overwrite if widget duration is available and controller duration is suspiciously wrong
+            if (widget.duration > 0) {
+              final controllerSeconds = controllerDuration.inSeconds;
+              final widgetSeconds = widget.duration;
+              
+              // Sanity check: if controller duration is less than 10% of widget duration, it's likely wrong
+              // Keep the widget duration instead
+              if (controllerSeconds >= widgetSeconds * 0.1) {
+                // Controller duration is reasonable, update it
+                _validDuration = controllerDuration;
+                _durationError = false;
+                _durationErrorMessage = null;
+                debugPrint('VideoPlayer: Updated _validDuration from controller: ${controllerSeconds}s (widget: ${widgetSeconds}s)');
+              } else {
+                debugPrint('VideoPlayer: Ignoring suspicious controller duration: ${controllerSeconds}s (widget: ${widgetSeconds}s)');
+                // Keep existing _validDuration (which should be from widget duration)
+              }
+            } else {
+              // No widget duration available, use controller duration
+              _validDuration = controllerDuration;
+              _durationError = false;
+              _durationErrorMessage = null;
+              debugPrint('VideoPlayer: Updated _validDuration from controller: ${controllerDuration.inSeconds}s (no widget duration)');
+            }
           }
         });
       }
@@ -651,6 +846,9 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
   Future<void> _loadEpisode(int newIndex) async {
     if (newIndex < 0 || newIndex >= _playlist.length) return;
 
+    // Stop watchdog before disposing controller
+    _stopStallWatchdog();
+
     _controller?.removeListener(_videoListener);
     await _controller?.pause();
     await _controller?.dispose();
@@ -664,6 +862,10 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
       _validDuration = null;
       _durationError = false;
       _durationErrorMessage = null;
+      _lastLoggedDurationSource = null; // Reset logging throttle for new episode
+      _isBuffering = false; // Reset buffering state for new episode
+      _lastPositionUpdate = null;
+      _lastKnownPosition = 0;
     });
 
     await _initializePlayer();
@@ -707,6 +909,7 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
   @override
   void dispose() {
     _hideControlsTimer?.cancel();
+    _stopStallWatchdog(); // Cancel stall detection timer
     _controller?.removeListener(_videoListener);
     _controller?.dispose();
     _focusNode.dispose();
@@ -849,6 +1052,73 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                             ),
                           ),
 
+                        // Play button overlay (shown when autoplay is blocked)
+                        if (_autoplayBlocked && 
+                            _controller != null && 
+                            _controller!.value.isInitialized && 
+                            !_controller!.value.isPlaying)
+                          Positioned.fill(
+                            child: GestureDetector(
+                              onTap: _togglePlayPause,
+                              child: Container(
+                                color: Colors.black.withOpacity(0.3),
+                                child: Center(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.6),
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.5),
+                                          blurRadius: 20,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(Icons.play_arrow_rounded),
+                                      iconSize: 80,
+                                      color: Colors.white,
+                                      onPressed: _togglePlayPause,
+                                      tooltip: 'Play Video',
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        // Buffering overlay (shown when video is buffering mid-playback)
+                        if (_isBuffering &&
+                            !_isInitializing &&
+                            _controller != null &&
+                            _controller!.value.isInitialized)
+                          Positioned.fill(
+                            child: Container(
+                              color: Colors.black.withOpacity(0.4),
+                              child: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 3,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Buffering...',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+
                         // Floating Back Button (always visible, especially in fullscreen)
                         if (_isFullscreen && _showControls)
                           Positioned(
@@ -925,16 +1195,14 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                                 // Calculate max value using _getValidDuration() helper
                                 final validDuration = _getValidDuration();
                                 double maxValue = 1.0;
-                                
+
                                 if (validDuration != null) {
                                   maxValue = validDuration.inSeconds.toDouble();
                                 }
-                                
+
                                 // Ensure minimum value of 1.0 to avoid division by zero
                                 maxValue = maxValue.clamp(1.0, double.infinity);
-                                
-                                debugPrint('VideoPlayer: Slider max value: ${maxValue}s (from _getValidDuration)');
-                                
+
                                 // Check if we have any valid duration before allowing seeking
                                 final canSeek = validDuration != null;
                                 
@@ -1016,7 +1284,9 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                           ),
                         ),
                         Text(
-                          _formatTime(_getValidDuration()?.inSeconds ?? widget.duration),
+                          _getValidDuration() != null
+                              ? _formatTime(_getValidDuration()!.inSeconds)
+                              : '--:--',
                           style: AppTypography.caption.copyWith(
                             color: Colors.white.withOpacity(0.7),
                             fontSize: 12,

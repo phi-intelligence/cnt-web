@@ -106,13 +106,19 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(24),
                         child: Image.asset(
-                          'assets/images/cnt-dove-logo.png',
+                          'assets/images/CNT-LOGO.png',
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.church,
-                              size: 40,
-                              color: Colors.white,
+                            return Image.asset(
+                              'assets/images/cnt-dove-logo.png',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(
+                                  Icons.church,
+                                  size: 40,
+                                  color: Colors.white,
+                                );
+                              },
                             );
                           },
                         ),

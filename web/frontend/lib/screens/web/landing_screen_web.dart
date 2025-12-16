@@ -304,10 +304,18 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
         child: Row(
           children: [
             // Logo
-            Icon(
-              Icons.church,
-              color: AppColors.warmBrown,
-              size: isMobile ? 28 : 32,
+            Image.asset(
+              'assets/images/CNT-LOGO.png',
+              width: isMobile ? 28 : 32,
+              height: isMobile ? 28 : 32,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Icon(
+                  Icons.church,
+                  color: AppColors.warmBrown,
+                  size: isMobile ? 28 : 32,
+                );
+              },
             ),
             SizedBox(width: AppSpacing.small),
             Text(
@@ -1587,10 +1595,18 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.church,
-                color: AppColors.accentMain,
-                size: 28,
+              Image.asset(
+                'assets/images/CNT-LOGO.png',
+                width: 28,
+                height: 28,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    Icons.church,
+                    color: AppColors.accentMain,
+                    size: 28,
+                  );
+                },
               ),
               SizedBox(width: AppSpacing.small),
               Text(

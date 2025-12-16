@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
+import '../../services/auth_service.dart';
 import 'landing_screen_web.dart';
 
 /// Web Register Screen - Redesigned to match Landing Page Hero Section
@@ -31,6 +33,16 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
   DateTime? _selectedDateOfBirth;
   String? _generatedUsername;
   bool _isLoading = false;
+  
+  // OTP Flow State
+  bool _isOTPSent = false;
+  bool _isOTPVerified = false;
+  final _otpController = TextEditingController();
+  bool _isSendingOTP = false;
+  bool _isVerifyingOTP = false;
+  Timer? _resendTimer;
+  int _resendCountdown = 0;
+  String? _otpError;
 
   @override
   void initState() {
@@ -49,6 +61,8 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
     _passwordController.dispose();
     _phoneController.dispose();
     _bioController.dispose();
+    _otpController.dispose();
+    _resendTimer?.cancel();
     super.dispose();
   }
 
@@ -101,11 +115,131 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
       return;
     }
 
+    // If OTP not sent yet, send OTP first
+    if (!_isOTPSent) {
+      await _sendOTP();
+      return;
+    }
+
+    // If OTP sent but not verified, verify OTP first
+    if (_isOTPSent && !_isOTPVerified) {
+      await _verifyOTP();
+      return;
+    }
+
+    // If OTP verified, proceed with registration
+    if (_isOTPVerified) {
+      await _completeRegistration();
+    }
+  }
+
+  Future<void> _sendOTP() async {
+    setState(() {
+      _isSendingOTP = true;
+      _otpError = null;
+    });
+
+    try {
+      final authService = AuthService();
+      await authService.sendOTP(_emailController.text.trim());
+      
+      setState(() {
+        _isOTPSent = true;
+        _isSendingOTP = false;
+        _resendCountdown = 60; // 60 seconds countdown
+      });
+
+      // Start resend countdown timer
+      _resendTimer?.cancel();
+      _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (mounted) {
+          setState(() {
+            if (_resendCountdown > 0) {
+              _resendCountdown--;
+            } else {
+              timer.cancel();
+            }
+          });
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Verification code sent to ${_emailController.text.trim()}'),
+          backgroundColor: AppColors.successMain,
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _isSendingOTP = false;
+        _otpError = e.toString().replaceAll('Exception: ', '');
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_otpError ?? 'Failed to send verification code'),
+          backgroundColor: AppColors.errorMain,
+        ),
+      );
+    }
+  }
+
+  Future<void> _verifyOTP() async {
+    if (_otpController.text.trim().length != 6) {
+      setState(() {
+        _otpError = 'Please enter a 6-digit verification code';
+      });
+      return;
+    }
+
+    setState(() {
+      _isVerifyingOTP = true;
+      _otpError = null;
+    });
+
+    try {
+      final authService = AuthService();
+      final result = await authService.verifyOTP(
+        _emailController.text.trim(),
+        _otpController.text.trim(),
+      );
+
+      if (result['verified'] == true) {
+        setState(() {
+          _isOTPVerified = true;
+          _isVerifyingOTP = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Email verified successfully'),
+            backgroundColor: AppColors.successMain,
+          ),
+        );
+
+        // Automatically proceed to registration
+        await _completeRegistration();
+      } else {
+        setState(() {
+          _isVerifyingOTP = false;
+          _otpError = result['message'] ?? 'Invalid verification code';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isVerifyingOTP = false;
+        _otpError = e.toString().replaceAll('Exception: ', '');
+      });
+    }
+  }
+
+  Future<void> _completeRegistration() async {
     setState(() => _isLoading = true);
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.register(
+    final success = await authProvider.registerWithOTP(
       email: _emailController.text.trim(),
+      otpCode: _otpController.text.trim(),
       password: _passwordController.text,
       name: _nameController.text.trim(),
       phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
@@ -131,6 +265,12 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
         );
       }
     }
+  }
+
+  Future<void> _resendOTP() async {
+    if (_resendCountdown > 0) return;
+    
+    await _sendOTP();
   }
 
   @override
@@ -354,9 +494,149 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
                           ),
                         ],
                         
+                        // OTP Verification Section
+                        if (_isOTPSent) ...[
+                          SizedBox(height: AppSpacing.large),
+                          Container(
+                            padding: EdgeInsets.all(AppSpacing.large),
+                            decoration: BoxDecoration(
+                              color: AppColors.warmBrown.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: AppColors.warmBrown.withOpacity(0.3),
+                                width: 2,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.email,
+                                      color: AppColors.warmBrown,
+                                      size: 20,
+                                    ),
+                                    SizedBox(width: AppSpacing.small),
+                                    Expanded(
+                                      child: Text(
+                                        'Verification code sent to',
+                                        style: AppTypography.bodySmall.copyWith(
+                                          color: AppColors.primaryDark.withOpacity(0.7),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: AppSpacing.tiny),
+                                Text(
+                                  _emailController.text.trim(),
+                                  style: AppTypography.bodyMedium.copyWith(
+                                    color: AppColors.warmBrown,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                SizedBox(height: AppSpacing.medium),
+                                _buildPillTextField(
+                                  controller: _otpController,
+                                  hintText: 'Enter 6-digit code',
+                                  icon: Icons.lock_outline,
+                                  keyboardType: TextInputType.number,
+                                  maxLength: 6,
+                                  isMobile: isMobile,
+                                  validator: (value) {
+                                    if (_isOTPSent && !_isOTPVerified) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Please enter verification code';
+                                      }
+                                      if (value.length != 6) {
+                                        return 'Code must be 6 digits';
+                                      }
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                if (_otpError != null) ...[
+                                  SizedBox(height: AppSpacing.small),
+                                  Text(
+                                    _otpError!,
+                                    style: AppTypography.bodySmall.copyWith(
+                                      color: AppColors.errorMain,
+                                    ),
+                                  ),
+                                ],
+                                SizedBox(height: AppSpacing.medium),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildPillButton(
+                                        label: _isVerifyingOTP 
+                                            ? 'Verifying...' 
+                                            : (_isOTPVerified ? 'Verified ✓' : 'Verify Code'),
+                                        onPressed: _isVerifyingOTP || _isOTPVerified 
+                                            ? null 
+                                            : _handleRegister,
+                                        isOutlined: false,
+                                        isLoading: _isVerifyingOTP,
+                                      ),
+                                    ),
+                                    if (!_isOTPVerified) ...[
+                                      SizedBox(width: AppSpacing.medium),
+                                      TextButton(
+                                        onPressed: _resendCountdown > 0 ? null : _resendOTP,
+                                        child: Text(
+                                          _resendCountdown > 0
+                                              ? 'Resend in ${_resendCountdown}s'
+                                              : 'Resend Code',
+                                          style: AppTypography.bodySmall.copyWith(
+                                            color: _resendCountdown > 0
+                                                ? AppColors.textSecondary
+                                                : AppColors.warmBrown,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        
                         SizedBox(height: AppSpacing.large),
                         
-                        // Optional Fields Expandable
+                        // Optional Fields Expandable (only show if OTP not sent or OTP verified)
+                        if (!_isOTPSent || _isOTPVerified)
+                          ExpansionTile(
+                            tilePadding: EdgeInsets.zero,
+                            title: Text(
+                              'Additional Information (Optional)',
+                              style: AppTypography.bodyMedium.copyWith(
+                                color: AppColors.primaryDark.withOpacity(0.8),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            iconColor: AppColors.warmBrown,
+                            collapsedIconColor: AppColors.warmBrown.withOpacity(0.6),
+                            children: [
+                              SizedBox(height: AppSpacing.small),
+                              // Date of Birth
+                              _buildPillDatePicker(isMobile: isMobile),
+                              SizedBox(height: AppSpacing.medium),
+                              // Bio
+                              _buildPillTextField(
+                                controller: _bioController,
+                                hintText: 'Tell us about yourself...',
+                                icon: Icons.description_outlined,
+                                maxLines: 3,
+                                isMobile: isMobile,
+                              ),
+                              SizedBox(height: AppSpacing.medium),
+                            ],
+                          ),
+                        
+                        SizedBox(height: AppSpacing.extraLarge),
                         ExpansionTile(
                           tilePadding: EdgeInsets.zero,
                           title: Text(
@@ -393,10 +673,12 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               _buildPillButton(
-                                label: 'Create Account',
-                                onPressed: _isLoading ? null : _handleRegister,
+                                label: _isOTPSent 
+                                    ? (_isOTPVerified ? 'Create Account' : (_isSendingOTP ? 'Sending...' : 'Send Verification Code'))
+                                    : 'Create Account',
+                                onPressed: (_isLoading || _isSendingOTP) ? null : _handleRegister,
                                 isOutlined: false,
-                                isLoading: _isLoading,
+                                isLoading: _isLoading || _isSendingOTP,
                               ),
                               SizedBox(height: AppSpacing.medium),
                               _buildPillButton(
@@ -422,10 +704,12 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
                                 width: 180,
                               ),
                               _buildPillButton(
-                                label: 'Create Account',
-                                onPressed: _isLoading ? null : _handleRegister,
+                                label: _isOTPSent 
+                                    ? (_isOTPVerified ? 'Create Account' : (_isSendingOTP ? 'Sending...' : 'Send Verification Code'))
+                                    : 'Create Account',
+                                onPressed: (_isLoading || _isSendingOTP) ? null : _handleRegister,
                                 isOutlined: false,
-                                isLoading: _isLoading,
+                                isLoading: _isLoading || _isSendingOTP,
                                 width: 200,
                               ),
                             ],
@@ -481,10 +765,18 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
         child: Row(
           children: [
             // Logo
-            Icon(
-              Icons.church,
-              color: AppColors.warmBrown,
-              size: isMobile ? 28 : 32,
+            Image.asset(
+              'assets/images/CNT-LOGO.png',
+              width: isMobile ? 28 : 32,
+              height: isMobile ? 28 : 32,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Icon(
+                  Icons.church,
+                  color: AppColors.warmBrown,
+                  size: isMobile ? 28 : 32,
+                );
+              },
             ),
             SizedBox(width: AppSpacing.small),
             Text(
@@ -510,6 +802,7 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
     bool obscureText = false,
     Widget? suffixIcon,
     int maxLines = 1,
+    int? maxLength,
     void Function(String)? onChanged,
     String? Function(String?)? validator,
     required bool isMobile,
@@ -538,6 +831,7 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
         keyboardType: keyboardType,
         obscureText: obscureText,
         maxLines: maxLines,
+        maxLength: maxLength,
         onChanged: onChanged,
         validator: validator,
         style: AppTypography.body.copyWith(

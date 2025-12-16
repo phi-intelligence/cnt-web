@@ -104,13 +104,19 @@ class ResponsiveDrawer extends StatelessWidget {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
                         child: Image.asset(
-                          'assets/images/cnt-dove-logo.png',
+                          'assets/images/CNT-LOGO.png',
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
-                            return Icon(
-                              Icons.church,
-                              size: 32,
-                              color: Colors.white,
+                            return Image.asset(
+                              'assets/images/cnt-dove-logo.png',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.church,
+                                  size: 32,
+                                  color: Colors.white,
+                                );
+                              },
                             );
                           },
                         ),

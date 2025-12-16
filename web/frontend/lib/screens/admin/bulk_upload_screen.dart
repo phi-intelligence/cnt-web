@@ -1218,15 +1218,22 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                     fontWeight: FontWeight.bold,
                     color: AppColors.primaryDark,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 if (file.error != null)
-                  Text(
-                    file.error!,
-                    style: AppTypography.caption.copyWith(
-                      color: AppColors.errorMain,
+                  Flexible(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: double.infinity),
+                      child: Text(
+                        file.error!,
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.errorMain,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   )
                 else
                   Text(

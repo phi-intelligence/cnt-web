@@ -75,45 +75,37 @@ class CreateScreenWeb extends StatelessWidget {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
     final cards = <Widget>[
-      _buildOptionCard(
-        context,
-        title: 'Video Podcast',
-        description: 'Create and upload video content',
-        icon: Icons.videocam,
-        hoverColors: orangeHover, // 1 - orange
-        onTap: () => _navigateToScreen(
-          context,
-          const VideoPodcastCreateScreen(),
-        ),
-      ),
+      // 1. Audio Podcast (brown)
       _buildOptionCard(
         context,
         title: 'Audio Podcast',
         description: 'Record and share audio content',
         icon: Icons.mic,
-        hoverColors: brownHover, // 2 - brown
+        hoverColors: brownHover,
         onTap: () => _navigateToScreen(
           context,
           const AudioPodcastCreateScreen(),
         ),
       ),
+      // 2. Video Podcast (orange)
       _buildOptionCard(
         context,
-        title: 'Live Stream',
-        description: 'Start a live streaming session',
-        icon: Icons.live_tv,
-        hoverColors: orangeHover, // 3 - orange
+        title: 'Video Podcast',
+        description: 'Create and upload video content',
+        icon: Icons.videocam,
+        hoverColors: orangeHover,
         onTap: () => _navigateToScreen(
           context,
-          const LiveStreamStartScreen(),
+          const VideoPodcastCreateScreen(),
         ),
       ),
+      // 3. Meetings (brown)
       _buildOptionCard(
         context,
         title: 'Meeting',
         description: 'Schedule or start a meeting',
         icon: Icons.group,
-        hoverColors: brownHover, // 4 - brown
+        hoverColors: brownHover,
         onTap: () {
           Navigator.push(
             context,
@@ -123,36 +115,49 @@ class CreateScreenWeb extends StatelessWidget {
           );
         },
       ),
+      // 4. Quote (orange)
       _buildOptionCard(
         context,
         title: 'Quote',
         description: 'Share inspirational quotes',
         icon: Icons.format_quote,
-        hoverColors: orangeHover, // 5 - orange
+        hoverColors: orangeHover,
         onTap: () => _navigateToScreen(
           context,
           const QuoteCreateScreenWeb(),
         ),
       ),
-      // Events card for all users
+      // 5. Events (brown)
       _buildOptionCard(
         context,
         title: 'Events',
         description: 'Host or join community events',
         icon: Icons.event,
-        hoverColors: brownHover, // 6 - brown
+        hoverColors: brownHover,
         onTap: () => _navigateToScreen(
           context,
           const EventsListScreenWeb(),
         ),
       ),
-      // My Drafts card - access saved drafts
+      // 6. Live Stream (orange)
+      _buildOptionCard(
+        context,
+        title: 'Live Stream',
+        description: 'Start a live streaming session',
+        icon: Icons.live_tv,
+        hoverColors: orangeHover,
+        onTap: () => _navigateToScreen(
+          context,
+          const LiveStreamStartScreen(),
+        ),
+      ),
+      // 7. My Drafts (brown)
       _buildOptionCard(
         context,
         title: 'My Drafts',
         description: 'Continue editing saved work',
         icon: Icons.drafts_outlined,
-        hoverColors: orangeHover, // 7 - orange
+        hoverColors: brownHover,
         onTap: () => context.push('/my-drafts'),
       ),
     ];

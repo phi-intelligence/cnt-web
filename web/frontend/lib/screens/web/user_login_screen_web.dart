@@ -77,10 +77,18 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Logo/Icon
-                      Icon(
-                        Icons.church,
-                        size: 64,
-                        color: AppColors.primaryMain,
+                      Image.asset(
+                        'assets/images/CNT-LOGO.png',
+                        width: 64,
+                        height: 64,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(
+                            Icons.church,
+                            size: 64,
+                            color: AppColors.primaryMain,
+                          );
+                        },
                       ),
                       const SizedBox(height: AppSpacing.large),
                       

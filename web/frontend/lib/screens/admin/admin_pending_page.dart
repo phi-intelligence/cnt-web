@@ -7,6 +7,7 @@ import '../../widgets/admin/admin_content_card.dart';
 import '../../widgets/shared/empty_state.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
+import '../../widgets/web/styled_filter_chip.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
 
@@ -106,6 +107,9 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
+    _tabController.addListener(() {
+      setState(() {}); // Update UI when tab changes
+    });
     _loadAllContent();
   }
 
@@ -240,28 +244,58 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
           // Header
           _buildHeader(),
           
-          // Tab Bar
+          // Tab Bar - Using StyledFilterChip for better design
           Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.large,
+              vertical: AppSpacing.medium,
+            ),
             color: Colors.white,
-            child: TabBar(
-              controller: _tabController,
-              indicatorColor: AppColors.warmBrown,
-              labelColor: AppColors.warmBrown,
-              unselectedLabelColor: AppColors.textSecondary,
-              labelStyle: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.bold),
-              tabs: [
-                Tab(text: 'All (${_allContent.length})'),
-                Tab(text: 'Podcasts (${_podcasts.length})'),
-                Tab(text: 'Movies (${_movies.length})'),
-                Tab(text: 'Posts (${_posts.length})'),
+            child: Row(
+              children: [
+                StyledFilterChip(
+                  label: 'All',
+                  selected: _tabController.index == 0,
+                  count: _allContent.length,
+                  onTap: () {
+                    _tabController.animateTo(0);
+                  },
+                ),
+                const SizedBox(width: AppSpacing.small),
+                StyledFilterChip(
+                  label: 'Podcasts',
+                  selected: _tabController.index == 1,
+                  count: _podcasts.length,
+                  onTap: () {
+                    _tabController.animateTo(1);
+                  },
+                ),
+                const SizedBox(width: AppSpacing.small),
+                StyledFilterChip(
+                  label: 'Movies',
+                  selected: _tabController.index == 2,
+                  count: _movies.length,
+                  onTap: () {
+                    _tabController.animateTo(2);
+                  },
+                ),
+                const SizedBox(width: AppSpacing.small),
+                StyledFilterChip(
+                  label: 'Posts',
+                  selected: _tabController.index == 3,
+                  count: _posts.length,
+                  onTap: () {
+                    _tabController.animateTo(3);
+                  },
+                ),
               ],
             ),
           ),
           
           // Tab Content
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
+            child: IndexedStack(
+              index: _tabController.index,
               children: [
                 _buildContentList(_allContent, 'All pending content'),
                 _buildPodcastsTab(),
@@ -392,11 +426,35 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
             children: [
               Text('Filter:', style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary)),
               const SizedBox(width: AppSpacing.small),
-              _buildFilterChip('All', _podcastFilter == 'All'),
-              const SizedBox(width: AppSpacing.tiny),
-              _buildFilterChip('Audio', _podcastFilter == 'Audio'),
-              const SizedBox(width: AppSpacing.tiny),
-              _buildFilterChip('Video', _podcastFilter == 'Video'),
+              StyledFilterChip(
+                label: 'All',
+                selected: _podcastFilter == 'All',
+                onTap: () {
+                  setState(() {
+                    _podcastFilter = 'All';
+                  });
+                },
+              ),
+              const SizedBox(width: AppSpacing.small),
+              StyledFilterChip(
+                label: 'Audio',
+                selected: _podcastFilter == 'Audio',
+                onTap: () {
+                  setState(() {
+                    _podcastFilter = 'Audio';
+                  });
+                },
+              ),
+              const SizedBox(width: AppSpacing.small),
+              StyledFilterChip(
+                label: 'Video',
+                selected: _podcastFilter == 'Video',
+                onTap: () {
+                  setState(() {
+                    _podcastFilter = 'Video';
+                  });
+                },
+              ),
             ],
           ),
         ),
@@ -407,33 +465,6 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
     );
   }
 
-  Widget _buildFilterChip(String label, bool isSelected) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _podcastFilter = label;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.warmBrown : Colors.transparent,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: isSelected ? AppColors.warmBrown : AppColors.borderPrimary,
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: AppTypography.caption.copyWith(
-            color: isSelected ? Colors.white : AppColors.textSecondary,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildContentList(List<dynamic> content, String contentType) {
     final filtered = _applySearch(content);
