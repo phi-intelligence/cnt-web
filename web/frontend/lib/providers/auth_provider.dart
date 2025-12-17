@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
 import '../services/google_auth_service.dart';
@@ -34,17 +36,73 @@ class AuthProvider extends ChangeNotifier {
     });
   }
   
-  /// Check if token is expired and auto-logout if needed
+  /// Check if token should be refreshed (expires within 5 minutes)
+  bool _shouldRefreshToken(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return false;
+      
+      final payload = parts[1];
+      // Base64 decode with padding handling
+      String normalized = payload;
+      switch (payload.length % 4) {
+        case 1:
+          normalized += '===';
+          break;
+        case 2:
+          normalized += '==';
+          break;
+        case 3:
+          normalized += '=';
+          break;
+      }
+      
+      final decoded = base64Decode(normalized);
+      final json = jsonDecode(utf8.decode(decoded));
+      final exp = json['exp'] as int?;
+      if (exp == null) return false;
+      
+      final expirationDate = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
+      final now = DateTime.now();
+      final timeUntilExpiration = expirationDate.difference(now);
+      
+      // Refresh if expires within 5 minutes
+      return timeUntilExpiration.inMinutes <= 5;
+    } catch (e) {
+      return false;
+    }
+  }
+  
+  /// Check if token is expired and refresh if needed
   Future<void> _checkTokenExpiration() async {
     if (!_isAuthenticated) return;
     
     try {
-      final isExpired = await _authService.isStoredTokenExpired();
-      if (isExpired) {
-        print('⚠️ Token expired, auto-logging out user');
-        await logout();
-        _error = 'Your session has expired. Please log in again.';
-        notifyListeners();
+      final token = await _authService.getToken();
+      if (token == null) return;
+      
+      // Check if access token expires within 5 minutes
+      if (_shouldRefreshToken(token)) {
+        print('🔄 Access token expires soon, refreshing...');
+        final refreshed = await _authService.refreshAccessToken();
+        
+        if (!refreshed) {
+          // Refresh failed - might be network issue, try again later
+          print('⚠️ Token refresh failed, will retry');
+          // Don't logout immediately - might be temporary
+        }
+      } else if (AuthService.isTokenExpired(token)) {
+        // Token already expired - try refresh
+        print('🔄 Access token expired, refreshing...');
+        final refreshed = await _authService.refreshAccessToken();
+        
+        if (!refreshed) {
+          // Refresh token also expired/revoked - logout
+          print('⚠️ Refresh token expired/revoked, logging out');
+          await logout();
+          _error = 'Your session has expired. Please log in again.';
+          notifyListeners();
+        }
       }
     } catch (e) {
       print('Error checking token expiration: $e');
@@ -66,37 +124,45 @@ class AuthProvider extends ChangeNotifier {
       final token = await _authService.getToken()
           .timeout(const Duration(milliseconds: 300), onTimeout: () => null);
       
-      if (token == null || token.isEmpty) {
-        // No token - user not authenticated
-        _user = null;
-        _isAuthenticated = false;
+      if (token != null && !AuthService.isTokenExpired(token)) {
+        // Access token is valid - user is logged in
+        _user = await _authService.getUser()
+            .timeout(const Duration(milliseconds: 500), onTimeout: () => null);
+        _isAuthenticated = _user != null;
+        _startTokenExpirationCheck(); // Start auto-refresh timer
+        _error = null;
         _isLoading = false;
         notifyListeners();
         return;
       }
       
-      // Token exists - get user data (non-blocking)
-      _isLoading = true;
-      notifyListeners();
-      
-      // Check if token is expired
-      final isExpired = await _authService.isStoredTokenExpired();
-      if (isExpired) {
-        print('⚠️ Token expired during auth check');
-        _user = null;
-        _isAuthenticated = false;
-        await _authService.logout(); // Clear expired token
-      } else {
-        final authenticated = await _authService.isAuthenticated()
-            .timeout(const Duration(milliseconds: 500), onTimeout: () => false);
-        if (authenticated) {
+      // Access token expired or missing - try refresh token
+      final refreshToken = await _authService.getRefreshToken();
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        print('🔄 Access token expired, attempting refresh...');
+        _isLoading = true;
+        notifyListeners();
+        
+        final refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          // Successfully refreshed - user is logged in
           _user = await _authService.getUser()
               .timeout(const Duration(milliseconds: 500), onTimeout: () => null);
           _isAuthenticated = _user != null;
+          _startTokenExpirationCheck();
+          print('✅ Auto-login successful via refresh token');
+          _error = null;
         } else {
+          // Refresh failed - user needs to log in
+          print('⚠️ Auto-login failed - refresh token expired/revoked');
           _user = null;
           _isAuthenticated = false;
+          await _authService.logout(); // Clear invalid tokens
         }
+      } else {
+        // No refresh token - user not logged in
+        _user = null;
+        _isAuthenticated = false;
       }
       _error = null;
     } catch (e) {
@@ -126,6 +192,7 @@ class AuthProvider extends ChangeNotifier {
       };
       _isAuthenticated = true;
       _error = null;
+      _startTokenExpirationCheck(); // Start automatic refresh timer
       return true;
     } catch (e) {
       _error = e.toString();
@@ -197,6 +264,7 @@ class AuthProvider extends ChangeNotifier {
       };
       _isAuthenticated = true;
       _error = null;
+      _startTokenExpirationCheck(); // Start automatic refresh timer
       return true;
     } catch (e) {
       _error = e.toString();
@@ -242,6 +310,7 @@ class AuthProvider extends ChangeNotifier {
       };
       _isAuthenticated = true;
       _error = null;
+      _startTokenExpirationCheck(); // Start automatic refresh timer
       return true;
     } catch (e) {
       String errorMsg = e.toString();
@@ -343,6 +412,7 @@ class AuthProvider extends ChangeNotifier {
       };
       _isAuthenticated = true;
       _error = null;
+      _startTokenExpirationCheck(); // Start automatic refresh timer
       return true;
     } catch (e) {
       _error = e.toString().replaceAll('Exception: ', '');

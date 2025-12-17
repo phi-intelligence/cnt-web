@@ -7,6 +7,7 @@ import '../utils/platform_helper.dart';
 class AuthService {
   static const _storage = FlutterSecureStorage();
   static const String _tokenKey = 'auth_token';
+  static const String _refreshTokenKey = 'refresh_token';
   static const String _userKey = 'user_data';
   
   static String get baseUrl {
@@ -45,8 +46,11 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
-        // Store token and user data
+        // Store token, refresh token, and user data
         await _storage.write(key: _tokenKey, value: data['access_token']);
+        if (data['refresh_token'] != null) {
+          await _storage.write(key: _refreshTokenKey, value: data['refresh_token']);
+        }
         await _storage.write(key: _userKey, value: jsonEncode({
           'id': data['user_id'],
           'username': data['username'],
@@ -55,7 +59,7 @@ class AuthService {
           'is_admin': data['is_admin'],
         }));
         
-        print('✅ Token and user data stored successfully');
+        print('✅ Token, refresh token, and user data stored successfully');
         return data;
       } else {
         final errorBody = response.body;
@@ -79,6 +83,11 @@ class AuthService {
   /// Get stored authentication token
   Future<String?> getToken() async {
     return await _storage.read(key: _tokenKey);
+  }
+  
+  /// Get stored refresh token
+  Future<String?> getRefreshToken() async {
+    return await _storage.read(key: _refreshTokenKey);
   }
   
   /// Get stored user data
@@ -153,8 +162,36 @@ class AuthService {
   
   /// Logout
   Future<void> logout() async {
-    await _storage.delete(key: _tokenKey);
-    await _storage.delete(key: _userKey);
+    try {
+      final refreshToken = await getRefreshToken();
+      
+      // Revoke refresh token on backend
+      if (refreshToken != null) {
+        try {
+          await http.post(
+            Uri.parse('$baseUrl/auth/logout'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh_token': refreshToken}),
+          ).timeout(const Duration(seconds: 5));
+        } catch (e) {
+          // Continue even if logout request fails
+          print('Logout request failed: $e');
+        }
+      }
+      
+      // Clear local storage
+      await _storage.delete(key: _tokenKey);
+      await _storage.delete(key: _refreshTokenKey);
+      await _storage.delete(key: _userKey);
+      
+      print('✅ Logged out successfully');
+    } catch (e) {
+      print('Logout error: $e');
+      // Still clear local storage even if backend call fails
+      await _storage.delete(key: _tokenKey);
+      await _storage.delete(key: _refreshTokenKey);
+      await _storage.delete(key: _userKey);
+    }
   }
   
   /// Register a new user
@@ -193,8 +230,11 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
-        // Store token and user data
+        // Store token, refresh token, and user data
         await _storage.write(key: _tokenKey, value: data['access_token']);
+        if (data['refresh_token'] != null) {
+          await _storage.write(key: _refreshTokenKey, value: data['refresh_token']);
+        }
         await _storage.write(key: _userKey, value: jsonEncode({
           'id': data['user_id'],
           'username': data['username'],
@@ -203,7 +243,7 @@ class AuthService {
           'is_admin': data['is_admin'],
         }));
         
-        print('✅ Registration successful and token stored');
+        print('✅ Registration successful and tokens stored');
         return data;
       } else {
         final errorBody = response.body;
@@ -266,8 +306,11 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
-        // Store token and user data
+        // Store token, refresh token, and user data
         await _storage.write(key: _tokenKey, value: data['access_token']);
+        if (data['refresh_token'] != null) {
+          await _storage.write(key: _refreshTokenKey, value: data['refresh_token']);
+        }
         await _storage.write(key: _userKey, value: jsonEncode({
           'id': data['user_id'],
           'username': data['username'],
@@ -276,7 +319,7 @@ class AuthService {
           'is_admin': data['is_admin'],
         }));
         
-        print('✅ Google login successful and token stored');
+        print('✅ Google login successful and tokens stored');
         return data;
       } else {
         final errorBody = response.body;
@@ -429,8 +472,11 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
-        // Store token and user data
+        // Store token, refresh token, and user data
         await _storage.write(key: _tokenKey, value: data['access_token']);
+        if (data['refresh_token'] != null) {
+          await _storage.write(key: _refreshTokenKey, value: data['refresh_token']);
+        }
         await _storage.write(key: _userKey, value: jsonEncode({
           'id': data['user_id'],
           'username': data['username'],
@@ -439,7 +485,7 @@ class AuthService {
           'is_admin': data['is_admin'],
         }));
         
-        print('✅ Registration with OTP successful');
+        print('✅ Registration with OTP successful and tokens stored');
         return data;
       } else {
         final errorBody = response.body;
@@ -454,6 +500,43 @@ class AuthService {
     } catch (e) {
       print('💥 Register with OTP exception: $e');
       rethrow;
+    }
+  }
+  
+  /// Refresh the current access token using refresh token
+  Future<bool> refreshAccessToken() async {
+    try {
+      final refreshToken = await getRefreshToken();
+      if (refreshToken == null || refreshToken.isEmpty) {
+        print('⚠️ No refresh token available');
+        return false;
+      }
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh_token': refreshToken}),
+      ).timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        await _storage.write(key: _tokenKey, value: data['access_token']);
+        if (data['refresh_token'] != null) {
+          await _storage.write(key: _refreshTokenKey, value: data['refresh_token']);
+        }
+        print('✅ Access token refreshed successfully');
+        return true;
+      } else {
+        print('❌ Token refresh failed: ${response.statusCode}');
+        // Refresh token might be expired/revoked - clear storage
+        if (response.statusCode == 401) {
+          await logout();
+        }
+        return false;
+      }
+    } catch (e) {
+      print('💥 Token refresh error: $e');
+      return false;
     }
   }
   

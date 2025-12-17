@@ -57,17 +57,21 @@ class ApiService {
     return headers;
   }
   
-  /// Handle 401 Unauthorized errors - checks token expiration and throws appropriate error
+  /// Handle 401 Unauthorized errors - attempts token refresh before logging out
   Future<void> _handle401Error(http.Response response) async {
-    final token = await _authService.getToken();
-    if (token != null && AuthService.isTokenExpired(token)) {
-      // Token is expired - clear it
-      await _authService.logout();
-      throw Exception('Your session has expired. Please log in again.');
-    } else {
-      // Token might be invalid for other reasons
-      throw Exception('Authentication failed. Please log in again.');
+    // Try to refresh access token
+    print('🔄 401 error - attempting token refresh...');
+    final refreshed = await _authService.refreshAccessToken();
+    
+    if (refreshed) {
+      print('✅ Token refreshed, request can be retried');
+      // Don't throw error - let caller retry the request
+      return;
     }
+    
+    // Refresh failed - user needs to log in
+    await _authService.logout();
+    throw Exception('Your session has expired. Please log in again.');
   }
   
   /// Check if response is 401 and handle accordingly
@@ -134,7 +138,18 @@ class ApiService {
         final List<dynamic> data = json.decode(response.body);
         return data.cast<Map<String, dynamic>>();
       } else if (response.statusCode == 401) {
-        // Token expired or invalid - try to refresh or re-authenticate
+        // Token expired or invalid - try to refresh
+        await _handle401Error(response);
+        // If refresh succeeded, retry the request
+        final headers = await _getHeaders();
+        final retryResponse = await http.get(
+          uri,
+          headers: headers,
+        ).timeout(const Duration(seconds: 10));
+        if (retryResponse.statusCode == 200) {
+          final List<dynamic> data = json.decode(retryResponse.body);
+          return data.cast<Map<String, dynamic>>();
+        }
         throw Exception('Authentication failed. Please log in again.');
       }
       throw Exception('Failed to list streams: HTTP ${response.statusCode}');
@@ -1984,6 +1999,16 @@ class ApiService {
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       } else if (response.statusCode == 401) {
+        await _handle401Error(response);
+        // Retry the request after refresh
+        final retryHeaders = await _getHeaders();
+        final retryResponse = await http.get(
+          Uri.parse('$baseUrl/admin/dashboard'),
+          headers: retryHeaders,
+        ).timeout(const Duration(seconds: 10));
+        if (retryResponse.statusCode == 200) {
+          return json.decode(retryResponse.body) as Map<String, dynamic>;
+        }
         throw Exception('Unauthorized: Please log in again. Token may have expired.');
       } else if (response.statusCode == 403) {
         throw Exception('Forbidden: Admin access required.');
