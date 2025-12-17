@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -34,10 +35,16 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
   bool _isLoading = false;
   String _selectedType = 'All';
   final List<String> _podcastTypes = ['All', 'Audio Podcast', 'Video Podcast'];
+  
+  // Carousel State
+  int _currentHeroIndex = 0;
+  late PageController _heroPageController;
+  Timer? _heroTimer;
 
   @override
   void initState() {
     super.initState();
+    _heroPageController = PageController();
     _searchController.addListener(_onSearchChanged);
     _fetchPodcasts();
   }
@@ -45,7 +52,29 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
   @override
   void dispose() {
     _searchController.dispose();
+    _heroTimer?.cancel();
+    _heroPageController.dispose();
     super.dispose();
+  }
+  
+  void _startHeroTimer() {
+    _heroTimer?.cancel();
+    _heroTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_podcasts.isEmpty) return;
+      
+      final carouselPodcasts = _podcasts.take(5).toList();
+      if (carouselPodcasts.isEmpty) return;
+      
+      final nextIndex = (_currentHeroIndex + 1) % carouselPodcasts.length;
+      
+      if (_heroPageController.hasClients) {
+        _heroPageController.animateToPage(
+          nextIndex,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   void _onSearchChanged() {
@@ -112,6 +141,11 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
                       (p.videoUrl != null && p.videoUrl!.isNotEmpty)).toList();
       
       _filteredPodcasts = List.from(_podcasts);
+      
+      // Start hero carousel timer if we have podcasts
+      if (_podcasts.isNotEmpty) {
+        _startHeroTimer();
+      }
     } catch (e) {
       print('Error fetching podcasts: $e');
     } finally {
@@ -175,17 +209,17 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
 
   @override
   Widget build(BuildContext context) {
-    // Select a featured podcast (first one)
-    final featuredPodcast = _podcasts.isNotEmpty ? _podcasts.first : null;
+    // Top 5 podcasts for carousel
+    final carouselPodcasts = _podcasts.take(5).toList();
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
       body: CustomScrollView(
         slivers: [
-          // Hero Section
-          if (featuredPodcast != null && !_isLoading)
+          // Hero Carousel Section
+          if (carouselPodcasts.isNotEmpty && !_isLoading)
             SliverToBoxAdapter(
-               child: _buildHeroSection(featuredPodcast),
+              child: _buildHeroCarousel(carouselPodcasts),
             )
           else if (!_isLoading)
              SliverToBoxAdapter(
@@ -325,7 +359,7 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
     );
   }
 
-  Widget _buildHeroSection(ContentItem item) {
+  Widget _buildHeroCarousel(List<ContentItem> podcasts) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 1024;
     final height = isDesktop ? 500.0 : 400.0;
@@ -333,101 +367,168 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
     return SizedBox(
       height: height,
       child: Stack(
-        fit: StackFit.expand,
         children: [
-          // Background Image
-          if (item.coverImage != null)
-             Image.network(
-               item.coverImage!, // Item coverImage is already full URL from map function
-               fit: BoxFit.cover,
-               errorBuilder: (_, __, ___) => Container(color: Colors.black),
-             )
-          else
-             Container(color: Colors.black),
-
-          // Gradient Overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withOpacity(0.2),
-                  Colors.black.withOpacity(0.6),
-                  AppColors.backgroundPrimary,
-                ],
-                stops: const [0.0, 0.6, 1.0],
+          // Carousel Pages
+          PageView.builder(
+            controller: _heroPageController,
+            itemCount: podcasts.length,
+            onPageChanged: (index) {
+              setState(() {
+                _currentHeroIndex = index;
+              });
+            },
+            itemBuilder: (context, index) {
+              final item = podcasts[index];
+              return _buildHeroItem(item, height);
+            },
+          ),
+          
+          // Gradient Overlay (Bottom) for indicators
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 100,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.8),
+                  ],
+                ),
               ),
             ),
           ),
 
-          // Content
+          // Page Indicators
           Positioned(
-            bottom: AppSpacing.extraLarge,
+            bottom: 20,
             left: 0,
             right: 0,
-            child: Padding(
-              padding: ResponsiveGridDelegate.getResponsivePadding(context),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                   Container(
-                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                     decoration: BoxDecoration(
-                       color: AppColors.warmBrown,
-                       borderRadius: BorderRadius.circular(20),
-                     ),
-                     child: Text(
-                       'LATEST EPISODE',
-                       style: AppTypography.caption.copyWith(
-                         color: Colors.white,
-                         fontWeight: FontWeight.bold,
-                         letterSpacing: 1.2,
-                       ),
-                     ),
-                   ),
-                   const SizedBox(height: AppSpacing.medium),
-                   Text(
-                     item.title,
-                     style: AppTypography.heading1.copyWith(
-                       color: Colors.white,
-                       fontSize: isDesktop ? 56 : 32,
-                       fontWeight: FontWeight.bold,
-                       height: 1.1,
-                     ),
-                     maxLines: 2,
-                     overflow: TextOverflow.ellipsis,
-                   ),
-                   if (item.description != null) ...[
-                     const SizedBox(height: AppSpacing.medium),
-                     SizedBox(
-                       width: isDesktop ? screenWidth * 0.5 : screenWidth,
-                       child: Text(
-                         item.description!,
-                         style: AppTypography.body.copyWith(
-                           color: Colors.white.withOpacity(0.9),
-                           fontSize: isDesktop ? 18 : 16,
-                           height: 1.5,
-                         ),
-                         maxLines: isDesktop ? 3 : 2,
-                         overflow: TextOverflow.ellipsis,
-                       ),
-                     ),
-                   ],
-                   const SizedBox(height: AppSpacing.large),
-                   StyledPillButton(
-                     label: 'Play Now',
-                     icon: Icons.play_arrow,
-                     onPressed: () => _handlePlay(item),
-                     width: 180,
-                   ),
-                ],
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(podcasts.length, (index) {
+                final isActive = index == _currentHeroIndex;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: isActive ? 24 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: isActive ? AppColors.accentMain : Colors.white.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                );
+              }),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeroItem(ContentItem item, double height) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 1024;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Background Image
+        if (item.coverImage != null)
+           Image.network(
+             item.coverImage!,
+             fit: BoxFit.cover,
+             errorBuilder: (_, __, ___) => Container(color: Colors.black),
+           )
+        else
+           Container(color: Colors.black),
+
+        // Gradient Overlay
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.2),
+                Colors.black.withOpacity(0.6),
+                AppColors.backgroundPrimary,
+              ],
+              stops: const [0.0, 0.6, 1.0],
+            ),
+          ),
+        ),
+
+        // Content
+        Positioned(
+          bottom: AppSpacing.extraLarge * 2,
+          left: 0,
+          right: 0,
+          child: Padding(
+            padding: ResponsiveGridDelegate.getResponsivePadding(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                 Container(
+                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                   decoration: BoxDecoration(
+                     color: AppColors.warmBrown,
+                     borderRadius: BorderRadius.circular(20),
+                   ),
+                   child: Text(
+                     'LATEST EPISODE',
+                     style: AppTypography.caption.copyWith(
+                       color: Colors.white,
+                       fontWeight: FontWeight.bold,
+                       letterSpacing: 1.2,
+                     ),
+                   ),
+                 ),
+                 const SizedBox(height: AppSpacing.medium),
+                 Text(
+                   item.title,
+                   style: AppTypography.heading1.copyWith(
+                     color: Colors.white,
+                     fontSize: isDesktop ? 56 : 32,
+                     fontWeight: FontWeight.bold,
+                     height: 1.1,
+                   ),
+                   maxLines: 2,
+                   overflow: TextOverflow.ellipsis,
+                 ),
+                 if (item.description != null) ...[
+                   const SizedBox(height: AppSpacing.medium),
+                   SizedBox(
+                     width: isDesktop ? screenWidth * 0.5 : screenWidth,
+                     child: Text(
+                       item.description!,
+                       style: AppTypography.body.copyWith(
+                         color: Colors.white.withOpacity(0.9),
+                         fontSize: isDesktop ? 18 : 16,
+                         height: 1.5,
+                       ),
+                       maxLines: isDesktop ? 3 : 2,
+                       overflow: TextOverflow.ellipsis,
+                     ),
+                   ),
+                 ],
+                 const SizedBox(height: AppSpacing.large),
+                 StyledPillButton(
+                   label: 'Play Now',
+                   icon: Icons.play_arrow,
+                   onPressed: () => _handlePlay(item),
+                   width: 180,
+                 ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

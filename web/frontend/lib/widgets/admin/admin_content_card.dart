@@ -5,6 +5,7 @@ import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
 import '../shared/image_helper.dart';
 import '../../widgets/web/styled_pill_button.dart';
+import '../../utils/responsive_utils.dart';
 import 'admin_status_badge.dart';
 
 /// Content card for admin management pages
@@ -66,6 +67,7 @@ class AdminContentCard extends StatelessWidget {
     final createdAt = item['created_at'] as String?;
     final status = item['status'] as String? ?? 'pending';
     final thumbnail = _getThumbnail();
+    final isMobile = ResponsiveUtils.isMobile(context);
 
     DateTime? date;
     if (createdAt != null) {
@@ -196,58 +198,62 @@ class AdminContentCard extends StatelessWidget {
 
               // Actions - Approve/Reject buttons (pill-shaped)
               if (showApproveReject && (onApprove != null || onReject != null)) ...[
-                const SizedBox(width: AppSpacing.small),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (onApprove != null)
-                      StyledPillButton(
-                        label: 'Approve',
-                        icon: Icons.check,
-                        onPressed: onApprove,
-                        variant: StyledPillButtonVariant.filled,
-                        width: 100,
-                      ),
-                    if (onApprove != null && onReject != null)
-                      const SizedBox(height: AppSpacing.tiny),
-                    if (onReject != null)
-                      StyledPillButton(
-                        label: 'Reject',
-                        icon: Icons.close,
-                        onPressed: onReject,
-                        variant: StyledPillButtonVariant.outlined,
-                        width: 100,
-                      ),
-                  ],
+                SizedBox(width: isMobile ? AppSpacing.tiny : AppSpacing.small),
+                Flexible(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: isMobile ? CrossAxisAlignment.stretch : CrossAxisAlignment.end,
+                    children: [
+                      if (onApprove != null)
+                        StyledPillButton(
+                          label: 'Approve',
+                          icon: Icons.check,
+                          onPressed: onApprove,
+                          variant: StyledPillButtonVariant.filled,
+                          width: isMobile ? null : 100,
+                        ),
+                      if (onApprove != null && onReject != null)
+                        SizedBox(height: isMobile ? AppSpacing.small : AppSpacing.tiny),
+                      if (onReject != null)
+                        StyledPillButton(
+                          label: 'Reject',
+                          icon: Icons.close,
+                          onPressed: onReject,
+                          variant: StyledPillButtonVariant.outlined,
+                          width: isMobile ? null : 100,
+                        ),
+                    ],
+                  ),
                 ),
               ],
               // Actions - Delete/Archive buttons (pill-shaped)
               if (showDeleteArchive && (onDelete != null || onArchive != null)) ...[
-                const SizedBox(width: AppSpacing.small),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (onArchive != null)
-                      StyledPillButton(
-                        label: 'Archive',
-                        icon: Icons.archive_outlined,
-                        onPressed: onArchive,
-                        variant: StyledPillButtonVariant.outlined,
-                        width: 100,
-                      ),
-                    if (onArchive != null && onDelete != null)
-                      const SizedBox(height: AppSpacing.tiny),
-                    if (onDelete != null)
-                      StyledPillButton(
-                        label: 'Delete',
-                        icon: Icons.delete_outline,
-                        onPressed: onDelete,
-                        variant: StyledPillButtonVariant.outlined,
-                        width: 100,
-                      ),
-                  ],
+                SizedBox(width: isMobile ? AppSpacing.tiny : AppSpacing.small),
+                Flexible(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: isMobile ? CrossAxisAlignment.stretch : CrossAxisAlignment.end,
+                    children: [
+                      if (onArchive != null)
+                        StyledPillButton(
+                          label: 'Archive',
+                          icon: Icons.archive_outlined,
+                          onPressed: onArchive,
+                          variant: StyledPillButtonVariant.outlined,
+                          width: isMobile ? null : 100,
+                        ),
+                      if (onArchive != null && onDelete != null)
+                        SizedBox(height: isMobile ? AppSpacing.small : AppSpacing.tiny),
+                      if (onDelete != null)
+                        StyledPillButton(
+                          label: 'Delete',
+                          icon: Icons.delete_outline,
+                          onPressed: onDelete,
+                          variant: StyledPillButtonVariant.outlined,
+                          width: isMobile ? null : 100,
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ],

@@ -259,45 +259,88 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
               vertical: AppSpacing.medium,
             ),
             color: Colors.white,
-            child: Row(
-              children: [
-                StyledFilterChip(
-                  label: 'All',
-                  selected: _tabController.index == 0,
-                  count: _allContent.length,
-                  onTap: () {
-                    _tabController.animateTo(0);
-                  },
-                ),
-                const SizedBox(width: AppSpacing.small),
-                StyledFilterChip(
-                  label: 'Podcasts',
-                  selected: _tabController.index == 1,
-                  count: _podcasts.length,
-                  onTap: () {
-                    _tabController.animateTo(1);
-                  },
-                ),
-                const SizedBox(width: AppSpacing.small),
-                StyledFilterChip(
-                  label: 'Movies',
-                  selected: _tabController.index == 2,
-                  count: _movies.length,
-                  onTap: () {
-                    _tabController.animateTo(2);
-                  },
-                ),
-                const SizedBox(width: AppSpacing.small),
-                StyledFilterChip(
-                  label: 'Posts',
-                  selected: _tabController.index == 3,
-                  count: _posts.length,
-                  onTap: () {
-                    _tabController.animateTo(3);
-                  },
-                ),
-              ],
-            ),
+            child: ResponsiveUtils.isMobile(context)
+                ? SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        StyledFilterChip(
+                          label: 'All',
+                          selected: _tabController.index == 0,
+                          count: _allContent.length,
+                          onTap: () {
+                            _tabController.animateTo(0);
+                          },
+                        ),
+                        const SizedBox(width: AppSpacing.small),
+                        StyledFilterChip(
+                          label: 'Podcasts',
+                          selected: _tabController.index == 1,
+                          count: _podcasts.length,
+                          onTap: () {
+                            _tabController.animateTo(1);
+                          },
+                        ),
+                        const SizedBox(width: AppSpacing.small),
+                        StyledFilterChip(
+                          label: 'Movies',
+                          selected: _tabController.index == 2,
+                          count: _movies.length,
+                          onTap: () {
+                            _tabController.animateTo(2);
+                          },
+                        ),
+                        const SizedBox(width: AppSpacing.small),
+                        StyledFilterChip(
+                          label: 'Posts',
+                          selected: _tabController.index == 3,
+                          count: _posts.length,
+                          onTap: () {
+                            _tabController.animateTo(3);
+                          },
+                        ),
+                      ],
+                    ),
+                  )
+                : Row(
+                    children: [
+                      StyledFilterChip(
+                        label: 'All',
+                        selected: _tabController.index == 0,
+                        count: _allContent.length,
+                        onTap: () {
+                          _tabController.animateTo(0);
+                        },
+                      ),
+                      const SizedBox(width: AppSpacing.small),
+                      StyledFilterChip(
+                        label: 'Podcasts',
+                        selected: _tabController.index == 1,
+                        count: _podcasts.length,
+                        onTap: () {
+                          _tabController.animateTo(1);
+                        },
+                      ),
+                      const SizedBox(width: AppSpacing.small),
+                      StyledFilterChip(
+                        label: 'Movies',
+                        selected: _tabController.index == 2,
+                        count: _movies.length,
+                        onTap: () {
+                          _tabController.animateTo(2);
+                        },
+                      ),
+                      const SizedBox(width: AppSpacing.small),
+                      StyledFilterChip(
+                        label: 'Posts',
+                        selected: _tabController.index == 3,
+                        count: _posts.length,
+                        onTap: () {
+                          _tabController.animateTo(3);
+                        },
+                      ),
+                    ],
+                  ),
           ),
           
           // Tab Content

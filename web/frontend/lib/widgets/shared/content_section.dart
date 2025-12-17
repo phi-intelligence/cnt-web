@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/content_item.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import '../../utils/responsive_utils.dart';
 import '../web/content_card_web.dart';
 import '../web/disc_card_web.dart';
 
@@ -144,7 +145,19 @@ class _ContentSectionState extends State<ContentSection> {
   }
 
   Widget _buildHorizontalWeb(BuildContext context) {
-    final contentHeight = 280.0;
+    final contentHeight = ResponsiveUtils.getResponsiveValue(
+      context: context,
+      mobile: 220.0,
+      tablet: 250.0,
+      desktop: 280.0,
+    );
+    
+    final cardWidth = ResponsiveUtils.getResponsiveValue(
+      context: context,
+      mobile: 150.0,
+      tablet: 175.0,
+      desktop: 200.0,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,20 +185,27 @@ class _ContentSectionState extends State<ContentSection> {
           child: Stack(
             children: [
               // Scrollable content
-              ListView.builder(
-                controller: _scrollController,
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                itemCount: widget.items.length,
-                itemBuilder: (context, index) {
-                  return SizedBox(
-                    width: 200,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 16.0),
-                      child: _buildCard(context, widget.items[index]),
-                    ),
-                  );
+              NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  // Prevent horizontal scroll notifications from bubbling up to parent
+                  // This prevents interference with hero carousel
+                  return notification.metrics.axis == Axis.horizontal;
                 },
+                child: ListView.builder(
+                  controller: _scrollController,
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  itemCount: widget.items.length,
+                  itemBuilder: (context, index) {
+                    return SizedBox(
+                      width: cardWidth,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: _buildCard(context, widget.items[index]),
+                      ),
+                    );
+                  },
+                ),
               ),
               // Left Arrow
               if (_canScrollLeft)
@@ -218,7 +238,19 @@ class _ContentSectionState extends State<ContentSection> {
 
 
   Widget _buildDiscDesignWeb(BuildContext context) {
-    final contentHeight = 250.0;
+    final contentHeight = ResponsiveUtils.getResponsiveValue(
+      context: context,
+      mobile: 200.0,
+      tablet: 230.0,
+      desktop: 250.0,
+    );
+    
+    final discSize = ResponsiveUtils.getResponsiveValue(
+      context: context,
+      mobile: 120.0,
+      tablet: 150.0,
+      desktop: 180.0,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,22 +278,29 @@ class _ContentSectionState extends State<ContentSection> {
           child: Stack(
             children: [
               // Scrollable content
-              ListView.builder(
-                controller: _scrollController,
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                itemCount: widget.items.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 24.0),
-                    child: DiscCardWeb(
-                      item: widget.items[index],
-                      onTap: widget.onItemTap != null ? () => widget.onItemTap!(widget.items[index]) : null,
-                      onPlay: widget.onItemPlay != null ? () => widget.onItemPlay!(widget.items[index]) : null,
-                      size: 180.0,
-                    ),
-                  );
+              NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  // Prevent horizontal scroll notifications from bubbling up to parent
+                  // This prevents interference with hero carousel
+                  return notification.metrics.axis == Axis.horizontal;
                 },
+                child: ListView.builder(
+                  controller: _scrollController,
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  itemCount: widget.items.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 24.0),
+                      child: DiscCardWeb(
+                        item: widget.items[index],
+                        onTap: widget.onItemTap != null ? () => widget.onItemTap!(widget.items[index]) : null,
+                        onPlay: widget.onItemPlay != null ? () => widget.onItemPlay!(widget.items[index]) : null,
+                        size: discSize,
+                      ),
+                    );
+                  },
+                ),
               ),
               // Left Arrow
               if (_canScrollLeft)

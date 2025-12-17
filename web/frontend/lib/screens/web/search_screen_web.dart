@@ -30,15 +30,6 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
   final ApiService _api = ApiService();
   String _selectedFilter = 'All';
   final List<String> _filters = ['All', 'Podcasts', 'Music', 'Videos', 'Posts', 'Users'];
-  final List<String> _genres = [
-    'Worship',
-    'Gospel',
-    'Prayer',
-    'Devotionals',
-    'Youth',
-    'Bible Stories',
-    'Live',
-  ];
   
   // Discover content state
   List<ContentItem> _trendingPodcasts = [];
@@ -68,14 +59,6 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
 
     final type = _selectedFilter == 'All' ? null : _selectedFilter.toLowerCase();
     context.read<SearchProvider>().search(query, type: type);
-  }
-
-  void _applyQuickFilter(String keyword) {
-    setState(() {
-      _searchController.text = keyword;
-      _selectedFilter = 'All';
-    });
-    _performSearch();
   }
 
   Future<void> _fetchDiscoverContent() async {
@@ -225,10 +208,6 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
                         }).toList(),
                       ),
                     ),
-
-                    const SizedBox(height: AppSpacing.medium),
-
-                    _buildGenreWrap(),
                       ],
                     ),
                   ),
@@ -375,50 +354,5 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
     );
   }
 
-  Widget _buildGenreWrap() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Quick Genres',
-          style: AppTypography.heading4.copyWith(
-            fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.small),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            return Wrap(
-              spacing: AppSpacing.small,
-              runSpacing: AppSpacing.small,
-              alignment: WrapAlignment.start,
-              children: _genres.map((genre) {
-                final isSelected = _searchController.text.trim().toLowerCase() == genre.toLowerCase();
-                return ChoiceChip(
-                  selected: isSelected,
-                  label: Text(genre),
-                  selectedColor: AppColors.warmBrown,
-                  backgroundColor: Colors.white,
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : AppColors.textPrimary,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                  side: BorderSide(
-                    color: isSelected 
-                        ? AppColors.warmBrown 
-                        : AppColors.borderPrimary,
-                    width: 1,
-                  ),
-                  onSelected: (_) => _applyQuickFilter(genre),
-                );
-              }).toList(),
-            );
-          },
-        ),
-      ],
-    );
-  }
 }
 

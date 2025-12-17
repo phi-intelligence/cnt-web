@@ -344,18 +344,25 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
             height: carouselHeight,
             child: NotificationListener<ScrollNotification>(
               onNotification: (notification) {
+                // Only handle horizontal scroll notifications from PageView, ignore vertical scrolls from parent
                 if (notification is ScrollStartNotification) {
-                  _isUserInteracting = true;
-                  _stopAutoScroll();
+                  // Check if this is a horizontal scroll (from PageView)
+                  if (notification.metrics.axis == Axis.horizontal) {
+                    _isUserInteracting = true;
+                    _stopAutoScroll();
+                  }
                 } else if (notification is ScrollEndNotification) {
-                  Future.delayed(const Duration(milliseconds: 1000), () {
-                    if (mounted) {
-                      _isUserInteracting = false;
-                      _startAutoScroll();
-                    }
-                  });
+                  // Only handle horizontal scroll end
+                  if (notification.metrics.axis == Axis.horizontal) {
+                    Future.delayed(const Duration(milliseconds: 1000), () {
+                      if (mounted) {
+                        _isUserInteracting = false;
+                        _startAutoScroll();
+                      }
+                    });
+                  }
                 }
-                return false;
+                return false; // Don't consume the notification, let it bubble up
               },
               child: SizedBox(
                 height: carouselHeight,
@@ -385,8 +392,8 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
             ),
           ),
           
-          // Navigation Arrows (only for desktop)
-          if (showArrows)
+          // Navigation Arrows (only for desktop, hidden on mobile)
+          if (showArrows && !ResponsiveUtils.isMobile(context))
             ..._buildNavigationArrows(carouselHeight),
         ],
       ),
@@ -411,13 +418,20 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
         : (screenWidth * devicePixelRatio).round();
     final cacheHeight = (height * devicePixelRatio).round();
     
-    Widget content = CachedNetworkImage(
-      imageUrl: item.imageUrl,
-      fit: BoxFit.cover,
-      height: height,
-      width: double.infinity,
-      memCacheWidth: cacheWidth,
-      memCacheHeight: cacheHeight,
+    // Use BoxFit.contain for desktop to show full image, cover for mobile
+    final imageFit = isMobile ? BoxFit.cover : BoxFit.contain;
+    // Use center alignment for mobile, topCenter for desktop
+    final imageAlignment = isMobile ? Alignment.center : Alignment.topCenter;
+    
+    Widget content = ClipRect(
+      child: CachedNetworkImage(
+        imageUrl: item.imageUrl,
+        fit: imageFit,
+        height: height,
+        width: double.infinity,
+        alignment: imageAlignment,
+        memCacheWidth: cacheWidth,
+        memCacheHeight: cacheHeight,
       errorWidget: (context, url, error) {
         // Only log error once per image URL
         if (!_loadedImages.contains('error:$url')) {
@@ -457,8 +471,9 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
           ),
         );
       },
-      fadeInDuration: const Duration(milliseconds: 300),
-      fadeOutDuration: const Duration(milliseconds: 100),
+        fadeInDuration: const Duration(milliseconds: 300),
+        fadeOutDuration: const Duration(milliseconds: 100),
+      ),
     );
     
     // Track successful image loads (only log once per image)

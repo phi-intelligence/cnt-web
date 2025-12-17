@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
+import '../../utils/responsive_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/support_provider.dart';
 import 'hamburger_menu_button.dart';
@@ -31,6 +32,7 @@ class ResponsiveAppBar extends StatelessWidget implements PreferredSizeWidget {
     final authProvider = context.watch<AuthProvider>();
     final supportProvider = context.watch<SupportProvider>();
     final unreadAdmin = authProvider.isAdmin ? supportProvider.unreadAdminCount : 0;
+    final isMobile = ResponsiveUtils.isMobile(context);
     
     return AppBar(
       automaticallyImplyLeading: false,
@@ -125,24 +127,25 @@ class ResponsiveAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ],
           ),
-        // Profile icon
-        Padding(
-          padding: const EdgeInsets.only(right: AppSpacing.small),
-          child: IconButton(
-            icon: CircleAvatar(
-              radius: 16,
-              backgroundColor: AppColors.warmBrown.withOpacity(0.1),
-              child: Icon(
-                Icons.person,
-                size: 20,
-                color: AppColors.warmBrown,
+        // Profile icon - hidden on mobile
+        if (!isMobile)
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.small),
+            child: IconButton(
+              icon: CircleAvatar(
+                radius: 16,
+                backgroundColor: AppColors.warmBrown.withOpacity(0.1),
+                child: Icon(
+                  Icons.person,
+                  size: 20,
+                  color: AppColors.warmBrown,
+                ),
               ),
+              onPressed: () {
+                // Navigate to profile
+              },
             ),
-            onPressed: () {
-              // Navigate to profile
-            },
           ),
-        ),
       ],
       backgroundColor: Colors.white,
       elevation: 2,

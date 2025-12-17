@@ -12,6 +12,7 @@ import '../../providers/community_provider.dart';
 import '../community/comment_screen.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/dimension_utils.dart';
+import '../../utils/responsive_utils.dart';
 import '../community/create_post_screen.dart';
 
 /// Web Community Screen - Full implementation
@@ -166,7 +167,14 @@ class _CommunityScreenWebState extends State<CommunityScreenWeb> {
                   actionIcon: Icons.add,
                   onAction: _handleCreatePost,
                 ),
-                const SizedBox(height: AppSpacing.large),
+                SizedBox(
+                  height: ResponsiveUtils.getResponsiveValue(
+                    context: context,
+                    mobile: AppSpacing.medium,
+                    tablet: AppSpacing.large,
+                    desktop: AppSpacing.large,
+                  ),
+                ),
                 
                 // Posts List
                 Expanded(

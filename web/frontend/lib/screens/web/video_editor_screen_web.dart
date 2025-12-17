@@ -2270,6 +2270,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   }
 
   Widget _buildHeader() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    
     return Container(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.medium),
       decoration: BoxDecoration(
@@ -2289,7 +2292,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             },
             tooltip: 'Back',
           ),
-          Expanded(
+          Flexible(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -2299,6 +2302,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.bold,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 if (_videoDuration != Duration.zero)
                   Text(
@@ -2306,80 +2311,167 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                     style: AppTypography.bodySmall.copyWith(
                       color: AppColors.textSecondary,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
               ],
             ),
           ),
-          // Action buttons - inline in the Row with padding
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.small),
-            child: _buildHeaderButton(
-              icon: Icons.undo,
-              tooltip: 'Undo',
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Undo feature coming soon'),
-                    backgroundColor: AppColors.infoMain,
-                  ),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.medium),
-            child: _buildHeaderButton(
-              icon: Icons.redo,
-              tooltip: 'Redo',
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Redo feature coming soon'),
-                    backgroundColor: AppColors.infoMain,
-                  ),
-                );
-              },
-            ),
-          ),
-          // Save Draft button - wrapped in IntrinsicWidth to constrain
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.small),
-            child: IntrinsicWidth(
-              child: OutlinedButton.icon(
-                onPressed: (_isSavingDraft || _isEditing) ? null : _saveDraft,
-                icon: _isSavingDraft
-                    ? SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.warmBrown,
+          // Action buttons - scrollable on mobile
+          if (isMobile)
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: AppSpacing.small),
+                      child: _buildHeaderButton(
+                        icon: Icons.undo,
+                        tooltip: 'Undo',
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('Undo feature coming soon'),
+                              backgroundColor: AppColors.infoMain,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: AppSpacing.small),
+                      child: _buildHeaderButton(
+                        icon: Icons.redo,
+                        tooltip: 'Redo',
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('Redo feature coming soon'),
+                              backgroundColor: AppColors.infoMain,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: AppSpacing.small),
+                      child: IntrinsicWidth(
+                        child: OutlinedButton.icon(
+                          onPressed: (_isSavingDraft || _isEditing) ? null : _saveDraft,
+                          icon: _isSavingDraft
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.warmBrown,
+                                  ),
+                                )
+                              : Icon(Icons.bookmark_border, size: 18),
+                          label: Text(_isSavingDraft ? 'Saving...' : 'Save Draft'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.warmBrown,
+                            side: BorderSide(color: AppColors.warmBrown),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
                         ),
-                      )
-                    : Icon(Icons.bookmark_border, size: 18),
-                label: Text(_isSavingDraft ? 'Saving...' : 'Save Draft'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.warmBrown,
-                  side: BorderSide(color: AppColors.warmBrown),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: AppSpacing.small),
+                      child: IntrinsicWidth(
+                        child: StyledPillButton(
+                          label: _isEditing ? 'Processing...' : 'Save & Continue',
+                          icon: Icons.save,
+                          onPressed: _isEditing ? null : _handleSave,
+                          isLoading: _isEditing,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            )
+          else
+            // Desktop: buttons in a Row
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.small),
+                  child: _buildHeaderButton(
+                    icon: Icons.undo,
+                    tooltip: 'Undo',
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Undo feature coming soon'),
+                          backgroundColor: AppColors.infoMain,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.medium),
+                  child: _buildHeaderButton(
+                    icon: Icons.redo,
+                    tooltip: 'Redo',
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Redo feature coming soon'),
+                          backgroundColor: AppColors.infoMain,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.small),
+                  child: IntrinsicWidth(
+                    child: OutlinedButton.icon(
+                      onPressed: (_isSavingDraft || _isEditing) ? null : _saveDraft,
+                      icon: _isSavingDraft
+                          ? SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.warmBrown,
+                              ),
+                            )
+                          : Icon(Icons.bookmark_border, size: 18),
+                      label: Text(_isSavingDraft ? 'Saving...' : 'Save Draft'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.warmBrown,
+                        side: BorderSide(color: AppColors.warmBrown),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.small),
+                  child: IntrinsicWidth(
+                    child: StyledPillButton(
+                      label: _isEditing ? 'Processing...' : 'Save & Continue',
+                      icon: Icons.save,
+                      onPressed: _isEditing ? null : _handleSave,
+                      isLoading: _isEditing,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.small),
-            child: IntrinsicWidth(
-              child: StyledPillButton(
-                label: _isEditing ? 'Processing...' : 'Save & Continue',
-                icon: Icons.save,
-                onPressed: _isEditing ? null : _handleSave,
-                isLoading: _isEditing,
-              ),
-            ),
-          ),
         ],
       ),
     );

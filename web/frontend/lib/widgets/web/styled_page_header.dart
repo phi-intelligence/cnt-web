@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
+import '../../utils/responsive_utils.dart';
 import 'styled_pill_button.dart';
 
 /// Styled Page Header Component for Web
@@ -79,7 +80,14 @@ class StyledPageHeader extends StatelessWidget {
       );
     } else {
       headerContent = Padding(
-        padding: EdgeInsets.symmetric(vertical: AppSpacing.large),
+        padding: EdgeInsets.symmetric(
+          vertical: ResponsiveUtils.getResponsiveValue(
+            context: context,
+            mobile: AppSpacing.small,
+            tablet: AppSpacing.medium,
+            desktop: AppSpacing.large,
+          ),
+        ),
         child: headerContent,
       );
     }

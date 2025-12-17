@@ -935,6 +935,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
           ),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
@@ -943,11 +944,15 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
               size: 18,
             ),
             const SizedBox(width: AppSpacing.small),
-            Text(
-              label,
-              style: AppTypography.button.copyWith(
-                color: filled ? Colors.white : AppColors.warmBrown,
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: Text(
+                label,
+                style: AppTypography.button.copyWith(
+                  color: filled ? Colors.white : AppColors.warmBrown,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
           ],
@@ -979,6 +984,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Section title
@@ -1077,7 +1083,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
               }
             },
           ),
-          const SizedBox(height: AppSpacing.medium),
+          SizedBox(height: isMobile ? AppSpacing.small : AppSpacing.medium),
         ],
       ),
     );
@@ -1115,6 +1121,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
               const SizedBox(width: AppSpacing.medium),
               Expanded(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -1123,6 +1130,8 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                         color: isDestructive ? AppColors.errorMain : AppColors.textPrimary,
                         fontWeight: FontWeight.w500,
                       ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                     if (subtitle != null)
                       Text(
@@ -1130,6 +1139,8 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textSecondary,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                   ],
                 ),

@@ -454,28 +454,48 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
                               ],
                             ),
                           )
-                        : Stack(
-                            children: [
-                              // Camera Preview - HTML Video Element
-                              if (_videoElementViewId != null)
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-                                  child: AspectRatio(
-                                    aspectRatio: 16 / 9, // Default aspect ratio for web
-                                    child: HtmlElementView(
-                                      viewType: _videoElementViewId!,
+                        : LayoutBuilder(
+                            builder: (context, constraints) {
+                              final screenHeight = MediaQuery.of(context).size.height;
+                              final screenWidth = MediaQuery.of(context).size.width;
+                              final isMobile = screenWidth < 768;
+                              
+                              // On mobile, use 60-70% of screen height, on desktop use available space
+                              final previewHeight = isMobile 
+                                  ? (screenHeight * 0.65).clamp(300.0, screenHeight * 0.7)
+                                  : constraints.maxHeight;
+                              final previewWidth = previewHeight * (16 / 9);
+                              
+                              return Stack(
+                                children: [
+                                  // Camera Preview - HTML Video Element
+                                  if (_videoElementViewId != null)
+                                    Center(
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                                        child: SizedBox(
+                                          width: isMobile 
+                                              ? screenWidth * 0.9 
+                                              : previewWidth.clamp(0.0, constraints.maxWidth),
+                                          height: previewHeight,
+                                          child: AspectRatio(
+                                            aspectRatio: 16 / 9,
+                                            child: HtmlElementView(
+                                              viewType: _videoElementViewId!,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    Container(
+                                      color: Colors.black,
+                                      child: const Center(
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                )
-                              else
-                                Container(
-                                  color: Colors.black,
-                                  child: const Center(
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
 
                               // Top Controls Overlay
                               Positioned(
@@ -651,7 +671,9 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
                                   ),
                                 ),
                               ),
-                            ],
+                                ],
+                              );
+                            },
                           ),
               ),
             ),
