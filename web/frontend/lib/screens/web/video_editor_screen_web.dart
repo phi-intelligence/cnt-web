@@ -2239,6 +2239,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                 child: isMobile
                     ? SingleChildScrollView(
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             _buildMobileLayout(),
                             const SizedBox(height: AppSpacing.large),
@@ -2524,20 +2525,21 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   }
 
   Widget _buildMobileLayout() {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          _buildVideoPreview(400), // Fixed height for mobile
-          const SizedBox(height: AppSpacing.large),
-          _buildControlsPanel(),
-        ],
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildVideoPreview(400), // Fixed height for mobile
+        const SizedBox(height: AppSpacing.large),
+        _buildControlsPanel(),
+      ],
     );
   }
 
   Widget _buildVideoPreview(double maxHeight) {
     // Calculate video preview height - use most of available space minus playback controls
-    final videoHeight = (maxHeight - 80).clamp(200.0, maxHeight); // 80px for controls bar
+    // Increased estimate to account for actual controls bar height (~100-120px on mobile)
+    final controlsBarHeight = 120.0;
+    final videoHeight = (maxHeight - controlsBarHeight).clamp(200.0, maxHeight);
     
     return Container(
       height: maxHeight,
@@ -2553,9 +2555,11 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.max,
         children: [
-          // Video Player - Takes remaining space
-          Expanded(
+          // Video Player - Explicit height to avoid unbounded constraints
+          SizedBox(
+            height: videoHeight,
             child: ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               child: MouseRegion(
@@ -2781,6 +2785,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   }
 
   Widget _buildControlsPanel() {
+    final isMobile = ResponsiveUtils.isMobile(context);
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -2794,6 +2799,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         ],
       ),
       child: Column(
+        mainAxisSize: isMobile ? MainAxisSize.min : MainAxisSize.max,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Compact Tab Bar with header integrated
@@ -2850,17 +2856,29 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             ),
           ),
           
-          // Tab Content - Takes all remaining space
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildEditPanel(),
-                _buildMusicPanel(),
-                _buildTextPanel(),
-              ],
-            ),
-          ),
+          // Tab Content - Use explicit height for mobile, Expanded for desktop
+          isMobile
+              ? SizedBox(
+                  height: 400, // Fixed height for mobile to avoid unbounded constraints
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildEditPanel(),
+                      _buildMusicPanel(),
+                      _buildTextPanel(),
+                    ],
+                  ),
+                )
+              : Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildEditPanel(),
+                      _buildMusicPanel(),
+                      _buildTextPanel(),
+                    ],
+                  ),
+                ),
         ],
       ),
     );

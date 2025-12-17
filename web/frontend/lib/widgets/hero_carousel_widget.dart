@@ -418,8 +418,8 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
         : (screenWidth * devicePixelRatio).round();
     final cacheHeight = (height * devicePixelRatio).round();
     
-    // Use BoxFit.contain for desktop to show full image, cover for mobile
-    final imageFit = isMobile ? BoxFit.cover : BoxFit.contain;
+    // Use BoxFit.cover for both mobile and desktop to fill width (no blank spaces)
+    final imageFit = BoxFit.cover;
     // Use center alignment for mobile, topCenter for desktop
     final imageAlignment = isMobile ? Alignment.center : Alignment.topCenter;
     

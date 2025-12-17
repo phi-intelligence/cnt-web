@@ -4,6 +4,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/responsive_grid_delegate.dart';
+import '../../utils/responsive_utils.dart';
 import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
 import 'audio_preview_screen.dart';
@@ -439,104 +440,114 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                       const SizedBox(height: AppSpacing.extraLarge * 1.5),
 
                       // Control buttons with brown pill design
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (!_isRecording)
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.warmBrown,
-                                    AppColors.accentMain,
-                                  ],
-                                ),
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.warmBrown.withOpacity(0.4),
-                                    blurRadius: 15,
-                                    spreadRadius: 2,
+                      Builder(
+                        builder: (context) {
+                          final isMobile = ResponsiveUtils.isMobile(context);
+                          final buttonSize = isMobile ? 40.0 : 48.0;
+                          final largeButtonSize = isMobile ? 56.0 : 64.0;
+                          final spacing = isMobile ? AppSpacing.small : AppSpacing.large;
+                          
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (!_isRecording)
+                                Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppColors.warmBrown,
+                                        AppColors.accentMain,
+                                      ],
+                                    ),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.warmBrown.withOpacity(0.4),
+                                        blurRadius: 15,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: IconButton(
-                                iconSize: 64,
-                                icon: const Icon(Icons.mic, color: Colors.white),
-                                onPressed: _startRecording,
-                              ),
-                            )
-                          else ...[
-                            // Pause/Resume button
-                            Container(
-                              decoration: BoxDecoration(
-                                color: _isPaused ? AppColors.warmBrown : AppColors.accentMain,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: (_isPaused ? AppColors.warmBrown : AppColors.accentMain).withOpacity(0.4),
-                                    blurRadius: 12,
-                                    spreadRadius: 2,
+                                  child: IconButton(
+                                    iconSize: largeButtonSize,
+                                    icon: const Icon(Icons.mic, color: Colors.white),
+                                    onPressed: _startRecording,
                                   ),
-                                ],
-                              ),
-                              child: IconButton(
-                                iconSize: 48,
-                                icon: Icon(
-                                  _isPaused ? Icons.play_arrow : Icons.pause,
-                                  color: Colors.white,
-                                ),
-                                onPressed: _isPaused ? _resumeRecording : _pauseRecording,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.large),
-                            // Stop/Save button
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.warmBrown,
-                                    AppColors.accentMain,
-                                  ],
-                                ),
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.warmBrown.withOpacity(0.4),
-                                    blurRadius: 15,
-                                    spreadRadius: 2,
+                                )
+                              else ...[
+                                // Pause/Resume button
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: _isPaused ? AppColors.warmBrown : AppColors.accentMain,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: (_isPaused ? AppColors.warmBrown : AppColors.accentMain).withOpacity(0.4),
+                                        blurRadius: 12,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: IconButton(
-                                iconSize: 64,
-                                icon: const Icon(Icons.check, color: Colors.white),
-                                onPressed: _stopAndSave,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.large),
-                            // Delete button
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppColors.errorMain,
-                                  width: 2,
+                                  child: IconButton(
+                                    iconSize: buttonSize,
+                                    icon: Icon(
+                                      _isPaused ? Icons.play_arrow : Icons.pause,
+                                      color: Colors.white,
+                                    ),
+                                    onPressed: _isPaused ? _resumeRecording : _pauseRecording,
+                                  ),
                                 ),
-                              ),
-                              child: IconButton(
-                                iconSize: 48,
-                                icon: const Icon(Icons.delete, color: AppColors.errorMain),
-                                onPressed: _discardRecording,
-                              ),
-                            ),
-                          ],
-                        ],
+                                SizedBox(width: spacing),
+                                // Stop/Save button
+                                Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppColors.warmBrown,
+                                        AppColors.accentMain,
+                                      ],
+                                    ),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.warmBrown.withOpacity(0.4),
+                                        blurRadius: 15,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: IconButton(
+                                    iconSize: largeButtonSize,
+                                    icon: const Icon(Icons.check, color: Colors.white),
+                                    onPressed: _stopAndSave,
+                                  ),
+                                ),
+                                SizedBox(width: spacing),
+                                // Delete button
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.errorMain,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: IconButton(
+                                    iconSize: buttonSize,
+                                    icon: const Icon(Icons.delete, color: AppColors.errorMain),
+                                    onPressed: _discardRecording,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
