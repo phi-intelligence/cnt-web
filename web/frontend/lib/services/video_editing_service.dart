@@ -307,6 +307,51 @@ class VideoEditingService {
     }
   }
 
+  /// Rotate video by specified degrees (90, 180, 270)
+  Future<String?> rotateVideo(
+    String inputPath,
+    int degrees, {
+    Function(int)? onProgress,
+    Function(String)? onError,
+  }) async {
+    try {
+      final result = await _apiService.rotateVideo(inputPath, degrees);
+
+      final outputUrl = result['url'] ?? result['path'] ?? '';
+      if (outputUrl.isEmpty) {
+        onError?.call('No output URL returned from server');
+        return null;
+      }
+
+      // On web, return the URL directly (don't download/save files)
+      if (kIsWeb) {
+        return _constructMediaUrl(outputUrl);
+      }
+
+      // On mobile, download the edited video and save to temp directory
+      final tempDir = await getTemporaryDirectory();
+      final fileName = outputUrl.split('/').last;
+      final savePath = '${tempDir.path}/$fileName';
+      
+      final fullUrl = outputUrl.startsWith('http') 
+          ? outputUrl 
+          : ApiService.mediaBaseUrl + outputUrl;
+      
+      final response = await http.get(Uri.parse(fullUrl));
+      if (response.statusCode == 200) {
+        final file = io.File(savePath);
+        await file.writeAsBytes(response.bodyBytes);
+        return savePath;
+      }
+
+      onError?.call('Failed to download edited video');
+      return null;
+    } catch (e) {
+      onError?.call('Error rotating video: $e');
+      return null;
+    }
+  }
+
   /// Get video duration in seconds
   Future<Duration?> getVideoDuration(String videoPath) async {
     try {

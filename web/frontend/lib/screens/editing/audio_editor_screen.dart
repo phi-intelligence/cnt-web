@@ -23,7 +23,7 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 /// Audio Editor Screen
-/// Allows users to edit audio: trim, merge, fade effects
+/// Allows users to edit audio: trim, merge
 class AudioEditorScreen extends StatefulWidget {
   final String audioPath;
   final String? title;
@@ -53,9 +53,6 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
   Duration _trimStart = Duration.zero;
   Duration _trimEnd = Duration.zero;
   
-  Duration _fadeInDuration = Duration.zero;
-  Duration _fadeOutDuration = Duration.zero;
-  
   List<String> _filesToMerge = [];
   String? _editedAudioPath;
   String? _persistedAudioPath; // Track the persisted path (backend URL if blob was uploaded)
@@ -84,8 +81,6 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
   bool _hasUnsavedChanges() {
     return _trimStart != Duration.zero || 
            (_trimEnd != Duration.zero && _trimEnd != _audioDuration) ||
-           _fadeInDuration != Duration.zero ||
-           _fadeOutDuration != Duration.zero ||
            _filesToMerge.isNotEmpty;
   }
 
@@ -101,8 +96,6 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
       final editingState = <String, dynamic>{
         'trim_start': _trimStart.inMilliseconds,
         'trim_end': _trimEnd.inMilliseconds,
-        'fade_in_duration': _fadeInDuration.inMilliseconds,
-        'fade_out_duration': _fadeOutDuration.inMilliseconds,
         'files_to_merge': _filesToMerge,
       };
       
@@ -878,157 +871,7 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
     }
   }
 
-  Future<void> _applyFadeIn() async {
-    if (_fadeInDuration == Duration.zero) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please set fade in duration')),
-      );
-      return;
-    }
-
-    final inputPath = _editedAudioPath ?? widget.audioPath;
-
-    setState(() {
-      _isEditing = true;
-      _hasError = false;
-    });
-
-    final outputPath = await _editingService.applyFadeIn(
-      inputPath,
-      _fadeInDuration,
-      onProgress: (progress) {},
-      onError: (error) {
-        setState(() {
-          _isEditing = false;
-          _hasError = true;
-          _errorMessage = error;
-        });
-      },
-    );
-
-    if (outputPath != null) {
-      setState(() {
-        _editedAudioPath = outputPath;
-        _isEditing = false;
-      });
-      
-      // Save state after successful fade in
-      await StatePersistence.saveAudioEditorState(
-        audioPath: _persistedAudioPath ?? widget.audioPath,
-        editedAudioPath: outputPath,
-        trimStart: _trimStart,
-        trimEnd: _trimEnd,
-      );
-      
-      await _reloadPlayer(outputPath);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Fade in applied successfully')),
-      );
-    }
-  }
-
-  Future<void> _applyFadeOut() async {
-    if (_fadeOutDuration == Duration.zero) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please set fade out duration')),
-      );
-      return;
-    }
-
-    final inputPath = _editedAudioPath ?? widget.audioPath;
-    final currentDuration = _editedAudioPath != null ? _player!.duration : _audioDuration;
-
-    setState(() {
-      _isEditing = true;
-      _hasError = false;
-    });
-
-    final outputPath = await _editingService.applyFadeOut(
-      inputPath,
-      _fadeOutDuration,
-      audioDuration: currentDuration,
-      onProgress: (progress) {},
-      onError: (error) {
-        setState(() {
-          _isEditing = false;
-          _hasError = true;
-          _errorMessage = error;
-        });
-      },
-    );
-
-    if (outputPath != null) {
-      setState(() {
-        _editedAudioPath = outputPath;
-        _isEditing = false;
-      });
-      
-      // Save state after successful fade out
-      await StatePersistence.saveAudioEditorState(
-        audioPath: _persistedAudioPath ?? widget.audioPath,
-        editedAudioPath: outputPath,
-        trimStart: _trimStart,
-        trimEnd: _trimEnd,
-      );
-      
-      await _reloadPlayer(outputPath);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Fade out applied successfully')),
-      );
-    }
-  }
-
-  Future<void> _applyFadeInOut() async {
-    if (_fadeInDuration == Duration.zero || _fadeOutDuration == Duration.zero) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please set both fade in and fade out durations')),
-      );
-      return;
-    }
-
-    final inputPath = _editedAudioPath ?? widget.audioPath;
-    final currentDuration = _editedAudioPath != null ? _player!.duration : _audioDuration;
-
-    setState(() {
-      _isEditing = true;
-      _hasError = false;
-    });
-
-    final outputPath = await _editingService.applyFadeInOut(
-      inputPath,
-      _fadeInDuration,
-      _fadeOutDuration,
-      audioDuration: currentDuration,
-      onProgress: (progress) {},
-      onError: (error) {
-        setState(() {
-          _isEditing = false;
-          _hasError = true;
-          _errorMessage = error;
-        });
-      },
-    );
-
-    if (outputPath != null) {
-      setState(() {
-        _editedAudioPath = outputPath;
-        _isEditing = false;
-      });
-      
-      // Save state after successful fade in/out
-      await StatePersistence.saveAudioEditorState(
-        audioPath: _persistedAudioPath ?? widget.audioPath,
-        editedAudioPath: outputPath,
-        trimStart: _trimStart,
-        trimEnd: _trimEnd,
-      );
-      
-      await _reloadPlayer(outputPath);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Fade in/out applied successfully')),
-      );
-    }
-  }
+  // Fade methods removed - feature not in mobile
 
   Future<void> _reloadPlayer(String path) async {
     await _player?.dispose();
@@ -1479,110 +1322,6 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
 
                         const SizedBox(height: AppSpacing.extraLarge),
 
-                        // Fade Effects Section
-                        Text(
-                          'Fade Effects',
-                          style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
-                        ),
-                        const SizedBox(height: AppSpacing.medium),
-                        
-                        // Fade In
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Fade In: ${_fadeInDuration.inSeconds}s',
-                              style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
-                            ),
-                            Slider(
-                              value: _fadeInDuration.inSeconds.toDouble(),
-                              min: 0,
-                              max: 10,
-                              divisions: 20,
-                              onChanged: (value) {
-                                setState(() {
-                                  _fadeInDuration = Duration(seconds: value.toInt());
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                        
-                        // Fade Out
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Fade Out: ${_fadeOutDuration.inSeconds}s',
-                              style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
-                            ),
-                            Slider(
-                              value: _fadeOutDuration.inSeconds.toDouble(),
-                              min: 0,
-                              max: 10,
-                              divisions: 20,
-                              onChanged: (value) {
-                                setState(() {
-                                  _fadeOutDuration = Duration(seconds: value.toInt());
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                        
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _isEditing || _fadeInDuration == Duration.zero
-                                    ? null
-                                    : _applyFadeIn,
-                                icon: const Icon(Icons.trending_up),
-                                label: const Text('Fade In'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryMain,
-                                  foregroundColor: Colors.white,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.small),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _isEditing || _fadeOutDuration == Duration.zero
-                                    ? null
-                                    : _applyFadeOut,
-                                icon: const Icon(Icons.trending_down),
-                                label: const Text('Fade Out'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryMain,
-                                  foregroundColor: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: AppSpacing.small),
-                        
-                        ElevatedButton.icon(
-                          onPressed: _isEditing ||
-                                  _fadeInDuration == Duration.zero ||
-                                  _fadeOutDuration == Duration.zero
-                              ? null
-                              : _applyFadeInOut,
-                          icon: _isEditing
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                )
-                              : const Icon(Icons.swap_horiz),
-                          label: Text(_isEditing ? 'Applying...' : 'Apply Both'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.accentMain,
-                            foregroundColor: Colors.white,
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -1882,8 +1621,6 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
                   _buildMergeSection(),
                   const SizedBox(height: AppSpacing.large),
                   
-                  // Fade Effects Section
-                  _buildFadeEffectsSection(),
                 ],
               ),
             ),
@@ -2145,183 +1882,6 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
     );
   }
 
-  Widget _buildFadeEffectsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.graphic_eq, color: AppColors.warmBrown, size: 20),
-            const SizedBox(width: AppSpacing.small),
-            Text(
-              'Fade Effects',
-              style: AppTypography.heading4.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.large),
-        
-        // Fade In
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Fade In',
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.medium,
-                    vertical: AppSpacing.small,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.warmBrown.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
-                  ),
-                  child: Text(
-                    '${_fadeInDuration.inSeconds}s',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.warmBrown,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.small),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 6,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
-                activeTrackColor: AppColors.warmBrown,
-                inactiveTrackColor: AppColors.borderPrimary,
-                thumbColor: AppColors.warmBrown,
-              ),
-              child: Slider(
-                value: _fadeInDuration.inSeconds.toDouble(),
-                min: 0.0,
-                max: 10.0,
-                divisions: 20,
-                onChanged: (value) {
-                  setState(() {
-                    _fadeInDuration = Duration(seconds: value.toInt());
-                  });
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.large),
-        
-        // Fade Out
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Fade Out',
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.medium,
-                    vertical: AppSpacing.small,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.warmBrown.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
-                  ),
-                  child: Text(
-                    '${_fadeOutDuration.inSeconds}s',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.warmBrown,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.small),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 6,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
-                activeTrackColor: AppColors.warmBrown,
-                inactiveTrackColor: AppColors.borderPrimary,
-                thumbColor: AppColors.warmBrown,
-              ),
-              child: Slider(
-                value: _fadeOutDuration.inSeconds.toDouble(),
-                min: 0.0,
-                max: 10.0,
-                divisions: 20,
-                onChanged: (value) {
-                  setState(() {
-                    _fadeOutDuration = Duration(seconds: value.toInt());
-                  });
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.medium),
-        Row(
-          children: [
-            Expanded(
-              child: StyledPillButton(
-                label: 'Fade In',
-                icon: Icons.trending_up,
-                onPressed: _isEditing || _fadeInDuration == Duration.zero
-                    ? null
-                    : _applyFadeIn,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.small),
-            Expanded(
-              child: StyledPillButton(
-                label: 'Fade Out',
-                icon: Icons.trending_down,
-                onPressed: _isEditing || _fadeOutDuration == Duration.zero
-                    ? null
-                    : _applyFadeOut,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.small),
-        SizedBox(
-          width: double.infinity,
-          child: StyledPillButton(
-            label: _isEditing ? 'Applying...' : 'Apply Both',
-            icon: Icons.swap_horiz,
-            onPressed: _isEditing ||
-                    _fadeInDuration == Duration.zero ||
-                    _fadeOutDuration == Duration.zero
-                ? null
-                : _applyFadeInOut,
-            isLoading: _isEditing,
-          ),
-        ),
-      ],
-    );
-  }
+  // Fade effects section removed - feature not in mobile
 }
 

@@ -1753,6 +1753,40 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> rotateVideo(
+    String videoPath,
+    int degrees,
+  ) async {
+    try {
+      // Create multipart file from URL or file path
+      final file = await _createMultipartFileFromSource(
+        videoPath,
+        'video_file',
+        'video.mp4',
+      );
+      
+      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/video-editing/rotate'));
+      request.files.add(file);
+      request.fields['degrees'] = degrees.toString();
+      
+      // Add authentication headers
+      final headers = await _getHeaders();
+      // Remove Content-Type as multipart request sets it automatically
+      headers.remove('Content-Type');
+      request.headers.addAll(headers);
+      
+      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
+      
+      if (streamedResponse.statusCode == 200) {
+        final response = await http.Response.fromStream(streamedResponse);
+        return json.decode(response.body);
+      }
+      throw Exception('Failed to rotate video: HTTP ${streamedResponse.statusCode}');
+    } catch (e) {
+      throw Exception('Error rotating video: $e');
+    }
+  }
+
   /// Audio editing endpoints
   Future<Map<String, dynamic>> trimAudio(
     String audioPath,

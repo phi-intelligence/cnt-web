@@ -18,6 +18,8 @@ class StatePersistence {
     Duration? trimEnd,
     bool? audioRemoved,
     String? audioFilePath,
+    int? rotation,
+    bool? isFrontCamera,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -28,6 +30,8 @@ class StatePersistence {
         'trimEnd': trimEnd?.inMilliseconds,
         'audioRemoved': audioRemoved,
         'audioFilePath': audioFilePath,
+        'rotation': rotation,
+        'isFrontCamera': isFrontCamera,
         'timestamp': DateTime.now().toIso8601String(),
       };
       await prefs.setString(_videoEditorStateKey, jsonEncode(state));

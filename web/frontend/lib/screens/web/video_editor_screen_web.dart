@@ -7,7 +7,6 @@ import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../services/video_editing_service.dart';
 import '../../services/api_service.dart';
-import '../../models/text_overlay.dart';
 import '../../models/content_draft.dart';
 import '../../utils/state_persistence.dart';
 import '../../utils/unsaved_changes_guard.dart';
@@ -29,11 +28,14 @@ class VideoEditorScreenWeb extends StatefulWidget {
   final String? title;
   final Duration? duration;
 
+  final bool isFrontCamera;
+
   const VideoEditorScreenWeb({
     super.key,
     required this.videoPath,
     this.title,
     this.duration,
+    this.isFrontCamera = false,
   });
 
   @override
@@ -66,9 +68,11 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   bool _audioRemoved = false;
   String? _audioFilePath;
   
-  // Text overlays
-  List<TextOverlay> _textOverlays = [];
-  TextOverlay? _selectedTextOverlay;
+  // Rotation state (0, 90, 180, 270 degrees)
+  int _rotation = 0;
+  
+  // Front camera flip state
+  bool _isFrontCamera = false;
   
   // Timeline state
   double _playheadPosition = 0.0; // 0.0 to 1.0
@@ -90,7 +94,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this); // 3 tabs: Trim, Music, Text
+    _tabController = TabController(length: 3, vsync: this); // 3 tabs: Trim, Music, Rotate
+    _isFrontCamera = widget.isFrontCamera;
     _providedDuration = widget.duration;
     
     if (kIsWeb) {
@@ -112,7 +117,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
            (_trimEnd != Duration.zero && _trimEnd != _videoDuration) ||
            _audioRemoved ||
            _audioFilePath != null ||
-           _textOverlays.isNotEmpty;
+           _rotation != 0 ||
+           _isFrontCamera;
   }
 
   /// Save current editing state as a draft
@@ -130,7 +136,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         'trim_end': _trimEnd.inMilliseconds,
         'audio_removed': _audioRemoved,
         'audio_file_path': _audioFilePath,
-        'text_overlays': _textOverlays.map((o) => o.toJson()).toList(),
+        'rotation': _rotation,
+        'is_front_camera': _isFrontCamera,
         'resolution': _resolution,
         'fps': _fps,
       };
@@ -207,6 +214,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         final trimEndMs = savedState['trimEnd'] as int?;
         final audioRemoved = savedState['audioRemoved'] as bool?;
         final audioFilePath = savedState['audioFilePath'] as String?;
+        final rotation = savedState['rotation'] as int?;
+        final isFrontCamera = savedState['isFrontCamera'] as bool?;
 
         if (savedVideoPath != null) {
           // Validate saved path is compatible with current environment
@@ -236,6 +245,12 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           }
           if (audioFilePath != null) {
             _audioFilePath = audioFilePath;
+          }
+          if (rotation != null) {
+            _rotation = rotation;
+          }
+          if (isFrontCamera != null) {
+            _isFrontCamera = isFrontCamera;
           }
 
           // Restore edited path if exists
@@ -271,6 +286,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                 trimEnd: _trimEnd,
                 audioRemoved: _audioRemoved,
                 audioFilePath: _audioFilePath,
+                rotation: _rotation,
+                isFrontCamera: _isFrontCamera,
               );
             }
           }
@@ -698,427 +715,70 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     }
   }
 
-  void _addTextOverlay() {
-    final overlay = TextOverlay(
-      id: _uuid.v4(),
-      text: 'New Text',
-      startTime: _currentPosition,
-      endTime: _currentPosition + const Duration(seconds: 5),
-    );
+  Future<void> _applyRotation() async {
+    if (_rotation == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No rotation to apply')),
+      );
+      return;
+    }
+    
+    final inputPath = _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
+    
     setState(() {
-      _textOverlays.add(overlay);
-      _selectedTextOverlay = overlay;
+      _isEditing = true;
+      _hasError = false;
     });
-    _showTextOverlayEditor(overlay);
+
+    try {
+      final outputPath = await _editingService.rotateVideo(
+        inputPath,
+        _rotation,
+        onProgress: (progress) {
+          print('Rotate progress: $progress%');
+        },
+        onError: (error) {
+          throw Exception(error);
+        },
+      );
+
+      if (outputPath != null && mounted) {
+        setState(() {
+          _editedVideoPath = outputPath;
+          _rotation = 0; // Reset rotation after applying
+          _isEditing = false;
+        });
+        
+        await _reloadPlayer(outputPath);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✓ Video rotated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        throw Exception('Rotate operation returned null');
+      }
+    } catch (e) {
+      setState(() {
+        _isEditing = false;
+        _hasError = true;
+        _errorMessage = e.toString();
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to rotate video: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
-  void _editTextOverlay(TextOverlay overlay) {
-    setState(() {
-      _selectedTextOverlay = overlay;
-    });
-    _showTextOverlayEditor(overlay);
-  }
-
-  void _showTextOverlayEditor(TextOverlay overlay) {
-    final textController = TextEditingController(text: overlay.text);
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 768;
-    
-    // State variables for editing
-    Duration startTime = overlay.startTime;
-    Duration endTime = overlay.endTime;
-    double xPosition = overlay.x;
-    double yPosition = overlay.y;
-    double fontSize = overlay.fontSize;
-    int textColor = overlay.color;
-    TextAlign textAlign = overlay.textAlign;
-    String? backgroundColor = overlay.backgroundColor;
-    
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      constraints: BoxConstraints(
-        maxHeight: screenHeight * 0.9,
-        maxWidth: isMobile ? screenWidth : 700,
-      ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          constraints: BoxConstraints(
-            maxHeight: screenHeight * 0.9,
-            maxWidth: isMobile ? screenWidth : 700,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(AppSpacing.radiusLarge),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 20,
-                offset: const Offset(0, -4),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.large),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.warmBrown.withOpacity(0.1),
-                        AppColors.accentMain.withOpacity(0.05),
-                      ],
-                    ),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(AppSpacing.radiusLarge),
-                    ),
-                    border: Border(
-                      bottom: BorderSide(color: AppColors.borderPrimary),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.small),
-                        decoration: BoxDecoration(
-                          color: AppColors.warmBrown.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: Icon(
-                          Icons.text_fields,
-                          color: AppColors.warmBrown,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.medium),
-                      Expanded(
-                        child: Text(
-                          'Edit Text Overlay',
-                          style: AppTypography.heading3.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: AppColors.textSecondary),
-                        onPressed: () => Navigator.pop(context),
-                        tooltip: 'Close',
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Content - Scrollable
-                Flexible(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(AppSpacing.large),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Text input
-                        Text(
-                          'Text Content',
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.small),
-                        TextField(
-                          controller: textController,
-                          maxLines: 4,
-                          style: AppTypography.body.copyWith(
-                            color: AppColors.textPrimary,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Enter text to display on video',
-                            hintStyle: AppTypography.body.copyWith(
-                              color: AppColors.textPlaceholder,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(30),
-                              borderSide: BorderSide(color: AppColors.borderPrimary),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(30),
-                              borderSide: BorderSide(color: AppColors.borderPrimary),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(30),
-                              borderSide: BorderSide(
-                                color: AppColors.warmBrown,
-                                width: 2,
-                              ),
-                            ),
-                            filled: true,
-                            fillColor: AppColors.backgroundSecondary,
-                            contentPadding: const EdgeInsets.all(AppSpacing.medium),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: AppSpacing.large),
-                        
-                        // Time Range Section
-                        _buildSectionHeader('Time Range', Icons.access_time),
-                        const SizedBox(height: AppSpacing.small),
-                        Container(
-                          padding: const EdgeInsets.all(AppSpacing.large),
-                          decoration: BoxDecoration(
-                            color: AppColors.backgroundSecondary,
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(color: AppColors.borderPrimary),
-                          ),
-                          child: Column(
-                            children: [
-                              // Start Time
-                              _buildTimeSlider(
-                                'Start Time',
-                                startTime,
-                                Duration.zero,
-                                endTime,
-                                (value) {
-                                  setModalState(() {
-                                    startTime = value;
-                                    if (startTime >= endTime) {
-                                      endTime = Duration(
-                                        milliseconds: (startTime.inMilliseconds + 1000).clamp(
-                                          0,
-                                          _videoDuration.inMilliseconds,
-                                        ),
-                                      );
-                                    }
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: AppSpacing.large),
-                              // End Time
-                              _buildTimeSlider(
-                                'End Time',
-                                endTime,
-                                startTime,
-                                _videoDuration,
-                                (value) {
-                                  setModalState(() {
-                                    endTime = value;
-                                    if (endTime <= startTime) {
-                                      startTime = Duration(
-                                        milliseconds: (endTime.inMilliseconds - 1000).clamp(0, _videoDuration.inMilliseconds),
-                                      );
-                                    }
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        const SizedBox(height: AppSpacing.large),
-                        
-                        // Position Section
-                        _buildSectionHeader('Position', Icons.open_with),
-                        const SizedBox(height: AppSpacing.small),
-                        Container(
-                          padding: const EdgeInsets.all(AppSpacing.large),
-                          decoration: BoxDecoration(
-                            color: AppColors.backgroundSecondary,
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(color: AppColors.borderPrimary),
-                          ),
-                          child: Column(
-                            children: [
-                              // X Position
-                              _buildPositionSlider(
-                                'Horizontal Position (X)',
-                                xPosition,
-                                0.0,
-                                1.0,
-                                (value) {
-                                  setModalState(() {
-                                    xPosition = value;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: AppSpacing.large),
-                              // Y Position
-                              _buildPositionSlider(
-                                'Vertical Position (Y)',
-                                yPosition,
-                                0.0,
-                                1.0,
-                                (value) {
-                                  setModalState(() {
-                                    yPosition = value;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        const SizedBox(height: AppSpacing.large),
-                        
-                        // Style Section
-                        _buildSectionHeader('Style', Icons.format_paint),
-                        const SizedBox(height: AppSpacing.small),
-                        Container(
-                          padding: const EdgeInsets.all(AppSpacing.large),
-                          decoration: BoxDecoration(
-                            color: AppColors.backgroundSecondary,
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(color: AppColors.borderPrimary),
-                          ),
-                          child: Column(
-                            children: [
-                              // Font Size
-                              _buildFontSizeSlider(
-                                fontSize,
-                                (value) {
-                                  setModalState(() {
-                                    fontSize = value;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: AppSpacing.large),
-                              // Text Color
-                              _buildColorPicker(
-                                'Text Color',
-                                Color(textColor),
-                                (color) {
-                                  setModalState(() {
-                                    textColor = color.value;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: AppSpacing.large),
-                              // Background Color (Optional)
-                              _buildColorPicker(
-                                'Background Color (Optional)',
-                                backgroundColor != null
-                                    ? Color(int.parse(backgroundColor!.replaceFirst('#', '0xff')))
-                                    : null,
-                                (color) {
-                                  setModalState(() {
-                                    backgroundColor = '#${color.value.toRadixString(16).substring(2)}';
-                                  });
-                                },
-                                isOptional: true,
-                                onClear: () {
-                                  setModalState(() {
-                                    backgroundColor = null;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: AppSpacing.large),
-                              // Text Alignment
-                              _buildTextAlignmentSelector(
-                                textAlign,
-                                (align) {
-                                  setModalState(() {
-                                    textAlign = align;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                // Action Buttons - Fixed at bottom
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.large),
-                  decoration: BoxDecoration(
-                    color: AppColors.backgroundSecondary,
-                    border: Border(
-                      top: BorderSide(color: AppColors.borderPrimary),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _textOverlays.removeWhere((o) => o.id == overlay.id);
-                              if (_selectedTextOverlay?.id == overlay.id) {
-                                _selectedTextOverlay = null;
-                              }
-                            });
-                            Navigator.pop(context);
-                          },
-                          icon: const Icon(Icons.delete_outline),
-                          label: const Text('Delete'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.errorMain,
-                            side: BorderSide(color: AppColors.errorMain, width: 2),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.large,
-                              vertical: AppSpacing.medium,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.medium),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              final index = _textOverlays.indexWhere((o) => o.id == overlay.id);
-                              if (index != -1) {
-                                _textOverlays[index] = overlay.copyWith(
-                                  text: textController.text,
-                                  startTime: startTime,
-                                  endTime: endTime,
-                                  x: xPosition,
-                                  y: yPosition,
-                                  fontSize: fontSize,
-                                  color: textColor,
-                                  textAlign: textAlign,
-                                  backgroundColor: backgroundColor,
-                                );
-                              }
-                            });
-                            Navigator.pop(context);
-                          },
-                          icon: const Icon(Icons.check_circle),
-                          label: const Text('Save Changes'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.warmBrown,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.large,
-                              vertical: AppSpacing.medium,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            elevation: 2,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  // Text overlay methods removed - feature not in mobile
 
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
@@ -1633,6 +1293,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           trimEnd: _trimEnd,
           audioRemoved: _audioRemoved,
           audioFilePath: _audioFilePath,
+          rotation: _rotation,
+          isFrontCamera: _isFrontCamera,
         );
         
         await _reloadPlayer(outputPath);
@@ -1935,6 +1597,39 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       String currentVideoPath = _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
       print('🎬 Saving video starting with path: $currentVideoPath');
 
+      // Step 0: Apply rotation if needed (must be done first)
+      if (_rotation != 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Applying ${_rotation}° rotation...'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+        
+        final rotatedPath = await _editingService.rotateVideo(
+          currentVideoPath,
+          _rotation,
+          onProgress: (progress) {},
+          onError: (error) {
+            setState(() {
+              _isEditing = false;
+              _hasError = true;
+              _errorMessage = error;
+            });
+            throw Exception(error);
+          },
+        );
+        
+        if (rotatedPath != null) {
+          currentVideoPath = rotatedPath;
+          setState(() {
+            _rotation = 0; // Reset rotation after applying
+          });
+        } else {
+          throw Exception('Failed to rotate video');
+        }
+      }
+
       // Step 1: Apply trim if needed
       final needsTrim = _trimStart > Duration.zero || _trimEnd < _videoDuration;
       if (needsTrim) {
@@ -2022,36 +1717,6 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           currentVideoPath = withAudioPath;
         } else {
           throw Exception('Failed to add audio');
-        }
-      }
-
-      // Step 3: Apply text overlays if any exist
-      if (_textOverlays.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Applying ${_textOverlays.length} text overlay(s)...'),
-            duration: const Duration(seconds: 1),
-          ),
-        );
-        
-        final withTextPath = await _editingService.addTextOverlays(
-          currentVideoPath,
-          _textOverlays,
-          onProgress: (progress) {},
-          onError: (error) {
-            setState(() {
-              _isEditing = false;
-              _hasError = true;
-              _errorMessage = error;
-            });
-            throw Exception(error);
-          },
-        );
-        
-        if (withTextPath != null) {
-          currentVideoPath = withTextPath;
-        } else {
-          throw Exception('Failed to add text overlays');
         }
       }
 
@@ -2571,12 +2236,23 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // Video player
+                      // Video player with rotation and flip transforms (UI-only preview)
                       if (_controller != null && _controller!.value.isInitialized)
                         Center(
                           child: AspectRatio(
-                            aspectRatio: _controller!.value.aspectRatio,
-                            child: VideoPlayer(_controller!),
+                            aspectRatio: (_rotation == 90 || _rotation == 270)
+                                ? 1 / _controller!.value.aspectRatio
+                                : _controller!.value.aspectRatio,
+                            child: Transform.rotate(
+                              angle: _rotation * 3.14159265 / 180, // degrees -> radians
+                              child: Transform(
+                                alignment: Alignment.center,
+                                transform: _isFrontCamera
+                                    ? Matrix4.rotationY(3.14159265359) // horizontal flip
+                                    : Matrix4.identity(),
+                                child: VideoPlayer(_controller!),
+                              ),
+                            ),
                           ),
                         )
                       else
@@ -2586,35 +2262,34 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                           ),
                         ),
                       
-                      // Text overlays
-                      ..._textOverlays.where((overlay) {
-                        final currentTime = _currentPosition;
-                        return currentTime >= overlay.startTime && currentTime <= overlay.endTime;
-                      }).map((overlay) => Positioned(
-                        left: overlay.x * MediaQuery.of(context).size.width - 100,
-                        top: overlay.y * MediaQuery.of(context).size.height - 20,
-                        child: GestureDetector(
-                          onTap: () => _editTextOverlay(overlay),
+                      // Rotation indicator (UI-only preview)
+                      if (_rotation != 0)
+                        Positioned(
+                          top: 16,
+                          right: 16,
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: overlay.backgroundColor != null
-                                  ? Color(int.parse(overlay.backgroundColor!.replaceFirst('#', '0xff')))
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(4),
+                              color: AppColors.warmBrown.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Text(
-                              overlay.text,
-                              style: TextStyle(
-                                color: Color(overlay.color),
-                                fontSize: overlay.fontSize,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              textAlign: overlay.textAlign,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.rotate_right, color: Colors.white, size: 16),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${_rotation}°',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      )),
                       
                       // Controls Overlay
                       if (_controller != null && _controller!.value.isInitialized)
@@ -2851,7 +2526,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               tabs: const [
                 Tab(icon: Icon(Icons.content_cut, size: 18), text: 'Trim'),
                 Tab(icon: Icon(Icons.music_note, size: 18), text: 'Audio'),
-                Tab(icon: Icon(Icons.text_fields, size: 18), text: 'Text'),
+                Tab(icon: Icon(Icons.rotate_right, size: 18), text: 'Rotate'),
               ],
             ),
           ),
@@ -2865,7 +2540,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                     children: [
                       _buildEditPanel(),
                       _buildMusicPanel(),
-                      _buildTextPanel(),
+                      _buildRotatePanel(),
                     ],
                   ),
                 )
@@ -2875,7 +2550,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                     children: [
                       _buildEditPanel(),
                       _buildMusicPanel(),
-                      _buildTextPanel(),
+                      _buildRotatePanel(),
                     ],
                   ),
                 ),
@@ -3428,120 +3103,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     );
   }
 
-  Widget _buildTextTrack() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Container(
-          height: 32,
-          decoration: BoxDecoration(
-            color: AppColors.backgroundPrimary,
-            border: Border(
-              bottom: BorderSide(color: AppColors.borderPrimary),
-            ),
-          ),
-          child: Row(
-            children: [
-          // Track label
-          Container(
-            width: 80,
-            padding: const EdgeInsets.all(AppSpacing.small),
-            decoration: BoxDecoration(
-              color: AppColors.backgroundSecondary,
-              border: Border(
-                right: BorderSide(color: AppColors.borderPrimary),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.text_fields, color: AppColors.warmBrown, size: 16),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    'Text',
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-              // Track content
-              Expanded(
-                child: Stack(
-                  children: [
-                    // Text overlay bars
-                    ..._textOverlays.map((overlay) {
-                      final startPosition = overlay.startTime.inMilliseconds / _videoDuration.inMilliseconds;
-                      final duration = overlay.endTime.inMilliseconds - overlay.startTime.inMilliseconds;
-                      final width = (duration / _videoDuration.inMilliseconds) * constraints.maxWidth;
-                      
-                      return Positioned(
-                            left: (startPosition * constraints.maxWidth).clamp(0.0, constraints.maxWidth - width),
-                        top: 4,
-                        child: GestureDetector(
-                          onTap: () => _editTextOverlay(overlay),
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: Container(
-                              width: width.clamp(40.0, double.infinity),
-                              height: 24,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.accentMain,
-                                    AppColors.accentDark,
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(30),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
-                                  width: 1,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.accentMain.withOpacity(0.3),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(6),
-                                    child: const Icon(Icons.text_fields, color: Colors.white, size: 14),
-                                  ),
-                                  Expanded(
-                                    child: Text(
-                                      overlay.text,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  // Text track removed - feature not in mobile
 
   Widget _buildVideoTrack() {
     return Container(
@@ -4160,7 +3722,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     );
   }
 
-  Widget _buildTextPanel() {
+  Widget _buildRotatePanel() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.large),
       child: Column(
@@ -4176,30 +3738,63 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: Icon(
-                  Icons.text_fields,
+                  Icons.rotate_right,
                   color: AppColors.warmBrown,
                   size: 20,
                 ),
               ),
               const SizedBox(width: AppSpacing.small),
               Text(
-                'Text Overlays',
+                'Rotate Video',
                 style: AppTypography.heading4.copyWith(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.medium,
+                  vertical: AppSpacing.small,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.warmBrown.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Text(
+                  '${_rotation}°',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.warmBrown,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: AppSpacing.medium),
+          const SizedBox(height: AppSpacing.large),
           
-          // Add Text Button
+          // Rotation Options Grid
+          Row(
+            children: [
+              Expanded(child: _buildRotationButton(0, 'Original')),
+              const SizedBox(width: AppSpacing.small),
+              Expanded(child: _buildRotationButton(90, '90° CW')),
+              const SizedBox(width: AppSpacing.small),
+              Expanded(child: _buildRotationButton(180, '180°')),
+              const SizedBox(width: AppSpacing.small),
+              Expanded(child: _buildRotationButton(270, '90° CCW')),
+            ],
+          ),
+          
+          const SizedBox(height: AppSpacing.large),
+          
+          // Apply Rotation Button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _addTextOverlay,
-              icon: const Icon(Icons.add_circle),
-              label: const Text('Add Text Overlay'),
+              onPressed: _rotation != 0 && !_isEditing ? _applyRotation : null,
+              icon: Icon(_isEditing ? Icons.hourglass_empty : Icons.check_circle, size: 18),
+              label: Text(_isEditing ? 'Processing...' : 'Apply Rotation'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.warmBrown,
                 foregroundColor: Colors.white,
@@ -4214,83 +3809,51 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               ),
             ),
           ),
-          
-          // Text Overlays List
-          if (_textOverlays.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.large),
-            Text(
-              'Active Overlays (${_textOverlays.length})',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.medium),
-            ..._textOverlays.map((overlay) => Container(
-              margin: const EdgeInsets.only(bottom: AppSpacing.small),
-              padding: const EdgeInsets.all(AppSpacing.medium),
-              decoration: BoxDecoration(
-                color: AppColors.backgroundSecondary,
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(
-                  color: _selectedTextOverlay?.id == overlay.id
-                      ? AppColors.warmBrown
-                      : AppColors.borderPrimary,
-                  width: _selectedTextOverlay?.id == overlay.id ? 2 : 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.small),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentMain.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: Icon(
-                      Icons.text_fields,
-                      color: AppColors.accentMain,
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.medium),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          overlay.text,
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${_formatTime(overlay.startTime)} - ${_formatTime(overlay.endTime)}',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.edit,
-                      color: AppColors.warmBrown,
-                      size: 20,
-                    ),
-                    onPressed: () => _editTextOverlay(overlay),
-                    tooltip: 'Edit',
-                  ),
-                ],
-              ),
-            )),
-          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildRotationButton(int degrees, String label) {
+    final isSelected = _rotation == degrees;
+    return GestureDetector(
+      onTap: () => setState(() => _rotation = degrees),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.medium),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.warmBrown : AppColors.backgroundSecondary,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: isSelected ? AppColors.warmBrown : AppColors.borderPrimary,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: AppColors.warmBrown.withOpacity(0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ] : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              degrees == 0 ? Icons.crop_original : Icons.rotate_right,
+              color: isSelected ? Colors.white : AppColors.warmBrown,
+              size: 24,
+            ),
+            const SizedBox(height: AppSpacing.small),
+            Text(
+              label,
+              style: AppTypography.bodySmall.copyWith(
+                color: isSelected ? Colors.white : AppColors.textSecondary,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
