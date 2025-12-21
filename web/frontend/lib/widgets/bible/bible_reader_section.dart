@@ -72,13 +72,41 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
   final Random _random = Random();
 
   Future<void> _handleBibleReaderTap() async {
-    // Open the new full-screen Bible Reader interface
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const BibleReaderScreen(),
-      ),
-    );
+    // If no documents, show error
+    if (widget.documents.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No Bible documents available'),
+          backgroundColor: AppColors.errorMain,
+        ),
+      );
+      return;
+    }
+    
+    DocumentAsset? selectedDoc;
+    
+    // If multiple documents, show selector
+    if (widget.documents.length > 1) {
+      selectedDoc = await Navigator.push<DocumentAsset>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => BibleDocumentSelectorScreen(
+            documents: widget.documents,
+          ),
+        ),
+      );
+    } else {
+      selectedDoc = widget.documents.first;
+    }
+    
+    if (selectedDoc != null && mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => BibleReaderScreen(document: selectedDoc),
+        ),
+      );
+    }
   }
 
   void _showBibleQuotePopup() {
@@ -231,71 +259,75 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
   Widget _buildBibleReaderBox({required bool isMobile}) {
     final hasContent = widget.documents.isNotEmpty || widget.stories.isNotEmpty;
     
-    return GestureDetector(
-      onTap: hasContent ? _handleBibleReaderTap : null,
-      child: MouseRegion(
-        cursor: hasContent ? SystemMouseCursors.click : SystemMouseCursors.basic,
-        child: Container(
-          padding: EdgeInsets.all(isMobile ? AppSpacing.large : AppSpacing.extraLarge),
-          decoration: BoxDecoration(
-            color: AppColors.warmBrown,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.warmBrown.withOpacity(0.3),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              // Text content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Read the Bible',
-                      style: (isMobile ? AppTypography.heading3 : AppTypography.heading2).copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.small),
-                    Text(
-                      hasContent 
-                          ? "Explore God's word through stories and documents."
-                          : "Bible documents coming soon.",
-                      style: AppTypography.body.copyWith(
-                        color: Colors.white.withOpacity(0.9),
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _handleBibleReaderTap,
+        borderRadius: BorderRadius.circular(20),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Container(
+            padding: EdgeInsets.all(isMobile ? AppSpacing.large : AppSpacing.extraLarge),
+            decoration: BoxDecoration(
+              color: AppColors.warmBrown,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.warmBrown.withOpacity(0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                  spreadRadius: 1,
                 ),
-              ),
-              SizedBox(width: isMobile ? AppSpacing.medium : AppSpacing.large),
-              // Icon
-              Container(
-                padding: EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
-                    width: 2,
+              ],
+            ),
+            child: Row(
+              children: [
+                // Text content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Read the Bible',
+                        style: (isMobile ? AppTypography.heading3 : AppTypography.heading2).copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.small),
+                      Text(
+                        hasContent 
+                            ? "Explore God's word through stories and documents."
+                            : "Bible documents coming soon.",
+                        style: AppTypography.body.copyWith(
+                          color: Colors.white.withOpacity(0.9),
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Icon(
-                  Icons.menu_book,
-                  size: isMobile ? 36 : 48,
-                  color: Colors.white,
+                SizedBox(width: isMobile ? AppSpacing.medium : AppSpacing.large),
+                // Icon
+                Container(
+                  padding: EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.menu_book,
+                    size: isMobile ? 36 : 48,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -303,69 +335,73 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
   }
 
   Widget _buildBibleQuoteBox({required bool isMobile}) {
-    return GestureDetector(
-      onTap: _showBibleQuotePopup,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Container(
-          padding: EdgeInsets.all(isMobile ? AppSpacing.large : AppSpacing.extraLarge),
-          decoration: BoxDecoration(
-            color: AppColors.warmBrown,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.warmBrown.withOpacity(0.3),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              // Text content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Daily Bible Quote',
-                      style: (isMobile ? AppTypography.heading3 : AppTypography.heading2).copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.small),
-                    Text(
-                      "Tap to receive an inspiring verse from Scripture.",
-                      style: AppTypography.body.copyWith(
-                        color: Colors.white.withOpacity(0.9),
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _showBibleQuotePopup,
+        borderRadius: BorderRadius.circular(20),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Container(
+            padding: EdgeInsets.all(isMobile ? AppSpacing.large : AppSpacing.extraLarge),
+            decoration: BoxDecoration(
+              color: AppColors.warmBrown,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.warmBrown.withOpacity(0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                  spreadRadius: 1,
                 ),
-              ),
-              SizedBox(width: isMobile ? AppSpacing.medium : AppSpacing.large),
-              // Icon
-              Container(
-                padding: EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
-                    width: 2,
+              ],
+            ),
+            child: Row(
+              children: [
+                // Text content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Daily Bible Quote',
+                        style: (isMobile ? AppTypography.heading3 : AppTypography.heading2).copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.small),
+                      Text(
+                        "Tap to receive an inspiring verse from Scripture.",
+                        style: AppTypography.body.copyWith(
+                          color: Colors.white.withOpacity(0.9),
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Icon(
-                  Icons.format_quote,
-                  size: isMobile ? 36 : 48,
-                  color: Colors.white,
+                SizedBox(width: isMobile ? AppSpacing.medium : AppSpacing.large),
+                // Icon
+                Container(
+                  padding: EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.format_quote,
+                    size: isMobile ? 36 : 48,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

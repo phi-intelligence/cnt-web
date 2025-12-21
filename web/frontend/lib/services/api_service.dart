@@ -27,6 +27,10 @@ class ApiService {
     // Return config URL (will be placeholder if not set via --dart-define)
     // User should set API_BASE_URL via --dart-define when running locally
     final configUrl = AppConfig.apiBaseUrl;
+    if (configUrl.isEmpty) {
+      print('❌ ERROR: API_BASE_URL is not set! Set it via --dart-define=API_BASE_URL=<your-api-url>');
+      throw Exception('API_BASE_URL is not configured. Please set it via --dart-define during build.');
+    }
     if (configUrl.contains('yourdomain.com')) {
       print('⚠️ API Base URL: Placeholder URL detected. Set API_BASE_URL via --dart-define when running locally.');
     }
@@ -39,12 +43,80 @@ class ApiService {
     if (envUrl.isNotEmpty) {
       return envUrl;
     }
-    return AppConfig.mediaBaseUrl;
+    final configUrl = AppConfig.mediaBaseUrl;
+    if (configUrl.isEmpty) {
+      print('❌ ERROR: MEDIA_BASE_URL is not set! Set it via --dart-define=MEDIA_BASE_URL=<your-media-url>');
+      throw Exception('MEDIA_BASE_URL is not configured. Please set it via --dart-define during build.');
+    }
+    return configUrl;
   }
   
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
   ApiService._internal();
+  
+  /// Validate that baseUrl is configured before making requests
+  void _validateBaseUrl() {
+    try {
+      final url = baseUrl;
+      if (url.isEmpty) {
+        print('❌ API Configuration Error: API_BASE_URL is empty');
+        throw Exception('API_BASE_URL is not configured. Please set it via --dart-define during build.');
+      }
+      // Try to parse the URL to ensure it's valid
+      final uri = Uri.parse(url);
+      if (!uri.hasScheme || !uri.hasAuthority || uri.host.isEmpty) {
+        print('❌ API Configuration Error: Invalid URL format: $url (scheme: ${uri.scheme}, host: ${uri.host})');
+        throw Exception('API_BASE_URL is invalid: $url. Must include scheme (http/https) and valid hostname.');
+      }
+      print('✅ API Base URL validated: $url (host: ${uri.host})');
+    } catch (e) {
+      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured') || e.toString().contains('invalid')) {
+        print('❌ API Configuration Error: $e');
+        rethrow;
+      }
+      // Re-throw as configuration error if it's a parsing error
+      print('❌ API Configuration Error: Failed to parse URL - $e');
+      throw Exception('API_BASE_URL is invalid: $e');
+    }
+  }
+  
+  /// Validate that mediaBaseUrl is configured before constructing media URLs
+  void _validateMediaBaseUrl() {
+    try {
+      final url = mediaBaseUrl;
+      if (url.isEmpty) {
+        print('❌ Media Configuration Error: MEDIA_BASE_URL is empty');
+        throw Exception('MEDIA_BASE_URL is not configured. Please set it via --dart-define during build.');
+      }
+      // Try to parse the URL to ensure it's valid
+      final uri = Uri.parse(url);
+      if (!uri.hasScheme || !uri.hasAuthority || uri.host.isEmpty) {
+        print('❌ Media Configuration Error: Invalid URL format: $url (scheme: ${uri.scheme}, host: ${uri.host})');
+        throw Exception('MEDIA_BASE_URL is invalid: $url. Must include scheme (http/https) and valid hostname.');
+      }
+      print('✅ Media Base URL validated: $url (host: ${uri.host})');
+    } catch (e) {
+      if (e.toString().contains('MEDIA_BASE_URL') || e.toString().contains('not configured') || e.toString().contains('invalid')) {
+        print('❌ Media Configuration Error: $e');
+        rethrow;
+      }
+      // Re-throw as configuration error if it's a parsing error
+      print('❌ Media Configuration Error: Failed to parse URL - $e');
+      throw Exception('MEDIA_BASE_URL is invalid: $e');
+    }
+  }
+  
+  /// Helper method to check if a URL is valid
+  static bool _isValidUrl(String url) {
+    if (url.isEmpty) return false;
+    try {
+      final uri = Uri.parse(url);
+      return uri.hasScheme && uri.hasAuthority && uri.host.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
   
   /// Get headers with authentication token (checks expiration)
   Future<Map<String, String>> _getHeaders({Map<String, String>? additional}) async {
@@ -124,6 +196,7 @@ class ApiService {
   /// Note: This endpoint doesn't require authentication, but we include auth headers if available
   Future<List<Map<String, dynamic>>> listStreams({String? status}) async {
     try {
+      _validateBaseUrl();
       Uri uri = Uri.parse('$baseUrl/live/streams');
       if (status != null) {
         uri = uri.replace(queryParameters: {'status': status});
@@ -268,6 +341,7 @@ class ApiService {
     bool newestFirst = false,
   }) async {
     try {
+      _validateBaseUrl();
       final queryParams = <String, String>{
         'skip': skip.toString(),
         'limit': limit.toString(),
@@ -292,6 +366,9 @@ class ApiService {
         throw Exception('Failed to load podcasts: ${response.statusCode}');
       }
     } catch (e) {
+      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+        rethrow;
+      }
       throw Exception('Error fetching podcasts: $e');
     }
   }
@@ -299,6 +376,7 @@ class ApiService {
   /// Get single podcast
   Future<Podcast> getPodcast(int id) async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/podcasts/$id'),
         headers: {'Content-Type': 'application/json'},
@@ -310,6 +388,9 @@ class ApiService {
         throw Exception('Failed to load podcast: ${response.statusCode}');
       }
     } catch (e) {
+      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+        rethrow;
+      }
       throw Exception('Error fetching podcast: $e');
     }
   }
@@ -322,7 +403,8 @@ class ApiService {
     String? artist,
   }) async {
     try {
-      Uri uri = Uri.parse('$baseUrl/music/tracks/?skip=$skip&limit=$limit');
+      _validateBaseUrl();
+      Uri uri = Uri.parse('$baseUrl/music/tracks?skip=$skip&limit=$limit');
       if (genre != null) {
         uri = uri.replace(queryParameters: {
           ...uri.queryParameters,
@@ -358,6 +440,7 @@ class ApiService {
     int limit = 20,
   }) async {
     try {
+      _validateBaseUrl();
       final uri = Uri.parse('$baseUrl/bible-stories/').replace(
         queryParameters: {
           'skip': skip.toString(),
@@ -376,6 +459,9 @@ class ApiService {
         throw Exception('Failed to load bible stories: ${response.statusCode}');
       }
     } catch (e) {
+      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+        rethrow;
+      }
       throw Exception('Error fetching bible stories: $e');
     }
   }
@@ -383,6 +469,7 @@ class ApiService {
   /// Get single music track
   Future<MusicTrack> getMusicTrack(int id) async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/music/tracks/$id'),
         headers: {'Content-Type': 'application/json'},
@@ -394,6 +481,9 @@ class ApiService {
         throw Exception('Failed to load music track: ${response.statusCode}');
       }
     } catch (e) {
+      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+        rethrow;
+      }
       throw Exception('Error fetching music track: $e');
     }
   }
@@ -461,6 +551,7 @@ class ApiService {
     String? postType,  // 'image' or 'text' - auto-detected if not provided
   }) async {
     try {
+      _validateBaseUrl();
       final body = <String, dynamic>{
         'title': title,
         'content': content,
@@ -491,6 +582,7 @@ class ApiService {
   /// Like a post (toggles like/unlike)
   Future<Map<String, dynamic>?> likePost(int postId) async {
     try {
+      _validateBaseUrl();
       final response = await http.post(
         Uri.parse('$baseUrl/community/posts/$postId/like'),
         headers: await _getHeaders(),
@@ -502,6 +594,9 @@ class ApiService {
       }
       return null;
     } catch (e) {
+      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+        rethrow;
+      }
       print('Error liking post: $e');
       return null;
     }
@@ -510,6 +605,7 @@ class ApiService {
   /// Get comments for a post
   Future<List<dynamic>> getPostComments(int postId) async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/community/posts/$postId/comments'),
         headers: {'Content-Type': 'application/json'},
@@ -521,6 +617,9 @@ class ApiService {
       }
       throw Exception('Failed to get comments: ${response.statusCode}');
     } catch (e) {
+      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+        rethrow;
+      }
       throw Exception('Error fetching comments: $e');
     }
   }
@@ -528,6 +627,7 @@ class ApiService {
   /// Comment on a post
   Future<Map<String, dynamic>> commentPost(int postId, String comment) async {
     try {
+      _validateBaseUrl();
       final response = await http.post(
         Uri.parse('$baseUrl/community/posts/$postId/comments'),
         headers: await _getHeaders(),
@@ -539,6 +639,9 @@ class ApiService {
       }
       throw Exception('Failed to comment: ${response.statusCode}');
     } catch (e) {
+      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+        rethrow;
+      }
       throw Exception('Error commenting: $e');
     }
   }
@@ -546,6 +649,7 @@ class ApiService {
   /// Get current user profile
   Future<Map<String, dynamic>> getCurrentUser() async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/users/me'),
         headers: await _getHeaders(),
@@ -556,6 +660,9 @@ class ApiService {
       }
       throw Exception('Failed to get user: HTTP ${response.statusCode}');
     } catch (e) {
+      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+        rethrow;
+      }
       throw Exception('Error fetching user: $e');
     }
   }
@@ -571,6 +678,7 @@ class ApiService {
     }
 
     try {
+      _validateBaseUrl();
       final request = http.MultipartRequest(
         'POST',
         Uri.parse('$baseUrl/upload/image'),
@@ -684,6 +792,7 @@ class ApiService {
   /// Get support stats for the current user/admin
   Future<SupportStats> getSupportStats() async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/support/messages/stats'),
         headers: await _getHeaders(),
@@ -704,6 +813,7 @@ class ApiService {
 
   Future<List<SupportMessage>> getMySupportMessages() async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/support/messages/me'),
         headers: await _getHeaders(),
@@ -725,6 +835,7 @@ class ApiService {
 
   Future<List<SupportMessage>> getSupportMessagesForAdmin({String? status}) async {
     try {
+      _validateBaseUrl();
       var uri = Uri.parse('$baseUrl/support/messages');
       if (status != null && status.isNotEmpty) {
         uri = uri.replace(queryParameters: {'status_filter': status});
@@ -754,6 +865,7 @@ class ApiService {
     required String message,
   }) async {
     try {
+      _validateBaseUrl();
       final response = await http.post(
         Uri.parse('$baseUrl/support/messages'),
         headers: await _getHeaders(),
@@ -782,6 +894,7 @@ class ApiService {
     String status = 'responded',
   }) async {
     try {
+      _validateBaseUrl();
       final response = await http.post(
         Uri.parse('$baseUrl/support/messages/$messageId/reply'),
         headers: await _getHeaders(),
@@ -809,6 +922,7 @@ class ApiService {
     required String actor,
   }) async {
     try {
+      _validateBaseUrl();
       final response = await http.post(
         Uri.parse('$baseUrl/support/messages/$messageId/mark-read'),
         headers: await _getHeaders(),
@@ -830,7 +944,8 @@ class ApiService {
 
   Future<List<DocumentAsset>> getDocuments({String? category}) async {
     try {
-      var uri = Uri.parse('$baseUrl/documents');
+      _validateBaseUrl();
+      var uri = Uri.parse('$baseUrl/documents/');
       if (category != null && category.isNotEmpty) {
         uri = uri.replace(queryParameters: {'category': category});
       }
@@ -845,6 +960,9 @@ class ApiService {
       }
       throw Exception('Failed to load documents: HTTP ${response.statusCode}');
     } catch (e) {
+      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+        rethrow;
+      }
       throw Exception('Error fetching documents: $e');
     }
   }
@@ -858,6 +976,7 @@ class ApiService {
     bool isFeatured = false,
   }) async {
     try {
+      _validateBaseUrl();
       final response = await http.post(
         Uri.parse('$baseUrl/documents'),
         headers: await _getHeaders(),
@@ -884,6 +1003,7 @@ class ApiService {
 
   Future<void> deleteDocument(int documentId) async {
     try {
+      _validateBaseUrl();
       final response = await http.delete(
         Uri.parse('$baseUrl/documents/$documentId'),
         headers: await _getHeaders(),
@@ -907,6 +1027,7 @@ class ApiService {
     }
 
     try {
+      _validateBaseUrl();
       final request = http.MultipartRequest(
         'POST',
         Uri.parse('$baseUrl/upload/document'),
@@ -966,6 +1087,7 @@ class ApiService {
   
   Future<Map<String, dynamic>?> getBankDetails() async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/bank-details'),
         headers: await _getHeaders(),
@@ -984,6 +1106,7 @@ class ApiService {
   
   Future<bool> updateBankDetails(Map<String, dynamic> bankData) async {
     try {
+      _validateBaseUrl();
       final response = await http.post(
         Uri.parse('$baseUrl/bank-details'),
         headers: await _getHeaders(),
@@ -998,6 +1121,7 @@ class ApiService {
   
   Future<Map<String, dynamic>> checkUsernameAvailability(String username) async {
     try {
+      _validateBaseUrl();
       final response = await http.post(
         Uri.parse('$baseUrl/auth/check-username'),
         headers: await _getHeaders(),
@@ -1051,19 +1175,36 @@ class ApiService {
   /// Get all playlists
   Future<List<dynamic>> getPlaylists() async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/playlists'),
-        headers: {'Content-Type': 'application/json'},
+        headers: await _getHeaders(),
       ).timeout(const Duration(seconds: 10));
       
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data;
+      } else if (response.statusCode == 401) {
+        // Handle 401 error (token expired or invalid)
+        await _handle401Error(response);
+        // Retry the request after refresh
+        final retryResponse = await http.get(
+          Uri.parse('$baseUrl/playlists'),
+          headers: await _getHeaders(),
+        ).timeout(const Duration(seconds: 10));
+        if (retryResponse.statusCode == 200) {
+          final List<dynamic> data = json.decode(retryResponse.body);
+          return data;
+        }
+        throw Exception('Authentication failed. Please log in again.');
       }
       return [];
     } catch (e) {
+      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+        rethrow;
+      }
       print('Error fetching playlists: $e');
-    return [];
+      return [];
     }
   }
 
@@ -1867,6 +2008,7 @@ class ApiService {
   /// Get single movie
   Future<Movie> getMovie(int id) async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/movies/$id'),
         headers: {'Content-Type': 'application/json'},
@@ -1885,6 +2027,7 @@ class ApiService {
   /// Get featured movies for hero carousel
   Future<List<Movie>> getFeaturedMovies({int limit = 10}) async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/movies/featured/?limit=$limit'),
         headers: {'Content-Type': 'application/json'},
@@ -1904,6 +2047,7 @@ class ApiService {
   /// Get animated Bible stories
   Future<List<Movie>> getAnimatedBibleStories({int limit = 20}) async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/movies/animated-bible-stories/?limit=$limit'),
         headers: {'Content-Type': 'application/json'},
@@ -1923,6 +2067,7 @@ class ApiService {
   /// Get similar movies
   Future<List<Movie>> getSimilarMovies(int movieId, {int limit = 10}) async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/movies/$movieId/similar?limit=$limit'),
         headers: {'Content-Type': 'application/json'},
@@ -1982,6 +2127,7 @@ class ApiService {
   /// Admin API Methods
   Future<Map<String, dynamic>> getAdminDashboard() async {
     try {
+      _validateBaseUrl();
       final headers = await _getHeaders();
       print('🔐 Admin Dashboard Request Headers: ${headers.keys.toList()}');
       print('🔐 Authorization header present: ${headers.containsKey('Authorization')}');
@@ -2022,6 +2168,7 @@ class ApiService {
   
   Future<List<dynamic>> getPendingContent() async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/admin/pending'),
         headers: await _getHeaders(),
@@ -2039,6 +2186,7 @@ class ApiService {
   
   Future<bool> approveContent(String contentType, int contentId) async {
     try {
+      _validateBaseUrl();
       final response = await http.post(
         Uri.parse('$baseUrl/admin/approve/$contentType/$contentId'),
         headers: await _getHeaders(),
@@ -2052,6 +2200,7 @@ class ApiService {
   
   Future<bool> rejectContent(String contentType, int contentId, {String? reason}) async {
     try {
+      _validateBaseUrl();
       final response = await http.post(
         Uri.parse('$baseUrl/admin/reject/$contentType/$contentId'),
         headers: await _getHeaders(),
@@ -2066,6 +2215,7 @@ class ApiService {
 
   Future<bool> deleteContent(String contentType, int contentId) async {
     try {
+      _validateBaseUrl();
       final response = await http.delete(
         Uri.parse('$baseUrl/admin/$contentType/$contentId'),
         headers: await _getHeaders(),
@@ -2079,6 +2229,7 @@ class ApiService {
 
   Future<bool> archiveContent(String contentType, int contentId) async {
     try {
+      _validateBaseUrl();
       final response = await http.post(
         Uri.parse('$baseUrl/admin/archive/$contentType/$contentId'),
         headers: await _getHeaders(),
@@ -2097,6 +2248,7 @@ class ApiService {
     int limit = 100,
   }) async {
     try {
+      _validateBaseUrl();
       final queryParams = <String, String>{
         'skip': skip.toString(),
         'limit': limit.toString(),
@@ -2123,6 +2275,7 @@ class ApiService {
   /// Google Drive API Methods
   Future<String> getGoogleDriveAuthUrl() async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/admin/google-drive/auth-url'),
         headers: await _getHeaders(),
@@ -2145,6 +2298,7 @@ class ApiService {
   /// Get Google OAuth Client ID for frontend
   Future<String?> getGoogleClientId() async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/auth/google-client-id'),
       ).timeout(const Duration(seconds: 5));
@@ -2163,6 +2317,7 @@ class ApiService {
   /// Get OAuth token for Google Picker API
   Future<Map<String, dynamic>> getGoogleDrivePickerToken() async {
     try {
+      _validateBaseUrl();
       final response = await http.get(
         Uri.parse('$baseUrl/admin/google-drive/picker-token'),
         headers: await _getHeaders(),
@@ -2179,6 +2334,7 @@ class ApiService {
   
   Future<List<dynamic>> listGoogleDriveFiles({String? mimeType, int limit = 100}) async {
     try {
+      _validateBaseUrl();
       final queryParams = <String, String>{'limit': limit.toString()};
       if (mimeType != null) queryParams['mime_type'] = mimeType;
       
@@ -2200,6 +2356,7 @@ class ApiService {
   
   Future<Map<String, dynamic>> importGoogleDriveFile(String fileId, String fileType) async {
     try {
+      _validateBaseUrl();
       final response = await http.post(
         Uri.parse('$baseUrl/admin/google-drive/import/$fileId?file_type=$fileType'),
         headers: await _getHeaders(),
@@ -2247,6 +2404,7 @@ class ApiService {
   /// Create a LiveKit room for voice agent
   Future<Map<String, dynamic>> createLiveKitRoom(String roomName, {int maxParticipants = 10}) async {
     try {
+      _validateBaseUrl();
       final url = '$baseUrl/livekit/voice/room';
       print('🌐 Creating LiveKit room: POST $url');
       print('🌐 Room name: $roomName, max participants: $maxParticipants');

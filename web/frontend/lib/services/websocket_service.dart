@@ -30,9 +30,21 @@ class WebSocketService {
       // Socket.io will append /socket.io/ automatically
       var url = AppConfig.websocketUrl;
       
+      // Skip connection if URL is empty
+      if (url.isEmpty) {
+        print('❌ WebSocket: URL is empty. Set WEBSOCKET_URL via --dart-define during build.');
+        return;
+      }
+      
       // Skip connection if using placeholder URL (development without proper env vars)
       if (url.contains('yourdomain.com')) {
         print('⚠️ WebSocket: Skipping connection - placeholder URL detected. Set WEBSOCKET_URL via --dart-define or update AppConfig.');
+        return;
+      }
+      
+      // Validate URL format before parsing
+      if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
+        print('❌ WebSocket: Invalid URL scheme. Must start with ws:// or wss://. Got: $url');
         return;
       }
       

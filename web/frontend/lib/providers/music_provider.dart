@@ -116,7 +116,7 @@ class MusicProvider extends ChangeNotifier {
         id: 'm1',
         title: 'Amazing Grace',
         creator: 'Worship Team',
-        coverImage: 'https://via.placeholder.com/300',
+        coverImage: null, // Removed placeholder URL to prevent DNS errors
         audioUrl: 'https://example.com/music1.mp3',
         duration: Duration(minutes: 4, seconds: 30),
         category: 'worship',
@@ -128,7 +128,7 @@ class MusicProvider extends ChangeNotifier {
         id: 'm2',
         title: 'Great Is Thy Faithfulness',
         creator: 'Choir',
-        coverImage: 'https://via.placeholder.com/300',
+        coverImage: null, // Removed placeholder URL to prevent DNS errors
         audioUrl: 'https://example.com/music2.mp3',
         duration: Duration(minutes: 5, seconds: 15),
         category: 'hymn',
@@ -140,7 +140,7 @@ class MusicProvider extends ChangeNotifier {
         id: 'm3',
         title: 'How Great Thou Art',
         creator: 'Worship Band',
-        coverImage: 'https://via.placeholder.com/300',
+        coverImage: null, // Removed placeholder URL to prevent DNS errors
         audioUrl: 'https://example.com/music3.mp3',
         duration: Duration(minutes: 6),
         category: 'worship',
