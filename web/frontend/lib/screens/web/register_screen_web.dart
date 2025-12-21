@@ -67,6 +67,15 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
   }
 
   void _generateUsernamePreview() {
+    // Clear username if both fields are empty
+    if (_emailController.text.isEmpty && _nameController.text.isEmpty) {
+      setState(() {
+        _generatedUsername = null;
+      });
+      return;
+    }
+
+    // Prioritize email for username generation
     if (_emailController.text.isNotEmpty) {
       final email = _emailController.text.trim();
       if (email.contains('@')) {

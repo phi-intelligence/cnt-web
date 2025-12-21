@@ -420,8 +420,10 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
     
     // Use BoxFit.cover for both mobile and desktop to fill width (no blank spaces)
     final imageFit = BoxFit.cover;
-    // Use center alignment for mobile, topCenter for desktop
-    final imageAlignment = isMobile ? Alignment.center : Alignment.topCenter;
+    // Use center alignment for mobile, slightly adjusted for desktop (moved up a bit)
+    // Alignment y-axis: -1.0 = top, 0.0 = center, 1.0 = bottom
+    // Using -0.7 instead of -1.0 (topCenter) to show slightly more of the image content
+    final imageAlignment = isMobile ? Alignment.center : const Alignment(0, -0.7);
     
     Widget content = ClipRect(
       child: CachedNetworkImage(

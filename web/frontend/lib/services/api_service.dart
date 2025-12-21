@@ -3391,4 +3391,53 @@ class ApiService {
       throw Exception('Error fetching drafts by type: $e');
     }
   }
+
+  // ============ Admin Users API Methods ============
+
+  /// Get all users (admin only)
+  Future<List<dynamic>> getUsers({int skip = 0, int limit = 100}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/admin/users?skip=$skip&limit=$limit'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data;
+      }
+      throw Exception('Failed to get users: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error fetching users: $e');
+    }
+  }
+
+  /// Update user admin status
+  Future<bool> updateUserAdmin(int userId, bool isAdmin) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/admin/users/$userId/admin'),
+        headers: await _getHeaders(),
+        body: json.encode({'is_admin': isAdmin}),
+      ).timeout(const Duration(seconds: 10));
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      throw Exception('Error updating user admin status: $e');
+    }
+  }
+
+  /// Delete a user (admin only)
+  Future<bool> deleteUser(int userId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/admin/users/$userId'),
+        headers: await _getHeaders(),
+      ).timeout(const Duration(seconds: 10));
+      
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      throw Exception('Error deleting user: $e');
+    }
+  }
 }

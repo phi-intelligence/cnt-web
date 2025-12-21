@@ -7,6 +7,7 @@ import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../services/api_service.dart';
+import '../../services/auth_service.dart';
 import '../../models/api_models.dart';
 import '../../models/content_item.dart';
 import 'register_screen_web.dart';
@@ -28,6 +29,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   bool _obscurePassword = true;
   bool _isLoading = false;
   bool _isLoadingContent = true;
+  bool _rememberMe = false; // Netflix-style: default to session-only login
   
   List<ContentItem> _featuredMovies = [];
   List<ContentItem> _featuredPodcasts = [];
@@ -94,6 +96,9 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
     }
 
     setState(() => _isLoading = true);
+    
+    // Set remember me preference before login (affects where tokens are stored)
+    AuthService.setRememberMe(_rememberMe);
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.login(
@@ -120,6 +125,9 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
 
   Future<void> _handleGoogleLogin(BuildContext dialogContext) async {
     setState(() => _isLoading = true);
+    
+    // Set remember me preference before login (affects where tokens are stored)
+    AuthService.setRememberMe(_rememberMe);
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.googleLogin();
@@ -1756,7 +1764,65 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                     ),
                   ),
                 ),
-                SizedBox(height: AppSpacing.extraLarge),
+                SizedBox(height: AppSpacing.medium),
+                
+                // Remember Me checkbox - Netflix style session handling
+                StatefulBuilder(
+                  builder: (context, setDialogState) => Row(
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: _rememberMe,
+                          onChanged: (value) {
+                            setDialogState(() {
+                              _rememberMe = value ?? false;
+                            });
+                            setState(() {
+                              _rememberMe = value ?? false;
+                            });
+                          },
+                          activeColor: AppColors.warmBrown,
+                          side: BorderSide(
+                            color: AppColors.warmBrown.withOpacity(0.5),
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: AppSpacing.small),
+                      GestureDetector(
+                        onTap: () {
+                          setDialogState(() {
+                            _rememberMe = !_rememberMe;
+                          });
+                          setState(() {
+                            _rememberMe = !_rememberMe;
+                          });
+                        },
+                        child: Text(
+                          'Remember me',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      Spacer(),
+                      Tooltip(
+                        message: 'When unchecked, you will be logged out when the browser closes',
+                        child: Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: AppSpacing.large),
                 
                 // Login button
                 StyledPillButton(

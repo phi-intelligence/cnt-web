@@ -28,6 +28,7 @@ import '../screens/events/events_list_screen_web.dart';
 import '../screens/events/event_create_screen_web.dart';
 import '../screens/events/event_detail_screen_web.dart';
 import '../screens/drafts/my_drafts_screen.dart';
+import '../screens/bible/bible_reader_screen.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'web_navigation.dart';
@@ -48,13 +49,23 @@ GoRouter createAppRouter(AuthProvider authProvider) {
     initialLocation: '/',
     redirect: (context, state) {
       final isAuthenticated = authProvider.isAuthenticated;
+      final isAdmin = authProvider.isAdmin;
       final isAuthRoute = state.matchedLocation == '/' || 
                          state.matchedLocation.startsWith('/login') ||
                          state.matchedLocation.startsWith('/register');
       
+      // Define admin-only routes
+      final isAdminRoute = state.matchedLocation.startsWith('/admin') ||
+                           state.matchedLocation.startsWith('/bulk-upload');
+      
       // Redirect to login if not authenticated and trying to access protected route
       if (!isAuthenticated && !isAuthRoute) {
         return '/';
+      }
+      
+      // Redirect non-admins trying to access admin routes
+      if (isAuthenticated && isAdminRoute && !isAdmin) {
+        return '/home';
       }
       
       // Redirect to home if authenticated and on landing page
@@ -143,6 +154,17 @@ GoRouter createAppRouter(AuthProvider authProvider) {
           const WebNavigationLayout(child: AboutScreenWeb()),
         ),
       ),
+      
+      // Bible reader route
+      GoRoute(
+        path: '/bible',
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: BibleReaderScreen()),
+        ),
+      ),
+      
       GoRoute(
         path: '/admin',
         pageBuilder: (context, state) => _buildPageWithoutTransition(

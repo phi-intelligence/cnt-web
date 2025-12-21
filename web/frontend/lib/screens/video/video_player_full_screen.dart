@@ -88,11 +88,8 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
   // Duration logging throttle - only log when source changes
   String? _lastLoggedDurationSource;
 
-  // Buffering state tracking
+  // Buffering state tracking - uses controller's native buffering state only
   bool _isBuffering = false;
-  DateTime? _lastPositionUpdate;
-  int _lastKnownPosition = 0;
-  Timer? _stallWatchdog;
 
   // Focus node for keyboard shortcuts
   final FocusNode _focusNode = FocusNode();
@@ -498,10 +495,6 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
           _isBuffering = true;
         }
 
-        // Initialize position tracking for stall detection
-        _lastPositionUpdate = DateTime.now();
-        _lastKnownPosition = currentPosition ~/ 1000;
-
       } catch (e) {
         debugPrint('VideoPlayer: Autoplay blocked by browser: $e');
         _autoplayBlocked = true;
@@ -509,9 +502,6 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
       }
 
       _controller!.addListener(_videoListener);
-
-      // Start watchdog timer to detect stalled playback
-      _startStallWatchdog();
       
       if (mounted) {
         setState(() {
@@ -540,31 +530,18 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
     // Don't update position during seeking
     if (_isSeeking) return;
 
-    // Track buffering state from controller
+    // Track buffering state from controller's native isBuffering state only
+    // Removed artificial stall detection - rely on video_player's native buffering detection
     final isControllerBuffering = _controller!.value.isBuffering;
-    final currentPosition = _controller!.value.position.inSeconds;
 
-    // Check if position is advancing (video is actually playing)
-    final positionAdvanced = currentPosition != _lastKnownPosition;
-
-    // Update buffering state
-    if (isControllerBuffering && !_isBuffering) {
-      debugPrint('VideoPlayer: Buffering started');
-      setState(() => _isBuffering = true);
-    } else if (!isControllerBuffering && _isBuffering && positionAdvanced) {
-      // Only clear buffering if position is actually advancing
-      debugPrint('VideoPlayer: Buffering ended - playback resumed');
-      setState(() => _isBuffering = false);
-    }
-
-    // Track position updates for stall detection
-    if (positionAdvanced) {
-      _lastPositionUpdate = DateTime.now();
-      _lastKnownPosition = currentPosition;
-      // If we were showing buffering due to stall, clear it
-      if (_isBuffering && !isControllerBuffering) {
-        setState(() => _isBuffering = false);
+    // Update buffering state based on controller's native state
+    if (isControllerBuffering != _isBuffering) {
+      if (isControllerBuffering) {
+        debugPrint('VideoPlayer: Buffering started');
+      } else {
+        debugPrint('VideoPlayer: Buffering ended');
       }
+      setState(() => _isBuffering = isControllerBuffering);
     }
 
     // Detect when video starts playing (to clear autoplay blocked flag)
@@ -602,35 +579,6 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
       _currentTime = position.inSeconds;
       widget.onSeek?.call(_currentTime);
     });
-  }
-
-  /// Start watchdog timer to detect stalled playback
-  /// Checks every 2 seconds if position is advancing while supposedly playing
-  void _startStallWatchdog() {
-    _stallWatchdog?.cancel();
-    _stallWatchdog = Timer.periodic(const Duration(seconds: 2), (_) {
-      if (!mounted || _controller == null) return;
-
-      // Only check if video is supposed to be playing and not scrubbing/seeking
-      if (_controller!.value.isPlaying && !_isScrubbing && !_isSeeking) {
-        // If position hasn't updated in 5+ seconds while playing, video is stalled
-        if (_lastPositionUpdate != null) {
-          final timeSinceLastUpdate = DateTime.now().difference(_lastPositionUpdate!);
-          if (timeSinceLastUpdate > const Duration(seconds: 5)) {
-            if (!_isBuffering) {
-              debugPrint('VideoPlayer: Stall detected - no position update for ${timeSinceLastUpdate.inSeconds}s');
-              setState(() => _isBuffering = true);
-            }
-          }
-        }
-      }
-    });
-  }
-
-  /// Stop the stall watchdog timer
-  void _stopStallWatchdog() {
-    _stallWatchdog?.cancel();
-    _stallWatchdog = null;
   }
 
   void _startControlsTimer() {
@@ -846,9 +794,6 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
   Future<void> _loadEpisode(int newIndex) async {
     if (newIndex < 0 || newIndex >= _playlist.length) return;
 
-    // Stop watchdog before disposing controller
-    _stopStallWatchdog();
-
     _controller?.removeListener(_videoListener);
     await _controller?.pause();
     await _controller?.dispose();
@@ -864,8 +809,6 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
       _durationErrorMessage = null;
       _lastLoggedDurationSource = null; // Reset logging throttle for new episode
       _isBuffering = false; // Reset buffering state for new episode
-      _lastPositionUpdate = null;
-      _lastKnownPosition = 0;
     });
 
     await _initializePlayer();
@@ -909,7 +852,6 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
   @override
   void dispose() {
     _hideControlsTimer?.cancel();
-    _stopStallWatchdog(); // Cancel stall detection timer
     _controller?.removeListener(_videoListener);
     _controller?.dispose();
     _focusNode.dispose();

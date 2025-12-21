@@ -2,13 +2,50 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../utils/platform_helper.dart';
+import 'web_storage_service.dart';
 
 class AuthService {
-  static const _storage = FlutterSecureStorage();
+  static const _secureStorage = FlutterSecureStorage();
   static const String _tokenKey = 'auth_token';
   static const String _refreshTokenKey = 'refresh_token';
   static const String _userKey = 'user_data';
+  
+  /// Write to storage (uses WebStorageService on web, FlutterSecureStorage on mobile)
+  static Future<void> _write({required String key, required String value}) async {
+    if (kIsWeb) {
+      await WebStorageService.write(key: key, value: value);
+    } else {
+      await _secureStorage.write(key: key, value: value);
+    }
+  }
+  
+  /// Read from storage (uses WebStorageService on web, FlutterSecureStorage on mobile)
+  static Future<String?> _read({required String key}) async {
+    if (kIsWeb) {
+      return await WebStorageService.read(key: key);
+    } else {
+      return await _secureStorage.read(key: key);
+    }
+  }
+  
+  /// Delete from storage (uses WebStorageService on web, FlutterSecureStorage on mobile)
+  static Future<void> _delete({required String key}) async {
+    if (kIsWeb) {
+      await WebStorageService.delete(key: key);
+    } else {
+      await _secureStorage.delete(key: key);
+    }
+  }
+  
+  /// Set "Remember Me" preference (web only)
+  static void setRememberMe(bool value) {
+    WebStorageService.setRememberMe(value);
+  }
+  
+  /// Get "Remember Me" preference (web only)
+  static bool get rememberMeEnabled => WebStorageService.rememberMeEnabled;
   
   static String get baseUrl {
     // Check for dart-define first (for USB-connected devices)
@@ -47,11 +84,11 @@ class AuthService {
         final data = jsonDecode(response.body);
         
         // Store token, refresh token, and user data
-        await _storage.write(key: _tokenKey, value: data['access_token']);
+        await _write(key: _tokenKey, value: data['access_token']);
         if (data['refresh_token'] != null) {
-          await _storage.write(key: _refreshTokenKey, value: data['refresh_token']);
+          await _write(key: _refreshTokenKey, value: data['refresh_token']);
         }
-        await _storage.write(key: _userKey, value: jsonEncode({
+        await _write(key: _userKey, value: jsonEncode({
           'id': data['user_id'],
           'username': data['username'],
           'email': data['email'],
@@ -82,17 +119,17 @@ class AuthService {
   
   /// Get stored authentication token
   Future<String?> getToken() async {
-    return await _storage.read(key: _tokenKey);
+    return await _read(key: _tokenKey);
   }
   
   /// Get stored refresh token
   Future<String?> getRefreshToken() async {
-    return await _storage.read(key: _refreshTokenKey);
+    return await _read(key: _refreshTokenKey);
   }
   
   /// Get stored user data
   Future<Map<String, dynamic>?> getUser() async {
-    final userJson = await _storage.read(key: _userKey);
+    final userJson = await _read(key: _userKey);
     if (userJson != null) {
       return jsonDecode(userJson) as Map<String, dynamic>;
     }
@@ -180,17 +217,22 @@ class AuthService {
       }
       
       // Clear local storage
-      await _storage.delete(key: _tokenKey);
-      await _storage.delete(key: _refreshTokenKey);
-      await _storage.delete(key: _userKey);
+      await _delete(key: _tokenKey);
+      await _delete(key: _refreshTokenKey);
+      await _delete(key: _userKey);
+      
+      // On web, also clear the specific web storage
+      if (kIsWeb) {
+        await WebStorageService.clearAuthData();
+      }
       
       print('✅ Logged out successfully');
     } catch (e) {
       print('Logout error: $e');
       // Still clear local storage even if backend call fails
-      await _storage.delete(key: _tokenKey);
-      await _storage.delete(key: _refreshTokenKey);
-      await _storage.delete(key: _userKey);
+      await _delete(key: _tokenKey);
+      await _delete(key: _refreshTokenKey);
+      await _delete(key: _userKey);
     }
   }
   
@@ -231,11 +273,11 @@ class AuthService {
         final data = jsonDecode(response.body);
         
         // Store token, refresh token, and user data
-        await _storage.write(key: _tokenKey, value: data['access_token']);
+        await _write(key: _tokenKey, value: data['access_token']);
         if (data['refresh_token'] != null) {
-          await _storage.write(key: _refreshTokenKey, value: data['refresh_token']);
+          await _write(key: _refreshTokenKey, value: data['refresh_token']);
         }
-        await _storage.write(key: _userKey, value: jsonEncode({
+        await _write(key: _userKey, value: jsonEncode({
           'id': data['user_id'],
           'username': data['username'],
           'email': data['email'],
@@ -307,11 +349,11 @@ class AuthService {
         final data = jsonDecode(response.body);
         
         // Store token, refresh token, and user data
-        await _storage.write(key: _tokenKey, value: data['access_token']);
+        await _write(key: _tokenKey, value: data['access_token']);
         if (data['refresh_token'] != null) {
-          await _storage.write(key: _refreshTokenKey, value: data['refresh_token']);
+          await _write(key: _refreshTokenKey, value: data['refresh_token']);
         }
-        await _storage.write(key: _userKey, value: jsonEncode({
+        await _write(key: _userKey, value: jsonEncode({
           'id': data['user_id'],
           'username': data['username'],
           'email': data['email'],
@@ -473,11 +515,11 @@ class AuthService {
         final data = jsonDecode(response.body);
         
         // Store token, refresh token, and user data
-        await _storage.write(key: _tokenKey, value: data['access_token']);
+        await _write(key: _tokenKey, value: data['access_token']);
         if (data['refresh_token'] != null) {
-          await _storage.write(key: _refreshTokenKey, value: data['refresh_token']);
+          await _write(key: _refreshTokenKey, value: data['refresh_token']);
         }
-        await _storage.write(key: _userKey, value: jsonEncode({
+        await _write(key: _userKey, value: jsonEncode({
           'id': data['user_id'],
           'username': data['username'],
           'email': data['email'],
@@ -520,9 +562,9 @@ class AuthService {
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        await _storage.write(key: _tokenKey, value: data['access_token']);
+        await _write(key: _tokenKey, value: data['access_token']);
         if (data['refresh_token'] != null) {
-          await _storage.write(key: _refreshTokenKey, value: data['refresh_token']);
+          await _write(key: _refreshTokenKey, value: data['refresh_token']);
         }
         print('✅ Access token refreshed successfully');
         return true;
@@ -562,7 +604,7 @@ class AuthService {
   Future<void> updateStoredUser(Map<String, dynamic> updates) async {
     final current = await getUser() ?? {};
     final merged = {...current, ...updates};
-    await _storage.write(key: _userKey, value: jsonEncode(merged));
+    await _write(key: _userKey, value: jsonEncode(merged));
   }
 }
 
