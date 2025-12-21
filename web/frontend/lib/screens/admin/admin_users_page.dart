@@ -4,6 +4,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/shared/empty_state.dart';
+import '../../widgets/web/styled_filter_chip.dart';
 
 /// Redesigned Users management page with cream/brown theme
 class AdminUsersPage extends StatefulWidget {
@@ -165,24 +166,9 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             ],
           ),
           const SizedBox(height: 16),
-          // Search Field
+          // Search Field - Pill-shaped white search bar matching approved page
           Container(
             constraints: const BoxConstraints(maxWidth: 500),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: AppColors.warmBrown.withOpacity(0.2),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
             child: TextField(
               controller: _searchController,
               style: AppTypography.body.copyWith(color: AppColors.textPrimary),
@@ -201,9 +187,22 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                         },
                       )
                     : null,
-                border: InputBorder.none,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(999),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(999),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(999),
+                  borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
+                  horizontal: AppSpacing.large,
                   vertical: 14,
                 ),
               ),
@@ -242,39 +241,23 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   Widget _buildFilters() {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-      child: SizedBox(
-        height: 36,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          itemCount: _filters.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
-          itemBuilder: (context, index) {
-            final filter = _filters[index];
-            final isSelected = _selectedFilter == filter;
-            return FilterChip(
-              label: Text(filter),
-              selected: isSelected,
-              onSelected: (_) {
-                setState(() {
-                  _selectedFilter = filter;
-                });
-              },
-              backgroundColor: Colors.white,
-              selectedColor: AppColors.warmBrown.withOpacity(0.15),
-              labelStyle: AppTypography.caption.copyWith(
-                color: isSelected ? AppColors.warmBrown : AppColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
-              side: BorderSide(
-                color: isSelected ? AppColors.warmBrown : AppColors.borderPrimary,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-            );
-          },
-        ),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _filters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.small),
+        itemBuilder: (context, index) {
+          final filter = _filters[index];
+          final isSelected = _selectedFilter == filter;
+          return StyledFilterChip(
+            label: filter,
+            selected: isSelected,
+            onTap: () {
+              setState(() {
+                _selectedFilter = filter;
+              });
+            },
+          );
+        },
       ),
     );
   }
@@ -303,7 +286,10 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
           children: [
             Icon(Icons.error_outline, size: 48, color: AppColors.errorMain),
             const SizedBox(height: 16),
-            Text('Error: $_error', style: AppTypography.body),
+            Text(
+              'Error: $_error',
+              style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+            ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _fetchUsers,
@@ -455,13 +441,16 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                 borderRadius: BorderRadius.circular(12),
               ),
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'view',
                   child: Row(
                     children: [
-                      Icon(Icons.visibility, size: 20),
-                      SizedBox(width: 12),
-                      Text('View Profile'),
+                      Icon(Icons.visibility, size: 20, color: AppColors.textPrimary),
+                      const SizedBox(width: 12),
+                      Text(
+                        'View Profile',
+                        style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                      ),
                     ],
                   ),
                 ),
@@ -475,7 +464,10 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                         color: isAdmin ? AppColors.errorMain : AppColors.successMain,
                       ),
                       const SizedBox(width: 12),
-                      Text(isAdmin ? 'Remove Admin' : 'Make Admin'),
+                      Text(
+                        isAdmin ? 'Remove Admin' : 'Make Admin',
+                        style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                      ),
                     ],
                   ),
                 ),
@@ -581,7 +573,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                     ),
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close, color: AppColors.textPrimary),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -805,20 +797,25 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           isAdmin ? 'Remove Admin Access' : 'Grant Admin Access',
-          style: AppTypography.heading3,
+          style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
         ),
         content: Text(
           isAdmin
               ? 'Are you sure you want to remove admin access from ${user['name']}?'
               : 'Are you sure you want to grant admin access to ${user['name']}?',
+          style: AppTypography.body.copyWith(color: AppColors.textPrimary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -851,15 +848,23 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Delete User', style: AppTypography.heading3),
+        title: Text(
+          'Delete User',
+          style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+        ),
         content: Text(
           'Are you sure you want to delete ${user['name']}? This action cannot be undone.',
+          style: AppTypography.body.copyWith(color: AppColors.textPrimary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
