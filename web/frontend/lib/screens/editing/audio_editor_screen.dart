@@ -156,6 +156,22 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
   }
 
   /// Initialize editor from saved state or widget parameters
+  /// 
+  /// This method handles:
+  /// 1. Loading saved state from localStorage (if available and not expired)
+  /// 2. Validating saved state is compatible with current environment
+  /// 3. Uploading blob URLs to backend for persistence
+  /// 4. Converting relative paths to full URLs based on environment
+  /// 5. Restoring all editor settings (trim, merge files)
+  /// 
+  /// Environment Handling:
+  /// - Clears stale localhost URLs when running in production
+  /// - Preserves state when environment matches
+  /// 
+  /// Blob URL Handling:
+  /// - Detects blob URLs from MediaRecorder
+  /// - Uploads to backend via uploadTemporaryMedia()
+  /// - Converts to full backend URL for editing operations
   Future<void> _initializeFromSavedState() async {
     try {
       final savedState = await StatePersistence.loadAudioEditorState();

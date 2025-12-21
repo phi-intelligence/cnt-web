@@ -6,12 +6,47 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 /// Audio Editing Service
-/// Handles audio editing operations: trim, cut, merge, fade effects
-/// Uses backend API for all operations
+/// Handles audio editing operations: trim, merge
+/// Uses backend API for all operations (server-side processing)
+/// 
+/// Note: Fade effects have been removed to match mobile app feature set
+/// 
+/// Environment Handling:
+/// - Development: Files served from local backend via /media endpoint
+/// - Production: Files served from CloudFront/S3 CDN
+/// 
+/// Media URL Resolution:
+/// - Full URLs (http/https) → returned as-is
+/// - /media/ paths → resolved based on environment (localhost vs CloudFront)
+/// - Relative paths → constructed with appropriate base URL
 class AudioEditingService {
   final ApiService _apiService = ApiService();
 
+  /// Helper method to detect if we're running in development environment
+  /// Checks for common development patterns: localhost, 127.0.0.1, private IPs, port numbers, ngrok
+  static bool _isDevelopmentEnvironment(String url) {
+    return url.contains('localhost') || 
+           url.contains('127.0.0.1') ||
+           url.contains('ngrok') ||
+           url.contains(':8002') ||
+           url.contains(':8000') ||
+           url.contains('192.168.') ||
+           url.contains('10.') ||
+           url.contains('172.');
+  }
+
   /// Construct media URL with proper handling for local vs production environments
+  /// 
+  /// Handles environment-specific URL construction:
+  /// - Development: Uses backend API URL (files served via /media endpoint)
+  ///   Example: http://localhost:8002/media/audio/file.mp3
+  /// - Production: Uses CloudFront/S3 URL (files stored on S3)
+  ///   Example: https://cloudfront.net/audio/file.mp3
+  /// 
+  /// URL Resolution Logic:
+  /// 1. Full URLs (http/https) → return as-is
+  /// 2. /media/ paths → resolve based on environment
+  /// 3. Relative paths → construct with mediaBaseUrl
   String _constructMediaUrl(String outputUrl) {
     // If outputUrl is already a full HTTP/HTTPS URL, use it directly
     if (outputUrl.startsWith('http://') || outputUrl.startsWith('https://')) {
@@ -24,15 +59,8 @@ class AudioEditingService {
       // Get API base URL without /api/v1 suffix
       final apiBase = ApiService.baseUrl.replaceAll('/api/v1', '').trim();
       
-      // Check if we're in development (localhost, 127.0.0.1, ngrok, or contains port)
-      final isDevelopment = apiBase.contains('localhost') || 
-                           apiBase.contains('127.0.0.1') ||
-                           apiBase.contains('ngrok') ||
-                           apiBase.contains(':8002') ||
-                           apiBase.contains(':8000') ||
-                           apiBase.contains('192.168.') ||
-                           apiBase.contains('10.') ||
-                           apiBase.contains('172.');
+      // Check if we're in development environment
+      final isDevelopment = _isDevelopmentEnvironment(apiBase);
       
       if (isDevelopment) {
         // Development: Use backend API URL to serve the file
@@ -42,13 +70,14 @@ class AudioEditingService {
         return constructedUrl;
       } else {
         // Production: Use CloudFront/S3 URL
+        // Note: /media/ prefix is kept here as it's part of the path from backend
         final constructedUrl = ApiService.mediaBaseUrl + outputUrl;
         print('🌐 Production mode - Using CloudFront/S3 URL: $constructedUrl');
         return constructedUrl;
       }
     }
     
-    // Fallback: Use mediaBaseUrl
+    // Fallback: Use mediaBaseUrl for relative paths
     final fallbackUrl = ApiService.mediaBaseUrl + (outputUrl.startsWith('/') ? outputUrl : '/$outputUrl');
     print('⚠️ Fallback URL construction: $fallbackUrl');
     return fallbackUrl;
