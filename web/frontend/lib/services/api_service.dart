@@ -55,6 +55,29 @@ class ApiService {
   factory ApiService() => _instance;
   ApiService._internal();
   
+  /// Check if running in development environment
+  /// Development: localhost, 127.0.0.1, private IPs, or ports like :8002
+  static bool _isDevelopment() {
+    final url = baseUrl;
+    return url.contains('localhost') || 
+           url.contains('127.0.0.1') ||
+           url.contains(':8002') ||
+           url.contains(':8000') ||
+           url.contains('192.168.') ||
+           url.contains('10.') ||
+           url.contains('172.');
+  }
+  
+  /// Check if a URL is from S3 or CloudFront (needs proxy in production)
+  static bool _isS3OrCloudFrontUrl(String url) {
+    return url.contains('cloudfront.net') || 
+           url.contains('.s3.') ||
+           url.contains('s3.amazonaws.com') ||
+           url.contains('s3-') ||
+           // Also check if mediaBaseUrl is S3 and the URL matches
+           (mediaBaseUrl.contains('s3.') && url.startsWith(mediaBaseUrl));
+  }
+  
   /// Validate that baseUrl is configured before making requests
   void _validateBaseUrl() {
     try {
@@ -1468,21 +1491,30 @@ class ApiService {
       print('📥 Downloading file from URL: $source');
       // Network URL - download the file
       try {
-        // Don't send auth headers to CloudFront/S3 - public files don't need auth
-        // Auth headers trigger preflight (OPTIONS) which CloudFront blocks with 403
-        final isCloudFrontOrS3 = source.contains('cloudfront.net') || 
-                                  source.contains('.s3.') ||
-                                  source.contains('s3.amazonaws.com');
+        final isS3OrCloudFront = _isS3OrCloudFrontUrl(source);
+        final isDev = _isDevelopment();
         
+        String downloadUrl = source;
         Map<String, String>? headers;
-        if (!isCloudFrontOrS3) {
+        
+        if (isS3OrCloudFront && !isDev) {
+          // Production: Use backend proxy to access S3 files
+          // The proxy handles S3 authentication via IAM credentials
+          print('🔄 Using backend proxy for S3/CloudFront URL in production');
+          downloadUrl = '$baseUrl/media/proxy?url=${Uri.encodeComponent(source)}';
           headers = await _getHeaders();
           // Remove Content-Type for download request
           headers.remove('Content-Type');
+        } else if (!isS3OrCloudFront) {
+          // Non-S3 URL: Use auth headers
+          headers = await _getHeaders();
+          headers.remove('Content-Type');
         }
+        // else: Development with S3 URLs - these are actually local /media URLs
         
+        print('📥 Fetching from: $downloadUrl');
         final response = await http.get(
-          Uri.parse(source),
+          Uri.parse(downloadUrl),
           headers: headers,
         ).timeout(const Duration(minutes: 5));
         
