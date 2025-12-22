@@ -22,17 +22,235 @@ class MeetingOptionsScreenWeb extends StatefulWidget {
 class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
+    // Check for web platform
     final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
-    final isTablet = screenWidth >= 600 && screenWidth < 1024;
+    final isMobile = screenWidth < 800; // Mobile/Tablet breakpoint for Web
 
+    if (isMobile) {
+       return _buildMobileLayout(context);
+    } else {
+       return _buildDesktopSplitLayout(context);
+    }
+  }
+
+  Widget _buildDesktopSplitLayout(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.backgroundPrimary,
+      body: Row(
+        children: [
+          // Left Side: Content (40%)
+          Expanded(
+            flex: 4,
+            child: Container(
+              color: AppColors.backgroundPrimary,
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   // Back Button
+                   SafeArea(
+                     child: Align(
+                       alignment: Alignment.topLeft,
+                       child: TextButton.icon(
+                         onPressed: () => Navigator.pop(context),
+                         icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                         label: Text('Back', style: AppTypography.body.copyWith(color: AppColors.textPrimary)),
+                         style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                       ),
+                     ),
+                   ),
+                   const Spacer(),
+                   
+                   // Title & Description
+                   Text(
+                     'Meeting Options',
+                     style: AppTypography.heading1.copyWith(
+                       color: AppColors.textPrimary,
+                       fontSize: 48,
+                       fontWeight: FontWeight.bold,
+                     ),
+                   ),
+                   const SizedBox(height: AppSpacing.medium),
+                   Text(
+                     'Choose how you want to connect with others',
+                     style: AppTypography.body.copyWith(
+                       color: AppColors.textSecondary,
+                       fontSize: 18,
+                     ),
+                   ),
+                   const SizedBox(height: 48),
+
+                   // Option Cards (Horizontal Row for Meeting Options)
+                   Center(
+                      child: Wrap(
+                        spacing: 24,
+                        runSpacing: 24,
+                        children: [
+                          _buildDesktopOptionCard(
+                            context,
+                            title: 'Instant Meeting',
+                            icon: Icons.video_call,
+                            onTap: () async {
+                              // Instant Meeting Logic
+                              try {
+                                final resp = await ApiService().createStream(title: 'Instant Meeting');
+                                final meetingId = (resp['id'] ?? '').toString();
+                                final roomName = resp['room_name'] as String;
+                                final liveKitUrl = ApiService().getLiveKitUrl().replaceAll('ws://', 'http://').replaceAll('wss://', 'https://');
+                                final meetingLink = '$liveKitUrl/meeting/$roomName';
+                                if (meetingId.isEmpty) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Failed to create meeting')),
+                                    );
+                                  }
+                                  return;
+                                }
+                                if (mounted) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => MeetingCreatedScreen(
+                                        meetingId: meetingId,
+                                        meetingLink: meetingLink,
+                                        isInstant: true,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Failed to start instant meeting: $e')),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                          _buildDesktopOptionCard(
+                            context,
+                            title: 'Schedule Meeting',
+                            icon: Icons.schedule,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ScheduleMeetingScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          _buildDesktopOptionCard(
+                            context,
+                            title: 'Join Meeting',
+                            icon: Icons.login,
+                            onTap: () async {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const JoinMeetingScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                   ),
+
+                   const Spacer(),
+                ],
+              ),
+            ),
+          ),
+          
+          // Right Side: Image (60%)
+          Expanded(
+            flex: 6,
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/jesus.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.black.withOpacity(0.1),
+                      Colors.transparent,
+                    ],
+                    begin: Alignment.bottomLeft,
+                    end: Alignment.topRight,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopOptionCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          width: 200, // Fixed width for consistent cards
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.borderPrimary),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                 padding: const EdgeInsets.all(16),
+                 decoration: BoxDecoration(
+                   color: AppColors.backgroundSecondary,
+                   shape: BoxShape.circle,
+                 ),
+                 child: Icon(icon, size: 32, color: AppColors.primaryMain),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: AppTypography.heading4.copyWith(fontWeight: FontWeight.bold, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(BuildContext context) {
+    // Reuse existing options logic
     final List<Map<String, dynamic>> options = [
       {
         'title': 'Instant Meeting',
         'icon': Icons.video_call,
         'onTap': () async {
-          try {
+          // ... (same logic as before, abbreviated here for brevity - copy from original file if needed or duplicate logic)
+           try {
             final resp = await ApiService().createStream(title: 'Instant Meeting');
             final meetingId = (resp['id'] ?? '').toString();
             final roomName = resp['room_name'] as String;
@@ -97,74 +315,58 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
       backgroundColor: const Color(0xFFF5F0E8),
       body: SizedBox(
         width: double.infinity,
-        height: screenHeight,
+        height: MediaQuery.of(context).size.height,
         child: Stack(
           children: [
-            // Background image positioned to the right
+             // Keep existing mobile background
             Positioned(
-              top: isMobile ? -30 : 0,
-              bottom: isMobile ? null : 0,
-              right: isMobile ? -screenWidth * 0.4 : -50,
-              height: isMobile ? screenHeight * 0.6 : null,
-              width: isMobile ? screenWidth * 1.3 : screenWidth * 0.65,
+              top: -30,
+              right: -MediaQuery.of(context).size.width * 0.4,
+              height: MediaQuery.of(context).size.height * 0.6,
+              width: MediaQuery.of(context).size.width * 1.3,
               child: Container(
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: const AssetImage('assets/images/jesus-teaching.png'),
-                    fit: isMobile ? BoxFit.contain : BoxFit.cover,
-                    alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
+                    image: const AssetImage('assets/images/jesus-teaching.png'), // Fallback for mobile
+                    fit: BoxFit.contain,
+                    alignment: Alignment.topRight,
                   ),
                 ),
               ),
             ),
-            // Gradient overlay from left
+             // ... Gradient ...
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
-                    colors: isMobile
-                        ? [
+                    colors: [
                             const Color(0xFFF5F0E8),
                             const Color(0xFFF5F0E8).withOpacity(0.98),
                             const Color(0xFFF5F0E8).withOpacity(0.85),
                             const Color(0xFFF5F0E8).withOpacity(0.4),
                             Colors.transparent,
-                          ]
-                        : [
-                            const Color(0xFFF5F0E8),
-                            const Color(0xFFF5F0E8).withOpacity(0.99),
-                            const Color(0xFFF5F0E8).withOpacity(0.95),
-                            const Color(0xFFF5F0E8).withOpacity(0.7),
-                            const Color(0xFFF5F0E8).withOpacity(0.3),
-                            Colors.transparent,
                           ],
-                    stops: isMobile
-                        ? const [0.0, 0.2, 0.4, 0.6, 0.8]
-                        : const [0.0, 0.25, 0.4, 0.5, 0.6, 0.75],
+                    stops: const [0.0, 0.2, 0.4, 0.6, 0.8],
                   ),
                 ),
               ),
             ),
-            // Content positioned centered
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              right: 0,
+            // Content
+            Positioned.fill(
               child: SafeArea(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.only(
-                    left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
-                    right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
-                    top: isMobile ? 20 : 40,
+                    left: AppSpacing.large,
+                    right: AppSpacing.large,
+                    top: 20,
                     bottom: AppSpacing.extraLarge,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header with back button
+                       // Mobile Header
                       Row(
                         children: [
                           IconButton(
@@ -174,12 +376,7 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
                           Expanded(
                             child: Text(
                               'Meeting Options',
-                              style: AppTypography.getResponsiveHeroTitle(context).copyWith(
-                                color: AppColors.primaryDark,
-                                fontWeight: FontWeight.bold,
-                                fontSize: isMobile ? 28 : (isTablet ? 36 : 42),
-                                height: 1.1,
-                              ),
+                              style: AppTypography.heading2.copyWith(color: AppColors.primaryDark),
                             ),
                           ),
                         ],
@@ -187,35 +384,25 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
                       SizedBox(height: AppSpacing.small),
                       Text(
                         'Choose how you want to connect with others',
-                        style: AppTypography.getResponsiveBody(context).copyWith(
-                          color: AppColors.primaryDark.withOpacity(0.7),
-                          fontSize: isMobile ? 14 : 16,
-                        ),
+                        style: AppTypography.body.copyWith(color: AppColors.primaryDark.withOpacity(0.7)),
                       ),
                       SizedBox(height: AppSpacing.extraLarge * 2),
-
-                      // Centered Options Grid
-                      Center(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: isMobile ? double.infinity : 1000,
-                          ),
-                          child: GridView.builder(
+                       // Mobile Grid
+                       GridView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: isMobile ? 1 : (isTablet ? 2 : 3),
+                              crossAxisCount: 1,
                               crossAxisSpacing: AppSpacing.large,
                               mainAxisSpacing: AppSpacing.large,
-                              childAspectRatio: isMobile ? 1.5 : 1.2,
+                              childAspectRatio: 1.5,
                             ),
                             itemCount: options.length,
                             itemBuilder: (context, index) {
                               final option = options[index];
-                              // Alternate hover colors: orange for odd (1, 3), brown for even (2)
-                              final hoverColors = index % 2 == 0
-                                  ? [AppColors.accentMain, AppColors.accentDark] // Orange
-                                  : [AppColors.warmBrown, AppColors.primaryMain]; // Brown
+                               final hoverColors = index % 2 == 0
+                                  ? [AppColors.accentMain, AppColors.accentDark]
+                                  : [AppColors.warmBrown, AppColors.primaryMain];
                               return _buildOptionCard(
                                 title: option['title'] as String,
                                 icon: option['icon'] as IconData,
@@ -224,8 +411,6 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
                               );
                             },
                           ),
-                        ),
-                      ),
                     ],
                   ),
                 ),

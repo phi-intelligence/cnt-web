@@ -96,85 +96,340 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
+    // Check for web platform
     final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
-    final isTablet = screenWidth >= 600 && screenWidth < 1024;
-    final isDesktop = screenWidth >= 1024;
+    final isMobile = screenWidth < 800; // Mobile breakpoint
 
+    if (isMobile) {
+       return _buildMobileLayout(context);
+    } else {
+       return _buildDesktopSplitLayout(context);
+    }
+  }
+
+  Widget _buildDesktopSplitLayout(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.backgroundPrimary,
+      body: Row(
+        children: [
+          // Left Side: Content (40%)
+          Expanded(
+            flex: 4,
+            child: Container(
+              color: AppColors.backgroundPrimary,
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   // Back Button
+                   SafeArea(
+                     child: Align(
+                       alignment: Alignment.topLeft,
+                       child: TextButton.icon(
+                         onPressed: () => Navigator.pop(context),
+                         icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                         label: Text('Back', style: AppTypography.body.copyWith(color: AppColors.textPrimary)),
+                         style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                       ),
+                     ),
+                   ),
+                   const Spacer(),
+                   
+                   // Title & Description
+                   Text(
+                     'Go Live',
+                     style: AppTypography.heading1.copyWith(
+                       color: AppColors.textPrimary,
+                       fontSize: 48,
+                       fontWeight: FontWeight.bold,
+                     ),
+                   ),
+                   const SizedBox(height: AppSpacing.medium),
+                   Text(
+                     'Share your message with the community',
+                     style: AppTypography.body.copyWith(
+                       color: AppColors.textSecondary,
+                       fontSize: 18,
+                     ),
+                   ),
+                   const SizedBox(height: 32),
+
+                   // Stream Form - directly embedded in the left column
+                   // Note: We don't use the card container here to keep it clean on the white background
+                   Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [AppColors.warmBrown, AppColors.accentMain],
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.warmBrown.withOpacity(0.3),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.live_tv, size: 40, color: Colors.white),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        Center(
+                          child: Text(
+                            'Stream Details',
+                            style: AppTypography.heading4.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Title Field
+                        Text(
+                          'Stream Title *',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(color: AppColors.borderPrimary),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: TextFormField(
+                            controller: _titleController,
+                            style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                            decoration: InputDecoration(
+                              hintText: 'Enter a title for your live stream',
+                              hintStyle: TextStyle(color: AppColors.textTertiary),
+                              filled: false,
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter a stream title';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Description Field
+                        Text(
+                          'Description (Optional)',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(color: AppColors.borderPrimary),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: TextFormField(
+                            controller: _descriptionController,
+                            maxLines: 3,
+                            style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                            decoration: InputDecoration(
+                              hintText: 'Add a description for your stream',
+                              hintStyle: TextStyle(color: AppColors.textTertiary),
+                              filled: false,
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Actions
+                        Container(
+                          height: 56,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [AppColors.warmBrown, AppColors.accentMain],
+                            ),
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.warmBrown.withOpacity(0.4),
+                                blurRadius: 15,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: _isCreating ? null : _startStreamNow,
+                              borderRadius: BorderRadius.circular(30),
+                              child: Center(
+                                child: _isCreating
+                                    ? SizedBox(
+                                        width: 24, height: 24,
+                                        child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Colors.white), strokeWidth: 2),
+                                      )
+                                    : Text(
+                                        'Start Live Stream',
+                                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Center(
+                          child: TextButton.icon(
+                            onPressed: _isCreating ? null : _startInstant,
+                            icon: Icon(Icons.flash_on, color: AppColors.warmBrown, size: 20),
+                            label: Text('Quick Start', style: TextStyle(color: AppColors.warmBrown, fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                        Center(
+                          child: Text(
+                            'Quick Start generates a default title automatically',
+                            style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ),
+                      ],
+                    ),
+                   ),
+
+                   const Spacer(),
+                ],
+              ),
+            ),
+          ),
+          
+          // Right Side: Image + Tips Overlay (60%)
+          Expanded(
+            flex: 6,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Background Image
+                Container(
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/images/jesus-walking.png'),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.black.withOpacity(0.2),
+                          Colors.transparent,
+                        ],
+                        begin: Alignment.bottomLeft,
+                        end: Alignment.topRight,
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Tips removed as per user request
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0E8),
       body: SizedBox(
         width: double.infinity,
-        height: screenHeight,
+        height: MediaQuery.of(context).size.height,
         child: Stack(
           children: [
-            // Background image positioned to the right
-            Positioned(
-              top: isMobile ? -30 : 0,
-              bottom: isMobile ? null : 0,
-              right: isMobile ? -screenWidth * 0.4 : -50,
-              height: isMobile ? screenHeight * 0.6 : null,
-              width: isMobile ? screenWidth * 1.3 : screenWidth * 0.65,
+             // Mobile Background logic...
+             Positioned(
+              top: -30,
+              right: -MediaQuery.of(context).size.width * 0.4,
+              height: MediaQuery.of(context).size.height * 0.6,
+              width: MediaQuery.of(context).size.width * 1.3,
               child: Container(
                 decoration: BoxDecoration(
                   image: DecorationImage(
                     image: const AssetImage('assets/images/thumb6.jpg'),
-                    fit: isMobile ? BoxFit.contain : BoxFit.cover,
-                    alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
+                    fit: BoxFit.contain,
+                    alignment: Alignment.topRight,
                   ),
                 ),
               ),
             ),
-            // Gradient overlay from left
-            Positioned.fill(
+             // Gradient
+             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
-                    colors: isMobile
-                        ? [
+                    colors: [
                             const Color(0xFFF5F0E8),
                             const Color(0xFFF5F0E8).withOpacity(0.98),
                             const Color(0xFFF5F0E8).withOpacity(0.85),
                             const Color(0xFFF5F0E8).withOpacity(0.4),
                             Colors.transparent,
-                          ]
-                        : [
-                            const Color(0xFFF5F0E8),
-                            const Color(0xFFF5F0E8).withOpacity(0.99),
-                            const Color(0xFFF5F0E8).withOpacity(0.95),
-                            const Color(0xFFF5F0E8).withOpacity(0.7),
-                            const Color(0xFFF5F0E8).withOpacity(0.3),
-                            Colors.transparent,
                           ],
-                    stops: isMobile
-                        ? const [0.0, 0.2, 0.4, 0.6, 0.8]
-                        : const [0.0, 0.25, 0.4, 0.5, 0.6, 0.75],
+                    stops: const [0.0, 0.2, 0.4, 0.6, 0.8],
                   ),
                 ),
               ),
             ),
-            // Content positioned centered/right-aligned
-            Positioned(
-              left: isMobile ? 0 : (screenWidth * 0.15),
-              top: 0,
-              bottom: 0,
-              right: 0,
+            // Content
+            Positioned.fill(
               child: SafeArea(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.only(
-                    left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
-                    right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
-                    top: isMobile ? 20 : 40,
+                    left: AppSpacing.large,
+                    right: AppSpacing.large,
+                    top: 20,
                     bottom: AppSpacing.extraLarge,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header with back button
-                      Row(
+                       Row(
                         children: [
                           IconButton(
                             icon: Icon(Icons.arrow_back, color: AppColors.primaryDark),
@@ -183,12 +438,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                           Expanded(
                             child: Text(
                               'Go Live',
-                              style: AppTypography.getResponsiveHeroTitle(context).copyWith(
-                                color: AppColors.primaryDark,
-                                fontWeight: FontWeight.bold,
-                                fontSize: isMobile ? 28 : (isTablet ? 36 : 42),
-                                height: 1.1,
-                              ),
+                              style: AppTypography.heading2.copyWith(color: AppColors.primaryDark),
                             ),
                           ),
                         ],
@@ -196,18 +446,13 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                       SizedBox(height: AppSpacing.small),
                       Text(
                         'Share your message with the community',
-                        style: AppTypography.getResponsiveBody(context).copyWith(
-                          color: AppColors.primaryDark.withOpacity(0.7),
-                          fontSize: isMobile ? 14 : 16,
-                        ),
+                        style: AppTypography.body.copyWith(color: AppColors.primaryDark.withOpacity(0.7)),
                       ),
-                      SizedBox(height: AppSpacing.extraLarge * 1.5),
+                      SizedBox(height: 32),
                       
-                      // Main content - responsive layout
-                      if (isDesktop)
-                        _buildDesktopLayout()
-                      else
-                        _buildMobileLayout(),
+                      _buildStreamFormCard(),
+                      const SizedBox(height: 24),
+                      // Tips removed as per user request
                     ],
                   ),
                 ),
@@ -219,33 +464,10 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
     );
   }
 
-  Widget _buildDesktopLayout() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Left side - Stream form
-        Expanded(
-          flex: 3,
-          child: _buildStreamFormCard(),
-        ),
-        const SizedBox(width: 32),
-        // Right side - Tips and info
-        Expanded(
-          flex: 2,
-          child: _buildStreamTipsCard(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMobileLayout() {
-    return Column(
-      children: [
-        _buildStreamFormCard(),
-        const SizedBox(height: 24),
-        _buildStreamTipsCard(),
-      ],
-    );
+  // Helper method so I don't break existing reference
+  Widget _buildDesktopLayout() { 
+    // This is now redundant with _buildDesktopSplitLayout but kept if something references it (unlikely)
+    return Container(); 
   }
 
   Widget _buildStreamTipsCard() {

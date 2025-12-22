@@ -241,23 +241,27 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   Widget _buildFilters() {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-      child: ListView.separated(
+      child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        itemCount: _filters.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.small),
-        itemBuilder: (context, index) {
-          final filter = _filters[index];
-          final isSelected = _selectedFilter == filter;
-          return StyledFilterChip(
-            label: filter,
-            selected: isSelected,
-            onTap: () {
-              setState(() {
-                _selectedFilter = filter;
-              });
-            },
-          );
-        },
+        child: Row(
+          children: _filters.map((filter) {
+            final isSelected = _selectedFilter == filter;
+            return Padding(
+              padding: EdgeInsets.only(
+                right: filter != _filters.last ? AppSpacing.small : 0,
+              ),
+              child: StyledFilterChip(
+                label: filter,
+                selected: isSelected,
+                onTap: () {
+                  setState(() {
+                    _selectedFilter = filter;
+                  });
+                },
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
   }

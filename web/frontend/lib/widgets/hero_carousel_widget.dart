@@ -224,13 +224,6 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
     _changePage(nextIndex);
   }
 
-  void _goToPrevious() {
-    if (_items.isEmpty) return;
-    
-    final prevIndex = (_currentIndex - 1 + _items.length) % _items.length;
-    _changePage(prevIndex);
-  }
-
   void _changePage(int index) {
     if (index < 0 || index >= _items.length) return;
     
@@ -271,9 +264,6 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
       tablet: screenHeight * 0.35, // 35% for tablet
       desktop: screenHeight * 0.5, // 50% for desktop (increased from 30%)
     );
-    
-    // Show arrows on all screen sizes when there's more than 1 item
-    final showArrows = _items.length > 1;
     
     if (_isLoading) {
       return Container(
@@ -391,10 +381,6 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
               child: _buildIndicators(),
             ),
           ),
-          
-          // Navigation Arrows (only for desktop, hidden on mobile)
-          if (showArrows && !ResponsiveUtils.isMobile(context))
-            ..._buildNavigationArrows(carouselHeight),
         ],
       ),
     );
@@ -573,55 +559,4 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
     );
   }
 
-  List<Widget> _buildNavigationArrows(double height) {
-    // Responsive arrow size - smaller on mobile
-    final isMobile = ResponsiveUtils.isMobile(context);
-    final arrowSize = isMobile ? 16.0 : 20.0;
-    final arrowPadding = isMobile ? 6.0 : 8.0;
-    final arrowMargin = isMobile ? 8.0 : 16.0;
-    final buttonRadius = isMobile ? 14.0 : 20.0;
-
-    return [
-      // Left Arrow
-      Positioned(
-        left: arrowMargin,
-        top: height / 2 - buttonRadius,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: _goToPrevious,
-            borderRadius: BorderRadius.circular(buttonRadius),
-            child: Container(
-              padding: EdgeInsets.all(arrowPadding),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.arrow_back_ios, color: Colors.white, size: arrowSize),
-            ),
-          ),
-        ),
-      ),
-      // Right Arrow
-      Positioned(
-        right: arrowMargin,
-        top: height / 2 - buttonRadius,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: _goToNext,
-            borderRadius: BorderRadius.circular(buttonRadius),
-            child: Container(
-              padding: EdgeInsets.all(arrowPadding),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.arrow_forward_ios, color: Colors.white, size: arrowSize),
-            ),
-          ),
-        ),
-      ),
-    ];
-  }
 }

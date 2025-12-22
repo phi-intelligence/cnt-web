@@ -6,7 +6,7 @@ import '../../theme/app_typography.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../widgets/web/section_container.dart';
 
-/// Web About Screen - Redesigned with compact layout
+/// Web About Screen - Redesigned with Premium Landing Page Style
 class AboutScreenWeb extends StatelessWidget {
   const AboutScreenWeb({super.key});
 
@@ -21,31 +21,32 @@ class AboutScreenWeb extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Hero Section with Back Button
+            // Hero Section (Full width)
             _buildHeroSection(context, isMobile),
             
-            // Main Content
+            // Main Content Area with overlapping negative margin effect or simply continuous flow
             Container(
               padding: ResponsiveGridDelegate.getResponsivePadding(context),
-              width: double.infinity,
+              constraints: const BoxConstraints(maxWidth: 1400),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Mission Section
-                  _buildMissionSection(isMobile, isTablet),
-                  const SizedBox(height: AppSpacing.large),
-                  
-                  // Features Grid
-                  _buildFeaturesSection(isMobile, isTablet),
-                  const SizedBox(height: AppSpacing.large),
-                  
-                  // Values Section
-                  _buildValuesSection(isMobile, isTablet),
-                  const SizedBox(height: AppSpacing.large),
-                  
-                  // Version & Copyright
-                  _buildFooterSection(),
-                  const SizedBox(height: AppSpacing.large),
+                   const SizedBox(height: AppSpacing.extraLarge),
+                   
+                   // Mission Statement - High Impact Card
+                   _buildMissionSection(isMobile),
+                   const SizedBox(height: 60),
+                   
+                   // Features Grid
+                   _buildFeaturesSection(isMobile, isTablet),
+                   const SizedBox(height: 60),
+                   
+                   // Core Values
+                   _buildValuesSection(isMobile, isTablet),
+                   const SizedBox(height: 80),
+                   
+                   // Footer
+                   _buildFooterSection(),
+                   const SizedBox(height: 40),
                 ],
               ),
             ),
@@ -58,204 +59,157 @@ class AboutScreenWeb extends StatelessWidget {
   Widget _buildHeroSection(BuildContext context, bool isMobile) {
     return Container(
       width: double.infinity,
+      // Minimal height for impact
+      constraints: const BoxConstraints(minHeight: 400),
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? AppSpacing.medium : AppSpacing.extraLarge,
-        vertical: AppSpacing.large,
+        vertical: AppSpacing.extraLarge * 2, // More breathing room
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
           colors: [
-            AppColors.warmBrown.withOpacity(0.08),
-            AppColors.accentMain.withOpacity(0.04),
+            Colors.white,
+            AppColors.warmBrown.withOpacity(0.05),
+            AppColors.warmBrown.withOpacity(0.12),
           ],
-        ),
-        border: Border(
-          bottom: BorderSide(color: AppColors.borderPrimary, width: 1),
         ),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Back button row
-          Row(
-            children: [
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => context.go('/home'),
-                  borderRadius: BorderRadius.circular(999),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.medium,
-                      vertical: AppSpacing.small,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.warmBrown.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: AppColors.warmBrown.withOpacity(0.2),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.arrow_back,
-                          size: 18,
-                          color: AppColors.warmBrown,
-                        ),
-                        const SizedBox(width: AppSpacing.tiny),
-                        Text(
-                          'Back',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.warmBrown,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+           // Back Navigation (Floating top left relative to safe area would be better, but inline is fine for web)
+           Align(
+             alignment: Alignment.topLeft,
+             child: TextButton.icon(
+               onPressed: () => context.go('/home'),
+               icon: Icon(Icons.arrow_back, color: AppColors.warmBrown),
+               label: Text('Back to Home', style: TextStyle(color: AppColors.warmBrown)),
+               style: TextButton.styleFrom(
+                 backgroundColor: Colors.white.withOpacity(0.5),
+                 shape: StadiumBorder(),
+               ),
+             ),
+           ),
+           const SizedBox(height: 20),
+
+           // Logo
+           Container(
+             width: isMobile ? 100 : 140,
+             height: isMobile ? 100 : 140,
+             padding: const EdgeInsets.all(4),
+             decoration: BoxDecoration(
+               shape: BoxShape.circle,
+               color: Colors.white,
+               boxShadow: [
+                 BoxShadow(
+                   color: AppColors.warmBrown.withOpacity(0.2),
+                   blurRadius: 30,
+                   offset: const Offset(0, 10),
+                 ),
+               ],
+             ),
+             child: ClipOval(
+                child: Image.asset(
+                  'assets/images/CNT-LOGO.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, _, __) => Icon(Icons.church, size: 60, color: AppColors.warmBrown),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.medium),
-          
-          // Logo and Title Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Logo - smaller size
-              Container(
-                width: isMobile ? 60 : 80,
-                height: isMobile ? 60 : 80,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.warmBrown, AppColors.accentMain],
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.warmBrown.withOpacity(0.25),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Image.asset(
-                    'assets/images/CNT-LOGO.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Image.asset(
-                        'assets/images/cnt-dove-logo.png',
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(
-                            Icons.church,
-                            size: isMobile ? 32 : 40,
-                            color: Colors.white,
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.medium),
-              
-              // Title Column
-              Flexible(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'About Us',
-                      style: AppTypography.heading2.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.warmBrown,
-                        fontSize: isMobile ? 24 : 28,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.tiny),
-                    Text(
-                      'Christ New Tabernacle - Christian Media Platform',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+             ),
+           ),
+           const SizedBox(height: 32),
+
+           // Title & Subtitle
+           Text(
+             'About Us',
+             style: AppTypography.heading1.copyWith(
+               fontSize: isMobile ? 36 : 56,
+               fontWeight: FontWeight.bold,
+               color: AppColors.textPrimary,
+               letterSpacing: -1.0,
+             ),
+             textAlign: TextAlign.center,
+           ),
+           const SizedBox(height: 16),
+           Text(
+             'Christ New Tabernacle',
+             style: AppTypography.heading3.copyWith(
+               color: AppColors.warmBrown,
+               fontWeight: FontWeight.w600,
+               letterSpacing: 0.5,
+             ),
+             textAlign: TextAlign.center,
+           ),
+           const SizedBox(height: 24),
+           Container(
+             width: 60,
+             height: 4,
+             decoration: BoxDecoration(
+               color: AppColors.accentMain,
+               borderRadius: BorderRadius.circular(2),
+             ),
+           ),
+           const SizedBox(height: 32),
+           
+           Container(
+             constraints: const BoxConstraints(maxWidth: 700),
+             child: Text(
+               'A digital sanctuary where believers unite, worship, and grow. Experience the power of faith through modern technology.',
+               textAlign: TextAlign.center,
+               style: AppTypography.body.copyWith(
+                 fontSize: isMobile ? 16 : 20,
+                 color: AppColors.textSecondary,
+                 height: 1.6,
+               ),
+             ),
+           ),
         ],
       ),
     );
   }
 
-  Widget _buildMissionSection(bool isMobile, bool isTablet) {
-    return SectionContainer(
-      showShadow: true,
+  Widget _buildMissionSection(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 24 : 48),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white.withOpacity(0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.warmBrown.withOpacity(0.08),
+            blurRadius: 40,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.small),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.warmBrown.withOpacity(0.2),
-                      AppColors.accentMain.withOpacity(0.1),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
-                  border: Border.all(
-                    color: AppColors.warmBrown.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Icon(
-                  Icons.favorite,
-                  color: AppColors.warmBrown,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.small),
-              Text(
-                'Our Mission',
-                style: AppTypography.heading3.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
+          Container(
+             padding: const EdgeInsets.all(16),
+             decoration: BoxDecoration(
+               color: AppColors.warmBrown.withOpacity(0.1),
+               shape: BoxShape.circle,
+             ),
+             child: Icon(Icons.favorite_rounded, color: AppColors.warmBrown, size: 32),
           ),
-          const SizedBox(height: AppSpacing.medium),
+          const SizedBox(height: 24),
           Text(
-            'At Christ New Tabernacle, we are dedicated to creating a digital sanctuary where believers can come together to worship, learn, and grow in their faith. Our platform brings together the best of Christian media - from inspiring podcasts and uplifting music to Bible stories and live streaming services.',
-            style: AppTypography.body.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.6,
-              fontSize: 14,
-            ),
+            'Our Mission',
+            style: AppTypography.heading2.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: AppSpacing.small),
+          const SizedBox(height: 24),
           Text(
-            'We believe in the power of community and the importance of sharing God\'s word through modern technology.',
-            style: AppTypography.body.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.6,
-              fontSize: 14,
-            ),
+             'At Christ New Tabernacle, we are dedicated to creating a digital sanctuary where believers can come together to worship, learn, and grow in their faith. Our platform brings together the best of Christian media - from inspiring podcasts and uplifting music to Bible stories and live streaming services.',
+             textAlign: TextAlign.center,
+             style: AppTypography.body.copyWith(
+               color: AppColors.textSecondary,
+               height: 1.8,
+               fontSize: isMobile ? 16 : 18,
+             ),
           ),
         ],
       ),
@@ -264,335 +218,157 @@ class AboutScreenWeb extends StatelessWidget {
 
   Widget _buildFeaturesSection(bool isMobile, bool isTablet) {
     final features = [
-      {'icon': Icons.podcasts, 'title': 'Podcasts', 'description': 'Audio & video content'},
-      {'icon': Icons.music_note, 'title': 'Music', 'description': 'Christian music library'},
-      {'icon': Icons.book, 'title': 'Bible', 'description': 'Stories & documents'},
-      {'icon': Icons.live_tv, 'title': 'Live', 'description': 'Worship services'},
-      {'icon': Icons.people, 'title': 'Community', 'description': 'Connect & share'},
-      {'icon': Icons.video_call, 'title': 'Meetings', 'description': 'Virtual gatherings'},
+      {'icon': Icons.podcasts_rounded, 'title': 'Podcasts', 'desc': 'Inspiring audio & video series'},
+      {'icon': Icons.music_note_rounded, 'title': 'Music', 'desc': 'Uplifting Christian melodies'},
+      {'icon': Icons.menu_book_rounded, 'title': 'Bible Stories', 'desc': 'Digital scripture experience'},
+      {'icon': Icons.live_tv_rounded, 'title': 'Live Stream', 'desc': 'Join services in real-time'},
+      {'icon': Icons.people_rounded, 'title': 'Community', 'desc': 'Connect with other believers'},
+      {'icon': Icons.video_call_rounded, 'title': 'Meetings', 'desc': 'Virtual prayer gatherings'},
     ];
 
-    return SectionContainer(
-      showShadow: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.small),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.accentMain.withOpacity(0.2),
-                      AppColors.warmBrown.withOpacity(0.1),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: AppColors.accentMain.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Icon(
-                  Icons.star,
-                  color: AppColors.accentMain,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.small),
-              Text(
-                'Platform Features',
-                style: AppTypography.heading3.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
+    return Column(
+      children: [
+        Text('What We Offer', style: AppTypography.heading2.copyWith(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 40),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: isMobile ? 2 : (isTablet ? 3 : 3),
+            crossAxisSpacing: 24,
+            mainAxisSpacing: 24,
+            childAspectRatio: isMobile ? 1.0 : 1.5,
           ),
-          const SizedBox(height: AppSpacing.medium),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isMobile ? 2 : (isTablet ? 3 : 6),
-              childAspectRatio: isMobile ? 1.3 : 1.2,
-              crossAxisSpacing: AppSpacing.small,
-              mainAxisSpacing: AppSpacing.small,
-            ),
-            itemCount: features.length,
-            itemBuilder: (context, index) {
-              final feature = features[index];
-              return _FeatureCard(
-                icon: feature['icon'] as IconData,
-                title: feature['title'] as String,
-                description: feature['description'] as String,
-              );
-            },
-          ),
-        ],
-      ),
+          itemCount: features.length,
+          itemBuilder: (context, index) {
+            final f = features[index];
+            return Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 15,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+                border: Border.all(color: AppColors.borderPrimary.withOpacity(0.5)),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.warmBrown.withOpacity(0.2), AppColors.accentMain.withOpacity(0.1)],
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(f['icon'] as IconData, color: AppColors.warmBrown, size: 28),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    f['title'] as String,
+                    style: AppTypography.heading4.copyWith(fontWeight: FontWeight.w600, fontSize: 18),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    f['desc'] as String,
+                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary, fontSize: 13),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
   Widget _buildValuesSection(bool isMobile, bool isTablet) {
     final values = [
-      {'icon': Icons.favorite, 'title': 'Faith', 'description': 'Rooted in Christian values'},
-      {'icon': Icons.handshake, 'title': 'Community', 'description': 'Connecting believers'},
-      {'icon': Icons.volunteer_activism, 'title': 'Service', 'description': 'Serving with excellence'},
+      {'title': 'Faith', 'desc': 'Rooted in unchanging Christian truth.'},
+      {'title': 'Community', 'desc': 'Building strong bonds among believers.'},
+      {'title': 'Service', 'desc': 'Serving our neighbor with love and excellence.'},
     ];
 
-    return SectionContainer(
-      showShadow: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.small),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.warmBrown.withOpacity(0.2),
-                      AppColors.accentMain.withOpacity(0.1),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
-                  border: Border.all(
+    return Column(
+      children: [
+        Text('Core Values', style: AppTypography.heading2.copyWith(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 40),
+        Flex(
+          direction: isMobile ? Axis.vertical : Axis.horizontal,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: values.map((v) {
+            return Container(
+              width: isMobile ? double.infinity : 300,
+              margin: EdgeInsets.symmetric(
+                 horizontal: isMobile ? 0 : 16,
+                 vertical: isMobile ? 12 : 0,
+              ),
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.warmBrown,
+                    AppColors.primaryDark,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(
                     color: AppColors.warmBrown.withOpacity(0.3),
-                    width: 1,
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
                   ),
-                ),
-                child: Icon(
-                  Icons.auto_awesome,
-                  color: AppColors.warmBrown,
-                  size: 20,
-                ),
+                ],
               ),
-              const SizedBox(width: AppSpacing.small),
-              Text(
-                'Our Core Values',
-                style: AppTypography.heading3.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+              child: Column(
+                children: [
+                  Text(
+                    v['title']!,
+                    style: AppTypography.heading3.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(width: 40, height: 2, color: Colors.white.withOpacity(0.5)),
+                  const SizedBox(height: 16),
+                  Text(
+                    v['desc']!,
+                    style: AppTypography.body.copyWith(color: Colors.white.withOpacity(0.9)),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.medium),
-          Row(
-            children: values.map((value) {
-              return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    right: value == values.last ? 0 : AppSpacing.small,
-                  ),
-                  child: _ValueCard(
-                    icon: value['icon'] as IconData,
-                    title: value['title'] as String,
-                    description: value['description'] as String,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 
   Widget _buildFooterSection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.large,
-        vertical: AppSpacing.medium,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.warmBrown.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: AppColors.warmBrown.withOpacity(0.1),
-          width: 1,
+    return Column(
+      children: [
+        Icon(Icons.church_rounded, size: 32, color: AppColors.textTertiary),
+        const SizedBox(height: 16),
+        Text(
+          '© 2025 Christ New Tabernacle',
+          style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Version 1.0.0',
-            style: AppTypography.bodySmall.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppColors.warmBrown,
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.medium),
-            width: 4,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.warmBrown.withOpacity(0.5),
-              shape: BoxShape.circle,
-            ),
-          ),
-          Text(
-            '© 2024 Christ New Tabernacle',
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FeatureCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String description;
-
-  const _FeatureCard({
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 768;
-    return Container(
-      padding: EdgeInsets.all(isMobile ? AppSpacing.tiny : AppSpacing.small),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: AppColors.warmBrown.withOpacity(0.2),
-          width: 1,
+        const SizedBox(height: 8),
+        Text(
+          'Version 1.0.0',
+          style: AppTypography.caption.copyWith(color: AppColors.textTertiary.withOpacity(0.6)),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.warmBrown.withOpacity(0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Circle icon container
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.warmBrown, AppColors.accentMain],
-              ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.warmBrown.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 22,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.small),
-          Text(
-            title,
-            style: AppTypography.bodySmall.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-              fontSize: 12,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            description,
-            style: AppTypography.caption.copyWith(
-              color: AppColors.textSecondary,
-              fontSize: 10,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ValueCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String description;
-
-  const _ValueCard({
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.medium),
-      decoration: BoxDecoration(
-        color: AppColors.warmBrown.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: AppColors.warmBrown.withOpacity(0.15),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.small),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.warmBrown, AppColors.accentMain],
-              ),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.small),
-          Text(
-            title,
-            style: AppTypography.bodySmall.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.warmBrown,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.tiny),
-          Text(
-            description,
-            style: AppTypography.caption.copyWith(
-              color: AppColors.textSecondary,
-              fontSize: 11,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+      ],
     );
   }
 }
