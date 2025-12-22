@@ -301,7 +301,7 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
                     child: Column(
                       children: [
                         Text(
-                          playlist['name'] ?? 'Untitled Playlist',
+                          playlist.name,
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 16,
@@ -311,7 +311,7 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${playlist['item_count'] ?? 0} items',
+                          '${playlist.itemCount} items',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,

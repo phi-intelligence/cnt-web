@@ -29,6 +29,7 @@ import '../screens/events/event_create_screen_web.dart';
 import '../screens/events/event_detail_screen_web.dart';
 import '../screens/drafts/my_drafts_screen.dart';
 import '../screens/bible/bible_reader_screen.dart';
+import '../screens/web/bank_details_screen_web.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'web_navigation.dart';
@@ -129,6 +130,17 @@ GoRouter createAppRouter(AuthProvider authProvider) {
           state,
           const WebNavigationLayout(child: ProfileScreenWeb()),
         ),
+      ),
+      GoRoute(
+        path: '/profile/bank-details',
+        pageBuilder: (context, state) {
+          final isFromUpload = state.uri.queryParameters['fromUpload'] == 'true';
+          return _buildPageWithoutTransition(
+            context,
+            state,
+            WebNavigationLayout(child: BankDetailsScreenWeb(isFromUpload: isFromUpload)),
+          );
+        },
       ),
       GoRoute(
         path: '/podcasts',

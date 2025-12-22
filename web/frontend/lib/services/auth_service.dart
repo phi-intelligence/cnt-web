@@ -546,39 +546,84 @@ class AuthService {
   }
   
   /// Refresh the current access token using refresh token
-  Future<bool> refreshAccessToken() async {
-    try {
-      final refreshToken = await getRefreshToken();
-      if (refreshToken == null || refreshToken.isEmpty) {
-        print('⚠️ No refresh token available');
-        return false;
-      }
-      
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/refresh'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh_token': refreshToken}),
-      ).timeout(const Duration(seconds: 10));
-      
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        await _write(key: _tokenKey, value: data['access_token']);
-        if (data['refresh_token'] != null) {
-          await _write(key: _refreshTokenKey, value: data['refresh_token']);
-        }
-        print('✅ Access token refreshed successfully');
-        return true;
-      } else {
-        print('❌ Token refresh failed: ${response.statusCode}');
-        // Refresh token might be expired/revoked - clear storage
-        if (response.statusCode == 401) {
-          await logout();
-        }
-        return false;
-      }
-    } catch (e) {
-      print('💥 Token refresh error: $e');
+  /// Implements retry with exponential backoff (max 3 attempts)
+  Future<bool> refreshAccessToken({int maxRetries = 3}) async {
+    final refreshToken = await getRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      print('⚠️ No refresh token available');
       return false;
+    }
+    
+    int retryCount = 0;
+    int delayMs = 500; // Start with 500ms delay
+    
+    while (retryCount < maxRetries) {
+      try {
+        print('🔄 Token refresh attempt ${retryCount + 1}/$maxRetries');
+        
+        final response = await http.post(
+          Uri.parse('$baseUrl/auth/refresh'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'refresh_token': refreshToken}),
+        ).timeout(const Duration(seconds: 10));
+        
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          await _write(key: _tokenKey, value: data['access_token']);
+          if (data['refresh_token'] != null) {
+            await _write(key: _refreshTokenKey, value: data['refresh_token']);
+          }
+          print('✅ Access token refreshed successfully');
+          return true;
+        } else if (response.statusCode == 401) {
+          // Refresh token is invalid/expired - don't retry
+          print('❌ Refresh token invalid or expired');
+          return false;
+        } else {
+          // Server error - might be temporary, retry
+          print('⚠️ Token refresh failed with status ${response.statusCode}, will retry');
+          retryCount++;
+          if (retryCount < maxRetries) {
+            await Future.delayed(Duration(milliseconds: delayMs));
+            delayMs *= 2; // Exponential backoff
+          }
+        }
+      } catch (e) {
+        print('💥 Token refresh error (attempt ${retryCount + 1}): $e');
+        retryCount++;
+        if (retryCount < maxRetries) {
+          await Future.delayed(Duration(milliseconds: delayMs));
+          delayMs *= 2; // Exponential backoff
+        }
+      }
+    }
+    
+    print('❌ Token refresh failed after $maxRetries attempts');
+    return false;
+  }
+  
+  /// Get token expiration timestamp from JWT
+  static DateTime? getTokenExpiration(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+      
+      final payload = parts[1];
+      String normalized = payload;
+      switch (payload.length % 4) {
+        case 1: normalized += '==='; break;
+        case 2: normalized += '=='; break;
+        case 3: normalized += '='; break;
+      }
+      
+      final decoded = base64Decode(normalized);
+      final json = jsonDecode(utf8.decode(decoded));
+      final exp = json['exp'] as int?;
+      if (exp == null) return null;
+      
+      return DateTime.fromMillisecondsSinceEpoch(exp * 1000);
+    } catch (e) {
+      return null;
     }
   }
   

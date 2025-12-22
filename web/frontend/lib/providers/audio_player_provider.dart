@@ -217,9 +217,26 @@ class AudioPlayerState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Seek to a specific position in the current track
+  /// Handles edge cases like seeking beyond duration
   Future<void> seek(Duration position) async {
-    await _player.seek(position);
-    notifyListeners();
+    try {
+      // Clamp position to valid range
+      final clampedPosition = Duration(
+        milliseconds: position.inMilliseconds.clamp(0, _duration.inMilliseconds),
+      );
+      
+      print('🎵 Seeking to: ${clampedPosition.inSeconds}s / ${_duration.inSeconds}s');
+      
+      await _player.seek(clampedPosition);
+      _position = clampedPosition;
+      _saveState();
+      notifyListeners();
+    } catch (e) {
+      print('❌ Seek error: $e');
+      _error = 'Failed to seek: $e';
+      notifyListeners();
+    }
   }
 
   Future<void> setVolume(double volume) async {

@@ -1040,6 +1040,15 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
           ),
           _buildDivider(),
           _buildSettingItem(
+            icon: Icons.account_balance_outlined,
+            title: 'Bank Details',
+            subtitle: 'Manage payment information',
+            onTap: () {
+              context.push('/profile/bank-details');
+            },
+          ),
+          _buildDivider(),
+          _buildSettingItem(
             icon: isAdmin ? Icons.support_agent : Icons.help_outline,
             title: isAdmin ? 'Support Inbox' : 'Help & Support',
             subtitle: supportSubtitle,

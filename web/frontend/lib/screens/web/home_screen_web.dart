@@ -894,13 +894,13 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
                           // Convert playlists to ContentItems for display
                           final playlistItems = provider.playlists.take(4).map((playlist) {
                             return ContentItem(
-                              id: playlist['id'].toString(),
-                              title: playlist['name'] ?? 'Untitled Playlist',
+                              id: playlist.id.toString(),
+                              title: playlist.name,
                               creator: 'You',
-                              description: playlist['description'],
-                              coverImage: playlist['cover_image'],
+                              description: playlist.description,
+                              coverImage: playlist.thumbnailUrl,
                               category: 'Playlist',
-                              createdAt: DateTime.parse(playlist['created_at'] ?? DateTime.now().toIso8601String()),
+                              createdAt: DateTime.now(), // Playlist model doesn't include createdAt
                             );
                           }).toList();
                           

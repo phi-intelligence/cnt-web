@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:html' as html;
 import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
 import '../services/google_auth_service.dart';
@@ -14,6 +15,7 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   Timer? _tokenExpirationTimer;
+  bool _isRefreshing = false; // Prevent concurrent refresh attempts
   
   Map<String, dynamic>? get user => _user;
   bool get isAuthenticated => _isAuthenticated;
@@ -26,6 +28,20 @@ class AuthProvider extends ChangeNotifier {
     checkAuthStatus();
     // Start periodic token expiration check
     _startTokenExpirationCheck();
+    // Listen for visibility changes (user returns to tab/window)
+    _setupVisibilityListener();
+  }
+  
+  /// Setup listener for when user returns to the app/tab (web)
+  void _setupVisibilityListener() {
+    if (kIsWeb) {
+      html.document.addEventListener('visibilitychange', (event) {
+        if (html.document.visibilityState == 'visible') {
+          print('🔍 App became visible, checking token...');
+          _checkTokenExpiration();
+        }
+      });
+    }
   }
   
   /// Start periodic check for token expiration (every 5 minutes)
@@ -74,8 +90,9 @@ class AuthProvider extends ChangeNotifier {
   }
   
   /// Check if token is expired and refresh if needed
+  /// Uses _isRefreshing flag to prevent concurrent refresh attempts
   Future<void> _checkTokenExpiration() async {
-    if (!_isAuthenticated) return;
+    if (!_isAuthenticated || _isRefreshing) return;
     
     try {
       final token = await _authService.getToken();
@@ -84,17 +101,23 @@ class AuthProvider extends ChangeNotifier {
       // Check if access token expires within 5 minutes
       if (_shouldRefreshToken(token)) {
         print('🔄 Access token expires soon, refreshing...');
+        _isRefreshing = true;
         final refreshed = await _authService.refreshAccessToken();
+        _isRefreshing = false;
         
         if (!refreshed) {
           // Refresh failed - might be network issue, try again later
           print('⚠️ Token refresh failed, will retry');
           // Don't logout immediately - might be temporary
+        } else {
+          print('✅ Token proactively refreshed');
         }
       } else if (AuthService.isTokenExpired(token)) {
         // Token already expired - try refresh
         print('🔄 Access token expired, refreshing...');
+        _isRefreshing = true;
         final refreshed = await _authService.refreshAccessToken();
+        _isRefreshing = false;
         
         if (!refreshed) {
           // Refresh token also expired/revoked - logout
@@ -102,9 +125,12 @@ class AuthProvider extends ChangeNotifier {
           await logout();
           _error = 'Your session has expired. Please log in again.';
           notifyListeners();
+        } else {
+          print('✅ Expired token successfully refreshed');
         }
       }
     } catch (e) {
+      _isRefreshing = false;
       print('Error checking token expiration: $e');
     }
   }

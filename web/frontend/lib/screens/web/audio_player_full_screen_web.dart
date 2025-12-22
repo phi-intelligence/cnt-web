@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:html' as html;
 import '../../providers/audio_player_provider.dart';
+import '../../providers/favorites_provider.dart';
 import '../../models/content_item.dart';
 import '../donation_modal.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/shared/image_helper.dart';
+import '../../widgets/web/queue_modal_web.dart';
 
 /// Web Full-Screen Audio Player - Spotify-style Design
 /// Features:
@@ -474,10 +478,16 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
     );
   }
 
+  bool _isSeeking = false;
+  double _seekValue = 0.0;
+  
   Widget _buildProgressBar(AudioPlayerState audioPlayer) {
     final progress = audioPlayer.duration.inSeconds > 0
         ? audioPlayer.position.inSeconds / audioPlayer.duration.inSeconds
         : 0.0;
+    
+    // Use local seek value while actively seeking, otherwise use actual progress
+    final displayProgress = _isSeeking ? _seekValue : progress;
 
     return Column(
       children: [
@@ -485,35 +495,57 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
             trackHeight: 5,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
             activeTrackColor: AppColors.warmBrown,
             inactiveTrackColor: AppColors.warmBrown.withOpacity(0.2),
             thumbColor: AppColors.warmBrown,
             overlayColor: AppColors.warmBrown.withOpacity(0.2),
           ),
           child: Slider(
-            value: progress.clamp(0.0, 1.0),
+            value: displayProgress.clamp(0.0, 1.0),
             min: 0.0,
             max: 1.0,
+            onChangeStart: (value) {
+              setState(() {
+                _isSeeking = true;
+                _seekValue = value;
+              });
+            },
             onChanged: (value) {
+              setState(() {
+                _seekValue = value;
+              });
+            },
+            onChangeEnd: (value) async {
               final newPosition = Duration(
-                seconds: (value * audioPlayer.duration.inSeconds).toInt(),
+                milliseconds: (value * audioPlayer.duration.inMilliseconds).toInt(),
               );
-              audioPlayer.seek(newPosition);
+              await audioPlayer.seek(newPosition);
+              if (mounted) {
+                setState(() {
+                  _isSeeking = false;
+                });
+              }
             },
           ),
         ),
-        // Time labels
+        // Time labels - show seek preview time when dragging
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _formatDuration(audioPlayer.position),
+                _isSeeking 
+                    ? _formatDuration(Duration(
+                        milliseconds: (_seekValue * audioPlayer.duration.inMilliseconds).toInt(),
+                      ))
+                    : _formatDuration(audioPlayer.position),
                 style: AppTypography.caption.copyWith(
-                  color: AppColors.primaryDark.withOpacity(0.6),
+                  color: _isSeeking 
+                      ? AppColors.warmBrown 
+                      : AppColors.primaryDark.withOpacity(0.6),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -727,75 +759,268 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
     );
   }
 
-  /// Extra controls (queue, favorite) without volume slider
+  /// Extra controls (queue, favorite, download) 
   Widget _buildExtraControls(AudioPlayerState audioPlayer) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Queue button
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.8),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: IconButton(
-              icon: Icon(
-                Icons.queue_music_rounded,
-                color: AppColors.warmBrown.withOpacity(0.8),
-                size: 24,
+    final track = audioPlayer.currentTrack;
+    final hasQueue = audioPlayer.queue.isNotEmpty;
+    
+    return Consumer<FavoritesProvider>(
+      builder: (context, favoritesProvider, _) {
+        final isFavorite = track != null && favoritesProvider.isFavorite(track.id);
+        
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Queue button with badge
+              Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.queue_music_rounded,
+                        color: hasQueue 
+                            ? AppColors.warmBrown 
+                            : AppColors.warmBrown.withOpacity(0.5),
+                        size: 24,
+                      ),
+                      tooltip: 'Queue (${audioPlayer.queue.length} tracks)',
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const QueueModalWeb(),
+                        );
+                      },
+                    ),
+                  ),
+                  // Queue count badge
+                  if (hasQueue)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: AppColors.warmBrown,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Text(
+                          '${audioPlayer.queue.length}',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              tooltip: 'Queue',
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Queue feature coming soon')),
-                );
-              },
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Favorite button
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.8),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+              const SizedBox(width: 16),
+              // Favorite button - connected to FavoritesProvider
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: IconButton(
-              icon: Icon(
-                audioPlayer.currentTrack?.isFavorite == true 
-                    ? Icons.favorite_rounded 
-                    : Icons.favorite_border_rounded,
-                color: audioPlayer.currentTrack?.isFavorite == true 
-                    ? AppColors.errorMain 
-                    : AppColors.warmBrown.withOpacity(0.8),
-                size: 24,
+                child: IconButton(
+                  icon: Icon(
+                    isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    color: isFavorite 
+                        ? AppColors.errorMain 
+                        : AppColors.warmBrown.withOpacity(0.8),
+                    size: 24,
+                  ),
+                  tooltip: isFavorite ? 'Remove from Favorites' : 'Add to Favorites',
+                  onPressed: track != null ? () async {
+                    final success = await favoritesProvider.toggleFavorite(track);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            success 
+                                ? (isFavorite 
+                                    ? 'Removed from favorites' 
+                                    : 'Added to favorites')
+                                : 'Failed to update favorites',
+                          ),
+                          backgroundColor: success ? AppColors.successMain : AppColors.errorMain,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  } : null,
+                ),
               ),
-              tooltip: 'Favorite',
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Favorite feature coming soon')),
-                );
-              },
-            ),
+              const SizedBox(width: 16),
+              // Download button
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    Icons.download_rounded,
+                    color: AppColors.warmBrown.withOpacity(0.8),
+                    size: 24,
+                  ),
+                  tooltip: 'Download',
+                  onPressed: track?.audioUrl != null ? () => _handleDownload(track!) : null,
+                ),
+              ),
+              const SizedBox(width: 16),
+              // View Artist button
+              if (track?.creatorId != null)
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.person_rounded,
+                      color: AppColors.warmBrown.withOpacity(0.8),
+                      size: 24,
+                    ),
+                    tooltip: 'View Artist',
+                    onPressed: () {
+                      Navigator.pop(context);
+                      context.go('/artist/${track!.creatorId}');
+                    },
+                  ),
+                ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
+  }
+  
+  /// Handle download of current track
+  Future<void> _handleDownload(ContentItem track) async {
+    if (track.audioUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No audio file available for download')),
+      );
+      return;
+    }
+    
+    try {
+      // For web, we create an anchor element to trigger download
+      // This is handled via dart:html
+      final url = track.audioUrl!;
+      final filename = '${track.title.replaceAll(RegExp(r'[^\w\s-]'), '')}.mp3';
+      
+      // Use JavaScript to trigger download
+      // ignore: avoid_web_libraries_in_flutter
+      // This import should be added at the top
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(child: Text('Downloading "${track.title}"...')),
+            ],
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      
+      // Trigger download via JavaScript
+      _triggerWebDownload(url, filename);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Download failed: $e'),
+            backgroundColor: AppColors.errorMain,
+          ),
+        );
+      }
+    }
+  }
+  
+  /// Trigger download on web using dart:html
+  void _triggerWebDownload(String url, String filename) {
+    if (!kIsWeb) return;
+    
+    try {
+      // Create an anchor element and trigger download
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', filename)
+        ..style.display = 'none';
+      
+      html.document.body?.append(anchor);
+      anchor.click();
+      anchor.remove();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Download started: $filename'),
+            backgroundColor: AppColors.successMain,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Download error: $e');
+      if (mounted) {
+        // Fallback: open in new tab
+        html.window.open(url, '_blank');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Opening audio in new tab...'),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildDonateButton(ContentItem track) {
