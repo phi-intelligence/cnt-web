@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../services/api_service.dart';
 import '../theme/app_typography.dart';
 import '../utils/platform_helper.dart';
 import '../utils/responsive_utils.dart';
+import '../widgets/shared/image_helper.dart';
 
 /// Hero Carousel Widget - Image carousel with latest community posts
 /// Auto-scrolling carousel displaying images from community posts
@@ -391,76 +391,64 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
     
     final item = _items[index];
     
-    // Build image widget with error handling using CachedNetworkImage
-    // This prevents re-loading images and improves performance
-    // Optimize cache size based on screen size for better memory usage
-    final screenWidth = MediaQuery.of(context).size.width;
-    final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
-    final isMobile = ResponsiveUtils.isMobile(context);
-    
-    // Use smaller cache size on mobile to save memory
-    final cacheWidth = isMobile
-        ? (screenWidth * devicePixelRatio * 0.8).round() // 80% on mobile
-        : (screenWidth * devicePixelRatio).round();
-    final cacheHeight = (height * devicePixelRatio).round();
-    
+    // Build image widget with error handling using ImageHelper (consistent with rest of app)
+    // This fixes CORS issues by using NetworkImage which handles CORS correctly
     // Use BoxFit.cover for both mobile and desktop to fill width (no blank spaces)
     final imageFit = BoxFit.cover;
     // Use center alignment for mobile, slightly adjusted for desktop (moved up a bit)
     // Alignment y-axis: -1.0 = top, 0.0 = center, 1.0 = bottom
     // Using -0.7 instead of -1.0 (topCenter) to show slightly more of the image content
+    final isMobile = ResponsiveUtils.isMobile(context);
     final imageAlignment = isMobile ? Alignment.center : const Alignment(0, -0.7);
     
     Widget content = ClipRect(
-      child: CachedNetworkImage(
-        imageUrl: item.imageUrl,
+      child: Image(
+        image: ImageHelper.getImageProvider(item.imageUrl),
         fit: imageFit,
-        height: height,
         width: double.infinity,
+        height: height,
         alignment: imageAlignment,
-        memCacheWidth: cacheWidth,
-        memCacheHeight: cacheHeight,
-      errorWidget: (context, url, error) {
-        // Only log error once per image URL
-        if (!_loadedImages.contains('error:$url')) {
-          print('❌ Hero Carousel: Error loading image $url: $error');
-          _loadedImages.add('error:$url');
-        }
-        return Container(
-          height: height,
-          color: Colors.black,
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.image_not_supported, color: Colors.white70, size: 64),
-                const SizedBox(height: 8),
-                Text(
-                  'Failed to load image',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-                Text(
-                  url,
-                  style: TextStyle(color: Colors.white38, fontSize: 10),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+        errorBuilder: (context, error, stackTrace) {
+          // Only log error once per image URL
+          if (!_loadedImages.contains('error:${item.imageUrl}')) {
+            print('❌ Hero Carousel: Error loading image ${item.imageUrl}: $error');
+            _loadedImages.add('error:${item.imageUrl}');
+          }
+          return Container(
+            height: height,
+            color: Colors.black,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.image_not_supported, color: Colors.white70, size: 64),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Failed to load image',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                  Text(
+                    item.imageUrl,
+                    style: TextStyle(color: Colors.white38, fontSize: 10),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
-      placeholder: (context, url) {
-        return Container(
-          height: height,
-          color: Colors.black,
-          child: const Center(
-            child: CircularProgressIndicator(color: Colors.white),
-          ),
-        );
-      },
-        fadeInDuration: const Duration(milliseconds: 300),
-        fadeOutDuration: const Duration(milliseconds: 100),
+          );
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          // Show placeholder while loading
+          if (loadingProgress == null) return child;
+          return Container(
+            height: height,
+            color: Colors.black,
+            child: const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+          );
+        },
       ),
     );
     
