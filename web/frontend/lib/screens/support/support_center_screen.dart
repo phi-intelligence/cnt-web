@@ -279,17 +279,31 @@ class _SupportCenterScreenState extends State<SupportCenterScreen> {
               controller: _subjectController,
               decoration: InputDecoration(
                 labelText: 'Subject',
+                labelStyle: TextStyle(color: AppColors.textPrimary),
+                floatingLabelBehavior: FloatingLabelBehavior.always,
                 prefixIcon: Icon(Icons.subject, color: AppColors.warmBrown),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                   borderSide: BorderSide(color: AppColors.borderPrimary),
                 ),
-                filled: true,
-                fillColor: AppColors.backgroundSecondary,
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
+                ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                   borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
                 ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  borderSide: BorderSide(color: AppColors.errorMain),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  borderSide: BorderSide(color: AppColors.errorMain, width: 2),
+                ),
+                filled: true,
+                fillColor: AppColors.backgroundSecondary,
               ),
               validator: (value) {
                 if (value == null || value.trim().length < 3) {
@@ -304,18 +318,32 @@ class _SupportCenterScreenState extends State<SupportCenterScreen> {
               maxLines: 5,
               decoration: InputDecoration(
                 labelText: 'Message',
+                labelStyle: TextStyle(color: AppColors.textPrimary),
+                floatingLabelBehavior: FloatingLabelBehavior.always,
                 alignLabelWithHint: true,
                 prefixIcon: Icon(Icons.message_outlined, color: AppColors.warmBrown),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                   borderSide: BorderSide(color: AppColors.borderPrimary),
                 ),
-                filled: true,
-                fillColor: AppColors.backgroundSecondary,
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  borderSide: BorderSide(color: AppColors.borderPrimary),
+                ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
                   borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
                 ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  borderSide: BorderSide(color: AppColors.errorMain),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                  borderSide: BorderSide(color: AppColors.errorMain, width: 2),
+                ),
+                filled: true,
+                fillColor: AppColors.backgroundSecondary,
               ),
               validator: (value) {
                 if (value == null || value.trim().length < 10) {

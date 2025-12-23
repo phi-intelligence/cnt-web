@@ -45,7 +45,7 @@ class SearchProvider extends ChangeNotifier {
     }
   }
   
-  Future<void> search(String query, {String? type}) async {
+  Future<void> search(String query, {String? type, bool saveToRecent = false}) async {
     if (query.trim().isEmpty) {
       clearResults();
       return;
@@ -57,8 +57,8 @@ class SearchProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
     
-    // Add to recent searches
-    if (!_recentSearches.contains(_query)) {
+    // Only add to recent searches if explicitly requested (e.g., on submit)
+    if (saveToRecent && !_recentSearches.contains(_query)) {
       _recentSearches.insert(0, _query!);
       _recentSearches = _recentSearches.take(10).toList();
       _saveRecentSearches();
@@ -94,6 +94,7 @@ class SearchProvider extends ChangeNotifier {
                 description: podcast.description,
                 coverImage: _api.getMediaUrl(podcast.coverImage),
                 audioUrl: _api.getMediaUrl(podcast.audioUrl),
+                videoUrl: _api.getMediaUrl(podcast.videoUrl),
                 duration: podcast.duration != null 
                     ? Duration(seconds: podcast.duration!)
                     : null,
@@ -104,6 +105,40 @@ class SearchProvider extends ChangeNotifier {
             }
           } catch (e) {
             print('Error parsing podcast: $e');
+          }
+        }
+      }
+      
+      if (data['movies'] != null) {
+        final movies = data['movies'] as List;
+        for (var m in movies) {
+          try {
+            if (m is Map<String, dynamic>) {
+              final movie = Movie.fromJson(m);
+              items.add(ContentItem(
+                id: movie.id.toString(),
+                title: movie.title,
+                creator: 'Christ Tabernacle',
+                description: movie.description,
+                coverImage: _api.getMediaUrl(movie.coverImage),
+                videoUrl: _api.getMediaUrl(movie.videoUrl),
+                duration: movie.duration != null 
+                    ? Duration(seconds: movie.duration!)
+                    : null,
+                category: 'Movie',
+                plays: movie.playsCount,
+                createdAt: movie.createdAt,
+                director: movie.director,
+                cast: movie.cast,
+                releaseDate: movie.releaseDate,
+                rating: movie.rating,
+                previewStartTime: movie.previewStartTime,
+                previewEndTime: movie.previewEndTime,
+                isMovie: true,
+              ));
+            }
+          } catch (e) {
+            print('Error parsing movie: $e');
           }
         }
       }

@@ -169,10 +169,12 @@ class ResponsiveDrawer extends StatelessWidget {
                             unreadAdmin > 0
                         ? unreadAdmin
                         : null,
-                    onTap: () {
-                      onItemSelected(index);
-                      Navigator.of(context).pop(); // Close drawer
-                    },
+                      onTap: () {
+                        onItemSelected(index);
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop(); // Close drawer only if it can be popped
+                        }
+                      },
                   );
                 },
               ),
@@ -200,7 +202,9 @@ class ResponsiveDrawer extends StatelessWidget {
                         icon: Icon(Icons.videocam, size: 18),
                         label: Text('Start Live Stream'),
                         onPressed: () {
-                          Navigator.of(context).pop(); // Close drawer first
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop(); // Close drawer first
+                          }
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -230,7 +234,9 @@ class ResponsiveDrawer extends StatelessWidget {
                         icon: Icon(Icons.mic, size: 18),
                         label: Text('Create Podcast'),
                         onPressed: () {
-                          Navigator.of(context).pop(); // Close drawer first
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop(); // Close drawer first
+                          }
                           onItemSelected(2); // Navigate to Create screen (index 2)
                         },
                         style: ElevatedButton.styleFrom(

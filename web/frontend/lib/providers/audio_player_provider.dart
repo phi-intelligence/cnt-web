@@ -218,18 +218,81 @@ class AudioPlayerState extends ChangeNotifier {
   }
 
   /// Seek to a specific position in the current track
-  /// Handles edge cases like seeking beyond duration
+  /// Handles edge cases like seeking beyond duration and validates seek results
   Future<void> seek(Duration position) async {
     try {
-      // Clamp position to valid range
+      // Check if duration is available and valid
+      if (_duration == Duration.zero || _duration.inMilliseconds <= 0) {
+        print('⚠️ Cannot seek - duration not yet available');
+        // Wait a bit for duration to become available
+        await Future.delayed(const Duration(milliseconds: 200));
+        // Check again
+        if (_duration == Duration.zero || _duration.inMilliseconds <= 0) {
+          print('❌ Seek failed - duration still not available');
+          _error = 'Cannot seek - audio duration not available';
+          notifyListeners();
+          return;
+        }
+      }
+      
+      // Store current position before seek (to detect if seek fails and resets)
+      final positionBeforeSeek = _position;
+      
+      // Clamp position to valid range using actual duration
       final clampedPosition = Duration(
         milliseconds: position.inMilliseconds.clamp(0, _duration.inMilliseconds),
       );
       
       print('🎵 Seeking to: ${clampedPosition.inSeconds}s / ${_duration.inSeconds}s');
       
+      // Perform the seek operation
       await _player.seek(clampedPosition);
-      _position = clampedPosition;
+      
+      // Wait for seek to complete
+      await Future.delayed(const Duration(milliseconds: 200));
+      
+      // Get the actual position after seek from the player
+      final actualPosition = _player.position;
+      print('🎵 Seek completed - actual position: ${actualPosition.inSeconds}s (requested: ${clampedPosition.inSeconds}s)');
+      
+      // Validate seek result: if we requested a position > 0 but got 0, the seek failed
+      // Also check if the actual position is significantly different from requested (more than 2 seconds)
+      final seekFailed = (clampedPosition.inSeconds > 0 && actualPosition.inSeconds == 0) || 
+                         (clampedPosition.inSeconds > 2 && (actualPosition.inSeconds - clampedPosition.inSeconds).abs() > 2);
+      
+      if (seekFailed) {
+        print('⚠️ Seek failed - requested ${clampedPosition.inSeconds}s but got ${actualPosition.inSeconds}s. Attempting recovery...');
+        
+        // Try to seek to a position slightly before the requested position (within actual duration)
+        // This helps when seeking near the end of the audio
+        final recoveryPosition = Duration(
+          milliseconds: (clampedPosition.inMilliseconds - 1000).clamp(0, _duration.inMilliseconds),
+        );
+        if (recoveryPosition.inMilliseconds > 0 && recoveryPosition.inMilliseconds < _duration.inMilliseconds) {
+          await _player.seek(recoveryPosition);
+          await Future.delayed(const Duration(milliseconds: 200));
+          final recoveredPosition = _player.position;
+          print('🎵 Recovery seek to ${recoveryPosition.inSeconds}s resulted in ${recoveredPosition.inSeconds}s');
+          
+          _position = recoveredPosition;
+          _saveState();
+          notifyListeners();
+          return;
+        }
+        
+        // If recovery failed, restore to position before seek
+        print('⚠️ Recovery failed, restoring to position before seek: ${positionBeforeSeek.inSeconds}s');
+        await _player.seek(positionBeforeSeek);
+        await Future.delayed(const Duration(milliseconds: 200));
+        
+        _position = positionBeforeSeek;
+        _saveState();
+        notifyListeners();
+        return;
+      }
+      
+      // Seek succeeded - update position
+      _position = actualPosition;
       _saveState();
       notifyListeners();
     } catch (e) {

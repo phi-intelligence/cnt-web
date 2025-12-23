@@ -596,7 +596,7 @@ class ApiService {
       
       final response = await http.get(
         uri.replace(queryParameters: queryParams),
-        headers: {'Content-Type': 'application/json'},
+        headers: await _getHeaders(),
       ).timeout(const Duration(seconds: 10));
       
       if (response.statusCode == 200) {
@@ -651,10 +651,21 @@ class ApiService {
   Future<Map<String, dynamic>?> likePost(int postId) async {
     try {
       _validateBaseUrl();
-      final response = await http.post(
+      var response = await http.post(
         Uri.parse('$baseUrl/community/posts/$postId/like'),
         headers: await _getHeaders(),
       ).timeout(const Duration(seconds: 10));
+      
+      // If 401, try to refresh token and retry once
+      if (response.statusCode == 401) {
+        final refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          response = await http.post(
+            Uri.parse('$baseUrl/community/posts/$postId/like'),
+            headers: await _getHeaders(),
+          ).timeout(const Duration(seconds: 10));
+        }
+      }
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -696,11 +707,23 @@ class ApiService {
   Future<Map<String, dynamic>> commentPost(int postId, String comment) async {
     try {
       _validateBaseUrl();
-      final response = await http.post(
+      var response = await http.post(
         Uri.parse('$baseUrl/community/posts/$postId/comments'),
         headers: await _getHeaders(),
         body: json.encode({'content': comment}),
       ).timeout(const Duration(seconds: 10));
+      
+      // If 401, try to refresh token and retry once
+      if (response.statusCode == 401) {
+        final refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          response = await http.post(
+            Uri.parse('$baseUrl/community/posts/$postId/comments'),
+            headers: await _getHeaders(),
+            body: json.encode({'content': comment}),
+          ).timeout(const Duration(seconds: 10));
+        }
+      }
       
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
@@ -824,23 +847,113 @@ class ApiService {
         Uri.parse('$baseUrl/upload/profile-image'),
       );
 
+      // Determine content type from file extension
+      String contentType;
+      String fileExt = fileName.toLowerCase();
+      // If using filePath, extract extension from path
+      if (filePath != null && filePath.isNotEmpty) {
+        final pathExt = filePath.toLowerCase();
+        if (pathExt.endsWith('.jpg') || pathExt.endsWith('.jpeg')) {
+          fileExt = '.jpg';
+        } else if (pathExt.endsWith('.png')) {
+          fileExt = '.png';
+        } else if (pathExt.endsWith('.gif')) {
+          fileExt = '.gif';
+        } else if (pathExt.endsWith('.webp')) {
+          fileExt = '.webp';
+        } else if (pathExt.endsWith('.bmp')) {
+          fileExt = '.bmp';
+        }
+      }
+      
+      if (fileExt.endsWith('.jpg') || fileExt.endsWith('.jpeg')) {
+        contentType = 'image/jpeg';
+      } else if (fileExt.endsWith('.png')) {
+        contentType = 'image/png';
+      } else if (fileExt.endsWith('.gif')) {
+        contentType = 'image/gif';
+      } else if (fileExt.endsWith('.webp')) {
+        contentType = 'image/webp';
+      } else if (fileExt.endsWith('.bmp')) {
+        contentType = 'image/bmp';
+      } else {
+        // Default to jpeg if extension not recognized
+        contentType = 'image/jpeg';
+      }
+
+      http.MediaType mediaType;
+      if (contentType == 'image/jpeg') {
+        mediaType = http.MediaType('image', 'jpeg');
+      } else if (contentType == 'image/png') {
+        mediaType = http.MediaType('image', 'png');
+      } else if (contentType == 'image/gif') {
+        mediaType = http.MediaType('image', 'gif');
+      } else if (contentType == 'image/webp') {
+        mediaType = http.MediaType('image', 'webp');
+      } else if (contentType == 'image/bmp') {
+        mediaType = http.MediaType('image', 'bmp');
+      } else {
+        mediaType = http.MediaType('image', 'jpeg');
+      }
+
       if (bytes != null) {
         request.files.add(
           http.MultipartFile.fromBytes(
             'file',
             bytes,
             filename: fileName,
+            contentType: mediaType,
           ),
         );
       } else if (filePath != null) {
-        final file = await http.MultipartFile.fromPath('file', filePath);
-        request.files.add(file);
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'file',
+            filePath,
+            contentType: mediaType,
+          ),
+        );
       }
 
       request.headers.addAll(await _getHeaders());
 
-      final streamedResponse =
+      var streamedResponse =
           await request.send().timeout(const Duration(minutes: 2));
+
+      // If 401, try to refresh token and retry once
+      if (streamedResponse.statusCode == 401) {
+        final refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          // Recreate request with new token
+          final retryRequest = http.MultipartRequest(
+            'POST',
+            Uri.parse('$baseUrl/upload/profile-image'),
+          );
+          
+          // Re-add file
+          if (bytes != null) {
+            retryRequest.files.add(
+              http.MultipartFile.fromBytes(
+                'file',
+                bytes,
+                filename: fileName,
+                contentType: mediaType,
+              ),
+            );
+          } else if (filePath != null) {
+            retryRequest.files.add(
+              await http.MultipartFile.fromPath(
+                'file',
+                filePath,
+                contentType: mediaType,
+              ),
+            );
+          }
+          
+          retryRequest.headers.addAll(await _getHeaders());
+          streamedResponse = await retryRequest.send().timeout(const Duration(minutes: 2));
+        }
+      }
 
       if (streamedResponse.statusCode == 200 ||
           streamedResponse.statusCode == 201) {
@@ -854,6 +967,33 @@ class ApiService {
       );
     } catch (e) {
       throw Exception('Error uploading profile image: $e');
+    }
+  }
+
+  /// Remove avatar (set to null)
+  Future<bool> removeAvatar() async {
+    try {
+      var response = await http.put(
+        Uri.parse('$baseUrl/users/me'),
+        headers: await _getHeaders(),
+        body: json.encode({'avatar': null}),
+      ).timeout(const Duration(seconds: 10));
+      
+      // If 401, try to refresh token and retry once
+      if (response.statusCode == 401) {
+        final refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          response = await http.put(
+            Uri.parse('$baseUrl/users/me'),
+            headers: await _getHeaders(),
+            body: json.encode({'avatar': null}),
+          ).timeout(const Duration(seconds: 10));
+        }
+      }
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      throw Exception('Error removing avatar: $e');
     }
   }
 
@@ -1360,7 +1500,7 @@ class ApiService {
     try {
       // For now, implement client-side search as backend search endpoint may not exist
       // Try API first, fallback to client-side search
-      Uri uri = Uri.parse('$baseUrl/search');
+      Uri uri = Uri.parse('$baseUrl/search/');
       final queryParams = {
         'q': query,
         'skip': skip.toString(),
@@ -2168,10 +2308,10 @@ class ApiService {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => Movie.fromJson(json)).toList();
       } else {
-        throw Exception('Failed to load animated Bible stories: ${response.statusCode}');
+        throw Exception('Failed to load Kids Bible stories: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Error fetching animated Bible stories: $e');
+      throw Exception('Error fetching Kids Bible stories: $e');
     }
   }
 

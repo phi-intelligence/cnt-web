@@ -712,6 +712,8 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
   }
 
   Widget _buildBottomNavigationBar() {
+    final isMobile = MediaQuery.of(context).size.width < 768;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
@@ -729,160 +731,191 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Zoom Out Button
-          Container(
-            decoration: BoxDecoration(
-              color: _zoomLevel > _minZoom
-                  ? AppColors.warmBrown.withOpacity(0.1)
-                  : AppColors.backgroundSecondary,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: Icon(
-                Icons.zoom_out,
-                color: _zoomLevel > _minZoom ? AppColors.warmBrown : AppColors.textTertiary,
-                size: 22,
-              ),
-              tooltip: 'Zoom Out',
-              onPressed: _zoomLevel > _minZoom ? () => _setZoom(_zoomLevel - _zoomStep) : null,
-            ),
-          ),
-          const SizedBox(width: 8),
-          
-          // Zoom Level Display
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.backgroundSecondary,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '${(_zoomLevel * 100).toInt()}%',
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          
-          // Zoom In Button
-          Container(
-            decoration: BoxDecoration(
-              color: _zoomLevel < _maxZoom
-                  ? AppColors.warmBrown.withOpacity(0.1)
-                  : AppColors.backgroundSecondary,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: Icon(
-                Icons.zoom_in,
-                color: _zoomLevel < _maxZoom ? AppColors.warmBrown : AppColors.textTertiary,
-                size: 22,
-              ),
-              tooltip: 'Zoom In',
-              onPressed: _zoomLevel < _maxZoom ? () => _setZoom(_zoomLevel + _zoomStep) : null,
-            ),
-          ),
-          
-          const SizedBox(width: 20),
-          
-          // Divider
-          Container(
-            width: 1,
-            height: 30,
-            color: AppColors.borderPrimary,
-          ),
-          
-          const SizedBox(width: 20),
-          
-          // Previous Page
-          Container(
-            decoration: BoxDecoration(
-              color: _currentPage > 1 
-                  ? AppColors.warmBrown.withOpacity(0.1) 
-                  : AppColors.backgroundSecondary,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: Icon(
-                Icons.chevron_left,
-                color: _currentPage > 1 ? AppColors.warmBrown : AppColors.textTertiary,
-              ),
-              tooltip: 'Previous Page',
-              onPressed: _currentPage > 1 
-                  ? () => _pdfController?.previousPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    )
-                  : null,
-            ),
-          ),
-          const SizedBox(width: 12),
-          
-          // Page Info with Progress
-          InkWell(
-            onTap: _showPageJumpDialog,
-            borderRadius: BorderRadius.circular(30),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.warmBrown, AppColors.accentMain],
-                ),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '$_currentPage / $_totalPages',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+          // Mobile: Only show page indicator
+          if (isMobile) ...[
+             // Page Info with Progress
+            InkWell(
+              onTap: _showPageJumpDialog,
+              borderRadius: BorderRadius.circular(30),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.warmBrown, AppColors.accentMain],
                   ),
-                  if (_totalPages > 0) ...[
-                    const SizedBox(height: 4),
-                    SizedBox(
-                      width: 100,
-                      child: LinearProgressIndicator(
-                        value: _currentPage / _totalPages,
-                        backgroundColor: Colors.white.withOpacity(0.3),
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        borderRadius: BorderRadius.circular(2),
-                        minHeight: 2,
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$_currentPage / $_totalPages',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
-                ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          
-          // Next Page
-          Container(
-            decoration: BoxDecoration(
-              color: _currentPage < _totalPages 
-                  ? AppColors.warmBrown.withOpacity(0.1) 
-                  : AppColors.backgroundSecondary,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: Icon(
-                Icons.chevron_right,
-                color: _currentPage < _totalPages ? AppColors.warmBrown : AppColors.textTertiary,
+          ] else ...[
+            // Desktop: Full controls
+            // Zoom Out Button
+            Container(
+              decoration: BoxDecoration(
+                color: _zoomLevel > _minZoom
+                    ? AppColors.warmBrown.withOpacity(0.1)
+                    : AppColors.backgroundSecondary,
+                shape: BoxShape.circle,
               ),
-              tooltip: 'Next Page',
-              onPressed: _currentPage < _totalPages 
-                  ? () => _pdfController?.nextPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    )
-                  : null,
+              child: IconButton(
+                icon: Icon(
+                  Icons.zoom_out,
+                  color: _zoomLevel > _minZoom ? AppColors.warmBrown : AppColors.textTertiary,
+                  size: 22,
+                ),
+                tooltip: 'Zoom Out',
+                onPressed: _zoomLevel > _minZoom ? () => _setZoom(_zoomLevel - _zoomStep) : null,
+              ),
             ),
-          ),
+            const SizedBox(width: 8),
+            
+            // Zoom Level Display
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.backgroundSecondary,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${(_zoomLevel * 100).toInt()}%',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            
+            // Zoom In Button
+            Container(
+              decoration: BoxDecoration(
+                color: _zoomLevel < _maxZoom
+                    ? AppColors.warmBrown.withOpacity(0.1)
+                    : AppColors.backgroundSecondary,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: Icon(
+                  Icons.zoom_in,
+                  color: _zoomLevel < _maxZoom ? AppColors.warmBrown : AppColors.textTertiary,
+                  size: 22,
+                ),
+                tooltip: 'Zoom In',
+                onPressed: _zoomLevel < _maxZoom ? () => _setZoom(_zoomLevel + _zoomStep) : null,
+              ),
+            ),
+            
+            const SizedBox(width: 20),
+            
+            // Divider
+            Container(
+              width: 1,
+              height: 30,
+              color: AppColors.borderPrimary,
+            ),
+            
+            const SizedBox(width: 20),
+            
+            // Previous Page
+            Container(
+              decoration: BoxDecoration(
+                color: _currentPage > 1 
+                    ? AppColors.warmBrown.withOpacity(0.1) 
+                    : AppColors.backgroundSecondary,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: Icon(
+                  Icons.chevron_left,
+                  color: _currentPage > 1 ? AppColors.warmBrown : AppColors.textTertiary,
+                ),
+                tooltip: 'Previous Page',
+                onPressed: _currentPage > 1 
+                    ? () => _pdfController?.previousPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      )
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 12),
+            
+            // Page Info with Progress
+            InkWell(
+              onTap: _showPageJumpDialog,
+              borderRadius: BorderRadius.circular(30),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.warmBrown, AppColors.accentMain],
+                  ),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$_currentPage / $_totalPages',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (_totalPages > 0) ...[
+                      const SizedBox(height: 4),
+                      SizedBox(
+                        width: 100,
+                        child: LinearProgressIndicator(
+                          value: _currentPage / _totalPages,
+                          backgroundColor: Colors.white.withOpacity(0.3),
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          borderRadius: BorderRadius.circular(2),
+                          minHeight: 2,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            
+            // Next Page
+            Container(
+              decoration: BoxDecoration(
+                color: _currentPage < _totalPages 
+                    ? AppColors.warmBrown.withOpacity(0.1) 
+                    : AppColors.backgroundSecondary,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: Icon(
+                  Icons.chevron_right,
+                  color: _currentPage < _totalPages ? AppColors.warmBrown : AppColors.textTertiary,
+                ),
+                tooltip: 'Next Page',
+                onPressed: _currentPage < _totalPages 
+                    ? () => _pdfController?.nextPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      )
+                    : null,
+              ),
+            ),
+          ],
         ],
       ),
     );

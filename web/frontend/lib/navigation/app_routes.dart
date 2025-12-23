@@ -1,6 +1,5 @@
 import 'package:go_router/go_router.dart';
 import '../screens/web/home_screen_web.dart';
-import '../screens/web/search_screen_web.dart';
 import '../screens/web/create_screen_web.dart';
 import '../screens/web/community_screen_web.dart';
 import '../screens/web/profile_screen_web.dart';
@@ -16,7 +15,6 @@ import '../screens/web/video_preview_screen_web.dart';
 import '../screens/creation/audio_preview_screen.dart';
 import '../screens/web/video_podcast_detail_screen_web.dart';
 import '../screens/web/movie_detail_screen_web.dart';
-import '../screens/web/audio_player_full_screen_web.dart';
 import '../screens/live/live_stream_start_screen.dart';
 import '../screens/web/live_screen_web.dart';
 import '../screens/web/landing_screen_web.dart';
@@ -90,14 +88,6 @@ GoRouter createAppRouter(AuthProvider authProvider) {
           context,
           state,
           const WebNavigationLayout(child: HomeScreenWeb()),
-        ),
-      ),
-      GoRoute(
-        path: '/search',
-        pageBuilder: (context, state) => _buildPageWithoutTransition(
-          context,
-          state,
-          const WebNavigationLayout(child: SearchScreenWeb()),
         ),
       ),
       GoRoute(

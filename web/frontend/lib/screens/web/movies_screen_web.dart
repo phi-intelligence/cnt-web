@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'dart:async';
 import 'package:video_player/video_player.dart';
 import '../../theme/app_colors.dart';
@@ -13,10 +14,9 @@ import '../../widgets/web/styled_filter_chip.dart';
 import '../../services/api_service.dart';
 import '../../models/content_item.dart';
 import '../../utils/responsive_grid_delegate.dart';
-import '../../utils/dimension_utils.dart';
 import '../../utils/responsive_utils.dart';
 import '../../widgets/web/styled_pill_button.dart';
-import '../../widgets/web/styled_page_header.dart';
+import '../../providers/search_provider.dart';
 import 'movie_detail_screen_web.dart';
 
 /// Web Movies Screen - Full implementation
@@ -36,7 +36,7 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
   List<ContentItem> _filteredMovies = [];
   bool _isLoading = false;
   String _selectedCategory = 'All';
-  final List<String> _categories = ['All', 'Movies', 'Animated Bible Stories'];
+  final List<String> _categories = ['All', 'Movies', 'Kids Bible Stories'];
   double _scrollOffset = 0.0;
   
   // Carousel State
@@ -47,6 +47,7 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
   // Video Preview Controllers for Carousel
   Map<int, VideoPlayerController?> _previewControllers = {};
   Map<int, Timer?> _previewTimers = {};
+  Timer? _searchDebounceTimer;
 
   @override
   void initState() {
@@ -59,6 +60,8 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
 
   @override
   void dispose() {
+    _searchDebounceTimer?.cancel();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     _scrollController.dispose();
     _heroTimer?.cancel();
@@ -99,20 +102,35 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
   }
 
   void _onSearchChanged() {
-    _filterMovies();
+    _searchDebounceTimer?.cancel();
+    setState(() {});
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        _performSearch();
+  }
+    });
   }
 
-  void _filterMovies() {
-    final query = _searchController.text.toLowerCase();
+  Future<void> _performSearch() async {
+    final query = _searchController.text.trim();
+    final searchProvider = context.read<SearchProvider>();
+    
+    if (query.isEmpty) {
+      // If empty, fetch all movies again
+      await _fetchMovies();
+      return;
+    }
+    
+    // Use backend search API - always search movies type
+    await searchProvider.search(query, type: 'movies');
+    
+    // Apply client-side filtering for category (All/Movies/Animated)
+    final results = searchProvider.results;
     setState(() {
-      _filteredMovies = _movies.where((movie) {
-        final matchesSearch = query.isEmpty || 
-            movie.title.toLowerCase().contains(query) ||
-            (movie.description?.toLowerCase().contains(query) ?? false) ||
-            (movie.director?.toLowerCase().contains(query) ?? false);
-        
-        return matchesSearch;
-      }).toList();
+      // Backend search returns all movies including animated
+      // Category filtering is handled by the fetchMovies method when not searching
+      // For search results, show all movies (category filtering happens in fetchMovies)
+      _filteredMovies = results;
     });
   }
 
@@ -139,7 +157,7 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
         // Only regular movies (backend excludes animated bible stories)
         final regularMovies = await _api.getMovies(limit: 100);
         moviesData = regularMovies.map((movie) => _api.movieToContentItem(movie)).toList();
-      } else if (_selectedCategory == 'Animated Bible Stories') {
+      } else if (_selectedCategory == 'Kids Bible Stories') {
         // Only animated bible stories
         final animatedStories = await _api.getAnimatedBibleStories(limit: 100);
         moviesData = animatedStories.map((movie) => _api.movieToContentItem(movie)).toList();
@@ -168,7 +186,13 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
     setState(() {
       _selectedCategory = category;
     });
+    // If there's a search query, re-run search with new category
+    // Otherwise, fetch movies normally
+    if (_searchController.text.trim().isNotEmpty) {
+      _performSearch();
+    } else {
     _fetchMovies();
+    }
   }
 
   Future<void> _initializeCarouselPreviews(List<ContentItem> movies) async {
@@ -372,68 +396,45 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
                     ],
                   ),
                   child: Padding(
-                    padding: ResponsiveGridDelegate.getResponsivePadding(context),
+                    padding: ResponsiveGridDelegate.getResponsivePadding(context).copyWith(top: AppSpacing.large),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: AppSpacing.large),
-                        
-                        // Header & Filters Section
+                        // Filters & Search Section - Single Row
                         SectionContainer(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          padding: EdgeInsets.zero,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      'Featured Movies',
-                                      style: AppTypography.heading2.copyWith(
-                                        color: AppColors.textPrimary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
+                              // Category filter chips (left side)
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: _categories.map((category) {
+                                      final isSelected = category == _selectedCategory;
+                                      return Padding(
+                                        padding: EdgeInsets.only(right: AppSpacing.small),
+                                        child: StyledFilterChip(
+                                          label: category,
+                                          selected: isSelected,
+                                          onSelected: (selected) {
+                                            _onCategoryChanged(category);
+                                          },
+                                        ),
+                                      );
+                                    }).toList(),
                                   ),
-                                  if (isDesktop) 
-                                    SizedBox(
-                                      width: 300,
-                                      child: StyledSearchField(
-                                        controller: _searchController,
-                                        hintText: 'Search movies...',
-                                        onChanged: (_) => _filterMovies(),
-                                      ),
-                                    ),
-                                ],
+                                ),
                               ),
-                              
-                              if (!isDesktop) ...[
-                                const SizedBox(height: AppSpacing.medium),
-                                StyledSearchField(
+                              // Search field (right side)
+                              const SizedBox(width: AppSpacing.medium),
+                              SizedBox(
+                                width: isDesktop ? 300 : 200,
+                                child: StyledSearchField(
                                   controller: _searchController,
                                   hintText: 'Search movies...',
-                                  onChanged: (_) => _filterMovies(),
-                                ),
-                              ],
-                              
-                              const SizedBox(height: AppSpacing.medium),
-                              
-                              // Category Filter Chips
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  children: _categories.map((category) {
-                                    final isSelected = category == _selectedCategory;
-                                    return Padding(
-                                      padding: EdgeInsets.only(right: AppSpacing.small),
-                                      child: StyledFilterChip(
-                                        label: category,
-                                        selected: isSelected,
-                                        onSelected: (selected) {
-                                          _onCategoryChanged(category);
-                                        },
-                                      ),
-                                    );
-                                  }).toList(),
                                 ),
                               ),
                             ],
@@ -633,7 +634,7 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
               fit: BoxFit.cover,
               clipBehavior: Clip.hardEdge,
               child: SizedBox(
-                width: previewController!.value.size.width,
+                width: previewController.value.size.width,
                 height: previewController.value.size.height,
                 child: VideoPlayer(previewController),
               ),

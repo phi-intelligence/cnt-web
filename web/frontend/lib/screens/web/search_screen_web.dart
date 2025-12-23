@@ -1,8 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
-import '../../theme/app_typography.dart';
 import '../../providers/search_provider.dart';
 import '../../widgets/web/content_card_web.dart';
 import '../../widgets/web/styled_search_field.dart';
@@ -28,6 +28,7 @@ class SearchScreenWeb extends StatefulWidget {
 
 class _SearchScreenWebState extends State<SearchScreenWeb> {
   final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounceTimer;
   final ApiService _api = ApiService();
   String _selectedFilter = 'All';
   final List<String> _filters = ['All', 'Podcasts', 'Music', 'Videos', 'Posts', 'Users'];
@@ -41,25 +42,45 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_performSearch);
+    _searchController.addListener(_onSearchChanged);
     _fetchDiscoverContent();
   }
 
   @override
   void dispose() {
+    _searchDebounceTimer?.cancel();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
 
-  void _performSearch() {
+  void _onSearchChanged() {
+    _searchDebounceTimer?.cancel();
+    setState(() {});
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        _performSearch(saveToRecent: false);
+      }
+    });
+  }
+
+  void _performSearch({bool saveToRecent = false}) {
     final query = _searchController.text.trim();
     if (query.isEmpty) {
       context.read<SearchProvider>().clearResults();
       return;
     }
 
-    final type = _selectedFilter == 'All' ? null : _selectedFilter.toLowerCase();
-    context.read<SearchProvider>().search(query, type: type);
+    // Map filter names to backend type names
+    String? type;
+    if (_selectedFilter == 'All') {
+      type = null;
+    } else if (_selectedFilter == 'Videos') {
+      type = 'movies'; // Backend uses 'movies' not 'videos'
+    } else {
+      type = _selectedFilter.toLowerCase();
+    }
+    context.read<SearchProvider>().search(query, type: type, saveToRecent: saveToRecent);
   }
 
   Future<void> _fetchDiscoverContent() async {
@@ -181,6 +202,10 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
                         setState(() {});
                                 setStateLocal(() {});
                               },
+                      onSubmitted: (value) {
+                        _searchDebounceTimer?.cancel();
+                        _performSearch(saveToRecent: true);
+                              },
                             );
                       },
                     ),
@@ -202,7 +227,8 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
                                 setState(() {
                                   _selectedFilter = filter;
                                 });
-                                _performSearch();
+                                _searchDebounceTimer?.cancel();
+                                _performSearch(saveToRecent: true);
                               },
                             ),
                           );

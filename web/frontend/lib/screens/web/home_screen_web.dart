@@ -276,9 +276,9 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
         return _api.movieToContentItem(movie);
       }).toList();
       
-      print('✅ Loaded ${_animatedBibleStories.length} animated Bible stories');
+      print('✅ Loaded ${_animatedBibleStories.length} Kids Bible Stories');
     } catch (e) {
-      print('❌ Error fetching animated Bible stories: $e');
+      print('❌ Error fetching Kids Bible Stories: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -982,12 +982,12 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
 
   Widget _buildAnimatedBibleStoriesSection() {
     if (_isLoadingAnimatedBibleStories) {
-      return _buildLoadingSection('Animated Bible Stories', height: 300);
+      return _buildLoadingSection('Kids Bible Stories', height: 300);
     } else if (_animatedBibleStories.isEmpty) {
       return const SizedBox.shrink();
     } else {
       return ContentSection(
-        title: 'Animated Bible Stories',
+        title: 'Kids Bible Stories',
         items: _animatedBibleStories,
         isHorizontal: true,
         onItemPlay: _handleMovieTap,

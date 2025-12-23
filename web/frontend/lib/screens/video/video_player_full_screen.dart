@@ -286,6 +286,41 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
     return null;
   }
 
+  /// Get duration specifically for seeking operations
+  /// Prioritizes controller duration (actual video duration) over widget duration
+  /// This ensures we never seek beyond the actual video length
+  Duration? _getDurationForSeeking() {
+    // First, check controller duration (actual video duration) - most reliable for seeking
+    if (_controller != null && _controller!.value.isInitialized) {
+      final controllerDuration = _controller!.value.duration;
+      if (controllerDuration != null &&
+          controllerDuration != Duration.zero &&
+          controllerDuration.inMilliseconds > 0 &&
+          controllerDuration.inSeconds.isFinite &&
+          !controllerDuration.inSeconds.isNaN &&
+          !controllerDuration.inSeconds.isInfinite) {
+        return controllerDuration;
+      }
+    }
+    
+    // Second, check _validDuration (cached validated duration)
+    if (_validDuration != null &&
+        _validDuration != Duration.zero &&
+        _validDuration!.inMilliseconds > 0 &&
+        _validDuration!.inSeconds.isFinite &&
+        !_validDuration!.inSeconds.isNaN &&
+        !_validDuration!.inSeconds.isInfinite) {
+      return _validDuration;
+    }
+    
+    // Third, fall back to widget duration (from database) - least reliable for seeking
+    if (widget.duration > 0) {
+      return Duration(seconds: widget.duration);
+    }
+    
+    return null;
+  }
+
   /// Helper to log duration source only when it changes (throttled logging)
   void _logDurationSource(String source, String message) {
     if (_lastLoggedDurationSource != source) {
@@ -677,8 +712,8 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
       return;
     }
     
-    // Get valid duration from any available source
-    Duration? durationToUse = _getValidDuration();
+    // Get duration specifically for seeking (prioritizes controller duration)
+    Duration? durationToUse = _getDurationForSeeking();
     
     if (durationToUse == null) {
       debugPrint('VideoPlayer: Cannot seek - no valid duration available');
@@ -700,20 +735,63 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
     });
     
     try {
-      // Use the valid duration we found
+      // Use the actual video duration for clamping
       final maxSeconds = durationToUse.inSeconds;
       final clamped = seconds.clamp(0, maxSeconds);
       debugPrint('VideoPlayer: Seeking to ${clamped}s (requested: ${seconds}s, max: ${maxSeconds}s)');
       
+      // Store current position before seek (to detect if seek fails and resets)
+      final positionBeforeSeek = _controller!.value.position.inSeconds;
+      
       // Perform the seek operation
       await _controller!.seekTo(Duration(seconds: clamped));
       
-      // Wait briefly for seek to complete
-      await Future.delayed(const Duration(milliseconds: 100));
+      // Wait for seek to complete (increased delay for better reliability)
+      await Future.delayed(const Duration(milliseconds: 200));
       
       // Get the actual position after seek
       final actualPosition = _controller!.value.position.inSeconds;
       debugPrint('VideoPlayer: Seek completed - actual position: ${actualPosition}s (requested: ${clamped}s)');
+      
+      // Validate seek result: if we requested a position > 0 but got 0, the seek failed
+      // Also check if the actual position is significantly different from requested (more than 5 seconds)
+      final seekFailed = (clamped > 0 && actualPosition == 0) || 
+                         (clamped > 5 && (actualPosition - clamped).abs() > 5);
+      
+      if (seekFailed) {
+        debugPrint('VideoPlayer: Seek failed - requested ${clamped}s but got ${actualPosition}s. Attempting recovery...');
+        
+        // Try to seek to a position slightly before the requested position (within actual duration)
+        // This helps when seeking near the end of the video
+        final recoveryPosition = (clamped - 1).clamp(0, maxSeconds);
+        if (recoveryPosition > 0 && recoveryPosition < maxSeconds) {
+          await _controller!.seekTo(Duration(seconds: recoveryPosition));
+          await Future.delayed(const Duration(milliseconds: 200));
+          final recoveredPosition = _controller!.value.position.inSeconds;
+          debugPrint('VideoPlayer: Recovery seek to ${recoveryPosition}s resulted in ${recoveredPosition}s');
+          
+          if (mounted) {
+            setState(() {
+              _currentTime = recoveredPosition;
+              _isSeeking = false;
+            });
+          }
+          return;
+        }
+        
+        // If recovery failed, restore to position before seek
+        debugPrint('VideoPlayer: Recovery failed, restoring to position before seek: ${positionBeforeSeek}s');
+        await _controller!.seekTo(Duration(seconds: positionBeforeSeek));
+        await Future.delayed(const Duration(milliseconds: 200));
+        
+        if (mounted) {
+          setState(() {
+            _currentTime = positionBeforeSeek;
+            _isSeeking = false;
+          });
+        }
+        return;
+      }
       
       // Update state once with final values
       if (mounted) {
@@ -722,44 +800,21 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
           _isSeeking = false;
           
           // Update _validDuration if controller now has a valid duration
-          // BUT only if widget duration is not available, or if controller duration is reasonable
+          // Always prefer controller duration when available
           if (_controller!.value.duration != Duration.zero &&
               _controller!.value.duration.inMilliseconds > 0 &&
               _controller!.value.duration.inSeconds.isFinite) {
             final controllerDuration = _controller!.value.duration;
-            
-            // Don't overwrite if widget duration is available and controller duration is suspiciously wrong
-            if (widget.duration > 0) {
-              final controllerSeconds = controllerDuration.inSeconds;
-              final widgetSeconds = widget.duration;
-              
-              // Sanity check: if controller duration is less than 10% of widget duration, it's likely wrong
-              // Keep the widget duration instead
-              if (controllerSeconds >= widgetSeconds * 0.1) {
-                // Controller duration is reasonable, update it
-                _validDuration = controllerDuration;
-                _durationError = false;
-                _durationErrorMessage = null;
-                debugPrint('VideoPlayer: Updated _validDuration from controller: ${controllerSeconds}s (widget: ${widgetSeconds}s)');
-              } else {
-                debugPrint('VideoPlayer: Ignoring suspicious controller duration: ${controllerSeconds}s (widget: ${widgetSeconds}s)');
-                // Keep existing _validDuration (which should be from widget duration)
-              }
-            } else {
-              // No widget duration available, use controller duration
-              _validDuration = controllerDuration;
-              _durationError = false;
-              _durationErrorMessage = null;
-              debugPrint('VideoPlayer: Updated _validDuration from controller: ${controllerDuration.inSeconds}s (no widget duration)');
-            }
+            _validDuration = controllerDuration;
+            _durationError = false;
+            _durationErrorMessage = null;
+            debugPrint('VideoPlayer: Updated _validDuration from controller: ${controllerDuration.inSeconds}s');
           }
         });
       }
     } catch (e) {
       debugPrint('VideoPlayer: Error during seek: $e');
       if (mounted) {
-        // Clear seeking flag even on error, but don't show error to user
-        // (seeking errors are common and usually not critical)
         setState(() {
           _isSeeking = false;
         });
@@ -1134,8 +1189,8 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                             ),
                             child: Builder(
                               builder: (context) {
-                                // Calculate max value using _getValidDuration() helper
-                                final validDuration = _getValidDuration();
+                                // Calculate max value using _getDurationForSeeking() helper (prioritizes actual video duration)
+                                final validDuration = _getDurationForSeeking();
                                 double maxValue = 1.0;
 
                                 if (validDuration != null) {
@@ -1226,8 +1281,8 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                           ),
                         ),
                         Text(
-                          _getValidDuration() != null
-                              ? _formatTime(_getValidDuration()!.inSeconds)
+                          _getDurationForSeeking() != null
+                              ? _formatTime(_getDurationForSeeking()!.inSeconds)
                               : '--:--',
                           style: AppTypography.caption.copyWith(
                             color: Colors.white.withOpacity(0.7),

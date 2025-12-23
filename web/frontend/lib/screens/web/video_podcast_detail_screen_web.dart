@@ -540,108 +540,210 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
                 children: [
                   // Creator/User Information Card
                   if (_creatorInfo != null) ...[
-                    SectionContainer(
-                      child: Row(
-                        children: [
-                          // Clickable Creator Info
-                          Expanded(
-                            child: InkWell(
-                              onTap: () async {
-                                if (_creatorInfo!['id'] != null) {
-                                  // Fetch artist profile by user ID
-                                  final artistProvider = context.read<ArtistProvider>();
-                                  final artist = await artistProvider.fetchArtistByUserId(_creatorInfo!['id']);
-                                  
-                                  if (artist != null && mounted) {
-                                    context.go('/artist/${artist.id}');
-                                  } else if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Creator profile not found')),
-                                    );
+                      SectionContainer(
+                        child: screenWidth < 768 
+                        ? Column( // Mobile Layout
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Clickable Creator Info
+                              InkWell(
+                                onTap: () async {
+                                  if (_creatorInfo!['id'] != null) {
+                                    // Fetch artist profile by user ID
+                                    final artistProvider = context.read<ArtistProvider>();
+                                    final artist = await artistProvider.fetchArtistByUserId(_creatorInfo!['id']);
+                                    
+                                    if (artist != null && mounted) {
+                                      context.go('/artist/${artist.id}');
+                                    } else if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Creator profile not found')),
+                                      );
+                                    }
                                   }
-                                }
-                              },
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                              child: Padding(
-                                padding: EdgeInsets.all(AppSpacing.medium),
-                                child: Row(
-                                  children: [
-                                    // Avatar
-                                    CircleAvatar(
-                                      radius: isDesktop ? 40 : 30,
-                                      backgroundColor: AppColors.primaryMain.withOpacity(0.2),
-                                      backgroundImage: _creatorInfo!['avatar'] != null
-                                          ? NetworkImage(_apiService.getMediaUrl(_creatorInfo!['avatar']))
-                                          : null,
-                                      child: _creatorInfo!['avatar'] == null
-                                          ? Icon(
-                                              Icons.person,
-                                              size: isDesktop ? 40 : 30,
-                                              color: AppColors.primaryMain,
-                                            )
-                                          : null,
-                                    ),
-                                    const SizedBox(width: AppSpacing.large),
-                                    // Creator info
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Text(
-                                                _creatorInfo!['name'] ?? item.creator,
-                                                style: AppTypography.heading3.copyWith(
-                                                  fontWeight: FontWeight.bold,
+                                },
+                                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                child: Padding(
+                                  padding: EdgeInsets.all(AppSpacing.medium),
+                                  child: Row(
+                                    children: [
+                                      // Avatar
+                                      CircleAvatar(
+                                        radius: 30,
+                                        backgroundColor: AppColors.primaryMain.withOpacity(0.2),
+                                        backgroundImage: _creatorInfo!['avatar'] != null
+                                            ? NetworkImage(_apiService.getMediaUrl(_creatorInfo!['avatar']))
+                                            : null,
+                                        child: _creatorInfo!['avatar'] == null
+                                            ? Icon(Icons.person, size: 30, color: AppColors.primaryMain)
+                                            : null,
+                                      ),
+                                      const SizedBox(width: AppSpacing.large),
+                                      // Creator info
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Flexible(
+                                                  child: Text(
+                                                    _creatorInfo!['name'] ?? item.creator,
+                                                    style: AppTypography.heading3.copyWith(
+                                                      fontWeight: FontWeight.bold,
+                                                      color: AppColors.primaryMain,
+                                                    ),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                SizedBox(width: AppSpacing.small),
+                                                Icon(
+                                                  Icons.arrow_forward_ios,
+                                                  size: 16,
                                                   color: AppColors.primaryMain,
                                                 ),
-                                              ),
-                                              SizedBox(width: AppSpacing.small),
-                                              Icon(
-                                                Icons.arrow_forward_ios,
-                                                size: 16,
-                                                color: AppColors.primaryMain,
-                                              ),
-                                            ],
-                                          ),
-                                          SizedBox(height: 4),
-                                          Text(
-                                            'View Creator Profile',
-                                            style: AppTypography.caption.copyWith(
-                                              color: AppColors.textSecondary,
+                                              ],
                                             ),
-                                          ),
-                                          if (_creatorInfo!['bio'] != null && _creatorInfo!['bio'].toString().isNotEmpty) ...[
-                                            const SizedBox(height: AppSpacing.small),
+                                            SizedBox(height: 4),
                                             Text(
-                                              _creatorInfo!['bio'],
-                                              style: AppTypography.body.copyWith(
+                                              'View Creator Profile',
+                                              style: AppTypography.caption.copyWith(
                                                 color: AppColors.textSecondary,
                                               ),
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
                                             ),
+                                            if (_creatorInfo!['bio'] != null && _creatorInfo!['bio'].toString().isNotEmpty) ...[
+                                              const SizedBox(height: AppSpacing.small),
+                                              Text(
+                                                _creatorInfo!['bio'],
+                                                style: AppTypography.body.copyWith(
+                                                  color: AppColors.textSecondary,
+                                                ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
                                           ],
-                                        ],
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
+                              // Donate button (Full width on mobile)
+                              Padding(
+                                padding: EdgeInsets.all(AppSpacing.medium),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: StyledPillButton(
+                                    label: 'Donate',
+                                    icon: Icons.favorite,
+                                    onPressed: _handleDonate,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Row( // Desktop/Tablet Layout
+                            children: [
+                              // Clickable Creator Info
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () async {
+                                    if (_creatorInfo!['id'] != null) {
+                                      // Fetch artist profile by user ID
+                                      final artistProvider = context.read<ArtistProvider>();
+                                      final artist = await artistProvider.fetchArtistByUserId(_creatorInfo!['id']);
+                                      
+                                      if (artist != null && mounted) {
+                                        context.go('/artist/${artist.id}');
+                                      } else if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Creator profile not found')),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                  child: Padding(
+                                    padding: EdgeInsets.all(AppSpacing.medium),
+                                    child: Row(
+                                      children: [
+                                        // Avatar
+                                        CircleAvatar(
+                                          radius: isDesktop ? 40 : 30,
+                                          backgroundColor: AppColors.primaryMain.withOpacity(0.2),
+                                          backgroundImage: _creatorInfo!['avatar'] != null
+                                              ? NetworkImage(_apiService.getMediaUrl(_creatorInfo!['avatar']))
+                                              : null,
+                                          child: _creatorInfo!['avatar'] == null
+                                              ? Icon(
+                                                  Icons.person,
+                                                  size: isDesktop ? 40 : 30,
+                                                  color: AppColors.primaryMain,
+                                                )
+                                              : null,
+                                        ),
+                                        const SizedBox(width: AppSpacing.large),
+                                        // Creator info
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    _creatorInfo!['name'] ?? item.creator,
+                                                    style: AppTypography.heading3.copyWith(
+                                                      fontWeight: FontWeight.bold,
+                                                      color: AppColors.primaryMain,
+                                                    ),
+                                                  ),
+                                                  SizedBox(width: AppSpacing.small),
+                                                  Icon(
+                                                    Icons.arrow_forward_ios,
+                                                    size: 16,
+                                                    color: AppColors.primaryMain,
+                                                  ),
+                                                ],
+                                              ),
+                                              SizedBox(height: 4),
+                                              Text(
+                                                'View Creator Profile',
+                                                style: AppTypography.caption.copyWith(
+                                                  color: AppColors.textSecondary,
+                                                ),
+                                              ),
+                                              if (_creatorInfo!['bio'] != null && _creatorInfo!['bio'].toString().isNotEmpty) ...[
+                                                const SizedBox(height: AppSpacing.small),
+                                                Text(
+                                                  _creatorInfo!['bio'],
+                                                  style: AppTypography.body.copyWith(
+                                                    color: AppColors.textSecondary,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Donate button
+                              Padding(
+                                padding: EdgeInsets.all(AppSpacing.medium),
+                                child: StyledPillButton(
+                                  label: 'Donate',
+                                  icon: Icons.favorite,
+                                  onPressed: _handleDonate,
+                                ),
+                              ),
+                            ],
                           ),
-                          // Donate button
-                          Padding(
-                            padding: EdgeInsets.all(AppSpacing.medium),
-                            child: StyledPillButton(
-                              label: 'Donate',
-                              icon: Icons.favorite,
-                              onPressed: _handleDonate,
-                            ),
-                          ),
-                        ],
                       ),
-                    ),
                     const SizedBox(height: AppSpacing.extraLarge),
                   ],
 

@@ -166,6 +166,52 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
   }
 
   Future<void> _handleAvatarChange() async {
+    if (_isUploadingAvatar) return;
+    
+    final userProvider = context.read<UserProvider>();
+    final authProvider = context.read<AuthProvider>();
+    final currentAvatar = authProvider.user?['avatar'] ?? userProvider.user?['avatar'];
+    final hasAvatar = currentAvatar != null && currentAvatar.toString().isNotEmpty;
+    
+    // Show options dialog if user has an avatar
+    if (hasAvatar) {
+      final action = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Profile Photo'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Upload New Photo'),
+                onTap: () => Navigator.pop(context, 'upload'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text('Remove Photo', style: TextStyle(color: Colors.red)),
+                onTap: () => Navigator.pop(context, 'remove'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+      
+      if (action == 'remove') {
+        await _handleRemoveAvatar();
+        return;
+      } else if (action != 'upload') {
+        return; // User cancelled
+      }
+    }
+    
+    // Continue with upload logic
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
@@ -191,7 +237,6 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
         filePath = image.path;
       }
 
-      final userProvider = context.read<UserProvider>();
       final newUrl = await userProvider.uploadAvatar(
         fileName: fileName,
         filePath: filePath,
@@ -199,7 +244,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
       );
 
       if (newUrl != null && mounted) {
-        await context.read<AuthProvider>().updateCachedUser({'avatar': newUrl});
+        await authProvider.updateCachedUser({'avatar': newUrl});
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile photo updated')),
         );
@@ -212,6 +257,47 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
           backgroundColor: AppColors.errorMain,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingAvatar = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleRemoveAvatar() async {
+    final userProvider = context.read<UserProvider>();
+    final authProvider = context.read<AuthProvider>();
+    
+    setState(() {
+      _isUploadingAvatar = true;
+    });
+    
+    try {
+      final success = await userProvider.removeAvatar();
+      if (success && mounted) {
+        await authProvider.updateCachedUser({'avatar': null});
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile photo removed')),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to remove avatar: ${userProvider.error ?? 'Unknown error'}'),
+            backgroundColor: AppColors.errorMain,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to remove avatar: $e'),
+            backgroundColor: AppColors.errorMain,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {

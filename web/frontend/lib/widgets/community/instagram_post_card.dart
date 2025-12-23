@@ -56,6 +56,19 @@ class _InstagramPostCardState extends State<InstagramPostCard>
   }
 
   @override
+  void didUpdateWidget(InstagramPostCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Sync like state when post data changes
+    if (oldWidget.post['is_liked'] != widget.post['is_liked'] ||
+        oldWidget.post['likes_count'] != widget.post['likes_count']) {
+      setState(() {
+        _isLiked = widget.post['is_liked'] ?? false;
+        _likesCount = widget.post['likes_count'] ?? 0;
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _animationController.dispose();
     super.dispose();

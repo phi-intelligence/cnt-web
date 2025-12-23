@@ -232,10 +232,44 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
                     padding: const EdgeInsets.all(AppSpacing.large),
                     child: Row(
                       children: [
-                        const BackButton(),
-                        Text(
-                          'Back to Events',
-                          style: AppTypography.bodyMedium,
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => Navigator.pop(context),
+                            borderRadius: BorderRadius.circular(999),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.medium,
+                                vertical: AppSpacing.small,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.warmBrown.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: AppColors.warmBrown.withOpacity(0.2),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.arrow_back,
+                                    size: 18,
+                                    color: AppColors.warmBrown,
+                                  ),
+                                  const SizedBox(width: AppSpacing.tiny),
+                                  Text(
+                                    'Back to Events',
+                                    style: AppTypography.bodyMedium.copyWith(
+                                      color: AppColors.warmBrown,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -525,8 +559,29 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: TextStyle(color: AppColors.textPrimary),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
         hintText: hint,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.borderPrimary),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.borderPrimary),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.errorMain),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.errorMain, width: 2),
+        ),
         filled: true,
         fillColor: Colors.white,
       ),

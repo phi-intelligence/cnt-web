@@ -73,7 +73,6 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
   List<NavigationItem> _getNavigationItems(bool isAdmin) {
     final items = [
       NavigationItem(icon: Icons.home, label: 'Home', route: 'home'),
-      NavigationItem(icon: Icons.search, label: 'Search', route: 'search'),
       NavigationItem(icon: Icons.video_library, label: 'Create', route: 'create'),
       NavigationItem(icon: Icons.people, label: 'Community', route: 'community'),
       NavigationItem(icon: Icons.mic, label: 'Podcasts', route: 'podcasts'),

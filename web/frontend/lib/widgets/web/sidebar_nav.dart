@@ -22,7 +22,6 @@ class WebSidebarNavigation extends StatefulWidget {
 class _WebSidebarNavigationState extends State<WebSidebarNavigation> {
   final List<NavigationItem> _navigationItems = [
     NavigationItem(icon: Icons.home, label: 'Home', route: '/'),
-    NavigationItem(icon: Icons.search, label: 'Search', route: '/search'),
     NavigationItem(icon: Icons.calendar_today, label: 'Meetings', route: '/meetings'),
     NavigationItem(icon: Icons.explore, label: 'Discover', route: '/discover'),
     NavigationItem(icon: Icons.book, label: 'Bible Stories', route: '/bible-stories'),

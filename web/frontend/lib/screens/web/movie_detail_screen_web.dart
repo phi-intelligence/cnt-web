@@ -797,6 +797,8 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
   }
 
   Widget _buildCreatorCard(bool isDesktop) {
+    final isMobile = MediaQuery.of(context).size.width < 768;
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.large),
       decoration: BoxDecoration(
@@ -810,7 +812,93 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
           ),
         ],
       ),
-      child: Row(
+      child: isMobile 
+      ? Column( // Mobile Layout
+          children: [
+             Row(
+               children: [
+                 // Avatar
+                 GestureDetector(
+                   onTap: () => _navigateToCreatorProfile(),
+                   child: Container(
+                     width: 56,
+                     height: 56,
+                     decoration: BoxDecoration(
+                       shape: BoxShape.circle,
+                       gradient: LinearGradient(
+                         colors: [AppColors.warmBrown, AppColors.warmBrown.withOpacity(0.7)],
+                       ),
+                     ),
+                     child: ClipOval(
+                       child: _creatorInfo!['avatar'] != null
+                           ? Image.network(
+                               _apiService.getMediaUrl(_creatorInfo!['avatar']),
+                               fit: BoxFit.cover,
+                               errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white, size: 32),
+                             )
+                           : const Icon(Icons.person, color: Colors.white, size: 32),
+                     ),
+                   ),
+                 ),
+                 const SizedBox(width: AppSpacing.large),
+                 
+                 // Creator info
+                 Expanded(
+                   child: GestureDetector(
+                     onTap: () => _navigateToCreatorProfile(),
+                     child: Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                         Text(
+                           'Created by',
+                           style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                         ),
+                         const SizedBox(height: 4),
+                         Row(
+                           children: [
+                             Flexible(
+                               child: Text(
+                                 _creatorInfo!['name'] ?? 'Creator',
+                                 style: AppTypography.heading4.copyWith(
+                                   fontWeight: FontWeight.bold,
+                                   color: AppColors.textPrimary,
+                                 ),
+                                 overflow: TextOverflow.ellipsis,
+                               ),
+                             ),
+                             const SizedBox(width: AppSpacing.small),
+                             Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.warmBrown),
+                           ],
+                         ),
+                         if (_creatorInfo!['bio'] != null && _creatorInfo!['bio'].toString().isNotEmpty) ...[
+                           const SizedBox(height: 4),
+                           Text(
+                             _creatorInfo!['bio'],
+                             style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                             maxLines: 1,
+                             overflow: TextOverflow.ellipsis,
+                           ),
+                         ],
+                       ],
+                     ),
+                   ),
+                 ),
+               ],
+             ),
+             const SizedBox(height: AppSpacing.large),
+             
+             // Donate button (Full Width)
+             SizedBox(
+               width: double.infinity,
+               child: StyledPillButton(
+                 label: 'Donate',
+                 icon: Icons.favorite,
+                 onPressed: _handleDonate,
+               ),
+             ),
+          ],
+        )
+      : Row( // Desktop/Tablet Layout
         children: [
           // Avatar
           GestureDetector(

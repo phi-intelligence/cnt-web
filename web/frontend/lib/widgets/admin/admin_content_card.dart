@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
-import '../../theme/app_spacing.dart';
 import '../shared/image_helper.dart';
-import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_utils.dart';
+import '../../services/api_service.dart';
+import '../../screens/video/video_player_full_screen.dart';
 import 'admin_status_badge.dart';
 
 /// Content card for admin management pages
@@ -55,6 +56,123 @@ class AdminContentCard extends StatelessWidget {
     return item['cover_image'] as String? ?? 
            item['thumbnail_url'] as String? ?? 
            item['image_url'] as String?;
+  }
+
+  bool _hasPlayableContent() {
+    final audioUrl = item['audio_url'] as String?;
+    final videoUrl = item['video_url'] as String?;
+    final imageUrl = item['image_url'] as String?;
+    return (audioUrl != null && audioUrl.toString().isNotEmpty) ||
+           (videoUrl != null && videoUrl.toString().isNotEmpty) ||
+           (imageUrl != null && imageUrl.toString().isNotEmpty);
+  }
+
+  String? _getContentType() {
+    final type = item['type'] as String? ?? '';
+    final audioUrl = item['audio_url'] as String?;
+    final videoUrl = item['video_url'] as String?;
+    final imageUrl = item['image_url'] as String?;
+    
+    if (type == 'community_post' && imageUrl != null && imageUrl.toString().isNotEmpty) {
+      return 'image';
+    }
+    if (videoUrl != null && videoUrl.toString().isNotEmpty) {
+      return 'video';
+    }
+    if (audioUrl != null && audioUrl.toString().isNotEmpty) {
+      return 'audio';
+    }
+    return null;
+  }
+
+  String _getMediaUrl(String? path) {
+    if (path == null || path.toString().isEmpty) return '';
+    final apiService = ApiService();
+    return apiService.getMediaUrl(path.toString());
+  }
+
+  void _handlePreview(BuildContext context) {
+    final contentType = _getContentType();
+    if (contentType == null) return;
+    
+    final contentId = item['id'];
+    if (contentId == null) return;
+    
+    if (contentType == 'audio') {
+      context.push('/player/audio/$contentId');
+    } else if (contentType == 'video') {
+      final type = item['type'] as String? ?? '';
+      if (type == 'movie') {
+        // Show movie in video player dialog
+        final videoUrl = item['video_url'] as String?;
+        if (videoUrl != null && videoUrl.toString().isNotEmpty) {
+          final fullVideoUrl = _getMediaUrl(videoUrl);
+          final title = item['title'] as String? ?? 'Movie';
+          final creator = item['creator_name'] as String? ?? 
+                        item['user']?['name'] as String? ?? 
+                        'Unknown';
+          final duration = (item['duration'] as int?) ?? 0;
+          
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => VideoPlayerFullScreen(
+                videoId: contentId.toString(),
+                title: title,
+                author: creator,
+                duration: duration,
+                gradientColors: const [AppColors.backgroundPrimary, AppColors.backgroundSecondary],
+                videoUrl: fullVideoUrl,
+                onBack: () => Navigator.of(context).pop(),
+              ),
+            ),
+          );
+        }
+      } else {
+        // Podcast video
+        context.push('/player/video/$contentId');
+      }
+    } else if (contentType == 'image') {
+      final imageUrl = item['image_url'] as String?;
+      if (imageUrl != null && imageUrl.toString().isNotEmpty) {
+        final fullImageUrl = _getMediaUrl(imageUrl);
+        showDialog(
+          context: context,
+          barrierColor: Colors.black87,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(20),
+            child: Stack(
+              children: [
+                Center(
+                  child: InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Image.network(
+                      fullImageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Center(
+                          child: Icon(Icons.error, color: Colors.white, size: 48),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -200,7 +318,7 @@ class AdminContentCard extends StatelessWidget {
 
               // Actions
               const SizedBox(width: 16),
-              _buildActions(isMobile),
+              _buildActions(context, isMobile),
             ],
           ),
         ),
@@ -216,12 +334,26 @@ class AdminContentCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActions(bool isMobile) {
-    // Pending Actions: Approve / Reject
+  Widget _buildActions(BuildContext context, bool isMobile) {
+    final hasPreview = _hasPlayableContent();
+    final contentType = _getContentType();
+    final previewIcon = contentType == 'image' ? Icons.visibility : Icons.play_arrow;
+    final previewTooltip = contentType == 'image' ? 'View Image' : 
+                           contentType == 'video' ? 'Play Video' : 'Play Audio';
+    
+    // Pending Actions: Preview / Approve / Reject
     if (showApproveReject && (onApprove != null || onReject != null)) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (hasPreview)
+            _buildActionButton(
+              icon: previewIcon,
+              color: AppColors.warmBrown,
+              tooltip: previewTooltip,
+              onPressed: () => _handlePreview(context),
+            ),
+          if (hasPreview) const SizedBox(width: 8),
           if (onReject != null)
             _buildActionButton(
               icon: Icons.close,
@@ -229,7 +361,7 @@ class AdminContentCard extends StatelessWidget {
               tooltip: 'Reject',
               onPressed: onReject!,
             ),
-          const SizedBox(width: 8),
+          if (onReject != null) const SizedBox(width: 8),
           if (onApprove != null)
              _buildActionButton(
               icon: Icons.check,
@@ -242,11 +374,19 @@ class AdminContentCard extends StatelessWidget {
       );
     }
     
-    // Approved Actions: Delete / Archive
+    // Approved Actions: Preview / Delete / Archive
     if (showDeleteArchive && (onDelete != null || onArchive != null)) {
        return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (hasPreview)
+            _buildActionButton(
+              icon: previewIcon,
+              color: AppColors.warmBrown,
+              tooltip: previewTooltip,
+              onPressed: () => _handlePreview(context),
+            ),
+          if (hasPreview) const SizedBox(width: 8),
           if (onArchive != null)
             _buildActionButton(
               icon: Icons.archive_outlined,
@@ -265,6 +405,16 @@ class AdminContentCard extends StatelessWidget {
               onPressed: onDelete!,
             ),
         ],
+      );
+    }
+    
+    // If no actions but has preview
+    if (hasPreview) {
+      return _buildActionButton(
+        icon: previewIcon,
+        color: AppColors.warmBrown,
+        tooltip: previewTooltip,
+        onPressed: () => _handlePreview(context),
       );
     }
     

@@ -54,26 +54,32 @@ class AdminDashboardCard extends StatelessWidget {
                 child: Icon(icon, color: AppColors.textInverse, size: 24),
               ),
               SizedBox(height: AppSpacing.small),
-              Text(
-                value,
-                style: AppTypography.heading3.copyWith(
-                  color: AppColors.textInverse,
-                  fontWeight: FontWeight.w700,
-                  height: 1.1,
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      value,
+                      style: AppTypography.heading3.copyWith(
+                        color: AppColors.textInverse,
+                        fontWeight: FontWeight.w700,
+                        height: 1.1,
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
                 ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
               const SizedBox(height: AppSpacing.tiny),
-              Text(
-                title,
-                style: AppTypography.body.copyWith(
-                  color: AppColors.textInverse.withOpacity(0.9),
-                  fontWeight: FontWeight.w500,
-                  height: 1.1,
+              Flexible(
+                child: Text(
+                  title,
+                  style: AppTypography.body.copyWith(
+                    color: AppColors.textInverse.withOpacity(0.9),
+                    fontWeight: FontWeight.w500,
+                    height: 1.1,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
               ),
             ],
           ),

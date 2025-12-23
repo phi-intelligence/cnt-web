@@ -482,7 +482,9 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
   double _seekValue = 0.0;
   
   Widget _buildProgressBar(AudioPlayerState audioPlayer) {
-    final progress = audioPlayer.duration.inSeconds > 0
+    // Check if duration is valid before allowing seeking
+    final isValidDuration = audioPlayer.duration.inSeconds > 0;
+    final progress = isValidDuration
         ? audioPlayer.position.inSeconds / audioPlayer.duration.inSeconds
         : 0.0;
     
@@ -507,17 +509,30 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
             min: 0.0,
             max: 1.0,
             onChangeStart: (value) {
+              if (!isValidDuration) {
+                print('⚠️ Cannot seek - duration not available');
+                return;
+              }
               setState(() {
                 _isSeeking = true;
                 _seekValue = value;
               });
             },
             onChanged: (value) {
+              if (!isValidDuration) {
+                return;
+              }
               setState(() {
                 _seekValue = value;
               });
             },
             onChangeEnd: (value) async {
+              if (!isValidDuration) {
+                setState(() {
+                  _isSeeking = false;
+                });
+                return;
+              }
               final newPosition = Duration(
                 milliseconds: (value * audioPlayer.duration.inMilliseconds).toInt(),
               );
@@ -539,7 +554,9 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
               Text(
                 _isSeeking 
                     ? _formatDuration(Duration(
-                        milliseconds: (_seekValue * audioPlayer.duration.inMilliseconds).toInt(),
+                        milliseconds: isValidDuration 
+                            ? (_seekValue * audioPlayer.duration.inMilliseconds).toInt()
+                            : 0,
                       ))
                     : _formatDuration(audioPlayer.position),
                 style: AppTypography.caption.copyWith(
@@ -550,7 +567,9 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
                 ),
               ),
               Text(
-                _formatDuration(audioPlayer.duration),
+                isValidDuration
+                    ? _formatDuration(audioPlayer.duration)
+                    : '--:--',
                 style: AppTypography.caption.copyWith(
                   color: AppColors.primaryDark.withOpacity(0.6),
                   fontWeight: FontWeight.w500,

@@ -270,24 +270,28 @@ class VideoPodcastCreateScreen extends StatelessWidget {
               
               // Options Grid
               Expanded(
-                child: SectionContainer(
-                  showShadow: true,
-                  child: Padding(
-                    padding: EdgeInsets.all(AppSpacing.large),
-                    child: ListView.separated(
-                      itemCount: options.length,
-                      separatorBuilder: (c, i) => SizedBox(height: AppSpacing.large),
-                      itemBuilder: (context, index) {
-                        final option = options[index];
-                        return _buildOptionCard(
-                          context,
-                          icon: option['icon'] as IconData,
-                          title: option['title'] as String,
-                          description: option['description'] as String,
-                          hoverColors: [AppColors.accentMain, AppColors.accentDark],
-                          onTap: option['onTap'] as VoidCallback,
-                        );
-                      },
+                child: SingleChildScrollView( // Added for keyboard/small screen scroll
+                  child: SectionContainer(
+                    showShadow: true,
+                    child: Padding(
+                      padding: EdgeInsets.all(AppSpacing.large),
+                      child: ListView.separated(
+                        shrinkWrap: true, // Needed because it's inside SingleChildScrollView
+                        physics: const NeverScrollableScrollPhysics(), // Scroll the parent instead
+                        itemCount: options.length,
+                        separatorBuilder: (c, i) => SizedBox(height: AppSpacing.large),
+                        itemBuilder: (context, index) {
+                          final option = options[index];
+                          return _buildOptionCard(
+                            context,
+                            icon: option['icon'] as IconData,
+                            title: option['title'] as String,
+                            description: option['description'] as String,
+                            hoverColors: [AppColors.accentMain, AppColors.accentDark],
+                            onTap: option['onTap'] as VoidCallback,
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),

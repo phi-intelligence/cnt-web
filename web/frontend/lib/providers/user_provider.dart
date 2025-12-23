@@ -124,5 +124,25 @@ class UserProvider extends ChangeNotifier {
       return null;
     }
   }
+
+  Future<bool> removeAvatar() async {
+    try {
+      final success = await _api.removeAvatar();
+      if (success && _user != null) {
+        _user = {
+          ..._user!,
+          'avatar': null,
+        };
+      } else {
+        await fetchUser();
+      }
+      notifyListeners();
+      return success;
+    } catch (e) {
+      _error = 'Error removing avatar: $e';
+      notifyListeners();
+      return false;
+    }
+  }
 }
 
