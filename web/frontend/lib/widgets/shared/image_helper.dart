@@ -26,10 +26,8 @@ class ImageHelper {
       return NetworkImage(imageUrl);
     }
     
-    // For relative paths from backend, construct full URL using media base URL
-    // Remove leading slash if present
-    final cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
-    final fullUrl = '${ApiService.mediaBaseUrl}/media/$cleanPath';
+    // For relative paths from backend, use centralized media URL resolver (matches mobile implementation)
+    final fullUrl = ApiService().getMediaUrl(imageUrl);
     return NetworkImage(fullUrl);
   }
   

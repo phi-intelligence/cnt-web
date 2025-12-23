@@ -11,6 +11,7 @@ import '../../utils/format_utils.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_grid_delegate.dart';
+import '../../services/api_service.dart';
 
 class AdminSupportPage extends StatefulWidget {
   const AdminSupportPage({super.key});
@@ -611,7 +612,7 @@ class _SupportMessageMeta extends StatelessWidget {
           children: [
             if (user?.avatar != null)
               CircleAvatar(
-                backgroundImage: NetworkImage(user!.avatar!),
+                backgroundImage: NetworkImage(ApiService().getMediaUrl(user!.avatar!)),
               )
             else
               CircleAvatar(
