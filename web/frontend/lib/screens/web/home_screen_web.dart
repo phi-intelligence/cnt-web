@@ -617,7 +617,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
     // Responsive carousel height
     final carouselHeight = ResponsiveUtils.getResponsiveValue(
       context: context,
-      mobile: 250.0, // Fixed height for mobile
+      mobile: ResponsiveUtils.isSmallMobile(context) ? 200.0 : 250.0, // Reduced height for small mobile
       tablet: screenHeight * 0.35,
       desktop: screenHeight * 0.5,
     );

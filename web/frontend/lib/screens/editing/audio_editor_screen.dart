@@ -182,23 +182,36 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
         final trimEndMs = savedState['trimEnd'] as int?;
 
         if (savedAudioPath != null) {
-          // Use saved path (which should be backend URL if blob was uploaded)
-          _persistedAudioPath = savedAudioPath;
+          // Normalize paths for comparison
+          final normalizedSavedPath = _normalizeAudioPath(savedAudioPath);
+          final normalizedWidgetPath = _normalizeAudioPath(widget.audioPath);
           
-          // Restore trim values
-          if (trimStartMs != null) {
-            _trimStart = Duration(milliseconds: trimStartMs);
-          }
-          if (trimEndMs != null) {
-            _trimEnd = Duration(milliseconds: trimEndMs);
-          }
+          // Check if saved state is for a different file
+          if (normalizedSavedPath != normalizedWidgetPath) {
+            print('⚠️ Saved state is for different file. Clearing state and using new file.');
+            print('   Saved: $normalizedSavedPath');
+            print('   Current: $normalizedWidgetPath');
+            await StatePersistence.clearAudioEditorState();
+            // Continue with widget.audioPath (don't use saved state)
+          } else {
+            // Paths match - use saved state
+            _persistedAudioPath = savedAudioPath;
+            
+            // Restore trim values
+            if (trimStartMs != null) {
+              _trimStart = Duration(milliseconds: trimStartMs);
+            }
+            if (trimEndMs != null) {
+              _trimEnd = Duration(milliseconds: trimEndMs);
+            }
 
-          // Restore edited path if exists
-          if (savedEditedPath != null) {
-            _editedAudioPath = savedEditedPath;
-          }
+            // Restore edited path if exists
+            if (savedEditedPath != null) {
+              _editedAudioPath = savedEditedPath;
+            }
 
-          print('✅ Restored audio editor state from saved state');
+            print('✅ Restored audio editor state from saved state');
+          }
         }
       }
 
@@ -247,6 +260,42 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
       print('❌ Error initializing from saved state: $e');
       await _initializePlayer(widget.audioPath, providedDuration: widget.duration);
     }
+  }
+
+  /// Normalize audio path for comparison (handles URL variations)
+  /// Removes protocol, domain, and leading slashes to compare just the path
+  String _normalizeAudioPath(String path) {
+    if (path.isEmpty) return path;
+    
+    // Remove protocol and domain for comparison
+    // e.g., "https://cloudfront.net/audio/file.webm" -> "audio/file.webm"
+    // e.g., "audio/file.webm" -> "audio/file.webm"
+    String normalized = path;
+    
+    // Remove leading protocol and domain
+    if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+      try {
+        final uri = Uri.parse(normalized);
+        normalized = uri.path; // Get just the path part
+      } catch (e) {
+        // If parsing fails, use as-is
+      }
+    }
+    
+    // Remove leading slash for consistent comparison
+    if (normalized.startsWith('/')) {
+      normalized = normalized.substring(1);
+    }
+    
+    // Handle blob URLs - they can't be normalized, so return a marker
+    // This will cause state to be cleared when switching from blob to file
+    if (normalized.startsWith('blob:') || path.startsWith('blob:')) {
+      // For blob URLs, we can't normalize them, so return a marker
+      // This will cause state to be cleared when switching from blob to file
+      return 'blob:';
+    }
+    
+    return normalized;
   }
 
   /// Check if URL is from CloudFront (production)

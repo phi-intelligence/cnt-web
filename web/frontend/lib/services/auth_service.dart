@@ -348,6 +348,11 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
+        // Enable remember me for Google login (users expect session persistence)
+        if (kIsWeb) {
+          WebStorageService.setRememberMe(true);
+        }
+        
         // Store token, refresh token, and user data
         await _write(key: _tokenKey, value: data['access_token']);
         if (data['refresh_token'] != null) {

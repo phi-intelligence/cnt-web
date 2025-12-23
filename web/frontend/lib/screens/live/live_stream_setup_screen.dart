@@ -7,6 +7,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/responsive_grid_delegate.dart';
+import '../../utils/responsive_utils.dart';
 import '../../widgets/web/section_container.dart';
 import '../meeting/prejoin_screen.dart';
 
@@ -374,6 +375,8 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
   }
 
   Widget _buildMobileLayout(BuildContext context) {
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0E8),
       body: SizedBox(
@@ -384,7 +387,9 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
              // Mobile Background logic...
              Positioned(
               top: -30,
-              right: -MediaQuery.of(context).size.width * 0.4,
+              right: isSmallMobile 
+                  ? -MediaQuery.of(context).size.width * 0.6 // Push further right on small screens
+                  : -MediaQuery.of(context).size.width * 0.4,
               height: MediaQuery.of(context).size.height * 0.6,
               width: MediaQuery.of(context).size.width * 1.3,
               child: Container(
@@ -421,8 +426,8 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
               child: SafeArea(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.only(
-                    left: AppSpacing.large,
-                    right: AppSpacing.large,
+                    left: isSmallMobile ? AppSpacing.medium : AppSpacing.large,
+                    right: isSmallMobile ? AppSpacing.medium : AppSpacing.large,
                     top: 20,
                     bottom: AppSpacing.extraLarge,
                   ),
@@ -438,7 +443,10 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                           Expanded(
                             child: Text(
                               'Go Live',
-                              style: AppTypography.heading2.copyWith(color: AppColors.primaryDark),
+                              style: AppTypography.heading2.copyWith(
+                                color: AppColors.primaryDark,
+                                fontSize: isSmallMobile ? 24 : null,
+                              ),
                             ),
                           ),
                         ],
@@ -446,7 +454,10 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                       SizedBox(height: AppSpacing.small),
                       Text(
                         'Share your message with the community',
-                        style: AppTypography.body.copyWith(color: AppColors.primaryDark.withOpacity(0.7)),
+                        style: AppTypography.body.copyWith(
+                          color: AppColors.primaryDark.withOpacity(0.7),
+                          fontSize: isSmallMobile ? 14 : null,
+                        ),
                       ),
                       SizedBox(height: 32),
                       
@@ -543,8 +554,10 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
   }
 
   Widget _buildStreamFormCard() {
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    
     return Container(
-      padding: EdgeInsets.all(24),
+      padding: EdgeInsets.all(isSmallMobile ? AppSpacing.medium : 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),

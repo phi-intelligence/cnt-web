@@ -147,10 +147,8 @@ class _QueueModalWebState extends State<QueueModalWeb> {
       itemCount: audioPlayer.queue.length,
       onReorder: (oldIndex, newIndex) {
         // Reorder queue
-        if (newIndex > oldIndex) newIndex--;
-        final item = audioPlayer.queue.removeAt(oldIndex);
-        audioPlayer.queue.insert(newIndex, item);
-        audioPlayer.notifyListeners();
+        audioPlayer.reorderQueue(oldIndex, newIndex);
+        // Note: notifyListeners is handled within the provider
       },
       itemBuilder: (context, index) {
         final track = audioPlayer.queue[index];
@@ -169,8 +167,7 @@ class _QueueModalWebState extends State<QueueModalWeb> {
           },
           onRemove: () {
             // Remove from queue
-            audioPlayer.queue.removeAt(index);
-            audioPlayer.notifyListeners();
+            audioPlayer.removeFromQueue(index);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Removed "${track.title}" from queue'),

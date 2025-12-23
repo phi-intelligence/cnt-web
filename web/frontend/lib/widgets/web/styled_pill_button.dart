@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
+import '../../utils/responsive_utils.dart';
 
 /// Styled Pill Button Component for Web
 /// Provides consistent button styling matching the homepage design
@@ -55,6 +56,10 @@ class StyledPillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final horizontalPadding = isSmallMobile ? AppSpacing.large : AppSpacing.extraLarge;
+    final verticalPadding = isSmallMobile ? AppSpacing.small : AppSpacing.medium;
+
     if (variant == StyledPillButtonVariant.outlined || variant == StyledPillButtonVariant.outlinedLight) {
       Widget button = OutlinedButton(
           onPressed: isLoading ? null : onPressed,
@@ -65,8 +70,8 @@ class StyledPillButton extends StatelessWidget {
               width: 2,
             ),
             padding: EdgeInsets.symmetric(
-              horizontal: AppSpacing.extraLarge,
-              vertical: AppSpacing.medium,
+              horizontal: horizontalPadding,
+              vertical: verticalPadding,
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
@@ -75,7 +80,7 @@ class StyledPillButton extends StatelessWidget {
                 ? Colors.white.withOpacity(0.5) 
                 : AppColors.textSecondary,
           ),
-          child: _buildButtonContent(),
+          child: _buildButtonContent(context),
         );
       
       if (width != null) {
@@ -90,8 +95,8 @@ class StyledPillButton extends StatelessWidget {
           backgroundColor: AppColors.warmBrown,
           foregroundColor: AppColors.textInverse,
           padding: EdgeInsets.symmetric(
-            horizontal: AppSpacing.extraLarge,
-            vertical: AppSpacing.medium,
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
@@ -100,7 +105,7 @@ class StyledPillButton extends StatelessWidget {
           disabledBackgroundColor: AppColors.textSecondary.withOpacity(0.5),
           disabledForegroundColor: AppColors.textInverse.withOpacity(0.7),
         ),
-        child: _buildButtonContent(),
+        child: _buildButtonContent(context),
       );
     
     if (width != null) {
@@ -109,7 +114,9 @@ class StyledPillButton extends StatelessWidget {
     return IntrinsicWidth(child: button);
   }
 
-  Widget _buildButtonContent() {
+  Widget _buildButtonContent(BuildContext context) {
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    
     if (isLoading) {
       return SizedBox(
         height: 20,
@@ -125,6 +132,7 @@ class StyledPillButton extends StatelessWidget {
       label,
       style: AppTypography.button.copyWith(
         color: _foregroundColor,
+        fontSize: isSmallMobile ? 13 : null, // Scale down text size
       ),
       overflow: TextOverflow.ellipsis,
     );
@@ -139,7 +147,7 @@ class StyledPillButton extends StatelessWidget {
         children: [
           Icon(
             icon,
-            size: 20,
+            size: isSmallMobile ? 18 : 20,
             color: _foregroundColor,
           ),
           const SizedBox(width: 8),
@@ -155,7 +163,7 @@ class StyledPillButton extends StatelessWidget {
         const SizedBox(width: 8),
         Icon(
           icon,
-          size: 20,
+          size: isSmallMobile ? 18 : 20,
           color: _foregroundColor,
         ),
       ],

@@ -245,113 +245,47 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth > 900;
+
     return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
+      backgroundColor: const Color(0xFFF5F0E8), // Cream background match
       body: Column(
         children: [
           // Header
-          _buildHeader(),
+          _buildHeader(isDesktop),
           
-          // Tab Bar - Using StyledFilterChip for better design
+          // Tab Bar
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.large,
-              vertical: AppSpacing.medium,
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+            color: const Color(0xFFF5F0E8),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                   _buildFilterChip('All', _tabController.index == 0, 0),
+                   const SizedBox(width: 8),
+                   _buildFilterChip('Podcasts', _tabController.index == 1, 1),
+                   const SizedBox(width: 8),
+                   _buildFilterChip('Movies', _tabController.index == 2, 2),
+                   const SizedBox(width: 8),
+                   _buildFilterChip('Posts', _tabController.index == 3, 3),
+                ],
+              ),
             ),
-            color: Colors.white,
-            child: ResponsiveUtils.isMobile(context)
-                ? SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        StyledFilterChip(
-                          label: 'All',
-                          selected: _tabController.index == 0,
-                          count: _allContent.length,
-                          onTap: () {
-                            _tabController.animateTo(0);
-                          },
-                        ),
-                        const SizedBox(width: AppSpacing.small),
-                        StyledFilterChip(
-                          label: 'Podcasts',
-                          selected: _tabController.index == 1,
-                          count: _podcasts.length,
-                          onTap: () {
-                            _tabController.animateTo(1);
-                          },
-                        ),
-                        const SizedBox(width: AppSpacing.small),
-                        StyledFilterChip(
-                          label: 'Movies',
-                          selected: _tabController.index == 2,
-                          count: _movies.length,
-                          onTap: () {
-                            _tabController.animateTo(2);
-                          },
-                        ),
-                        const SizedBox(width: AppSpacing.small),
-                        StyledFilterChip(
-                          label: 'Posts',
-                          selected: _tabController.index == 3,
-                          count: _posts.length,
-                          onTap: () {
-                            _tabController.animateTo(3);
-                          },
-                        ),
-                      ],
-                    ),
-                  )
-                : Row(
-                    children: [
-                      StyledFilterChip(
-                        label: 'All',
-                        selected: _tabController.index == 0,
-                        count: _allContent.length,
-                        onTap: () {
-                          _tabController.animateTo(0);
-                        },
-                      ),
-                      const SizedBox(width: AppSpacing.small),
-                      StyledFilterChip(
-                        label: 'Podcasts',
-                        selected: _tabController.index == 1,
-                        count: _podcasts.length,
-                        onTap: () {
-                          _tabController.animateTo(1);
-                        },
-                      ),
-                      const SizedBox(width: AppSpacing.small),
-                      StyledFilterChip(
-                        label: 'Movies',
-                        selected: _tabController.index == 2,
-                        count: _movies.length,
-                        onTap: () {
-                          _tabController.animateTo(2);
-                        },
-                      ),
-                      const SizedBox(width: AppSpacing.small),
-                      StyledFilterChip(
-                        label: 'Posts',
-                        selected: _tabController.index == 3,
-                        count: _posts.length,
-                        onTap: () {
-                          _tabController.animateTo(3);
-                        },
-                      ),
-                    ],
-                  ),
           ),
+
+          const SizedBox(height: 16),
           
           // Tab Content
           Expanded(
             child: IndexedStack(
               index: _tabController.index,
               children: [
-                _buildContentList(_allContent, 'approved content'),
-                _buildPodcastsTab(),
-                _buildContentList(_movies, 'movies'),
-                _buildContentList(_posts, 'posts'),
+                _buildContentList(_allContent, 'approved content', isDesktop),
+                _buildPodcastsTab(isDesktop),
+                _buildContentList(_movies, 'movies', isDesktop),
+                _buildContentList(_posts, 'posts', isDesktop),
               ],
             ),
           ),
@@ -360,156 +294,168 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildFilterChip(String label, bool isSelected, int index) {
+    return StyledFilterChip(
+      label: label,
+      selected: isSelected,
+      onTap: () {
+        _tabController.animateTo(index);
+      },
+    );
+  }
+
+  Widget _buildHeader(bool isDesktop) {
     return Container(
-      padding: EdgeInsets.all(AppSpacing.large),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.successMain.withOpacity(0.08),
-            AppColors.warmBrown.withOpacity(0.04),
-          ],
-        ),
-        border: Border(
-          bottom: BorderSide(color: AppColors.borderPrimary, width: 1),
-        ),
-      ),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.small),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.successMain.withOpacity(0.2),
-                      AppColors.warmBrown.withOpacity(0.1),
-                    ],
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Approved Content',
+                    style: AppTypography.heading3.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
-                ),
-                child: Icon(
-                  Icons.check_circle,
-                  color: AppColors.successMain,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.medium),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Approved Content',
-                      style: AppTypography.heading2.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_allContent.length} active items',
+                     style: AppTypography.caption.copyWith(
+                      color: AppColors.textSecondary,
                     ),
-                    Text(
-                      'Manage published content - delete or archive',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               StyledPillButton(
                 label: 'Refresh',
                 icon: Icons.refresh,
                 variant: StyledPillButtonVariant.outlined,
                 onPressed: _loadAllContent,
+                width: 120, // compact width
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.medium),
-          // Search
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search by title or creator...',
-              prefixIcon: Icon(Icons.search, color: AppColors.warmBrown),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() {});
-                      },
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(999),
-                borderSide: BorderSide(color: AppColors.borderPrimary),
+          const SizedBox(height: 16),
+          // Search Field - Pill-shaped white search bar
+          Container(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: TextField(
+              controller: _searchController,
+              style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Search by title or creator...',
+                 hintStyle: AppTypography.body.copyWith(
+                  color: AppColors.textSecondary.withValues(alpha: 0.6),
+                ),
+                prefixIcon: const Icon(Icons.search, color: AppColors.warmBrown),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: AppColors.textSecondary),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {});
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(999),
+                  borderSide: const BorderSide(color: AppColors.borderPrimary),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(999),
+                  borderSide: const BorderSide(color: AppColors.borderPrimary),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(999),
+                  borderSide: const BorderSide(color: AppColors.warmBrown, width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.large,
+                  vertical: 14,
+                ),
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(999),
-                borderSide: BorderSide(color: AppColors.borderPrimary),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(999),
-                borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
-              ),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.large),
+              onChanged: (_) => setState(() {}),
             ),
-            onChanged: (_) => setState(() {}),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPodcastsTab() {
+  Widget _buildPodcastsTab(bool isDesktop) {
     final filteredPodcasts = _getFilteredPodcasts();
     
     return Column(
       children: [
-        // Filter chips
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.medium),
-          color: Colors.white,
+        // Filter chips (Type)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           child: Row(
             children: [
-              Text('Filter:', style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary)),
+              Text('Type:', style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary)),
               const SizedBox(width: AppSpacing.small),
-              _buildFilterChip('All', _podcastFilter == 'All'),
-              const SizedBox(width: AppSpacing.tiny),
-              _buildFilterChip('Audio', _podcastFilter == 'Audio'),
-              const SizedBox(width: AppSpacing.tiny),
-              _buildFilterChip('Video', _podcastFilter == 'Video'),
+              _buildPodcastTypeChip('All', _podcastFilter == 'All'),
+              const SizedBox(width: 8),
+              _buildPodcastTypeChip('Audio', _podcastFilter == 'Audio'),
+              const SizedBox(width: 8),
+              _buildPodcastTypeChip('Video', _podcastFilter == 'Video'),
             ],
           ),
         ),
         Expanded(
-          child: _buildContentList(filteredPodcasts, 'podcasts'),
+          child: _buildContentList(filteredPodcasts, 'podcasts', isDesktop),
         ),
       ],
     );
   }
 
-  Widget _buildFilterChip(String label, bool isSelected) {
-    return StyledFilterChip(
-      label: label,
+  Widget _buildPodcastTypeChip(String label, bool isSelected) {
+    return ChoiceChip(
+      label: Text(label),
       selected: isSelected,
-      onTap: () {
-        setState(() {
-          _podcastFilter = label;
-        });
+      onSelected: (selected) {
+        if (selected) {
+          setState(() {
+            _podcastFilter = label;
+          });
+        }
       },
+      selectedColor: AppColors.warmBrown.withValues(alpha: 0.2),
+      backgroundColor: Colors.white,
+      labelStyle: TextStyle(
+        color: isSelected ? AppColors.warmBrown : AppColors.textSecondary,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+      side: BorderSide(
+        color: isSelected ? AppColors.warmBrown : AppColors.borderPrimary,
+      ),
     );
   }
 
-  Widget _buildContentList(List<dynamic> content, String contentType) {
+  Widget _buildContentList(List<dynamic> content, String contentType, bool isDesktop) {
     final filtered = _applySearch(content);
     
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.warmBrown),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(color: AppColors.warmBrown),
+            const SizedBox(height: 16),
+            Text(
+              'Loading content...',
+              style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
       );
     }
 
@@ -520,16 +466,17 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 64, color: AppColors.errorMain),
-              const SizedBox(height: AppSpacing.medium),
+              const Icon(Icons.error_outline, size: 48, color: AppColors.errorMain),
+              const SizedBox(height: 16),
               Text('Error loading content', style: AppTypography.heading3),
-              const SizedBox(height: AppSpacing.small),
+              const SizedBox(height: 8),
               Text(_error!, style: AppTypography.body.copyWith(color: AppColors.textSecondary)),
-              const SizedBox(height: AppSpacing.large),
+              const SizedBox(height: 24),
               StyledPillButton(
                 label: 'Retry',
                 icon: Icons.refresh,
                 onPressed: _loadAllContent,
+                width: 120,
               ),
             ],
           ),
@@ -551,25 +498,44 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
     return RefreshIndicator(
       onRefresh: _loadAllContent,
       color: AppColors.warmBrown,
-      child: ListView.builder(
-        padding: ResponsiveGridDelegate.getResponsivePadding(context),
-        itemCount: filtered.length,
-        itemBuilder: (context, index) {
-          final item = filtered[index];
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: index == filtered.length - 1 ? 0 : AppSpacing.small,
-            ),
-            child: AdminContentCard(
+      child: isDesktop 
+      ? GridView.builder(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 600, // Wide cards
+            childAspectRatio: 2.5, // Similar ratio to User Management
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: filtered.length,
+          itemBuilder: (context, index) {
+            final item = filtered[index];
+            return AdminContentCard(
               item: item,
               showApproveReject: false,
               showDeleteArchive: true,
               onDelete: () => _handleDelete(item),
-              // onArchive: () => _handleArchive(item), // Removed per user request
-            ),
-          );
-        },
-      ),
+              // onArchive: () => _handleArchive(item),
+            );
+          },
+        )
+      : ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          itemCount: filtered.length,
+          itemBuilder: (context, index) {
+            final item = filtered[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: AdminContentCard(
+                item: item,
+                showApproveReject: false,
+                showDeleteArchive: true,
+                onDelete: () => _handleDelete(item),
+                // onArchive: () => _handleArchive(item),
+              ),
+            );
+          },
+        ),
     );
   }
 }

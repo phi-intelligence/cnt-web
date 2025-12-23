@@ -78,25 +78,29 @@ class AdminContentCard extends StatelessWidget {
       }
     }
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSpacing.small),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-        side: BorderSide(
-          color: isSelected 
-              ? AppColors.warmBrown 
-              : AppColors.cardBorder,
-          width: isSelected ? 2 : 1,
-        ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: isSelected 
+            ? Border.all(color: AppColors.warmBrown, width: 2) 
+            : Border.all(color: Colors.transparent),
       ),
-      color: AppColors.cardBackground,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.medium),
+          padding: const EdgeInsets.all(16),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Selection checkbox (if enabled)
               if (onSelectionChanged != null) ...[
@@ -104,64 +108,70 @@ class AdminContentCard extends StatelessWidget {
                   value: isSelected,
                   onChanged: (value) => onSelectionChanged?.call(value ?? false),
                   activeColor: AppColors.warmBrown,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                 ),
-                const SizedBox(width: AppSpacing.small),
+                const SizedBox(width: 8),
               ],
 
               // Thumbnail
               Container(
-                width: 80,
-                height: 80,
+                width: 72, 
+                height: 72,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                  borderRadius: BorderRadius.circular(12),
                   color: AppColors.backgroundSecondary,
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                  borderRadius: BorderRadius.circular(12),
                   child: thumbnail != null
                       ? Image(
                           image: ImageHelper.getImageProvider(thumbnail),
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
-                            return _buildPlaceholder();
+                            return _buildPlaceholder(type);
                           },
                         )
-                      : _buildPlaceholder(),
+                      : _buildPlaceholder(type),
                 ),
               ),
-              const SizedBox(width: AppSpacing.medium),
+              const SizedBox(width: 16),
 
               // Content info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Row(
                       children: [
+                        // Status Badge first if mobile, or inline? 
+                        // Let's keep title prominent.
                         Expanded(
                           child: Text(
                             title,
                             style: AppTypography.heading4.copyWith(
                               color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                              height: 1.2,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.small),
-                        AdminStatusBadge(status: status),
+                        const SizedBox(width: 8),
+                        if (!isMobile) AdminStatusBadge(status: status),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.tiny),
+                    const SizedBox(height: 6),
                     Row(
                       children: [
-                        Icon(
-                          Icons.person_outline,
-                          size: AppSpacing.iconSizeSmall,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: AppSpacing.tiny),
-                        Expanded(
+                        if (isMobile) ...[
+                           AdminStatusBadge(status: status),
+                           const SizedBox(width: 8),
+                        ],
+                        _buildInfoIcon(Icons.person_outline),
+                        const SizedBox(width: 4),
+                        Flexible(
                           child: Text(
                             creatorName,
                             style: AppTypography.bodySmall.copyWith(
@@ -171,18 +181,10 @@ class AdminContentCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ],
-                    ),
-                    if (date != null) ...[
-                      const SizedBox(height: AppSpacing.tiny),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.calendar_today_outlined,
-                            size: AppSpacing.iconSizeSmall,
-                            color: AppColors.textTertiary,
-                          ),
-                          const SizedBox(width: AppSpacing.tiny),
+                        if (date != null) ...[
+                          const SizedBox(width: 12),
+                          _buildInfoIcon(Icons.calendar_today_outlined),
+                          const SizedBox(width: 4),
                           Text(
                             DateFormat('MMM dd, yyyy').format(date),
                             style: AppTypography.caption.copyWith(
@@ -190,87 +192,128 @@ class AdminContentCard extends StatelessWidget {
                             ),
                           ),
                         ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ],
                 ),
               ),
 
-              // Actions - Approve/Reject buttons (pill-shaped)
-              if (showApproveReject && (onApprove != null || onReject != null)) ...[
-                SizedBox(width: isMobile ? AppSpacing.tiny : AppSpacing.small),
-                Flexible(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: isMobile ? CrossAxisAlignment.stretch : CrossAxisAlignment.end,
-                    children: [
-                      if (onApprove != null)
-                        StyledPillButton(
-                          label: 'Approve',
-                          icon: Icons.check,
-                          onPressed: onApprove,
-                          variant: StyledPillButtonVariant.filled,
-                          width: isMobile ? null : 100,
-                        ),
-                      if (onApprove != null && onReject != null)
-                        SizedBox(height: isMobile ? AppSpacing.small : AppSpacing.tiny),
-                      if (onReject != null)
-                        StyledPillButton(
-                          label: 'Reject',
-                          icon: Icons.close,
-                          onPressed: onReject,
-                          variant: StyledPillButtonVariant.outlined,
-                          width: isMobile ? null : 100,
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-              // Actions - Delete/Archive buttons (pill-shaped)
-              if (showDeleteArchive && (onDelete != null || onArchive != null)) ...[
-                SizedBox(width: isMobile ? AppSpacing.tiny : AppSpacing.small),
-                Flexible(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: isMobile ? CrossAxisAlignment.stretch : CrossAxisAlignment.end,
-                    children: [
-                      if (onArchive != null)
-                        StyledPillButton(
-                          label: 'Archive',
-                          icon: Icons.archive_outlined,
-                          onPressed: onArchive,
-                          variant: StyledPillButtonVariant.outlined,
-                          width: isMobile ? null : 100,
-                        ),
-                      if (onArchive != null && onDelete != null)
-                        SizedBox(height: isMobile ? AppSpacing.small : AppSpacing.tiny),
-                      if (onDelete != null)
-                        StyledPillButton(
-                          label: 'Delete',
-                          icon: Icons.delete_outline,
-                          onPressed: onDelete,
-                          variant: StyledPillButtonVariant.outlined,
-                          width: isMobile ? null : 100,
-                        ),
-                    ],
-                  ),
-                ),
-              ],
+              // Actions
+              const SizedBox(width: 16),
+              _buildActions(isMobile),
             ],
           ),
         ),
       ),
     );
   }
+  
+  Widget _buildInfoIcon(IconData icon) {
+    return Icon(
+      icon,
+      size: 14,
+      color: AppColors.textTertiary,
+    );
+  }
 
-  Widget _buildPlaceholder() {
-    final type = item['type'] as String? ?? 'unknown';
+  Widget _buildActions(bool isMobile) {
+    // Pending Actions: Approve / Reject
+    if (showApproveReject && (onApprove != null || onReject != null)) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (onReject != null)
+            _buildActionButton(
+              icon: Icons.close,
+              color: AppColors.errorMain,
+              tooltip: 'Reject',
+              onPressed: onReject!,
+            ),
+          const SizedBox(width: 8),
+          if (onApprove != null)
+             _buildActionButton(
+              icon: Icons.check,
+              color: AppColors.successMain,
+              tooltip: 'Approve',
+              onPressed: onApprove!,
+              isFilled: true, 
+            ),
+        ],
+      );
+    }
+    
+    // Approved Actions: Delete / Archive
+    if (showDeleteArchive && (onDelete != null || onArchive != null)) {
+       return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (onArchive != null)
+            _buildActionButton(
+              icon: Icons.archive_outlined,
+              color: AppColors.textSecondary,
+              tooltip: 'Archive',
+              onPressed: onArchive!,
+            ),
+          if (onArchive != null && onDelete != null)
+            const SizedBox(width: 8),
+          if (onDelete != null)
+            _buildActionButton(
+              icon: Icons.delete_outline,
+              color: AppColors.textSecondary,
+              hoverColor: AppColors.errorMain,
+              tooltip: 'Delete',
+              onPressed: onDelete!,
+            ),
+        ],
+      );
+    }
+    
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required String tooltip,
+    required VoidCallback onPressed,
+    Color? hoverColor,
+    bool isFilled = false,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: isFilled ? color : Colors.transparent,
+        borderRadius: BorderRadius.circular(isFilled ? 20 : 50),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(isFilled ? 20 : 50),
+          hoverColor: (hoverColor ?? color).withOpacity(0.1),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: isFilled ? null : BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withOpacity(0.3), width: 1),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              icon,
+              size: 20,
+              color: isFilled ? Colors.white : color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(String type) {
     return Container(
       color: AppColors.backgroundSecondary,
       child: Center(
         child: Text(
           _getTypeIcon(type),
-          style: const TextStyle(fontSize: 32),
+          style: const TextStyle(fontSize: 28),
         ),
       ),
     );

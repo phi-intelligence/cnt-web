@@ -11,14 +11,14 @@ import '../../providers/auth_provider.dart';
 import '../../providers/support_provider.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/responsive_grid_delegate.dart';
-import '../../widgets/web/section_container.dart';
-import '../../widgets/web/styled_pill_button.dart';
+
 import '../../providers/artist_provider.dart';
 import 'landing_screen_web.dart';
 import '../support/support_center_screen.dart';
 import '../admin/admin_support_page.dart';
 import '../edit_profile_screen.dart';
 import '../../utils/media_utils.dart';
+import '../../utils/responsive_utils.dart';
 
 /// Web Profile Screen - Complete Redesign
 class ProfileScreenWeb extends StatefulWidget {
@@ -225,7 +225,6 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 768;
-    final isDesktop = screenWidth >= 1024;
     
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
@@ -355,7 +354,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
   ) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(isMobile ? AppSpacing.large : AppSpacing.extraLarge),
+      padding: EdgeInsets.all(ResponsiveUtils.isSmallMobile(context) ? AppSpacing.medium : (isMobile ? AppSpacing.large : AppSpacing.extraLarge)),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -375,8 +374,8 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
             child: Stack(
               children: [
               Container(
-                width: 120,
-                height: 120,
+                width: ResponsiveUtils.isSmallMobile(context) ? 90 : 120,
+                height: ResponsiveUtils.isSmallMobile(context) ? 90 : 120,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
@@ -398,9 +397,9 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                           avatarUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
+                            return Icon(
                               Icons.person,
-                              size: 60,
+                              size: ResponsiveUtils.isSmallMobile(context) ? 45 : 60,
                               color: Colors.white,
                             );
                           },
@@ -529,7 +528,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
   Widget _buildUserDetailsBox(Map<String, dynamic>? profileUser, bool isAdmin) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(AppSpacing.extraLarge),
+      padding: EdgeInsets.all(ResponsiveUtils.isSmallMobile(context) ? AppSpacing.medium : AppSpacing.extraLarge),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -707,7 +706,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
         
         return Container(
           width: double.infinity,
-          padding: EdgeInsets.all(isMobile ? AppSpacing.large : AppSpacing.extraLarge),
+          padding: EdgeInsets.all(ResponsiveUtils.isSmallMobile(context) ? AppSpacing.medium : (isMobile ? AppSpacing.large : AppSpacing.extraLarge)),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
@@ -797,27 +796,48 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                     const SizedBox(height: AppSpacing.large),
                     
                     // Action buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildActionButton(
+                    // Action buttons
+                    if (ResponsiveUtils.isSmallMobile(context))
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildActionButton(
                             'Manage Profile',
                             Icons.edit,
                             true,
                             () => context.go('/artist/manage'),
                           ),
-                        ),
-                        const SizedBox(width: AppSpacing.medium),
-                        Expanded(
-                          child: _buildActionButton(
+                          const SizedBox(height: AppSpacing.medium),
+                          _buildActionButton(
                             'View Public',
                             Icons.visibility,
                             false,
                             () => context.go('/artist/${artist.id}'),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      )
+                    else
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildActionButton(
+                              'Manage Profile',
+                              Icons.edit,
+                              true,
+                              () => context.go('/artist/manage'),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.medium),
+                          Expanded(
+                            child: _buildActionButton(
+                              'View Public',
+                              Icons.visibility,
+                              false,
+                              () => context.go('/artist/${artist.id}'),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 )
               else

@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
+import '../../utils/responsive_utils.dart';
 import 'register_screen_web.dart';
 
 class UserLoginScreenWeb extends StatefulWidget {
@@ -56,20 +57,26 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
 
   @override
   Widget build(BuildContext context) {
+    // Add responsive check
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final isMobile = ResponsiveUtils.isMobile(context);
+    
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.all(isSmallMobile ? 12.0 : 24.0),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 450),
+            constraints: BoxConstraints(
+              maxWidth: isMobile ? double.infinity : 450,
+            ),
             child: Card(
               elevation: 4,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Padding(
-                padding: EdgeInsets.all(AppSpacing.extraLarge),
+                padding: EdgeInsets.all(isSmallMobile ? AppSpacing.medium : AppSpacing.extraLarge),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -79,18 +86,18 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
                       // Logo/Icon
                       Image.asset(
                         'assets/images/CNT-LOGO.png',
-                        width: 64,
-                        height: 64,
+                        width: isSmallMobile ? 48 : 64,
+                        height: isSmallMobile ? 48 : 64,
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) {
                           return Icon(
                             Icons.church,
-                            size: 64,
+                            size: isSmallMobile ? 48 : 64,
                             color: AppColors.primaryMain,
                           );
                         },
                       ),
-                      const SizedBox(height: AppSpacing.large),
+                      SizedBox(height: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
                       
                       // Title
                       Text(
@@ -98,6 +105,7 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
                         style: AppTypography.heading1.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
+                          fontSize: isSmallMobile ? 24 : null, // Scale down title
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -109,7 +117,7 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: AppSpacing.extraLarge),
+                      SizedBox(height: isSmallMobile ? AppSpacing.large : AppSpacing.extraLarge),
                       
                       // Username or Email Field
                       TextFormField(
@@ -135,6 +143,8 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
                           ),
                           filled: true,
                           fillColor: AppColors.backgroundSecondary,
+                          // Adjust styling for small mobile
+                          contentPadding: isSmallMobile ? EdgeInsets.symmetric(horizontal: 12, vertical: 12) : null,
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -143,7 +153,7 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: AppSpacing.large),
+                      SizedBox(height: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
                       
                       // Password Field
                       TextFormField(
@@ -179,6 +189,7 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
                           ),
                           filled: true,
                           fillColor: AppColors.backgroundSecondary,
+                          contentPadding: isSmallMobile ? EdgeInsets.symmetric(horizontal: 12, vertical: 12) : null,
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -187,7 +198,7 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: AppSpacing.extraLarge),
+                      SizedBox(height: isSmallMobile ? AppSpacing.large : AppSpacing.extraLarge),
                       
                       // Login Button
                       Consumer<AuthProvider>(
@@ -222,16 +233,20 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
                           );
                         },
                       ),
-                      const SizedBox(height: AppSpacing.large),
+                      SizedBox(height: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
                       
                       // Register Link
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            'Don\'t have an account? ',
-                            style: AppTypography.body.copyWith(
-                              color: AppColors.textSecondary,
+                          Flexible(
+                            child: Text(
+                              'Don\'t have an account? ',
+                              style: AppTypography.body.copyWith(
+                                color: AppColors.textSecondary,
+                                fontSize: isSmallMobile ? 14 : null,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           TextButton(
@@ -248,6 +263,7 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
                               style: AppTypography.body.copyWith(
                                 color: AppColors.primaryMain,
                                 fontWeight: FontWeight.w600,
+                                fontSize: isSmallMobile ? 14 : null,
                               ),
                             ),
                           ),

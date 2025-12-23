@@ -9,6 +9,7 @@ import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
 import '../../config/app_config.dart';
 import 'package:go_router/go_router.dart';
+import '../../utils/responsive_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ArtistProfileScreen extends StatefulWidget {
@@ -98,8 +99,12 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> with SingleTi
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
-      body: Consumer<ArtistProvider>(
-        builder: (context, provider, _) {
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+          
+          return Consumer<ArtistProvider>(
+            builder: (context, provider, _) {
           final artist = provider.getArtist(widget.artistId);
           final isLoading = provider.isArtistLoading(widget.artistId);
           final error = provider.getArtistError(widget.artistId);
@@ -138,7 +143,7 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> with SingleTi
             slivers: [
               // Header with cover image and artist info
               SliverAppBar(
-                expandedHeight: 300,
+                expandedHeight: isSmallMobile ? 220 : 300,
                 pinned: true,
                 backgroundColor: AppColors.warmBrown,
                 foregroundColor: Colors.white,
@@ -153,13 +158,13 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> with SingleTi
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
                             color: AppColors.warmBrown.withOpacity(0.3),
-                            child: Icon(Icons.person, size: 100, color: AppColors.warmBrown),
+                            child: Icon(Icons.person, size: isSmallMobile ? 60 : 100, color: AppColors.warmBrown),
                           ),
                         )
                       else
                         Container(
                           color: AppColors.warmBrown.withOpacity(0.3),
-                          child: Icon(Icons.person, size: 100, color: AppColors.warmBrown),
+                          child: Icon(Icons.person, size: isSmallMobile ? 60 : 100, color: AppColors.warmBrown),
                         ),
                       // Gradient overlay
                       Container(
@@ -209,7 +214,7 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> with SingleTi
               // Stats, bio, social links, follow button
               SliverToBoxAdapter(
                 child: Container(
-                  padding: EdgeInsets.all(AppSpacing.large),
+                  padding: EdgeInsets.all(isSmallMobile ? AppSpacing.medium : AppSpacing.large),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -317,6 +322,8 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> with SingleTi
             ],
           );
         },
+      );
+        },
       ),
     );
   }
@@ -324,7 +331,12 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> with SingleTi
   Widget _buildStat(String label, String value) {
     return Column(
       children: [
-        Text(value, style: AppTypography.heading1.copyWith(color: AppColors.accentMain)),
+        Text(
+          value, 
+          style: ResponsiveUtils.isSmallMobile(context) 
+            ? AppTypography.heading3.copyWith(color: AppColors.accentMain)
+            : AppTypography.heading1.copyWith(color: AppColors.accentMain),
+        ),
         SizedBox(height: 4),
         Text(label, style: AppTypography.caption),
       ],

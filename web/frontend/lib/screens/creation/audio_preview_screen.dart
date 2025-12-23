@@ -216,6 +216,10 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
       audioPathToUse = ApiService().getMediaUrl(widget.audioUri);
     }
     
+    // IMPORTANT: Clear any previous audio editor state before starting fresh
+    // This ensures old audio data doesn't persist when editing a new audio file
+    await StatePersistence.clearAudioEditorState();
+    
     // Save state before navigating to editor
     await _saveState();
     

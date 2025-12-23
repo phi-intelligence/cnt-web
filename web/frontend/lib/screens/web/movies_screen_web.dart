@@ -14,6 +14,7 @@ import '../../services/api_service.dart';
 import '../../models/content_item.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/dimension_utils.dart';
+import '../../utils/responsive_utils.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../widgets/web/styled_page_header.dart';
 import 'movie_detail_screen_web.dart';
@@ -29,11 +30,14 @@ class MoviesScreenWeb extends StatefulWidget {
 class _MoviesScreenWebState extends State<MoviesScreenWeb> {
   final ApiService _api = ApiService();
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  
   List<ContentItem> _movies = [];
   List<ContentItem> _filteredMovies = [];
   bool _isLoading = false;
   String _selectedCategory = 'All';
   final List<String> _categories = ['All', 'Movies', 'Animated Bible Stories'];
+  double _scrollOffset = 0.0;
   
   // Carousel State
   int _currentHeroIndex = 0;
@@ -49,12 +53,14 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
     super.initState();
     _heroPageController = PageController();
     _searchController.addListener(_onSearchChanged);
+    _scrollController.addListener(_onScroll);
     _fetchMovies();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     _heroTimer?.cancel();
     _heroPageController.dispose();
     // Dispose all video controllers
@@ -67,6 +73,12 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
     _previewControllers.clear();
     _previewTimers.clear();
     super.dispose();
+  }
+  
+  void _onScroll() {
+    setState(() {
+      _scrollOffset = _scrollController.offset;
+    });
   }
 
   void _startHeroTimer() {
@@ -243,6 +255,23 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
       setState(() {});
     }
   }
+  
+  // Calculate carousel opacity based on scroll position - Parallax effect
+  double _calculateCarouselOpacity() {
+    const fadeStart = 100.0;
+    const fadeEnd = 500.0;
+    
+    if (_scrollOffset < fadeStart) return 1.0;
+    if (_scrollOffset > fadeEnd) return 0.0;
+    
+    final fadeProgress = (_scrollOffset - fadeStart) / (fadeEnd - fadeStart);
+    return (1.0 - fadeProgress).clamp(0.0, 1.0);
+  }
+  
+  // Calculate parallax offset for carousel
+  double _calculateParallaxOffset() {
+    return _scrollOffset * 0.5;
+  }
 
   void _handleMovieTap(ContentItem item) {
     // Navigate to movie detail screen (web version)
@@ -272,158 +301,241 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isDesktop = screenWidth >= 1024;
+
     // Top 5 movies for carousel
     final carouselMovies = _movies.take(5).toList();
+    
+    // Responsive carousel height
+    // Responsive carousel height
+    final carouselHeight = isDesktop ? 600.0 : (ResponsiveUtils.isSmallMobile(context) ? 300.0 : 450.0);
+    final whiteCardTopMargin = carouselHeight * 0.75; // Increased overlap for premium feel
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
-      body: CustomScrollView(
-        slivers: [
-          // Hero Carousel Section
-          if (carouselMovies.isNotEmpty && !_isLoading)
-            SliverToBoxAdapter(
-              child: _buildHeroCarousel(carouselMovies),
-            )
-          else if (!_isLoading)
-             SliverToBoxAdapter(
-               child: Container(
-                 height: 400,
-                 color: Colors.black,
-                 child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                       Container(
-                         decoration: BoxDecoration(
-                           gradient: LinearGradient(
-                             colors: [AppColors.warmBrown.withOpacity(0.3), Colors.black],
-                             begin: Alignment.topCenter,
-                             end: Alignment.bottomCenter
-                           )
-                         ),
-                       ),
-                       Center(
-                         child: Column(
-                           mainAxisSize: MainAxisSize.min,
-                           children: [
-                             Icon(Icons.movie, size: 64, color: Colors.white.withOpacity(0.5)),
-                             SizedBox(height: AppSpacing.medium),
-                             Text('Explore Movies', style: AppTypography.heading1.copyWith(color: Colors.white)),
-                           ],
-                         ),
-                       )
-                    ]
-                 ),
-               )
-             ),
-
-          // Search and Filter Section
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: ResponsiveGridDelegate.getResponsivePadding(context),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   const SizedBox(height: AppSpacing.large),
-                   SectionContainer(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        StyledSearchField(
-                          controller: _searchController,
-                          hintText: 'Search movies...',
-                          onChanged: (_) => _filterMovies(),
-                        ),
-                        const SizedBox(height: AppSpacing.medium),
-                        // Category Filter Chips
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: _categories.map((category) {
-                              final isSelected = category == _selectedCategory;
-                              return Padding(
-                                padding: EdgeInsets.only(right: AppSpacing.small),
-                                child: StyledFilterChip(
-                                  label: category,
-                                  selected: isSelected,
-                                  onSelected: (selected) {
-                                    _onCategoryChanged(category);
-                                  },
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.extraLarge),
-                ],
+      body: Stack(
+        children: [
+          // Background Layer: Carousel with fade and parallax
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: carouselHeight,
+            child: Transform.translate(
+              offset: Offset(0, _calculateParallaxOffset()),
+              child: AnimatedOpacity(
+                opacity: _calculateCarouselOpacity(),
+                duration: const Duration(milliseconds: 100),
+                child: IgnorePointer(
+                  ignoring: _calculateCarouselOpacity() < 0.1,
+                  child: carouselMovies.isNotEmpty && !_isLoading
+                      ? _buildHeroCarousel(carouselMovies, carouselHeight)
+                      : _buildPlaceholderHero(carouselHeight),
+                ),
               ),
             ),
           ),
-
-          // Movies Grid
-          SliverPadding(
-            padding: ResponsiveGridDelegate.getResponsivePadding(context),
-            sliver: _isLoading
-                ? SliverGrid(
-                    gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
-                      context,
-                      desktop: 5,
-                      tablet: 3,
-                      mobile: 2,
-                      childAspectRatio: _getChildAspectRatio(context),
-                      crossAxisSpacing: AppSpacing.medium,
-                      mainAxisSpacing: AppSpacing.medium,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => const LoadingShimmer(width: double.infinity, height: 250),
-                      childCount: 10,
-                    ),
-                  )
-                : _filteredMovies.isEmpty
-                    ? SliverToBoxAdapter(
-                        child: const EmptyState(
-                          icon: Icons.movie,
-                          title: 'No Movies Found',
-                          message: 'Try adjusting your search',
-                        ),
-                      )
-                    : SliverGrid(
-                        gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
-                          context,
-                          desktop: 5,
-                          tablet: 3,
-                          mobile: 2,
-                          childAspectRatio: _getChildAspectRatio(context),
-                          crossAxisSpacing: AppSpacing.medium,
-                          mainAxisSpacing: AppSpacing.medium,
-                        ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final movie = _filteredMovies[index];
-                            return ContentCardWeb(
-                              item: movie,
-                              onTap: () => _handleMovieTap(movie),
-                              onPlay: () => _handleMovieTap(movie),
-                            );
-                          },
-                          childCount: _filteredMovies.length,
-                        ),
-                      ),
-          ),
           
-          SliverToBoxAdapter(child: SizedBox(height: AppSpacing.extraLarge * 2)),
+          // Foreground Layer: Scrollable content in white card
+          SingleChildScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                // Spacer to push white card down
+                IgnorePointer(
+                  ignoring: true,
+                  child: SizedBox(height: whiteCardTopMargin),
+                ),
+                
+                // White Floating Card containing all content
+                Container(
+                  width: double.infinity,
+                  constraints: BoxConstraints(
+                    minHeight: screenHeight - whiteCardTopMargin,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundPrimary,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(32),
+                      topRight: Radius.circular(32),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 30,
+                        offset: const Offset(0, -5),
+                        spreadRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: ResponsiveGridDelegate.getResponsivePadding(context),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: AppSpacing.large),
+                        
+                        // Header & Filters Section
+                        SectionContainer(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'Featured Movies',
+                                      style: AppTypography.heading2.copyWith(
+                                        color: AppColors.textPrimary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isDesktop) 
+                                    SizedBox(
+                                      width: 300,
+                                      child: StyledSearchField(
+                                        controller: _searchController,
+                                        hintText: 'Search movies...',
+                                        onChanged: (_) => _filterMovies(),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              
+                              if (!isDesktop) ...[
+                                const SizedBox(height: AppSpacing.medium),
+                                StyledSearchField(
+                                  controller: _searchController,
+                                  hintText: 'Search movies...',
+                                  onChanged: (_) => _filterMovies(),
+                                ),
+                              ],
+                              
+                              const SizedBox(height: AppSpacing.medium),
+                              
+                              // Category Filter Chips
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: _categories.map((category) {
+                                    final isSelected = category == _selectedCategory;
+                                    return Padding(
+                                      padding: EdgeInsets.only(right: AppSpacing.small),
+                                      child: StyledFilterChip(
+                                        label: category,
+                                        selected: isSelected,
+                                        onSelected: (selected) {
+                                          _onCategoryChanged(category);
+                                        },
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        const SizedBox(height: AppSpacing.extraLarge),
+
+                        // Movies Grid
+                        if (_isLoading)
+                          GridView.builder(
+                            padding: EdgeInsets.zero,
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+                              context,
+                              desktop: 5,
+                              tablet: 3,
+                              mobile: 2,
+                              childAspectRatio: _getChildAspectRatio(context),
+                              crossAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : AppSpacing.medium,
+                              mainAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : AppSpacing.medium,
+                            ),
+                            itemCount: 10,
+                            itemBuilder: (context, index) => const LoadingShimmer(width: double.infinity, height: 250),
+                          )
+                        else if (_filteredMovies.isEmpty)
+                          const EmptyState(
+                            icon: Icons.movie,
+                            title: 'No Movies Found',
+                            message: 'Try adjusting your search',
+                          )
+                        else
+                          GridView.builder(
+                            padding: EdgeInsets.zero,
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+                              context,
+                              desktop: 5,
+                              tablet: 3,
+                              mobile: 2,
+                              childAspectRatio: _getChildAspectRatio(context),
+                              crossAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : AppSpacing.medium,
+                              mainAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : AppSpacing.medium,
+                            ),
+                            itemCount: _filteredMovies.length,
+                            itemBuilder: (context, index) {
+                              final movie = _filteredMovies[index];
+                              return ContentCardWeb(
+                                item: movie,
+                                onTap: () => _handleMovieTap(movie),
+                                onPlay: () => _handleMovieTap(movie),
+                              );
+                            },
+                          ),
+                          
+                        const SizedBox(height: AppSpacing.extraLarge * 2),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildPlaceholderHero(double height) {
+    return Container(
+      height: height,
+      color: Colors.black,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.warmBrown.withOpacity(0.3), Colors.black],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter
+              )
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.movie, size: 64, color: Colors.white.withOpacity(0.5)),
+                SizedBox(height: AppSpacing.medium),
+                Text('Explore Movies', style: AppTypography.heading1.copyWith(color: Colors.white)),
+              ],
+            ),
+          )
         ],
       ),
     );
   }
 
-  Widget _buildHeroCarousel(List<ContentItem> movies) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth >= 1024;
-    final height = isDesktop ? 600.0 : 450.0;
-
+  Widget _buildHeroCarousel(List<ContentItem> movies, double height) {
     return SizedBox(
       height: height,
       child: Stack(
@@ -459,7 +571,7 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
             bottom: 0,
             left: 0,
             right: 0,
-            height: 100,
+            height: 150,
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -467,6 +579,7 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
+                    Colors.black.withOpacity(0.4),
                     Colors.black.withOpacity(0.8),
                   ],
                 ),
@@ -476,7 +589,7 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
 
           // Page Indicators
           Positioned(
-            bottom: 20,
+            bottom: height * 0.3, // Lifted for floating sheet
             left: 0,
             right: 0,
             child: Row(
@@ -544,7 +657,7 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
               colors: [
                 Colors.black.withOpacity(0.1),
                 Colors.black.withOpacity(0.4),
-                AppColors.backgroundPrimary.withOpacity(0.6), // Smoother blend to body
+                Colors.black.withOpacity(0.7), // Darker blend for text
               ],
               stops: const [0.0, 0.5, 1.0],
             ),
@@ -553,7 +666,7 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
 
         // Content
         Positioned(
-          bottom: AppSpacing.extraLarge * 2, // Moved up to make space for dots
+          bottom: height * 0.35, // Moved up for floating sheet (was AppSpacing.extraLarge * 2)
           left: 0,
           right: 0,
           child: Padding(
@@ -582,7 +695,7 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
                    item.title,
                    style: AppTypography.heading1.copyWith(
                      color: Colors.white,
-                     fontSize: isDesktop ? 64 : 36, // Larger title
+                     fontSize: isDesktop ? 64 : (ResponsiveUtils.isSmallMobile(context) ? 28 : 36), // Larger title
                      fontWeight: FontWeight.bold,
                      height: 1.1,
                      shadows: [

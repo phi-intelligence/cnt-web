@@ -178,11 +178,15 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   }
 
   /// Hero section with header, headline, and CTA
+  /// Hero section with header, headline, and CTA
   Widget _buildHeroSection() {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
-    final isTablet = screenWidth >= 600 && screenWidth < 1024;
+    
+    // Use ResponsiveUtils for breakpoints
+    final isSmallMobile = screenWidth < 375;
+    final isMobile = screenWidth < 640;
+    final isTablet = screenWidth >= 640 && screenWidth < 1024;
     
     return Container(
       width: double.infinity,
@@ -191,11 +195,16 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
         children: [
           // Background: Full image - responsive, positioned more to the right
           Positioned(
-            top: isMobile ? -50 : 0, // Shift up on mobile to show face
+            top: isMobile ? (isSmallMobile ? -30 : -50) : 0, 
             bottom: isMobile ? null : 0,
-            right: isMobile ? -screenWidth * 0.3 : -100, // Adjust for mobile
-            height: isMobile ? screenHeight * 0.7 : null, // Limit height on mobile
-            width: isMobile ? screenWidth * 1.2 : screenWidth * 0.75,
+            // Adjust position for small screens to ensure face isn't covered
+            right: isMobile 
+                ? (isSmallMobile ? -screenWidth * 0.45 : -screenWidth * 0.3) 
+                : -100, 
+            height: isMobile ? screenHeight * (isSmallMobile ? 0.6 : 0.7) : null,
+            width: isMobile 
+                ? (isSmallMobile ? screenWidth * 1.5 : screenWidth * 1.2) 
+                : screenWidth * 0.75,
             child: Container(
               decoration: BoxDecoration(
                 image: DecorationImage(
@@ -217,7 +226,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                       ? [
                           const Color(0xFFF5F0E8),
                           const Color(0xFFF5F0E8).withOpacity(0.95),
-                          const Color(0xFFF5F0E8).withOpacity(0.6),
+                          const Color(0xFFF5F0E8).withOpacity(0.7), // Increased opacity for readability
                           Colors.transparent,
                         ]
                       : [
@@ -228,7 +237,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                           Colors.transparent,
                         ],
                   stops: isMobile
-                      ? const [0.0, 0.3, 0.6, 1.0]
+                      ? const [0.0, 0.4, 0.7, 1.0] // Pushed stops further to cover text area
                       : const [0.0, 0.25, 0.4, 0.5, 0.65],
                 ),
               ),
@@ -239,7 +248,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
             top: 0,
             left: 0,
             right: 0,
-            child: _buildHeader(isMobile),
+            child: _buildHeader(isMobile, isSmallMobile),
           ),
           // Hero content on the left
           Positioned(
@@ -250,8 +259,12 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
             child: Center(
               child: Container(
                 padding: EdgeInsets.only(
-                  left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
-                  right: isMobile ? AppSpacing.large : AppSpacing.extraLarge,
+                  left: isMobile 
+                      ? (isSmallMobile ? AppSpacing.medium : AppSpacing.large) 
+                      : AppSpacing.extraLarge * 3,
+                  right: isMobile 
+                      ? (isSmallMobile ? AppSpacing.medium : AppSpacing.large) 
+                      : AppSpacing.extraLarge,
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -263,33 +276,36 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                       style: AppTypography.getResponsiveHeroTitle(context).copyWith(
                         color: AppColors.primaryDark,
                         fontWeight: FontWeight.bold,
-                        fontSize: isMobile ? 32 : (isTablet ? 48 : 56),
+                        // Dynamic font size scaling
+                        fontSize: isSmallMobile 
+                            ? 28 
+                            : (isMobile ? 36 : (isTablet ? 48 : 56)),
                         height: 1.1,
                       ),
                     ),
-                    SizedBox(height: AppSpacing.extraLarge),
+                    SizedBox(height: isSmallMobile ? AppSpacing.medium : AppSpacing.extraLarge),
                     
                     // Subtitle
                     Text(
                       'Uplifting movies, podcasts, and sermons.\nAlways ad free.',
                       style: AppTypography.getResponsiveBody(context).copyWith(
                         color: AppColors.primaryDark.withOpacity(0.8),
-                        fontSize: isMobile ? 16 : 18,
+                        fontSize: isSmallMobile ? 14 : (isMobile ? 16 : 18),
                         height: 1.5,
                       ),
                     ),
-                    SizedBox(height: AppSpacing.medium),
+                    SizedBox(height: isSmallMobile ? AppSpacing.small : AppSpacing.medium),
                     Text(
                       'Watch Anywhere. Cancel Anytime.',
                       style: AppTypography.bodyMedium.copyWith(
                         color: AppColors.primaryDark.withOpacity(0.6),
-                        fontSize: isMobile ? 14 : 15,
+                        fontSize: isSmallMobile ? 12 : (isMobile ? 14 : 15),
                       ),
                     ),
-                    SizedBox(height: AppSpacing.extraLarge * 1.5),
+                    SizedBox(height: isSmallMobile ? AppSpacing.large : AppSpacing.extraLarge * 1.5),
                     
                     // Email signup
-                    _buildEmailSignup(isMobile, isTablet),
+                    _buildEmailSignup(isMobile, isTablet, isSmallMobile),
                   ],
                 ),
               ),
@@ -301,13 +317,15 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   }
 
   /// Header with logo only
-  Widget _buildHeader(bool isMobile) {
+  Widget _buildHeader(bool isMobile, bool isSmallMobile) {
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
-          left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+          left: isMobile 
+              ? (isSmallMobile ? AppSpacing.medium : AppSpacing.large) 
+              : AppSpacing.extraLarge * 3,
           right: AppSpacing.extraLarge,
-          top: AppSpacing.large,
+          top: isSmallMobile ? AppSpacing.medium : AppSpacing.large,
           bottom: AppSpacing.large,
         ),
         child: Row(
@@ -315,14 +333,14 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
             // Logo
             Image.asset(
               'assets/images/CNT-LOGO.png',
-              width: isMobile ? 28 : 32,
-              height: isMobile ? 28 : 32,
+              width: isSmallMobile ? 24 : (isMobile ? 28 : 32),
+              height: isSmallMobile ? 24 : (isMobile ? 28 : 32),
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) {
                 return Icon(
                   Icons.church,
                   color: AppColors.warmBrown,
-                  size: isMobile ? 28 : 32,
+                  size: isSmallMobile ? 24 : (isMobile ? 28 : 32),
                 );
               },
             ),
@@ -332,7 +350,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
               style: AppTypography.heading3.copyWith(
                 color: AppColors.primaryDark,
                 fontWeight: FontWeight.bold,
-                fontSize: isMobile ? 16 : 20,
+                fontSize: isSmallMobile ? 14 : (isMobile ? 16 : 20),
               ),
             ),
           ],
@@ -342,13 +360,39 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   }
 
   /// Email signup form with LOG IN and Get Started buttons
-  Widget _buildEmailSignup(bool isMobile, bool isTablet) {
+  Widget _buildEmailSignup(bool isMobile, bool isTablet, bool isSmallMobile) {
     if (isMobile) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Buttons row
-          Row(
+          isSmallMobile 
+          ? Column(
+              children: [
+                // LOG IN button - outlined pill
+                Container(
+                  width: double.infinity,
+                  child: _buildPillButton(
+                    label: 'LOG IN',
+                    onPressed: _handleSignIn,
+                    isOutlined: true,
+                    isSmallMobile: true,
+                  ),
+                ),
+                SizedBox(height: AppSpacing.medium),
+                // Get Started button - filled pill
+                Container(
+                  width: double.infinity,
+                  child: _buildPillButton(
+                    label: 'Get Started',
+                    onPressed: _handleGetStarted,
+                    isOutlined: false,
+                    isSmallMobile: true,
+                  ),
+                ),
+              ],
+            )
+          : Row(
             children: [
               // LOG IN button - outlined pill
               Expanded(
@@ -371,16 +415,19 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
           ),
           // Feature circles row
           SizedBox(height: AppSpacing.extraLarge),
-          Row(
-            children: [
-              _buildFeatureCircle(Icons.chat_bubble_outline, 'Community', isMobile: true),
-              SizedBox(width: AppSpacing.large),
-              _buildFeatureCircle(Icons.graphic_eq, 'Voice', isMobile: true),
-              SizedBox(width: AppSpacing.large),
-              _buildFeatureCircle(Icons.videocam_outlined, 'Live', isMobile: true),
-              SizedBox(width: AppSpacing.large),
-              _buildFeatureCircle(Icons.music_note, 'Music', isMobile: true),
-            ],
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFeatureCircle(Icons.chat_bubble_outline, 'Community', isMobile: true, isSmallMobile: isSmallMobile),
+                SizedBox(width: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
+                _buildFeatureCircle(Icons.graphic_eq, 'Voice', isMobile: true, isSmallMobile: isSmallMobile),
+                SizedBox(width: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
+                _buildFeatureCircle(Icons.videocam_outlined, 'Live', isMobile: true, isSmallMobile: isSmallMobile),
+                SizedBox(width: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
+                _buildFeatureCircle(Icons.music_note, 'Music', isMobile: true, isSmallMobile: isSmallMobile),
+              ],
+            ),
           ),
         ],
       );
@@ -427,9 +474,9 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   }
 
   /// Feature circle button for hero section
-  Widget _buildFeatureCircle(IconData icon, String label, {bool isMobile = false}) {
-    final size = isMobile ? 72.0 : 96.0;
-    final iconSize = isMobile ? 32.0 : 42.0;
+  Widget _buildFeatureCircle(IconData icon, String label, {bool isMobile = false, bool isSmallMobile = false}) {
+    final size = isSmallMobile ? 60.0 : (isMobile ? 72.0 : 96.0);
+    final iconSize = isSmallMobile ? 24.0 : (isMobile ? 32.0 : 42.0);
     
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -460,10 +507,14 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
     required VoidCallback onPressed,
     required bool isOutlined,
     double? width,
+    bool isSmallMobile = false,
   }) {
+    final height = isSmallMobile ? 42.0 : 50.0;
+    final fontSize = isSmallMobile ? 13.0 : 15.0;
+    
     return Container(
       width: width,
-      height: 50,
+      height: height,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
@@ -472,14 +523,14 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
           elevation: isOutlined ? 0 : 2,
           shadowColor: AppColors.warmBrown.withOpacity(0.3),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25),
+            borderRadius: BorderRadius.circular(height / 2),
             side: isOutlined
                 ? BorderSide(color: AppColors.warmBrown, width: 2)
                 : BorderSide.none,
           ),
           padding: EdgeInsets.symmetric(
-            horizontal: AppSpacing.extraLarge,
-            vertical: AppSpacing.medium,
+            horizontal: isSmallMobile ? AppSpacing.large : AppSpacing.extraLarge,
+            vertical: isSmallMobile ? AppSpacing.small : AppSpacing.medium,
           ),
         ),
         child: Text(
@@ -487,7 +538,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
           style: AppTypography.button.copyWith(
             color: isOutlined ? AppColors.warmBrown : Colors.white,
             fontWeight: FontWeight.w600,
-            fontSize: 15,
+            fontSize: fontSize,
           ),
         ),
       ),

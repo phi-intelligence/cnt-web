@@ -37,6 +37,7 @@ class ResponsiveLayoutBuilder extends StatelessWidget {
     final deviceType = ResponsiveUtils.getDeviceType(context);
     
     switch (deviceType) {
+      case DeviceType.smallMobile:
       case DeviceType.mobile:
         return (mobileBuilder ?? defaultBuilder ?? _fallbackBuilder)(context);
       case DeviceType.tablet:

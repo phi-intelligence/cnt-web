@@ -4,6 +4,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/responsive_grid_delegate.dart';
+import '../../utils/responsive_utils.dart';
 import '../../widgets/web/section_container.dart';
 
 /// Web About Screen - Redesigned with Premium Landing Page Style
@@ -13,8 +14,9 @@ class AboutScreenWeb extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 768;
-    final isTablet = screenWidth >= 768 && screenWidth < 1024;
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final isTablet = ResponsiveUtils.isTablet(context);
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
@@ -22,7 +24,7 @@ class AboutScreenWeb extends StatelessWidget {
         child: Column(
           children: [
             // Hero Section (Full width)
-            _buildHeroSection(context, isMobile),
+            _buildHeroSection(context, isMobile, isSmallMobile),
             
             // Main Content Area with overlapping negative margin effect or simply continuous flow
             Container(
@@ -33,11 +35,11 @@ class AboutScreenWeb extends StatelessWidget {
                    const SizedBox(height: AppSpacing.extraLarge),
                    
                    // Mission Statement - High Impact Card
-                   _buildMissionSection(isMobile),
+                   _buildMissionSection(isMobile, isSmallMobile),
                    const SizedBox(height: 60),
                    
                    // Features Grid
-                   _buildFeaturesSection(isMobile, isTablet),
+                   _buildFeaturesSection(isMobile, isTablet, isSmallMobile),
                    const SizedBox(height: 60),
                    
                    // Core Values
@@ -56,13 +58,13 @@ class AboutScreenWeb extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroSection(BuildContext context, bool isMobile) {
+  Widget _buildHeroSection(BuildContext context, bool isMobile, bool isSmallMobile) {
     return Container(
       width: double.infinity,
       // Minimal height for impact
       constraints: const BoxConstraints(minHeight: 400),
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? AppSpacing.medium : AppSpacing.extraLarge,
+        horizontal: isSmallMobile ? AppSpacing.medium : (isMobile ? AppSpacing.medium : AppSpacing.extraLarge),
         vertical: AppSpacing.extraLarge * 2, // More breathing room
       ),
       decoration: BoxDecoration(
@@ -169,10 +171,10 @@ class AboutScreenWeb extends StatelessWidget {
     );
   }
 
-  Widget _buildMissionSection(bool isMobile) {
+  Widget _buildMissionSection(bool isMobile, bool isSmallMobile) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(isMobile ? 24 : 48),
+      padding: EdgeInsets.all(isSmallMobile ? AppSpacing.medium : (isMobile ? 24 : 48)),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(32),
@@ -216,7 +218,7 @@ class AboutScreenWeb extends StatelessWidget {
     );
   }
 
-  Widget _buildFeaturesSection(bool isMobile, bool isTablet) {
+  Widget _buildFeaturesSection(bool isMobile, bool isTablet, bool isSmallMobile) {
     final features = [
       {'icon': Icons.podcasts_rounded, 'title': 'Podcasts', 'desc': 'Inspiring audio & video series'},
       {'icon': Icons.music_note_rounded, 'title': 'Music', 'desc': 'Uplifting Christian melodies'},
@@ -235,9 +237,9 @@ class AboutScreenWeb extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: isMobile ? 2 : (isTablet ? 3 : 3),
-            crossAxisSpacing: 24,
-            mainAxisSpacing: 24,
-            childAspectRatio: isMobile ? 1.0 : 1.5,
+            crossAxisSpacing: isSmallMobile ? 12 : 24,
+            mainAxisSpacing: isSmallMobile ? 12 : 24,
+            childAspectRatio: isSmallMobile ? 0.9 : (isMobile ? 1.0 : 1.5),
           ),
           itemCount: features.length,
           itemBuilder: (context, index) {

@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../services/auth_service.dart';
+import '../../utils/responsive_utils.dart';
 import 'landing_screen_web.dart';
 
 /// Web Register Screen - Redesigned to match Landing Page Hero Section
@@ -362,9 +363,9 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
               child: SafeArea(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.only(
-                    left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
-                    right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
-                    top: isMobile ? 80 : 100,
+                    left: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.medium : (isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3),
+                    right: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.medium : (isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2),
+                    top: ResponsiveUtils.isSmallMobile(context) ? 60 : (isMobile ? 80 : 100),
                     bottom: AppSpacing.extraLarge,
                   ),
                   child: Form(
@@ -766,7 +767,9 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
-          left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+          left: isMobile 
+              ? (ResponsiveUtils.isSmallMobile(context) ? AppSpacing.medium : AppSpacing.large) 
+              : AppSpacing.extraLarge * 3,
           right: AppSpacing.extraLarge,
           top: AppSpacing.large,
           bottom: AppSpacing.large,

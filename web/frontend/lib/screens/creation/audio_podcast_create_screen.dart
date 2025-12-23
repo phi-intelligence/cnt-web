@@ -10,6 +10,7 @@ import '../../widgets/web/section_container.dart';
 import 'audio_recording_screen.dart';
 import 'audio_preview_screen.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../utils/responsive_utils.dart';
 // Conditional imports for platform-specific features
 import 'dart:io' if (dart.library.html) '../../utils/file_stub.dart' as io;
 import 'dart:html' if (dart.library.io) '../../utils/html_stub.dart' as html;
@@ -407,6 +408,10 @@ class _OptionCardState extends State<_OptionCard> {
 
   @override
   Widget build(BuildContext context) {
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final iconContainerSize = isSmallMobile ? 50.0 : 70.0;
+    final iconSize = isSmallMobile ? 24.0 : 36.0;
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
@@ -451,14 +456,14 @@ class _OptionCardState extends State<_OptionCard> {
                     ),
                   ],
           ),
-          padding: const EdgeInsets.all(AppSpacing.large),
+          padding: EdgeInsets.all(isSmallMobile ? AppSpacing.medium : AppSpacing.large),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 70,
-                height: 70,
+                width: iconContainerSize,
+                height: iconContainerSize,
                 decoration: BoxDecoration(
                   color: _isHovered
                       ? Colors.white.withOpacity(0.2)
@@ -476,10 +481,10 @@ class _OptionCardState extends State<_OptionCard> {
                   color: _isHovered
                       ? Colors.white
                       : AppColors.warmBrown,
-                  size: 36,
+                  size: iconSize,
                 ),
               ),
-              const SizedBox(height: AppSpacing.small),
+              SizedBox(height: isSmallMobile ? AppSpacing.small : AppSpacing.medium),
               Flexible(
                 child: Text(
                   widget.title,
@@ -488,6 +493,7 @@ class _OptionCardState extends State<_OptionCard> {
                         ? Colors.white
                         : AppColors.textPrimary,
                     fontWeight: FontWeight.w600,
+                    fontSize: isSmallMobile ? 16 : null,
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 1,
@@ -502,6 +508,7 @@ class _OptionCardState extends State<_OptionCard> {
                     color: _isHovered
                         ? Colors.white.withOpacity(0.9)
                         : AppColors.textSecondary,
+                    fontSize: isSmallMobile ? 12 : null,
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 2,
@@ -509,7 +516,7 @@ class _OptionCardState extends State<_OptionCard> {
                 ),
               ),
               if (_isHovered) ...[
-                const SizedBox(height: AppSpacing.small),
+                SizedBox(height: isSmallMobile ? AppSpacing.tiny : AppSpacing.small),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,

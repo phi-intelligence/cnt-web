@@ -436,18 +436,18 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
             onPressed: () async {
               if (nameController.text.trim().isNotEmpty) {
                 final success = await context.read<PlaylistProvider>().createPlaylist(
-                  name: nameController.text.trim(),
+                  nameController.text.trim(),
                 );
                 if (context.mounted) {
                   Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        success
+                        success != null
                             ? 'Playlist created!'
                             : 'Failed to create playlist',
                       ),
-                      backgroundColor: success 
+                      backgroundColor: success != null
                           ? AppColors.successMain 
                           : AppColors.errorMain,
                     ),

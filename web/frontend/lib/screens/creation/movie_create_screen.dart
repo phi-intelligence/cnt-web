@@ -169,7 +169,7 @@ class MovieCreateScreen extends StatelessWidget {
                               style: AppTypography.getResponsiveHeroTitle(context).copyWith(
                                 color: AppColors.primaryDark,
                                 fontWeight: FontWeight.bold,
-                                fontSize: isMobile ? 28 : (isTablet ? 36 : 42),
+                                fontSize: isMobile ? (ResponsiveUtils.isSmallMobile(context) ? 24 : 28) : (isTablet ? 36 : 42),
                                 height: 1.1,
                               ),
                             ),
@@ -284,6 +284,10 @@ class _OptionCardState extends State<_OptionCard> {
 
   @override
   Widget build(BuildContext context) {
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final iconContainerSize = isSmallMobile ? 50.0 : 70.0;
+    final iconSize = isSmallMobile ? 24.0 : 36.0;
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
@@ -326,14 +330,14 @@ class _OptionCardState extends State<_OptionCard> {
                     ),
                   ],
           ),
-          padding: const EdgeInsets.all(AppSpacing.large),
+          padding: EdgeInsets.all(isSmallMobile ? AppSpacing.medium : AppSpacing.large),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 70,
-                height: 70,
+                width: iconContainerSize,
+                height: iconContainerSize,
                 decoration: BoxDecoration(
                   color: _isHovered
                       ? Colors.white.withOpacity(0.2)
@@ -351,10 +355,10 @@ class _OptionCardState extends State<_OptionCard> {
                   color: _isHovered
                       ? Colors.white
                       : AppColors.warmBrown,
-                  size: 36,
+                  size: iconSize,
                 ),
               ),
-              const SizedBox(height: AppSpacing.small),
+              SizedBox(height: isSmallMobile ? AppSpacing.small : AppSpacing.medium),
               Flexible(
                 child: Text(
                   widget.title,
@@ -363,6 +367,7 @@ class _OptionCardState extends State<_OptionCard> {
                         ? Colors.white
                         : AppColors.textPrimary,
                     fontWeight: FontWeight.w600,
+                    fontSize: isSmallMobile ? 16 : null,
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 1,
@@ -377,6 +382,7 @@ class _OptionCardState extends State<_OptionCard> {
                     color: _isHovered
                         ? Colors.white.withOpacity(0.9)
                         : AppColors.textSecondary,
+                    fontSize: isSmallMobile ? 12 : null,
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 2,
@@ -384,7 +390,7 @@ class _OptionCardState extends State<_OptionCard> {
                 ),
               ),
               if (_isHovered) ...[
-                const SizedBox(height: AppSpacing.small),
+                SizedBox(height: isSmallMobile ? AppSpacing.tiny : AppSpacing.small),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,

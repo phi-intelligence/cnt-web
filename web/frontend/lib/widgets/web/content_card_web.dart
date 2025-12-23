@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../models/content_item.dart';
 import '../shared/image_helper.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
-import '../../theme/app_typography.dart';
 import '../../utils/responsive_utils.dart';
 
 class ContentCardWeb extends StatefulWidget {
@@ -42,7 +42,7 @@ class _ContentCardWebState extends State<ContentCardWeb> {
       desktop: 64.0,
     );
     
-    final cardPadding = ResponsiveUtils.getResponsivePadding(context, AppSpacing.small);
+    
     final borderRadius = ResponsiveUtils.getResponsivePadding(context, 24.0);
     
     return MouseRegion(

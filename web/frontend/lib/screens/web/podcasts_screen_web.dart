@@ -15,6 +15,7 @@ import '../../models/content_item.dart';
 import '../../providers/audio_player_provider.dart';
 import 'video_podcast_detail_screen_web.dart';
 import '../../utils/responsive_grid_delegate.dart';
+import '../../utils/responsive_utils.dart';
 import '../../widgets/web/styled_pill_button.dart';
 
 /// Web Podcasts Screen - Full implementation
@@ -30,11 +31,14 @@ class PodcastsScreenWeb extends StatefulWidget {
 class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
   final ApiService _api = ApiService();
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  
   List<ContentItem> _podcasts = [];
   List<ContentItem> _filteredPodcasts = [];
   bool _isLoading = false;
   String _selectedType = 'All';
   final List<String> _podcastTypes = ['All', 'Audio Podcast', 'Video Podcast'];
+  double _scrollOffset = 0.0;
   
   // Carousel State
   int _currentHeroIndex = 0;
@@ -46,15 +50,23 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
     super.initState();
     _heroPageController = PageController();
     _searchController.addListener(_onSearchChanged);
+    _scrollController.addListener(_onScroll);
     _fetchPodcasts();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     _heroTimer?.cancel();
     _heroPageController.dispose();
     super.dispose();
+  }
+  
+  void _onScroll() {
+    setState(() {
+      _scrollOffset = _scrollController.offset;
+    });
   }
   
   void _startHeroTimer() {
@@ -168,23 +180,38 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
       default: return 'Podcast';
     }
   }
+  
+  // Calculate carousel opacity based on scroll position - Parallax effect
+  double _calculateCarouselOpacity() {
+    const fadeStart = 100.0;
+    const fadeEnd = 500.0;
+    
+    if (_scrollOffset < fadeStart) return 1.0;
+    if (_scrollOffset > fadeEnd) return 0.0;
+    
+    final fadeProgress = (_scrollOffset - fadeStart) / (fadeEnd - fadeStart);
+    return (1.0 - fadeProgress).clamp(0.0, 1.0);
+  }
+  
+  // Calculate parallax offset for carousel
+  double _calculateParallaxOffset() {
+    return _scrollOffset * 0.5;
+  }
 
   // Responsive aspect ratio for cards
-  // Higher values = shorter/wider cards, Lower values = taller cards
   double _getChildAspectRatio(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     if (screenWidth < 480) {
-      return 0.95; // Mobile: Compact cards
+      return 0.95; 
     } else if (screenWidth < 768) {
-      return 0.9; // Tablet: Balanced
+      return 0.9;
     } else if (screenWidth < 1024) {
-      return 0.85; // Desktop: Slightly wider
+      return 0.85;
     }
-    return 0.82; // Large desktop: Wider cards
+    return 0.82;
   }
 
   void _handlePlay(ContentItem item) {
-    // If video exists, navigate to detail page; otherwise play audio
     if (item.videoUrl != null && item.videoUrl!.isNotEmpty) {
       Navigator.push(
         context,
@@ -209,161 +236,243 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isDesktop = screenWidth >= 1024;
+    
     // Top 5 podcasts for carousel
     final carouselPodcasts = _podcasts.take(5).toList();
+    
+    // Responsive carousel height
+    final carouselHeight = isDesktop ? 500.0 : (ResponsiveUtils.isSmallMobile(context) ? 300.0 : 400.0);
+    final whiteCardTopMargin = carouselHeight * 0.75; // Increased overlap for premium feel
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
-      body: CustomScrollView(
-        slivers: [
-          // Hero Carousel Section
-          if (carouselPodcasts.isNotEmpty && !_isLoading)
-            SliverToBoxAdapter(
-              child: _buildHeroCarousel(carouselPodcasts),
-            )
-          else if (!_isLoading)
-             SliverToBoxAdapter(
-               child: Container(
-                 height: 400,
-                 color: Colors.black,
-                 child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                       Container(
-                         decoration: BoxDecoration(
-                           gradient: LinearGradient(
-                             colors: [AppColors.warmBrown.withOpacity(0.3), Colors.black],
-                             begin: Alignment.topCenter,
-                             end: Alignment.bottomCenter
-                           )
-                         ),
-                       ),
-                       Center(
-                         child: Column(
-                           mainAxisSize: MainAxisSize.min,
-                           children: [
-                             Icon(Icons.mic, size: 64, color: Colors.white.withOpacity(0.5)),
-                             SizedBox(height: AppSpacing.medium),
-                             Text('Explore Podcasts', style: AppTypography.heading1.copyWith(color: Colors.white)),
-                           ],
-                         ),
-                       )
-                    ]
-                 ),
-               )
-             ),
-
-          // Search and Filter Section
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: ResponsiveGridDelegate.getResponsivePadding(context),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: AppSpacing.large),
-                  SectionContainer(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        StyledSearchField(
-                          controller: _searchController,
-                          hintText: 'Search podcasts...',
-                          onChanged: (_) => _filterPodcasts(),
-                        ),
-                        const SizedBox(height: AppSpacing.medium),
-                        // Type Chips
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: _podcastTypes.map((type) {
-                              final isSelected = type == _selectedType;
-                              return Padding(
-                                padding: EdgeInsets.only(right: AppSpacing.small),
-                                child: StyledFilterChip(
-                                  label: type,
-                                  selected: isSelected,
-                                  onSelected: (selected) {
-                                    setState(() {
-                                      _selectedType = type;
-                                    });
-                                    _filterPodcasts();
-                                  },
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.extraLarge),
-                ],
+      body: Stack(
+        children: [
+          // Background Layer: Carousel with fade and parallax
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: carouselHeight,
+            child: Transform.translate(
+              offset: Offset(0, _calculateParallaxOffset()),
+              child: AnimatedOpacity(
+                opacity: _calculateCarouselOpacity(),
+                duration: const Duration(milliseconds: 100),
+                child: IgnorePointer(
+                  ignoring: _calculateCarouselOpacity() < 0.1,
+                  child: carouselPodcasts.isNotEmpty && !_isLoading
+                      ? _buildHeroCarousel(carouselPodcasts, carouselHeight)
+                      : _buildPlaceholderHero(carouselHeight),
+                ),
               ),
             ),
           ),
-
-          // Podcasts Grid
-          SliverPadding(
-            padding: ResponsiveGridDelegate.getResponsivePadding(context),
-            sliver: _isLoading
-                ? SliverGrid(
-                    gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
-                      context,
-                      desktop: 4,
-                      tablet: 3,
-                      mobile: 2,
-                      childAspectRatio: _getChildAspectRatio(context),
-                      crossAxisSpacing: AppSpacing.medium,
-                      mainAxisSpacing: AppSpacing.medium,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => const LoadingShimmer(width: double.infinity, height: 250),
-                      childCount: 8,
-                    ),
-                  )
-                : _filteredPodcasts.isEmpty
-                    ? SliverToBoxAdapter(
-                        child: const EmptyState(
-                          icon: Icons.podcasts,
-                          title: 'No Podcasts Found',
-                          message: 'Try adjusting your search or filters',
-                        ),
-                      )
-                    : SliverGrid(
-                        gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
-                          context,
-                          desktop: 4,
-                          tablet: 3,
-                          mobile: 2,
-                          childAspectRatio: _getChildAspectRatio(context),
-                          crossAxisSpacing: AppSpacing.medium,
-                          mainAxisSpacing: AppSpacing.medium,
-                        ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final podcast = _filteredPodcasts[index];
-                            return ContentCardWeb(
-                              item: podcast,
-                              onTap: () => _handleItemTap(podcast),
-                              onPlay: () => _handlePlay(podcast),
-                            );
-                          },
-                          childCount: _filteredPodcasts.length,
-                        ),
-                      ),
-          ),
           
-          SliverToBoxAdapter(child: SizedBox(height: AppSpacing.extraLarge * 2)),
+          // Foreground Layer: Scrollable content in white card
+          SingleChildScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                // Spacer to push white card down
+                IgnorePointer(
+                  ignoring: true,
+                  child: SizedBox(height: whiteCardTopMargin),
+                ),
+                
+                // White Floating Card containing all content
+                Container(
+                  width: double.infinity,
+                  constraints: BoxConstraints(
+                    minHeight: screenHeight - whiteCardTopMargin,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundPrimary,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(32),
+                      topRight: Radius.circular(32),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 30,
+                        offset: const Offset(0, -5),
+                        spreadRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: ResponsiveGridDelegate.getResponsivePadding(context),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: AppSpacing.large),
+                        
+                        // Header & Filters Section
+                        SectionContainer(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'All Podcasts',
+                                      style: AppTypography.heading2.copyWith(
+                                        color: AppColors.textPrimary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isDesktop) 
+                                    SizedBox(
+                                      width: 300,
+                                      child: StyledSearchField(
+                                        controller: _searchController,
+                                        hintText: 'Search podcasts...',
+                                        onChanged: (_) => _filterPodcasts(),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              
+                              if (!isDesktop) ...[
+                                const SizedBox(height: AppSpacing.medium),
+                                StyledSearchField(
+                                  controller: _searchController,
+                                  hintText: 'Search podcasts...',
+                                  onChanged: (_) => _filterPodcasts(),
+                                ),
+                              ],
+                              
+                              const SizedBox(height: AppSpacing.medium),
+                              
+                              // Type Chips
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: _podcastTypes.map((type) {
+                                    final isSelected = type == _selectedType;
+                                    return Padding(
+                                      padding: EdgeInsets.only(right: AppSpacing.small),
+                                      child: StyledFilterChip(
+                                        label: type,
+                                        selected: isSelected,
+                                        onSelected: (selected) {
+                                          setState(() {
+                                            _selectedType = type;
+                                          });
+                                          _filterPodcasts();
+                                        },
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        const SizedBox(height: AppSpacing.extraLarge),
+
+                        // Podcasts Grid
+                        if (_isLoading)
+                          GridView.builder(
+                            padding: EdgeInsets.zero,
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+                              context,
+                              desktop: 4,
+                              tablet: 3,
+                              mobile: 2,
+                              childAspectRatio: _getChildAspectRatio(context),
+                              crossAxisSpacing: AppSpacing.medium,
+                              mainAxisSpacing: AppSpacing.medium,
+                            ),
+                            itemCount: 8,
+                            itemBuilder: (context, index) => const LoadingShimmer(width: double.infinity, height: 250),
+                          )
+                        else if (_filteredPodcasts.isEmpty)
+                          const EmptyState(
+                            icon: Icons.podcasts,
+                            title: 'No Podcasts Found',
+                            message: 'Try adjusting your search or filters',
+                          )
+                        else
+                          GridView.builder(
+                            padding: EdgeInsets.zero,
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+                              context,
+                              desktop: 4,
+                              tablet: 3,
+                              mobile: 2,
+                              childAspectRatio: _getChildAspectRatio(context),
+                              crossAxisSpacing: AppSpacing.medium,
+                              mainAxisSpacing: AppSpacing.medium,
+                            ),
+                            itemCount: _filteredPodcasts.length,
+                            itemBuilder: (context, index) {
+                              final podcast = _filteredPodcasts[index];
+                              return ContentCardWeb(
+                                item: podcast,
+                                onTap: () => _handleItemTap(podcast),
+                                onPlay: () => _handlePlay(podcast),
+                              );
+                            },
+                          ),
+                          
+                        const SizedBox(height: AppSpacing.extraLarge * 2),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildHeroCarousel(List<ContentItem> podcasts) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth >= 1024;
-    final height = isDesktop ? 500.0 : 400.0;
+  Widget _buildPlaceholderHero(double height) {
+    return Container(
+      height: height,
+      color: Colors.black,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.warmBrown.withOpacity(0.3), Colors.black],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter
+              )
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.mic, size: 64, color: Colors.white.withOpacity(0.5)),
+                SizedBox(height: AppSpacing.medium),
+                Text('Explore Podcasts', style: AppTypography.heading1.copyWith(color: Colors.white)),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
 
+  Widget _buildHeroCarousel(List<ContentItem> podcasts, double height) {
     return SizedBox(
       height: height,
       child: Stack(
@@ -383,12 +492,12 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
             },
           ),
           
-          // Gradient Overlay (Bottom) for indicators
+          // Gradient Overlay (Bottom) for indicators - Stronger gradient for parallax transition
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            height: 100,
+            height: 150,
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -396,6 +505,7 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
+                    Colors.black.withOpacity(0.4),
                     Colors.black.withOpacity(0.8),
                   ],
                 ),
@@ -405,7 +515,7 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
 
           // Page Indicators
           Positioned(
-            bottom: 20,
+            bottom: height * 0.3, // Move indicators up so they don't get covered by the white sheet immediately
             left: 0,
             right: 0,
             child: Row(
@@ -456,7 +566,7 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
               colors: [
                 Colors.black.withOpacity(0.2),
                 Colors.black.withOpacity(0.6),
-                AppColors.backgroundPrimary,
+                Colors.black.withOpacity(0.8), // Darker bottom for text readiness
               ],
               stops: const [0.0, 0.6, 1.0],
             ),
@@ -465,7 +575,7 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
 
         // Content
         Positioned(
-          bottom: AppSpacing.extraLarge * 2,
+          bottom: height * 0.35, // Positioned higher up to clear the floating sheet
           left: 0,
           right: 0,
           child: Padding(
@@ -494,7 +604,7 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
                    item.title,
                    style: AppTypography.heading1.copyWith(
                      color: Colors.white,
-                     fontSize: isDesktop ? 56 : 32,
+                     fontSize: isDesktop ? 56 : (ResponsiveUtils.isSmallMobile(context) ? 24 : 32),
                      fontWeight: FontWeight.bold,
                      height: 1.1,
                    ),

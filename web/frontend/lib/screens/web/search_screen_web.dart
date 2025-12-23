@@ -15,6 +15,7 @@ import '../../providers/music_provider.dart';
 import '../../models/content_item.dart';
 import '../../services/api_service.dart';
 import '../../widgets/shared/content_section.dart';
+import '../../utils/responsive_utils.dart';
 import '../../utils/responsive_grid_delegate.dart';
 
 /// Web Search Screen - Full implementation
@@ -229,8 +230,8 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
                                       tablet: 3,
                                       mobile: 2,
                                       childAspectRatio: 0.65, // Was 0.75
-                                      crossAxisSpacing: AppSpacing.medium,
-                                      mainAxisSpacing: AppSpacing.medium,
+                                      crossAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : AppSpacing.medium,
+                                      mainAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : AppSpacing.medium,
                                     ),
                                     itemCount: 10,
                                     itemBuilder: (context, index) {
@@ -255,8 +256,8 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
                                     tablet: 3,
                                     mobile: 2,
                                     childAspectRatio: 0.65, // Was 0.75
-                                    crossAxisSpacing: AppSpacing.medium,
-                                    mainAxisSpacing: AppSpacing.medium,
+                                    crossAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : AppSpacing.medium,
+                                    mainAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : AppSpacing.medium,
                                   ),
                                   itemCount: provider.results.length,
                                   itemBuilder: (context, index) {
@@ -288,8 +289,8 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
           tablet: 3,
           mobile: 2,
           childAspectRatio: 0.65, // Was 0.75
-          crossAxisSpacing: AppSpacing.medium,
-          mainAxisSpacing: AppSpacing.medium,
+          crossAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : AppSpacing.medium,
+          mainAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : AppSpacing.medium,
         ),
         itemCount: 10,
         itemBuilder: (context, index) {

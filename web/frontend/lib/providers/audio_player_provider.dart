@@ -283,6 +283,24 @@ class AudioPlayerState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void removeFromQueue(int index) {
+    if (index >= 0 && index < _queue.length) {
+      _queue.removeAt(index);
+      _saveState();
+      notifyListeners();
+    }
+  }
+
+  void reorderQueue(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= _queue.length || newIndex < 0 || newIndex > _queue.length) return;
+    
+    if (newIndex > oldIndex) newIndex--;
+    final item = _queue.removeAt(oldIndex);
+    _queue.insert(newIndex, item);
+    _saveState();
+    notifyListeners();
+  }
+
   Future<void> togglePlayPause() async {
     if (_isPlaying) {
       await pause();

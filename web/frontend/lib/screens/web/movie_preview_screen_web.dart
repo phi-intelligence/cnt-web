@@ -44,6 +44,8 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
   bool _hasError = false;
   String? _errorMessage;
   bool _isLoading = false;
+  double _uploadProgress = 0.0;
+  bool _showUploadDialog = false;
   
   // Controls visibility
   bool _showControls = true;
@@ -342,6 +344,8 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
 
     setState(() {
       _isLoading = true;
+      _uploadProgress = 0.0;
+      _showUploadDialog = true;
     });
 
     try {
@@ -349,22 +353,69 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
       String videoUrl;
       String? thumbnailUrl;
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Uploading video...'),
-          backgroundColor: AppColors.infoMain,
-          duration: Duration(seconds: 60),
+      // Show upload progress dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            backgroundColor: AppColors.backgroundSecondary,
+            title: Text(
+              'Uploading Movie',
+              style: AppTypography.heading3.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                LinearProgressIndicator(
+                  value: _uploadProgress,
+                  backgroundColor: AppColors.borderPrimary,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryMain),
+                ),
+                const SizedBox(height: AppSpacing.medium),
+                Text(
+                  '${(_uploadProgress * 100).toStringAsFixed(1)}%',
+                  style: AppTypography.body.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.small),
+                Text(
+                  'Please wait while your movie is being uploaded...',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
         ),
       );
       
       final videoUploadResponse = await ApiService().uploadVideo(
         widget.videoUri, 
         generateThumbnail: true,
+        onProgress: (sent, total) {
+          if (mounted) {
+            setState(() {
+              _uploadProgress = total > 0 ? sent / total : 0.0;
+            });
+          }
+        },
       );
       videoUrl = videoUploadResponse['url'] as String;
       thumbnailUrl = videoUploadResponse['thumbnail_url'] as String?;
       
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      // Close upload dialog
+      if (mounted) {
+        Navigator.of(context).pop(); // Close upload progress dialog
+        setState(() {
+          _showUploadDialog = false;
+        });
+      }
       
       if (thumbnailUrl != null && _selectedThumbnail == null) {
         _selectedThumbnail = thumbnailUrl;
@@ -448,8 +499,14 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
     } catch (e) {
       if (!mounted) return;
 
+      // Close upload dialog if still open
+      if (_showUploadDialog) {
+        Navigator.of(context).pop(); // Close upload progress dialog
+      }
+
       setState(() {
         _isLoading = false;
+        _showUploadDialog = false;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(

@@ -189,8 +189,8 @@ class _CommunityScreenWebState extends State<CommunityScreenWeb> {
                               tablet: 2,
                               mobile: 1,
                               childAspectRatio: 0.72, // Match main grid aspect ratio
-                              crossAxisSpacing: AppSpacing.medium,
-                              mainAxisSpacing: AppSpacing.medium,
+                              crossAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : AppSpacing.medium,
+                              mainAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : AppSpacing.medium,
                             ),
                             itemCount: 6,
                             itemBuilder: (context, index) {
@@ -230,8 +230,8 @@ class _CommunityScreenWebState extends State<CommunityScreenWeb> {
                               tablet: 2,
                               mobile: 1,
                               childAspectRatio: 0.72, // Decreased to make cards taller for buttons
-                              crossAxisSpacing: AppSpacing.large,
-                              mainAxisSpacing: AppSpacing.large,
+                              crossAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : (ResponsiveUtils.isMobile(context) ? AppSpacing.medium : AppSpacing.large),
+                              mainAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : (ResponsiveUtils.isMobile(context) ? AppSpacing.medium : AppSpacing.large),
                             ),
                             itemCount: provider.posts.length + (provider.hasMore ? 1 : 0),
                             itemBuilder: (context, index) {
