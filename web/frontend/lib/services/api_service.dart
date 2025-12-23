@@ -283,25 +283,33 @@ class ApiService {
       return path.startsWith('http') ? path : 'https://$path';
     }
     
-    // Remove leading slash if present to avoid double slashes
-    String cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    // Clean mediaBaseUrl - remove trailing slashes to prevent double slashes
+    final cleanMediaBase = mediaBaseUrl.endsWith('/') 
+        ? mediaBaseUrl.substring(0, mediaBaseUrl.length - 1) 
+        : mediaBaseUrl;
+    
+    // Clean path - remove all leading slashes to prevent double slashes
+    String cleanPath = path;
+    while (cleanPath.startsWith('/')) {
+      cleanPath = cleanPath.substring(1);
+    }
     
     // Handle paths with 'media/' prefix - strip it for production CloudFront
     // In development, keep it since backend serves from /media endpoint
     if (cleanPath.startsWith('media/')) {
-      final isDev = mediaBaseUrl.contains('localhost') || 
-                    mediaBaseUrl.contains('127.0.0.1') ||
-                    mediaBaseUrl.contains(':8002') ||
-                    mediaBaseUrl.contains(':8000');
+      final isDev = cleanMediaBase.contains('localhost') || 
+                    cleanMediaBase.contains('127.0.0.1') ||
+                    cleanMediaBase.contains(':8002') ||
+                    cleanMediaBase.contains(':8000');
       if (isDev) {
         // Development: Keep media/ prefix
-        final constructedUrl = '$mediaBaseUrl/$cleanPath';
+        final constructedUrl = '$cleanMediaBase/$cleanPath';
         print('🔧 getMediaUrl: Dev mode - keeping media prefix: $constructedUrl');
         return constructedUrl;
       } else {
         // Production: Strip media/ prefix (CloudFront maps directly to S3)
         cleanPath = cleanPath.substring(6); // Remove 'media/'
-        final constructedUrl = '$mediaBaseUrl/$cleanPath';
+        final constructedUrl = '$cleanMediaBase/$cleanPath';
         print('🌐 getMediaUrl: Prod mode - stripped media prefix: $constructedUrl');
         return constructedUrl;
       }
@@ -310,7 +318,7 @@ class ApiService {
     // Convert assets/images/ paths to images/ (remove assets/ prefix)
     if (cleanPath.startsWith('assets/images/')) {
       cleanPath = cleanPath.replaceFirst('assets/', '');
-      final constructedUrl = '$mediaBaseUrl/$cleanPath';
+      final constructedUrl = '$cleanMediaBase/$cleanPath';
       print('🔧 getMediaUrl: Converted assets path: $constructedUrl');
       return constructedUrl;
     }
@@ -320,38 +328,38 @@ class ApiService {
     // OR they need /media/ prefix in development (e.g., audio/temp_xxx.webm -> media/audio/temp_xxx.webm)
     // For development (localhost), add /media/ prefix. For production, use as-is.
     if (cleanPath.startsWith('images/') || cleanPath.startsWith('audio/') || cleanPath.startsWith('video/') || cleanPath.startsWith('movies/') || cleanPath.startsWith('documents/')) {
-      // Check if we're in development mode (mediaBaseUrl contains localhost)
-      final isDevelopment = mediaBaseUrl.contains('localhost') || 
-                           mediaBaseUrl.contains('127.0.0.1') ||
-                           mediaBaseUrl.contains(':8002') ||
-                           mediaBaseUrl.contains(':8000');
+      // Check if we're in development mode (cleanMediaBase contains localhost)
+      final isDevelopment = cleanMediaBase.contains('localhost') || 
+                           cleanMediaBase.contains('127.0.0.1') ||
+                           cleanMediaBase.contains(':8002') ||
+                           cleanMediaBase.contains(':8000');
       
       if (isDevelopment) {
         // Development: Add /media/ prefix since backend serves from /media endpoint
-        final constructedUrl = '$mediaBaseUrl/media/$cleanPath';
+        final constructedUrl = '$cleanMediaBase/media/$cleanPath';
         print('🔧 getMediaUrl: Development mode - Added /media/ prefix: $constructedUrl (from input: $path)');
         return constructedUrl;
       } else {
         // Production: Use as-is (direct S3/CloudFront path)
-        final constructedUrl = '$mediaBaseUrl/$cleanPath';
+        final constructedUrl = '$cleanMediaBase/$cleanPath';
         print('🌐 getMediaUrl: Production mode - Using direct path: $constructedUrl');
         return constructedUrl;
       }
     }
     
     // Default: Check if development mode for other paths
-    final isDev = mediaBaseUrl.contains('localhost') || 
-                  mediaBaseUrl.contains('127.0.0.1') ||
-                  mediaBaseUrl.contains(':8002') ||
-                  mediaBaseUrl.contains(':8000');
+    final isDev = cleanMediaBase.contains('localhost') || 
+                  cleanMediaBase.contains('127.0.0.1') ||
+                  cleanMediaBase.contains(':8002') ||
+                  cleanMediaBase.contains(':8000');
     if (isDev) {
       // Development: Add /media/ prefix since backend serves from /media endpoint
-      final constructedUrl = '$mediaBaseUrl/media/$cleanPath';
+      final constructedUrl = '$cleanMediaBase/media/$cleanPath';
       print('🔧 getMediaUrl: Default construction (dev): $constructedUrl (from input: $path)');
       return constructedUrl;
     }
     // Production: Use direct path (no /media/ prefix)
-    final constructedUrl = '$mediaBaseUrl/$cleanPath';
+    final constructedUrl = '$cleanMediaBase/$cleanPath';
     print('🌐 getMediaUrl: Default construction (prod): $constructedUrl (from input: $path)');
     return constructedUrl;
   }
@@ -2815,7 +2823,11 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> uploadVideo(String filePath, {bool generateThumbnail = true}) async {
+  Future<Map<String, dynamic>> uploadVideo(
+    String filePath, {
+    bool generateThumbnail = true,
+    Function(int sent, int total)? onProgress,
+  }) async {
     try {
       final file = await _createMultipartFileFromSource(filePath, 'file', 'video.mp4');
       final uri = Uri.parse('$baseUrl/upload/video?generate_thumbnail=$generateThumbnail');
@@ -2825,11 +2837,30 @@ class ApiService {
       headers.remove('Content-Type'); // Let multipart set it
       request.headers.addAll(headers);
       
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
+      // Get file size for progress tracking
+      int? totalBytes = file.length;
+      
+      // Notify start of upload if callback provided
+      if (onProgress != null && totalBytes != null) {
+        onProgress(0, totalBytes);
+      }
+      
+      // Increase timeout to 60 minutes for large movies
+      final streamedResponse = await request.send().timeout(const Duration(minutes: 60));
+      
+      // Note: Tracking actual upload progress requires wrapping the request body stream,
+      // which is complex. For now, we'll notify completion when response is received.
+      // The backend will handle the actual upload, and we'll report completion here.
       
       if (streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201) {
         final response = await http.Response.fromStream(streamedResponse);
         final data = json.decode(response.body) as Map<String, dynamic>;
+        
+        // Notify completion if callback provided
+        if (onProgress != null && totalBytes != null) {
+          onProgress(totalBytes, totalBytes);
+        }
+        
         return data;
       }
       throw Exception('Failed to upload video: HTTP ${streamedResponse.statusCode}');
