@@ -262,9 +262,29 @@ class ApiService {
     path = path.trim();
     if (path.isEmpty) return '';
     
-    // If path is already a full URL (http:// or https://), return as-is
-    // This prevents double-prefixing of CloudFront URLs and other absolute URLs
+    // If path is already a full URL (http:// or https://)
     if (path.startsWith('http://') || path.startsWith('https://')) {
+      // Convert S3 URLs to CloudFront URLs
+      // S3 URL pattern: https://cnt-web-media.s3.eu-west-2.amazonaws.com/...
+      // or https://cnt-web-media.s3.amazonaws.com/...
+      if (path.contains('cnt-web-media.s3')) {
+        // Extract the path after the bucket name
+        final s3Patterns = [
+          'https://cnt-web-media.s3.eu-west-2.amazonaws.com/',
+          'https://cnt-web-media.s3.amazonaws.com/',
+          'http://cnt-web-media.s3.eu-west-2.amazonaws.com/',
+          'http://cnt-web-media.s3.amazonaws.com/',
+        ];
+        for (final pattern in s3Patterns) {
+          if (path.startsWith(pattern)) {
+            final relativePath = path.substring(pattern.length);
+            final cloudFrontUrl = '$mediaBaseUrl/$relativePath';
+            print('🔄 getMediaUrl: Converted S3 to CloudFront: $cloudFrontUrl');
+            return cloudFrontUrl;
+          }
+        }
+      }
+      // Already a CloudFront URL or other external URL, return as-is
       return path;
     }
     
