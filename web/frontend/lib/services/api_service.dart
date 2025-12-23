@@ -254,6 +254,15 @@ class ApiService {
     }
   }
 
+  /// Helper to clean double slashes from URLs (except in protocol)
+  String _cleanDoubleSlashes(String url) {
+    // Replace multiple slashes with single slash, but preserve https://
+    return url.replaceAllMapped(
+      RegExp(r'(?<!:)\/\/+'),
+      (match) => '/',
+    );
+  }
+
   /// Get full media URL for audio/image files
   String getMediaUrl(String? path) {
     if (path == null || path.isEmpty) return '';
@@ -275,10 +284,18 @@ class ApiService {
           'http://cnt-web-media.s3.eu-west-2.amazonaws.com/',
           'http://cnt-web-media.s3.amazonaws.com/',
         ];
+        // Clean mediaBaseUrl to ensure no trailing slashes
+        final cleanBase = mediaBaseUrl.endsWith('/') 
+            ? mediaBaseUrl.substring(0, mediaBaseUrl.length - 1) 
+            : mediaBaseUrl;
         for (final pattern in s3Patterns) {
           if (path.startsWith(pattern)) {
-            final relativePath = path.substring(pattern.length);
-            final cloudFrontUrl = '$mediaBaseUrl/$relativePath';
+            var relativePath = path.substring(pattern.length);
+            // Ensure no leading slashes in relativePath
+            while (relativePath.startsWith('/')) {
+              relativePath = relativePath.substring(1);
+            }
+            final cloudFrontUrl = _cleanDoubleSlashes('$cleanBase/$relativePath');
             print('🔄 getMediaUrl: Converted S3 to CloudFront: $cloudFrontUrl');
             return cloudFrontUrl;
           }
@@ -323,13 +340,13 @@ class ApiService {
                     cleanMediaBase.contains(':8000');
       if (isDev) {
         // Development: Keep media/ prefix
-        final constructedUrl = '$cleanMediaBase/$cleanPath';
+        final constructedUrl = _cleanDoubleSlashes('$cleanMediaBase/$cleanPath');
         print('🔧 getMediaUrl: Dev mode - keeping media prefix: $constructedUrl');
         return constructedUrl;
       } else {
         // Production: Strip media/ prefix (CloudFront maps directly to S3)
         cleanPath = cleanPath.substring(6); // Remove 'media/'
-        final constructedUrl = '$cleanMediaBase/$cleanPath';
+        final constructedUrl = _cleanDoubleSlashes('$cleanMediaBase/$cleanPath');
         print('🌐 getMediaUrl: Prod mode - stripped media prefix: $constructedUrl');
         return constructedUrl;
       }
@@ -338,7 +355,7 @@ class ApiService {
     // Convert assets/images/ paths to images/ (remove assets/ prefix)
     if (cleanPath.startsWith('assets/images/')) {
       cleanPath = cleanPath.replaceFirst('assets/', '');
-      final constructedUrl = '$cleanMediaBase/$cleanPath';
+      final constructedUrl = _cleanDoubleSlashes('$cleanMediaBase/$cleanPath');
       print('🔧 getMediaUrl: Converted assets path: $constructedUrl');
       return constructedUrl;
     }
@@ -356,12 +373,12 @@ class ApiService {
       
       if (isDevelopment) {
         // Development: Add /media/ prefix since backend serves from /media endpoint
-        final constructedUrl = '$cleanMediaBase/media/$cleanPath';
+        final constructedUrl = _cleanDoubleSlashes('$cleanMediaBase/media/$cleanPath');
         print('🔧 getMediaUrl: Development mode - Added /media/ prefix: $constructedUrl (from input: $path)');
         return constructedUrl;
       } else {
         // Production: Use as-is (direct S3/CloudFront path)
-        final constructedUrl = '$cleanMediaBase/$cleanPath';
+        final constructedUrl = _cleanDoubleSlashes('$cleanMediaBase/$cleanPath');
         print('🌐 getMediaUrl: Production mode - Using direct path: $constructedUrl');
         return constructedUrl;
       }
@@ -374,12 +391,12 @@ class ApiService {
                   cleanMediaBase.contains(':8000');
     if (isDev) {
       // Development: Add /media/ prefix since backend serves from /media endpoint
-      final constructedUrl = '$cleanMediaBase/media/$cleanPath';
+      final constructedUrl = _cleanDoubleSlashes('$cleanMediaBase/media/$cleanPath');
       print('🔧 getMediaUrl: Default construction (dev): $constructedUrl (from input: $path)');
       return constructedUrl;
     }
     // Production: Use direct path (no /media/ prefix)
-    final constructedUrl = '$cleanMediaBase/$cleanPath';
+    final constructedUrl = _cleanDoubleSlashes('$cleanMediaBase/$cleanPath');
     print('🌐 getMediaUrl: Default construction (prod): $constructedUrl (from input: $path)');
     return constructedUrl;
   }
