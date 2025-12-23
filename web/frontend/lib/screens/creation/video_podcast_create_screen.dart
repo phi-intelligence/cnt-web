@@ -197,6 +197,7 @@ class VideoPodcastCreateScreen extends StatelessWidget {
                 image: DecorationImage(
                   image: AssetImage('assets/images/christimage.png'),
                   fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
                 ),
               ),
               child: Container(

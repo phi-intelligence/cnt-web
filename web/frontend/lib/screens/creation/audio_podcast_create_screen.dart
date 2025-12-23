@@ -209,6 +209,7 @@ class AudioPodcastCreateScreen extends StatelessWidget {
                 image: DecorationImage(
                   image: AssetImage('assets/images/jesus-carrying-cross.png'),
                   fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
                 ),
               ),
               child: Container(

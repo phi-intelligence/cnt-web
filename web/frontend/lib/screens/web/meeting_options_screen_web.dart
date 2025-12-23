@@ -204,7 +204,7 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(24),
         child: Container(
-          width: 200, // Fixed width for consistent cards
+          width: 240, // Increased width for better layout
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -222,17 +222,21 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                 padding: const EdgeInsets.all(16),
+                 padding: const EdgeInsets.all(20), // Increased padding
                  decoration: BoxDecoration(
                    color: AppColors.backgroundSecondary,
                    shape: BoxShape.circle,
                  ),
-                 child: Icon(icon, size: 32, color: AppColors.primaryMain),
+                 child: Icon(icon, size: 40, color: AppColors.primaryMain), // Increased icon size
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               Text(
                 title,
-                style: AppTypography.heading4.copyWith(fontWeight: FontWeight.bold, fontSize: 16),
+                style: AppTypography.heading4.copyWith(
+                  fontWeight: FontWeight.bold, 
+                  fontSize: 18, // Slightly larger font
+                  color: AppColors.textPrimary, // Explicit color to fix visibility
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -318,23 +322,26 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
         height: MediaQuery.of(context).size.height,
         child: Stack(
           children: [
-             // Keep existing mobile background
+             // Background Image
             Positioned(
               top: -30,
               right: -MediaQuery.of(context).size.width * 0.4,
               height: MediaQuery.of(context).size.height * 0.6,
               width: MediaQuery.of(context).size.width * 1.3,
-              child: Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: const AssetImage('assets/images/jesus-teaching.png'), // Fallback for mobile
-                    fit: BoxFit.contain,
-                    alignment: Alignment.topRight,
+              child: Opacity(
+                opacity: 0.6, // Reduce opacity to ensure text/content stands out
+                child: Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: const AssetImage('assets/images/jesus-teaching.png'),
+                      fit: BoxFit.contain,
+                      alignment: Alignment.topRight,
+                    ),
                   ),
                 ),
               ),
             ),
-             // ... Gradient ...
+             // Gradient Overlay for readability
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
@@ -343,12 +350,12 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
                     end: Alignment.centerRight,
                     colors: [
                             const Color(0xFFF5F0E8),
-                            const Color(0xFFF5F0E8).withOpacity(0.98),
-                            const Color(0xFFF5F0E8).withOpacity(0.85),
+                            const Color(0xFFF5F0E8).withOpacity(0.95),
+                            const Color(0xFFF5F0E8).withOpacity(0.8),
                             const Color(0xFFF5F0E8).withOpacity(0.4),
                             Colors.transparent,
                           ],
-                    stops: const [0.0, 0.2, 0.4, 0.6, 0.8],
+                    stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
                   ),
                 ),
               ),
@@ -356,63 +363,79 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
             // Content
             Positioned.fill(
               child: SafeArea(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.only(
-                    left: AppSpacing.large,
-                    right: AppSpacing.large,
-                    top: 20,
-                    bottom: AppSpacing.extraLarge,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                       // Mobile Header
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.arrow_back, color: AppColors.primaryDark),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                          Expanded(
-                            child: Text(
-                              'Meeting Options',
-                              style: AppTypography.heading2.copyWith(color: AppColors.primaryDark),
+                child: Column(
+                  children: [
+                    // Header
+                    Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.large, vertical: 20),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                              onPressed: () => Navigator.pop(context),
                             ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: AppSpacing.small),
-                      Text(
-                        'Choose how you want to connect with others',
-                        style: AppTypography.body.copyWith(color: AppColors.primaryDark.withOpacity(0.7)),
-                      ),
-                      SizedBox(height: AppSpacing.extraLarge * 2),
-                       // Mobile Grid
-                       GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 1,
-                              crossAxisSpacing: AppSpacing.large,
-                              mainAxisSpacing: AppSpacing.large,
-                              childAspectRatio: 1.5,
+                            Expanded(
+                              child: Text(
+                                'Meeting Options',
+                                style: AppTypography.heading2.copyWith(color: AppColors.textPrimary),
+                              ),
                             ),
-                            itemCount: options.length,
-                            itemBuilder: (context, index) {
-                              final option = options[index];
-                               final hoverColors = index % 2 == 0
-                                  ? [AppColors.accentMain, AppColors.accentDark]
-                                  : [AppColors.warmBrown, AppColors.primaryMain];
-                              return _buildOptionCard(
-                                title: option['title'] as String,
-                                icon: option['icon'] as IconData,
-                                hoverColors: hoverColors,
-                                onTap: option['onTap'] as VoidCallback,
-                              );
-                            },
-                          ),
-                    ],
-                  ),
+                          ],
+                        ),
+                      ),
+                    
+                    // Main Content in Scrollable Area
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Choose how you want to connect with others',
+                              style: AppTypography.body.copyWith(
+                                color: AppColors.textSecondary,
+                                fontSize: 16,
+                              ),
+                            ),
+                            SizedBox(height: AppSpacing.extraLarge),
+                            
+                            // Cards Container - High Contrast
+                            SectionContainer(
+                              showShadow: true,
+                              child: Padding(
+                                padding: EdgeInsets.all(AppSpacing.medium),
+                                child: GridView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 1, // Full width cards on mobile
+                                    crossAxisSpacing: AppSpacing.medium,
+                                    mainAxisSpacing: AppSpacing.medium,
+                                    childAspectRatio: 2.5, // Wider cards
+                                  ),
+                                  itemCount: options.length,
+                                  itemBuilder: (context, index) {
+                                    final option = options[index];
+                                     // Ensure consistent colors
+                                     final hoverColors = [AppColors.accentMain, AppColors.accentDark];
+                                     
+                                    return _buildOptionCard(
+                                      title: option['title'] as String,
+                                      icon: option['icon'] as IconData,
+                                      hoverColors: hoverColors,
+                                      onTap: option['onTap'] as VoidCallback,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                             SizedBox(height: AppSpacing.extraLarge),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
