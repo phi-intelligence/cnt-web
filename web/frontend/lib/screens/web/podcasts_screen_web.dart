@@ -331,65 +331,116 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Filters & Search Section - Single Row
+                        // Filters & Search Section - Responsive Layout
                         SectionContainer(
                           padding: EdgeInsets.zero,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              // Filter chips (left side)
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: _podcastTypes.map((type) {
-                                      final isSelected = type == _selectedType;
-                                      return Padding(
-                                        padding: EdgeInsets.only(right: AppSpacing.small),
-                                        child: StyledFilterChip(
-                                          label: type,
-                                          selected: isSelected,
-                                          onSelected: (selected) {
-                                            setState(() {
-                                              _selectedType = type;
-                                            });
-                                            // If there's a search query, re-run search with new filter
-                                            // Otherwise, just filter the existing podcasts
-                                            if (_searchController.text.trim().isNotEmpty) {
-                                              _performSearch();
-                                            } else {
-                                              // Client-side filter only
-                                              setState(() {
-                                                _filteredPodcasts = _podcasts.where((podcast) {
-                                                  if (_selectedType == 'Audio Podcast') {
-                                                    return podcast.audioUrl != null && podcast.audioUrl!.isNotEmpty &&
-                                                           (podcast.videoUrl == null || podcast.videoUrl!.isEmpty);
-                                                  } else if (_selectedType == 'Video Podcast') {
-                                                    return podcast.videoUrl != null && podcast.videoUrl!.isNotEmpty;
+                          child: screenWidth < 768
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    // Filter chips (full width on small screens)
+                                    SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        children: _podcastTypes.map((type) {
+                                          final isSelected = type == _selectedType;
+                                          return Padding(
+                                            padding: EdgeInsets.only(right: AppSpacing.small),
+                                            child: StyledFilterChip(
+                                              label: type,
+                                              selected: isSelected,
+                                              onSelected: (selected) {
+                                                setState(() {
+                                                  _selectedType = type;
+                                                });
+                                                // If there's a search query, re-run search with new filter
+                                                // Otherwise, just filter the existing podcasts
+                                                if (_searchController.text.trim().isNotEmpty) {
+                                                  _performSearch();
+                                                } else {
+                                                  // Client-side filter only
+                                                  setState(() {
+                                                    _filteredPodcasts = _podcasts.where((podcast) {
+                                                      if (_selectedType == 'Audio Podcast') {
+                                                        return podcast.audioUrl != null && podcast.audioUrl!.isNotEmpty &&
+                                                               (podcast.videoUrl == null || podcast.videoUrl!.isEmpty);
+                                                      } else if (_selectedType == 'Video Podcast') {
+                                                        return podcast.videoUrl != null && podcast.videoUrl!.isNotEmpty;
+                                                      }
+                                                      return true;
+                                                    }).toList();
+                                                  });
+                                                }
+                                              },
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppSpacing.medium),
+                                    // Search field (full width on small screens)
+                                    StyledSearchField(
+                                      controller: _searchController,
+                                      hintText: 'Search podcasts...',
+                                    ),
+                                  ],
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    // Filter chips (left side)
+                                    Expanded(
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          children: _podcastTypes.map((type) {
+                                            final isSelected = type == _selectedType;
+                                            return Padding(
+                                              padding: EdgeInsets.only(right: AppSpacing.small),
+                                              child: StyledFilterChip(
+                                                label: type,
+                                                selected: isSelected,
+                                                onSelected: (selected) {
+                                                  setState(() {
+                                                    _selectedType = type;
+                                                  });
+                                                  // If there's a search query, re-run search with new filter
+                                                  // Otherwise, just filter the existing podcasts
+                                                  if (_searchController.text.trim().isNotEmpty) {
+                                                    _performSearch();
+                                                  } else {
+                                                    // Client-side filter only
+                                                    setState(() {
+                                                      _filteredPodcasts = _podcasts.where((podcast) {
+                                                        if (_selectedType == 'Audio Podcast') {
+                                                          return podcast.audioUrl != null && podcast.audioUrl!.isNotEmpty &&
+                                                                 (podcast.videoUrl == null || podcast.videoUrl!.isEmpty);
+                                                        } else if (_selectedType == 'Video Podcast') {
+                                                          return podcast.videoUrl != null && podcast.videoUrl!.isNotEmpty;
+                                                        }
+                                                        return true;
+                                                      }).toList();
+                                                    });
                                                   }
-                                                  return true;
-                                                }).toList();
-                                              });
-                                            }
-                                          },
+                                                },
+                                              ),
+                                            );
+                                          }).toList(),
                                         ),
-                                      );
-                                    }).toList(),
-                                  ),
+                                      ),
+                                    ),
+                                    // Search field (right side)
+                                    const SizedBox(width: AppSpacing.medium),
+                                    SizedBox(
+                                      width: isDesktop ? 300 : 200,
+                                      child: StyledSearchField(
+                                        controller: _searchController,
+                                        hintText: 'Search podcasts...',
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              // Search field (right side)
-                              const SizedBox(width: AppSpacing.medium),
-                              SizedBox(
-                                width: isDesktop ? 300 : 200,
-                                child: StyledSearchField(
-                                  controller: _searchController,
-                                  hintText: 'Search podcasts...',
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
                         
                         const SizedBox(height: AppSpacing.extraLarge),

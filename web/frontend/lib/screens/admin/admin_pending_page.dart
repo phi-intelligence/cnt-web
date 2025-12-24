@@ -88,6 +88,7 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
   List<dynamic> _podcasts = [];
   List<dynamic> _movies = [];
   List<dynamic> _posts = [];
+  List<dynamic> _music = [];
   
   // Loading states
   bool _isLoading = true;
@@ -103,7 +104,7 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 4,
+      length: 5,
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
@@ -132,6 +133,7 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
         _api.getAllContent(contentType: 'podcast', status: 'pending'),
         _api.getAllContent(contentType: 'movie', status: 'pending'),
         _api.getAllContent(contentType: 'community_post', status: 'pending'),
+        _api.getAllContent(contentType: 'music', status: 'pending'),
       ]);
 
       if (mounted) {
@@ -139,7 +141,8 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
           _podcasts = results[0];
           _movies = results[1];
           _posts = results[2];
-          _allContent = [..._podcasts, ..._movies, ..._posts];
+          _music = results[3];
+          _allContent = [..._podcasts, ..._movies, ..._posts, ..._music];
           _isLoading = false;
         });
       }
@@ -225,6 +228,11 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
     return _podcasts;
   }
 
+  List<dynamic> _getFilteredAllContent() {
+    final filteredPodcasts = _getFilteredPodcasts();
+    return [...filteredPodcasts, ..._movies, ..._posts, ..._music];
+  }
+
   List<dynamic> _applySearch(List<dynamic> content) {
     final query = _searchController.text.toLowerCase();
     if (query.isEmpty) return content;
@@ -262,6 +270,8 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
                   _buildFilterChip('Movies', _tabController.index == 2, 2),
                   const SizedBox(width: 8),
                   _buildFilterChip('Posts', _tabController.index == 3, 3),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Music', _tabController.index == 4, 4),
                 ],
               ),
             ),
@@ -274,10 +284,11 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
             child: IndexedStack(
               index: _tabController.index,
               children: [
-                _buildContentList(_allContent, 'All pending content', isDesktop),
+                _buildContentList(_getFilteredAllContent(), 'All pending content', isDesktop),
                 _buildPodcastsTab(isDesktop),
                 _buildContentList(_movies, 'movies', isDesktop),
                 _buildContentList(_posts, 'posts', isDesktop),
+                _buildContentList(_music, 'music', isDesktop),
               ],
             ),
           ),

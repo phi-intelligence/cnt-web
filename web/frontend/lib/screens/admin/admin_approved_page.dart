@@ -34,6 +34,7 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
   List<dynamic> _podcasts = [];
   List<dynamic> _movies = [];
   List<dynamic> _posts = [];
+  List<dynamic> _music = [];
   
   // Loading states
   bool _isLoading = true;
@@ -49,7 +50,7 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 4,
+      length: 5,
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
@@ -76,9 +77,10 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
     try {
       // Load all approved content types in parallel
       final results = await Future.wait([
-        _api.getAllContent(contentType: 'podcast', status: 'approved'),
-        _api.getAllContent(contentType: 'movie', status: 'approved'),
-        _api.getAllContent(contentType: 'community_post', status: 'approved'),
+        _api.getAllContent(contentType: 'podcast', status: 'approved', limit: 1000),
+        _api.getAllContent(contentType: 'movie', status: 'approved', limit: 1000),
+        _api.getAllContent(contentType: 'community_post', status: 'approved', limit: 1000),
+        _api.getAllContent(contentType: 'music', status: 'approved', limit: 1000),
       ]);
 
       if (mounted) {
@@ -86,7 +88,8 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
           _podcasts = results[0];
           _movies = results[1];
           _posts = results[2];
-          _allContent = [..._podcasts, ..._movies, ..._posts];
+          _music = results[3];
+          _allContent = [..._podcasts, ..._movies, ..._posts, ..._music];
           _isLoading = false;
         });
       }
@@ -233,6 +236,11 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
     return _podcasts;
   }
 
+  List<dynamic> _getFilteredAllContent() {
+    final filteredPodcasts = _getFilteredPodcasts();
+    return [...filteredPodcasts, ..._movies, ..._posts, ..._music];
+  }
+
   List<dynamic> _applySearch(List<dynamic> content) {
     final query = _searchController.text.toLowerCase();
     if (query.isEmpty) return content;
@@ -270,6 +278,8 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
                    _buildFilterChip('Movies', _tabController.index == 2, 2),
                    const SizedBox(width: 8),
                    _buildFilterChip('Posts', _tabController.index == 3, 3),
+                   const SizedBox(width: 8),
+                   _buildFilterChip('Music', _tabController.index == 4, 4),
                 ],
               ),
             ),
@@ -282,10 +292,11 @@ class _AdminApprovedPageState extends State<AdminApprovedPage> with SingleTicker
             child: IndexedStack(
               index: _tabController.index,
               children: [
-                _buildContentList(_allContent, 'approved content', isDesktop),
+                _buildContentList(_getFilteredAllContent(), 'approved content', isDesktop),
                 _buildPodcastsTab(isDesktop),
                 _buildContentList(_movies, 'movies', isDesktop),
                 _buildContentList(_posts, 'posts', isDesktop),
+                _buildContentList(_music, 'music', isDesktop),
               ],
             ),
           ),

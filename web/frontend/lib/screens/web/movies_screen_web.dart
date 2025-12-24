@@ -400,45 +400,76 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Filters & Search Section - Single Row
+                        // Filters & Search Section - Responsive Layout
                         SectionContainer(
                           padding: EdgeInsets.zero,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              // Category filter chips (left side)
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: _categories.map((category) {
-                                      final isSelected = category == _selectedCategory;
-                                      return Padding(
-                                        padding: EdgeInsets.only(right: AppSpacing.small),
-                                        child: StyledFilterChip(
-                                          label: category,
-                                          selected: isSelected,
-                                          onSelected: (selected) {
-                                            _onCategoryChanged(category);
-                                          },
+                          child: screenWidth < 768
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    // Filter chips (full width on small screens)
+                                    SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        children: _categories.map((category) {
+                                          final isSelected = category == _selectedCategory;
+                                          return Padding(
+                                            padding: EdgeInsets.only(right: AppSpacing.small),
+                                            child: StyledFilterChip(
+                                              label: category,
+                                              selected: isSelected,
+                                              onSelected: (selected) {
+                                                _onCategoryChanged(category);
+                                              },
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppSpacing.medium),
+                                    // Search field (full width on small screens)
+                                    StyledSearchField(
+                                      controller: _searchController,
+                                      hintText: 'Search movies...',
+                                    ),
+                                  ],
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    // Category filter chips (left side)
+                                    Expanded(
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          children: _categories.map((category) {
+                                            final isSelected = category == _selectedCategory;
+                                            return Padding(
+                                              padding: EdgeInsets.only(right: AppSpacing.small),
+                                              child: StyledFilterChip(
+                                                label: category,
+                                                selected: isSelected,
+                                                onSelected: (selected) {
+                                                  _onCategoryChanged(category);
+                                                },
+                                              ),
+                                            );
+                                          }).toList(),
                                         ),
-                                      );
-                                    }).toList(),
-                                  ),
+                                      ),
+                                    ),
+                                    // Search field (right side)
+                                    const SizedBox(width: AppSpacing.medium),
+                                    SizedBox(
+                                      width: isDesktop ? 300 : 200,
+                                      child: StyledSearchField(
+                                        controller: _searchController,
+                                        hintText: 'Search movies...',
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              // Search field (right side)
-                              const SizedBox(width: AppSpacing.medium),
-                              SizedBox(
-                                width: isDesktop ? 300 : 200,
-                                child: StyledSearchField(
-                                  controller: _searchController,
-                                  hintText: 'Search movies...',
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
                         
                         const SizedBox(height: AppSpacing.extraLarge),
