@@ -29,6 +29,10 @@ class CreateScreenWeb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (ResponsiveUtils.isMobile(context)) {
+      return _buildMobileLayout(context);
+    }
+    
     // Use responsive aspect ratio based on device type
     final aspectRatio = ResponsiveUtils.getResponsiveValue(
       context: context,
@@ -62,6 +66,37 @@ class CreateScreenWeb extends StatelessWidget {
             itemCount: _getOptionCards(context).length,
             itemBuilder: (context, index) => _getOptionCards(context)[index],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(BuildContext context) {
+    final options = _getOptionCards(context);
+    
+    return Scaffold(
+      backgroundColor: AppColors.backgroundPrimary,
+      appBar: AppBar(
+        title: Text(
+          'Create',
+          style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+           color: AppColors.backgroundPrimary,
+        ),
+        child: ListView.separated(
+          padding: const EdgeInsets.all(AppSpacing.medium),
+          itemCount: options.length,
+          separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.medium),
+          itemBuilder: (context, index) {
+        return options[index];
+      },
         ),
       ),
     );

@@ -17,6 +17,8 @@ import '../../screens/video/video_player_full_screen.dart';
 import '../../screens/donation_modal.dart';
 import '../../utils/bank_details_helper.dart';
 import 'dart:async';
+import '../../services/logger_service.dart';
+import '../../services/logger_service.dart';
 
 /// Web-specific Movie Detail Screen - Redesigned
 class MovieDetailScreenWeb extends StatefulWidget {
@@ -107,7 +109,7 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
         });
       }
     } catch (e) {
-      print('Error loading movie: $e');
+      LoggerService.e('Error loading movie: $e');
       setState(() {
         _isLoading = false;
       });
@@ -126,7 +128,7 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
         _isLoadingCreator = false;
       });
     } catch (e) {
-      print('Error loading creator info: $e');
+      LoggerService.e('Error loading creator info: $e');
       setState(() {
         _isLoadingCreator = false;
       });
@@ -162,7 +164,7 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
         _isPreviewLoading = false;
       });
     } catch (e) {
-      print('Error initializing preview: $e');
+      LoggerService.e('Error initializing preview: $e');
       setState(() {
         _isPreviewLoading = false;
         _hasPreviewError = true;
@@ -186,7 +188,7 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
         _isLoadingSimilar = false;
       });
     } catch (e) {
-      print('Error loading similar movies: $e');
+      LoggerService.e('Error loading similar movies: $e');
       setState(() {
         _isLoadingSimilar = false;
       });
@@ -227,16 +229,22 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
       return;
     }
 
-    final hasBankDetails = await checkBankDetailsAndNavigate(context);
-    if (!hasBankDetails) {
+    final recipientId = _creatorInfo!['id'] as int;
+    final recipientName = _creatorInfo!['name'] ?? 'Creator';
+
+    // Check if recipient has bank details before showing donation modal
+    final hasRecipientBankDetails = await checkRecipientBankDetails(recipientId);
+    if (!hasRecipientBankDetails) {
+      // Show error dialog if recipient doesn't have bank details
+      await showRecipientBankDetailsMissingDialog(context, recipientName);
       return;
     }
 
     showDialog(
       context: context,
       builder: (context) => DonationModal(
-        recipientName: _creatorInfo!['name'] ?? 'Creator',
-        recipientUserId: _creatorInfo!['id'] as int,
+        recipientName: recipientName,
+        recipientUserId: recipientId,
       ),
     );
   }

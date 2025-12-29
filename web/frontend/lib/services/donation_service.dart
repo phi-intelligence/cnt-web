@@ -14,7 +14,75 @@ class DonationService {
     return PlatformHelper.getApiBaseUrl();
   }
   
-  /// Process a donation
+  /// Create a Stripe PaymentIntent for donation
+  /// Returns payment intent details including client_secret and publishable_key
+  Future<Map<String, dynamic>> createPaymentIntent({
+    required int recipientUserId,
+    required double amount,
+    String currency = 'USD',
+  }) async {
+    try {
+      final headers = await _authService.getAuthHeaders();
+      headers['Content-Type'] = 'application/json';
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/donations/create-payment-intent'),
+        headers: headers,
+        body: jsonEncode({
+          'recipient_user_id': recipientUserId,
+          'amount': amount,
+          'currency': currency,
+        }),
+      ).timeout(const Duration(seconds: 30));
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else {
+        final errorBody = response.body;
+        try {
+          final error = json.decode(errorBody);
+          throw Exception(error['detail'] ?? 'Failed to create payment intent');
+        } catch (_) {
+          throw Exception('Failed to create payment intent: ${response.statusCode} - $errorBody');
+        }
+      }
+    } catch (e) {
+      throw Exception('Payment intent creation error: $e');
+    }
+  }
+  
+  /// Confirm a completed payment intent
+  /// This records the donation in the database after successful payment
+  Future<Map<String, dynamic>> confirmPayment({
+    required String paymentIntentId,
+  }) async {
+    try {
+      final headers = await _authService.getAuthHeaders();
+      headers['Content-Type'] = 'application/json';
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/donations/confirm/$paymentIntentId'),
+        headers: headers,
+      ).timeout(const Duration(seconds: 30));
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else {
+        final errorBody = response.body;
+        try {
+          final error = json.decode(errorBody);
+          throw Exception(error['detail'] ?? 'Failed to confirm payment');
+        } catch (_) {
+          throw Exception('Failed to confirm payment: ${response.statusCode} - $errorBody');
+        }
+      }
+    } catch (e) {
+      throw Exception('Payment confirmation error: $e');
+    }
+  }
+  
+  /// Legacy donation processing (kept for backward compatibility)
+  /// Use createPaymentIntent + confirmPayment instead for Stripe payments
   Future<Map<String, dynamic>> processDonation({
     required int recipientUserId,
     required double amount,

@@ -17,6 +17,7 @@ import '../../services/api_service.dart';
 import '../../widgets/shared/content_section.dart';
 import '../../utils/responsive_utils.dart';
 import '../../utils/responsive_grid_delegate.dart';
+import '../../services/logger_service.dart';
 
 /// Web Search Screen - Full implementation
 class SearchScreenWeb extends StatefulWidget {
@@ -131,9 +132,10 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
           ..._trendingMusic.take(5),
         ];
         _isLoadingDiscover = false;
+        _isLoadingDiscover = false;
       });
     } catch (e) {
-      print('❌ Error fetching discover content: $e');
+      LoggerService.e('❌ Error fetching discover content: $e');
       setState(() {
         _isLoadingDiscover = false;
       });

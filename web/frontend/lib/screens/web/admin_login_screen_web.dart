@@ -114,7 +114,7 @@ class _AdminLoginScreenWebState extends State<AdminLoginScreenWeb> {
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        style: AppTypography.body,
+                        style: AppTypography.body.copyWith(color: AppColors.textPrimary),
                         decoration: InputDecoration(
                           labelText: 'Email',
                           labelStyle: TextStyle(color: AppColors.textSecondary),
@@ -150,7 +150,7 @@ class _AdminLoginScreenWebState extends State<AdminLoginScreenWeb> {
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
-                        style: AppTypography.body,
+                        style: AppTypography.body.copyWith(color: AppColors.textPrimary),
                         decoration: InputDecoration(
                           labelText: 'Password',
                           labelStyle: TextStyle(color: AppColors.textSecondary),

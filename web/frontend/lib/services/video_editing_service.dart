@@ -1,7 +1,10 @@
 import 'dart:io' if (dart.library.html) '../utils/file_stub.dart' as io;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import '../config/app_config.dart';
+import '../models/content_item.dart';
 import 'api_service.dart';
+import '../services/logger_service.dart';
 import '../models/text_overlay.dart';
 import 'package:http/http.dart' as http;
 
@@ -46,39 +49,48 @@ class VideoEditingService {
   /// 2. /media/ paths → resolve based on environment
   /// 3. Relative paths → construct with mediaBaseUrl
   String _constructMediaUrl(String outputUrl) {
-    // If outputUrl is already a full HTTP/HTTPS URL, use it directly
-    if (outputUrl.startsWith('http://') || outputUrl.startsWith('https://')) {
-      print('✅ Using full URL directly: $outputUrl');
+    // If outputUrl handles CloudFront/S3 directly
+    if (outputUrl.startsWith('http')) {
+      // It's already a full URL
+      LoggerService.i('✅ Using full URL directly: $outputUrl');
       return outputUrl;
     }
+
+    // Otherwise, construct based on environment
+    // For local dev, we might be hitting an internal minio/s3 mock or backend proxy
+    String constructedUrl;
     
-    // If outputUrl starts with /media/, it's a backend-served file
-    if (outputUrl.startsWith('/media/')) {
-      // Get API base URL without /api/v1 suffix
-      final apiBase = ApiService.baseUrl.replaceAll('/api/v1', '').trim();
-      
-      // Check if we're in development environment
-      final isDevelopment = _isDevelopmentEnvironment(apiBase);
-      
-      if (isDevelopment) {
-        // Development: Use backend API URL to serve the file
-        // Backend serves files via /media endpoint
-        final constructedUrl = apiBase + outputUrl;
-        print('🔧 Development mode - Using backend URL: $constructedUrl');
-        return constructedUrl;
-      } else {
-        // Production: Use CloudFront/S3 URL
-        // Note: /media/ prefix is kept here as it's part of the path from backend
-        final constructedUrl = ApiService.mediaBaseUrl + outputUrl;
-        print('🌐 Production mode - Using CloudFront/S3 URL: $constructedUrl');
-        return constructedUrl;
-      }
+    // Determine the base URL to use
+    String effectiveBaseUrl;
+    // Check if we're in development
+    if (_isDevelopmentEnvironment(ApiService.baseUrl)) {
+      // In dev, use the backend API base URL (without /api/v1)
+      effectiveBaseUrl = ApiService.baseUrl.replaceAll('/api/v1', '').trim();
+      LoggerService.d('🔧 Development mode - Using backend URL base: $effectiveBaseUrl');
+    } else {
+      // In production, use CloudFront or S3 public URL
+      effectiveBaseUrl = ApiService.mediaBaseUrl;
+      LoggerService.i('🌐 Production mode - Using CloudFront/S3 URL base: $effectiveBaseUrl');
+    }
+
+    // Append the outputUrl to the effectiveBaseUrl
+    if (effectiveBaseUrl.endsWith('/')) {
+      constructedUrl = '$effectiveBaseUrl${outputUrl.startsWith('/') ? outputUrl.substring(1) : outputUrl}';
+    } else {
+      constructedUrl = '$effectiveBaseUrl/${outputUrl.startsWith('/') ? outputUrl.substring(1) : outputUrl}';
+    }
+
+    // Fallback: If constructed URL still doesn't look like a full URL,
+    // or if the initial logic didn't cover a specific case.
+    // This might happen if outputUrl was a relative path and effectiveBaseUrl was empty or malformed.
+    if (!constructedUrl.startsWith('http')) {
+      // A more robust fallback might involve AppConfig.apiBaseUrl
+      final fallbackUrl = '${AppConfig.apiBaseUrl}/$outputUrl'.replaceAll(RegExp(r'([^:])//+'), r'$1/');
+      LoggerService.w('⚠️ Fallback URL construction: $fallbackUrl');
+      return fallbackUrl;
     }
     
-    // Fallback: Use mediaBaseUrl for relative paths
-    final fallbackUrl = ApiService.mediaBaseUrl + (outputUrl.startsWith('/') ? outputUrl : '/$outputUrl');
-    print('⚠️ Fallback URL construction: $fallbackUrl');
-    return fallbackUrl;
+    return constructedUrl;
   }
 
   /// Trim video - Cut video from start time to end time

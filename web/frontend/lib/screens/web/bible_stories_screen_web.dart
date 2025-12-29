@@ -7,6 +7,7 @@ import '../../widgets/shared/loading_shimmer.dart';
 import '../../widgets/shared/empty_state.dart';
 import '../../widgets/web/content_card_web.dart';
 import '../../services/api_service.dart';
+import '../../services/logger_service.dart';
 import '../../providers/audio_player_provider.dart';
 import '../../models/content_item.dart';
 import '../../utils/responsive_grid_delegate.dart';
@@ -69,7 +70,7 @@ class _BibleStoriesScreenWebState extends State<BibleStoriesScreenWeb> {
         _isLoading = false;
       });
     } catch (e) {
-      print('❌ Error fetching Bible stories: $e');
+      LoggerService.e('❌ Error fetching Bible stories: $e');
       setState(() {
         _isLoading = false;
         _bibleStories = [];

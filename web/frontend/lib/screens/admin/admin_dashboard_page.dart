@@ -12,6 +12,7 @@ import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
+import 'admin_commission_settings_page.dart';
 
 /// Dashboard page showing overview statistics and quick actions
 class AdminDashboardPage extends StatefulWidget {
@@ -178,6 +179,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     _buildSupportStats(context, stats),
                     const SizedBox(height: AppSpacing.large),
                     _buildDocumentStats(context, stats),
+                    const SizedBox(height: AppSpacing.large),
+                    _buildCommissionSettings(context),
                   ],
                 ),
               ),
@@ -222,6 +225,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 _buildSupportStats(context, stats),
                 const SizedBox(height: AppSpacing.extraLarge),
                 _buildDocumentStats(context, stats),
+                const SizedBox(height: AppSpacing.extraLarge),
+                _buildCommissionSettings(context),
               ],
             ),
           ),
@@ -558,6 +563,60 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 default:
                   return const SizedBox();
               }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCommissionSettings(BuildContext context) {
+    return SectionContainer(
+      showShadow: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.small),
+                decoration: BoxDecoration(
+                  color: AppColors.warmBrown.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                ),
+                child: Icon(
+                  Icons.account_balance_wallet,
+                  color: AppColors.warmBrown,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.small),
+              Text(
+                'Commission Settings',
+                style: AppTypography.heading3.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.medium),
+          Text(
+            'Configure platform commission rates for donations',
+            style: AppTypography.body.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.large),
+          StyledPillButton(
+            label: 'Manage Commission Settings',
+            icon: Icons.settings,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AdminCommissionSettingsPage(),
+                ),
+              );
             },
           ),
         ],

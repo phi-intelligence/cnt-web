@@ -14,6 +14,7 @@ import '../../utils/responsive_utils.dart';
 // Conditional imports for platform-specific features
 import 'dart:io' if (dart.library.html) '../../utils/file_stub.dart' as io;
 import 'dart:html' if (dart.library.io) '../../utils/html_stub.dart' as html;
+import '../../services/logger_service.dart';
 
 /// Audio Podcast Create Screen
 /// Shows options to record audio or upload file
@@ -63,7 +64,7 @@ class AudioPodcastCreateScreen extends StatelessWidget {
           final blob = html.Blob([bytes], mimeType);
           audioUri = html.Url.createObjectUrlFromBlob(blob);
 
-          print('🎵 Web: Created blob URL for audio file: $audioUri (${fileSize} bytes, $mimeType)');
+          LoggerService.i('🎵 Web: Created blob URL for audio file: $audioUri (${fileSize} bytes, $mimeType)');
         } else {
           // Mobile: Use file path
           final audioPath = file.path;

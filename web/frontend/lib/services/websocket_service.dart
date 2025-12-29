@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../config/app_config.dart';
+import '../services/logger_service.dart';
 
 class WebSocketService {
   static final WebSocketService _instance = WebSocketService._internal();
@@ -32,19 +33,19 @@ class WebSocketService {
       
       // Skip connection if URL is empty
       if (url.isEmpty) {
-        print('❌ WebSocket: URL is empty. Set WEBSOCKET_URL via --dart-define during build.');
+        LoggerService.e('❌ WebSocket: URL is empty. Set WEBSOCKET_URL via --dart-define during build.');
         return;
       }
       
       // Skip connection if using placeholder URL (development without proper env vars)
       if (url.contains('yourdomain.com')) {
-        print('⚠️ WebSocket: Skipping connection - placeholder URL detected. Set WEBSOCKET_URL via --dart-define or update AppConfig.');
+        LoggerService.w('⚠️ WebSocket: Skipping connection - placeholder URL detected. Set WEBSOCKET_URL via --dart-define or update AppConfig.');
         return;
       }
       
       // Validate URL format before parsing
       if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
-        print('❌ WebSocket: Invalid URL scheme. Must start with ws:// or wss://. Got: $url');
+        LoggerService.e('❌ WebSocket: Invalid URL scheme. Must start with ws:// or wss://. Got: $url');
         return;
       }
       
@@ -92,7 +93,7 @@ class WebSocketService {
       // socket_io_client may parse the URL internally and add :0, so we need to be extra careful
       finalUrl = finalUrl.replaceAll(RegExp(r':0(?=/|$)'), '');
       
-      print('🔌 WebSocket: Original: $url, Cleaned: $finalUrl');
+      LoggerService.i('🔌 WebSocket: Original: $url, Cleaned: $finalUrl');
       
       // Use socket_io_client with explicit options to prevent port inference
       // Add reconnection: false initially to prevent multiple connection attempts with wrong URL
@@ -107,11 +108,11 @@ class WebSocketService {
 
       _socket!.on('connect', (_) {
         _isConnected = true;
-        print('✅ WebSocket connected');
+        LoggerService.i('✅ WebSocket connected');
       });
       _socket!.on('disconnect', (_) {
         _isConnected = false;
-        print('❌ WebSocket disconnected');
+        LoggerService.i('❌ WebSocket disconnected');
       });
       _socket!.on('message', (data) {
         try {
@@ -126,39 +127,39 @@ class WebSocketService {
         try {
           if (data is Map<String, dynamic>) {
             _liveStreamStartedController.add(data);
-            print('📺 Live stream started notification: $data');
+            LoggerService.i('📺 Live stream started notification: $data');
           }
         } catch (e) {
-          print('Error handling live_stream_started: $e');
+          LoggerService.e('Error handling live_stream_started: $e');
         }
       });
       _socket!.on('speak_permission_requested', (data) {
         try {
           if (data is Map<String, dynamic>) {
             _speakPermissionRequestedController.add(data);
-            print('🎤 Speak permission requested: $data');
+            LoggerService.i('🎤 Speak permission requested: $data');
           }
         } catch (e) {
-          print('Error handling speak_permission_requested: $e');
+          LoggerService.e('Error handling speak_permission_requested: $e');
         }
       });
       _socket!.on('error', (error) {
         _isConnected = false;
-        print('❌ WebSocket error: $error');
+        LoggerService.e('❌ WebSocket error: $error');
         // Log the actual connection URL being used by socket_io_client
         // This helps debug if port :0 is still being added
         if (error != null && error.toString().contains(':0')) {
-          print('⚠️ WebSocket: Port :0 detected in error. URL used: $finalUrl');
+          LoggerService.w('⚠️ WebSocket: Port :0 detected in error. URL used: $finalUrl');
         }
       });
       
       // Add connect_error handler to catch connection failures
       _socket!.on('connect_error', (error) {
         _isConnected = false;
-        print('❌ WebSocket connection error: $error');
+        LoggerService.e('❌ WebSocket connection error: $error');
         // Check if error is related to port :0
         if (error != null && error.toString().contains(':0')) {
-          print('⚠️ WebSocket: Port :0 detected in connection error. Attempted URL: $finalUrl');
+          LoggerService.w('⚠️ WebSocket: Port :0 detected in connection error. Attempted URL: $finalUrl');
         }
       });
     } catch (_) {
@@ -177,14 +178,14 @@ class WebSocketService {
   
   void send(Map<String, dynamic> data) {
     if (!_isConnected || _socket == null) {
-      print('WebSocket not connected - message not sent');
+      LoggerService.w('WebSocket not connected - message not sent');
       return;
     }
     
     try {
       _socket!.emit('message', data);
     } catch (e) {
-      print('Error sending WebSocket message: $e');
+      LoggerService.e('Error sending WebSocket message: $e');
       _isConnected = false;
       _socket = null;
     }
@@ -192,7 +193,7 @@ class WebSocketService {
   
   void _handleMessage(Map<String, dynamic> data) {
     // Handle incoming WebSocket messages
-    print('WebSocket message: $data');
+    LoggerService.d('WebSocket message: $data');
     // TODO: Notify listeners based on message type
   }
   

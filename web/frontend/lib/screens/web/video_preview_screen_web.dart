@@ -12,6 +12,7 @@ import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../widgets/thumbnail_selector.dart';
 import '../../services/api_service.dart';
+import '../../services/logger_service.dart';
 import '../../utils/state_persistence.dart';
 import 'video_editor_screen_web.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -87,10 +88,10 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
           _selectedThumbnail = savedThumbnail;
         }
         
-        print('✅ Restored video preview state from saved state');
+        LoggerService.i('✅ Restored video preview state from saved state');
       }
     } catch (e) {
-      print('❌ Error loading video preview state: $e');
+      LoggerService.e('❌ Error loading video preview state: $e');
     }
   }
   
@@ -119,7 +120,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
         fileSize: widget.fileSize > 0 ? widget.fileSize : null,
       );
     } catch (e) {
-      print('⚠️ Error saving video preview state: $e');
+      LoggerService.w('⚠️ Error saving video preview state: $e');
     }
   }
 
@@ -158,7 +159,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
       });
       _startControlsTimer();
     } catch (e) {
-      print('Error initializing video player: $e');
+      LoggerService.e('Error initializing video player: $e');
       setState(() {
         _hasError = true;
         _errorMessage = 'Failed to load video: ${e.toString()}';
@@ -278,13 +279,13 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
         if (uploadResult != null) {
           final backendUrl = uploadResult['url'] as String?;
           backendDuration = uploadResult['duration'] as int?;
-          print('📊 Backend detected duration: ${backendDuration}s');
+          LoggerService.i('📊 Backend detected duration: ${backendDuration}s');
           if (backendUrl != null) {
             videoPathToUse = backendUrl;
           }
         }
       } catch (e) {
-        print('⚠️ Failed to upload blob before editor: $e');
+        LoggerService.w('⚠️ Failed to upload blob before editor: $e');
         // Continue with blob URL - editor will handle it
       }
     }
@@ -298,7 +299,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
     
     // Use backend duration if available (more accurate for WebM), fallback to widget.duration
     final durationToUse = backendDuration ?? widget.duration;
-    print('🎬 Using duration for editor: ${durationToUse}s (backend: $backendDuration, widget: ${widget.duration})');
+    LoggerService.i('🎬 Using duration for editor: ${durationToUse}s (backend: $backendDuration, widget: ${widget.duration})');
     
     // Navigate to VideoEditorScreenWeb with fresh state
     final editedPath = await Navigator.push<String>(

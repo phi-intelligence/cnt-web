@@ -123,7 +123,7 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
                       TextFormField(
                         controller: _usernameOrEmailController,
                         keyboardType: TextInputType.text,
-                        style: AppTypography.body,
+                        style: AppTypography.body.copyWith(color: AppColors.textPrimary),
                         decoration: InputDecoration(
                           labelText: 'Username or Email',
                           labelStyle: TextStyle(color: AppColors.textSecondary),
@@ -159,7 +159,7 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
-                        style: AppTypography.body,
+                        style: AppTypography.body.copyWith(color: AppColors.textPrimary),
                         decoration: InputDecoration(
                           labelText: 'Password',
                           labelStyle: TextStyle(color: AppColors.textSecondary),

@@ -8,6 +8,7 @@ import '../../widgets/shared/loading_shimmer.dart';
 import '../../widgets/shared/empty_state.dart';
 import '../../widgets/web/content_card_web.dart';
 import '../../services/api_service.dart';
+import '../../services/logger_service.dart';
 import '../../providers/music_provider.dart';
 import '../../providers/audio_player_provider.dart';
 import '../../models/content_item.dart';
@@ -63,7 +64,7 @@ class _DiscoverScreenWebState extends State<DiscoverScreenWeb> {
         _isLoading = false;
       });
     } catch (e) {
-      print('❌ Error fetching discover content: $e');
+      LoggerService.e('❌ Error fetching discover content: $e');
       setState(() => _isLoading = false);
     }
   }

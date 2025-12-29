@@ -16,6 +16,7 @@ import '../../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'video_editor_screen_web.dart';
 import 'package:go_router/go_router.dart';
+import '../../services/logger_service.dart';
 
 /// Web Movie Preview Screen
 /// Shows recorded/uploaded video with playback and controls
@@ -96,7 +97,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
         });
       }
     } catch (e) {
-      print('Error loading categories: $e');
+      LoggerService.e('Error loading categories: $e');
       if (mounted) {
         setState(() {
           _loadingCategories = false;
@@ -136,7 +137,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
       });
       _startControlsTimer();
     } catch (e) {
-      print('Error initializing video player: $e');
+      LoggerService.e('Error initializing video player: $e');
       setState(() {
         _hasError = true;
         _errorMessage = 'Failed to load video: ${e.toString()}';
@@ -258,7 +259,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
           }
         }
       } catch (e) {
-        print('⚠️ Failed to upload blob before editor: $e');
+        LoggerService.w('⚠️ Failed to upload blob before editor: $e');
       }
     }
     

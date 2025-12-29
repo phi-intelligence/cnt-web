@@ -18,6 +18,7 @@ import '../../utils/responsive_utils.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../providers/search_provider.dart';
 import 'movie_detail_screen_web.dart';
+import '../../services/logger_service.dart';
 
 /// Web Movies Screen - Full implementation
 class MoviesScreenWeb extends StatefulWidget {
@@ -172,7 +173,7 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
         _startHeroTimer();
       }
     } catch (e) {
-      print('Error fetching movies: $e');
+      LoggerService.e('Error fetching movies: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -256,7 +257,7 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
           
           _previewControllers[movie.id.hashCode] = controller;
         } catch (e) {
-          print('Error initializing preview for movie ${movie.id}: $e');
+          LoggerService.e('Error initializing preview for movie ${movie.id}: $e');
         }
       }
     }
@@ -407,7 +408,13 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
                               ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
-                                    // Filter chips (full width on small screens)
+                                    // Search field (full width on small screens) - FIRST
+                                    StyledSearchField(
+                                      controller: _searchController,
+                                      hintText: 'Search movies...',
+                                    ),
+                                    const SizedBox(height: AppSpacing.medium),
+                                    // Filter chips (full width on small screens) - SECOND
                                     SingleChildScrollView(
                                       scrollDirection: Axis.horizontal,
                                       child: Row(
@@ -425,12 +432,6 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
                                           );
                                         }).toList(),
                                       ),
-                                    ),
-                                    const SizedBox(height: AppSpacing.medium),
-                                    // Search field (full width on small screens)
-                                    StyledSearchField(
-                                      controller: _searchController,
-                                      hintText: 'Search movies...',
                                     ),
                                   ],
                                 )

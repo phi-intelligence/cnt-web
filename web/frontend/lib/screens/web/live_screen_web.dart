@@ -9,6 +9,7 @@ import '../../services/api_service.dart';
 import '../../screens/live/live_stream_viewer.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/dimension_utils.dart';
+import '../../services/logger_service.dart';
 
 /// Web Live Screen - Live streams with tabs
 class LiveScreenWeb extends StatefulWidget {
@@ -51,7 +52,7 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
         _isLoading = false;
       });
     } catch (e) {
-      print('❌ Error fetching streams: $e');
+      LoggerService.e('❌ Error fetching streams: $e');
       setState(() => _isLoading = false);
     }
   }

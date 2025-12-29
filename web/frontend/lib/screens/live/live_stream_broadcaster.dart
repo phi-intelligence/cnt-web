@@ -195,7 +195,7 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
         children: [
           // Video preview
           if (_localVideoTrack != null && _isCameraOn)
-            VideoTrackView(track: _localVideoTrack!, isLocal: true, mirror: true)
+            VideoTrackView(track: _localVideoTrack!, isLocal: true, mirror: false)
           else
             Container(
               color: Colors.black,

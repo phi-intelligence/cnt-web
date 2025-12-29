@@ -8,6 +8,7 @@ import '../../theme/app_typography.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
+import '../../services/logger_service.dart';
 import '../../utils/web_video_recorder.dart';
 import 'video_preview_screen_web.dart';
 import 'movie_preview_screen_web.dart';
@@ -78,7 +79,7 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
         _isInitializing = false;
       });
     } catch (e) {
-      print('❌ Error initializing camera: $e');
+      LoggerService.e('❌ Error initializing camera: $e');
       // Extract user-friendly error message
       String errorMsg = e.toString();
       if (errorMsg.contains('Exception: ')) {
@@ -225,7 +226,7 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
           throw Exception('Video file is empty. Please try recording again.');
         }
       } catch (e) {
-        print('Error reading video bytes: $e');
+        LoggerService.e('Error reading video bytes: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
@@ -272,7 +273,7 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
         }
       }
     } catch (e) {
-      print('❌ Error stopping video recording: $e');
+      LoggerService.e('❌ Error stopping video recording: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         

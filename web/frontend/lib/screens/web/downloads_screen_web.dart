@@ -7,6 +7,7 @@ import '../../widgets/shared/loading_shimmer.dart';
 import '../../widgets/shared/empty_state.dart';
 import '../../widgets/web/content_card_web.dart';
 import '../../services/download_service.dart';
+import '../../services/logger_service.dart';
 import '../../providers/audio_player_provider.dart';
 import '../../models/content_item.dart';
 import '../../utils/responsive_grid_delegate.dart';
@@ -40,7 +41,7 @@ class _DownloadsScreenWebState extends State<DownloadsScreenWeb> {
         _isLoading = false;
       });
     } catch (e) {
-      print('❌ Error loading downloads: $e');
+      LoggerService.e('❌ Error loading downloads: $e');
       setState(() => _isLoading = false);
     }
   }

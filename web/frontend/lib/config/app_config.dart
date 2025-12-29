@@ -40,5 +40,21 @@ class AppConfig {
     'ENVIRONMENT',
     defaultValue: 'production',
   );
+  
+  // Stripe Configuration
+  // Optional: Can be set via environment variable or fetched from backend
+  static const String stripePublishableKey = String.fromEnvironment(
+    'STRIPE_PUBLISHABLE_KEY',
+    defaultValue: '',
+  );
+  
+  // Organization Donation Configuration
+  // User ID of the Christ New Tabernacle organization account (for receiving donations)
+  // Default: 1 (assumed to be organization/admin account)
+  // Can be overridden via --dart-define=ORGANIZATION_RECIPIENT_USER_ID=<user_id>
+  static const int organizationRecipientUserId = int.fromEnvironment(
+    'ORGANIZATION_RECIPIENT_USER_ID',
+    defaultValue: 1,
+  );
 }
 

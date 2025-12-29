@@ -14,6 +14,7 @@ import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/dimension_utils.dart';
 import '../../utils/responsive_utils.dart';
 import '../community/create_post_screen.dart';
+import '../../services/logger_service.dart';
 
 /// Web Community Screen - Full implementation
 class CommunityScreenWeb extends StatefulWidget {
@@ -33,13 +34,13 @@ class _CommunityScreenWebState extends State<CommunityScreenWeb> {
   @override
   void initState() {
     super.initState();
-    print('✅ CommunityScreenWeb initState');
+    LoggerService.i('✅ CommunityScreenWeb initState');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       try {
         context.read<CommunityProvider>().fetchPosts(refresh: true);
       } catch (e) {
-        print('❌ CommunityScreenWeb: Error fetching posts: $e');
+        LoggerService.e('❌ CommunityScreenWeb: Error fetching posts: $e');
       }
     });
     
@@ -74,7 +75,7 @@ class _CommunityScreenWebState extends State<CommunityScreenWeb> {
     });
     
     if (index < 0) {
-      print('⚠️ Post $postId not found in list');
+      LoggerService.w('⚠️ Post $postId not found in list');
       // Show user-friendly message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -229,7 +230,9 @@ class _CommunityScreenWebState extends State<CommunityScreenWeb> {
                               desktop: 3,
                               tablet: 2,
                               mobile: 1,
-                              childAspectRatio: 0.72, // Decreased to make cards taller for buttons
+                              childAspectRatio: ResponsiveUtils.isSmallMobile(context) 
+                                  ? 0.65 // Taller cards for small mobile to prevent overflow
+                                  : (ResponsiveUtils.isMobile(context) ? 0.7 : 0.72),
                               crossAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : (ResponsiveUtils.isMobile(context) ? AppSpacing.medium : AppSpacing.large),
                               mainAxisSpacing: ResponsiveUtils.isSmallMobile(context) ? AppSpacing.small : (ResponsiveUtils.isMobile(context) ? AppSpacing.medium : AppSpacing.large),
                             ),

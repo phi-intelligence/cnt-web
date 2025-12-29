@@ -19,6 +19,7 @@ import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
 import 'video_preview_screen_web.dart';
+import '../../services/logger_service.dart';
 
 /// Web Video Editor Screen - Professional Video Editing UI for Web
 /// Features: Multi-track timeline, text overlays, trimming, filters, audio tracks
@@ -168,7 +169,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       UnsavedChangesGuard.showDraftSavedToast(context);
       return true;
     } catch (e) {
-      print('Error saving draft: $e');
+      LoggerService.e('Error saving draft: $e');
       if (mounted) {
         UnsavedChangesGuard.showDraftErrorToast(context, message: 'Failed to save draft: $e');
       }
@@ -240,7 +241,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           final isLocalhostUrl = savedVideoPath.contains('localhost');
           
           if (isProduction && isLocalhostUrl) {
-            print('⚠️ Clearing stale localhost URL from saved state (production environment)');
+            LoggerService.w('⚠️ Clearing stale localhost URL from saved state (production environment)');
             await StatePersistence.clearVideoEditorState();
             // Don't use stale saved state
           } else {
@@ -274,7 +275,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             _editedVideoPath = savedEditedPath;
           }
 
-          print('✅ Restored video editor state from saved state');
+          LoggerService.i('✅ Restored video editor state from saved state');
           }
         }
       }
@@ -283,7 +284,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       String videoPathToUse = widget.videoPath;
       if (kIsWeb && widget.videoPath.startsWith('blob:')) {
         try {
-          print('📤 Uploading blob URL to backend for persistence...');
+          LoggerService.i('📤 Uploading blob URL to backend for persistence...');
           final uploadResult = await _apiService.uploadTemporaryMedia(widget.videoPath, 'video');
           if (uploadResult != null) {
             final backendUrl = uploadResult['url'] as String?;
@@ -292,8 +293,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               final fullUrl = _apiService.getMediaUrl(backendUrl);
               videoPathToUse = fullUrl;
               _persistedVideoPath = fullUrl;
-              print('✅ Blob URL uploaded to backend: $backendUrl');
-              print('✅ Full media URL: $fullUrl');
+              LoggerService.i('✅ Blob URL uploaded to backend: $backendUrl');
+              LoggerService.d('✅ Full media URL: $fullUrl');
               // Save state with full URL
               await StatePersistence.saveVideoEditorState(
                 videoPath: fullUrl,
@@ -308,24 +309,24 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             }
           }
         } catch (e) {
-          print('⚠️ Failed to upload blob URL, using original: $e');
+          LoggerService.w('⚠️ Failed to upload blob URL, using original: $e');
         }
       } else if (_persistedVideoPath == null) {
         // If not a blob URL, ensure it's a full URL
         if (!widget.videoPath.startsWith('http://') && !widget.videoPath.startsWith('https://') && !widget.videoPath.startsWith('blob:')) {
           // It's a relative path from backend, convert to full URL
           videoPathToUse = _apiService.getMediaUrl(widget.videoPath);
-          print('🔗 Converted relative path to full URL: $videoPathToUse');
+          LoggerService.d('🔗 Converted relative path to full URL: $videoPathToUse');
         }
         _persistedVideoPath = videoPathToUse;
       }
 
       // Use persisted path or widget path
       final finalPath = _persistedVideoPath ?? videoPathToUse;
-      print('🎬 Initializing video player with: $finalPath');
+      LoggerService.i('🎬 Initializing video player with: $finalPath');
       await _initializePlayer(finalPath);
     } catch (e) {
-      print('❌ Error initializing from saved state: $e');
+      LoggerService.e('❌ Error initializing from saved state: $e');
       await _initializePlayer(widget.videoPath);
     }
   }
@@ -392,7 +393,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         },
       );
     } catch (e) {
-      print('⚠️ Error getting duration from blob URL: $e');
+      LoggerService.w('⚠️ Error getting duration from blob URL: $e');
       return null;
     }
   }
@@ -476,7 +477,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             await Future.delayed(const Duration(milliseconds: 200));
             duration = _controller!.value.duration;
           } catch (e2) {
-            print('⚠️ Could not trigger metadata load: $e2');
+            LoggerService.w('⚠️ Could not trigger metadata load: $e2');
           }
         }
       }
@@ -509,9 +510,11 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             (_providedDuration!.inMilliseconds / duration.inMilliseconds > 2 ||
              duration.inMilliseconds / _providedDuration!.inMilliseconds > 2);
         
+
+        
         if (controllerDurationInvalid || controllerDurationSuspicious) {
-          print('🔄 Controller duration: ${duration?.inSeconds}s, Provided: ${_providedDuration!.inSeconds}s');
-          print('✅ Using backend-provided duration: ${_providedDuration!.inSeconds}s (more reliable for WebM)');
+          LoggerService.w('🔄 Controller duration: ${duration?.inSeconds}s, Provided: ${_providedDuration!.inSeconds}s');
+          LoggerService.i('✅ Using backend-provided duration: ${_providedDuration!.inSeconds}s (more reliable for WebM)');
           duration = _providedDuration;
         }
       } else if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
@@ -524,7 +527,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               duration = durationFromElement;
             }
           } catch (e) {
-            print('⚠️ Could not get duration from blob URL: $e');
+            LoggerService.w('⚠️ Could not get duration from blob URL: $e');
           }
         }
         
@@ -751,7 +754,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         inputPath,
         _rotation,
         onProgress: (progress) {
-          print('Rotate progress: $progress%');
+          LoggerService.d('Rotate progress: $progress%');
         },
         onError: (error) {
           throw Exception(error);

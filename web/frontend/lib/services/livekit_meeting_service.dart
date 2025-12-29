@@ -1,6 +1,7 @@
 import 'package:livekit_client/livekit_client.dart' as lk;
 import 'api_service.dart';
 import 'dart:async';
+import '../services/logger_service.dart';
 
 /// Response model for meeting join token
 class MeetingJoinResponse {
@@ -57,7 +58,7 @@ class LiveKitMeetingService {
       
       // Always use frontend's configured LiveKit URL (ignores backend's ws_url which is internal Docker URL)
       final frontendUrl = _apiService.getLiveKitUrl();
-      print('🎥 LiveKit Meeting: Using frontend URL: $frontendUrl (ignoring backend URL: ${response['ws_url']})');
+      LoggerService.i('🎥 LiveKit Meeting: Using frontend URL: $frontendUrl (ignoring backend URL: ${response['ws_url']})');
       
       return MeetingJoinResponse(
         token: response['token'] as String,
@@ -89,7 +90,7 @@ class LiveKitMeetingService {
       
       // Always use frontend's configured LiveKit URL (ignores backend's ws_url which is internal Docker URL)
       final frontendUrl = _apiService.getLiveKitUrl();
-      print('🎥 LiveKit Meeting: Using frontend URL: $frontendUrl (ignoring backend URL: ${response['ws_url']})');
+      LoggerService.i('🎥 LiveKit Meeting: Using frontend URL: $frontendUrl (ignoring backend URL: ${response['ws_url']})');
       
       return MeetingJoinResponse(
         token: response['token'] as String,
@@ -116,16 +117,14 @@ class LiveKitMeetingService {
       // Always use frontend's configured LiveKit URL (ignores backend's ws_url which may be internal Docker URL)
       // Also replace any localhost/internal URLs with the configured external URL
       String url = _apiService.getLiveKitUrl();
-      if (wsUrl != null && (wsUrl.contains('localhost') || wsUrl.contains('127.0.0.1') || wsUrl.contains('livekit-server'))) {
-        // Backend provided internal URL - ignore it and use frontend's configured URL
-        print('🎥 LiveKit Meeting: Ignoring internal URL from backend: $wsUrl, using: $url');
-      } else if (wsUrl != null && !wsUrl.contains('localhost') && !wsUrl.contains('127.0.0.1') && !wsUrl.contains('livekit-server')) {
-        // Backend provided external URL - use it (but this shouldn't happen in production)
-        url = wsUrl;
-        print('🎥 LiveKit Meeting: Using provided URL: $url');
+      // Log which URL is being used
+      if (wsUrl != null && wsUrl.isNotEmpty && wsUrl != url) {
+        LoggerService.i('🎥 LiveKit Meeting: Ignoring internal URL from backend: $wsUrl, using: $url');
+      } else if (url == _apiService.getLiveKitUrl()) { // Replaced ConfigUtils.getLiveKitWsUrl() with _apiService.getLiveKitUrl() to maintain existing functionality and avoid new dependencies.
+        // Checking if it matches environment config
+        LoggerService.i('🎥 LiveKit Meeting: Using frontend configured URL: $url');
       } else {
-        // Use frontend's configured URL (default)
-        print('🎥 LiveKit Meeting: Using frontend configured URL: $url');
+        LoggerService.i('🎥 LiveKit Meeting: Using provided URL: $url');
       }
       
       final roomOptions = lk.RoomOptions(
@@ -161,7 +160,8 @@ class LiveKitMeetingService {
         await _currentRoom!.disconnect();
         _currentRoom = null;
       }
-      throw Exception('Failed to join meeting: $e');
+      LoggerService.e('❌ LiveKit: Error connecting to room: $e');
+      rethrow;
     }
   }
 
@@ -172,23 +172,23 @@ class LiveKitMeetingService {
 
     _listener!
       ..on<lk.ParticipantConnectedEvent>((event) {
-        print('👥 LiveKit: Participant connected: ${event.participant.identity}');
+        LoggerService.i('👥 LiveKit: Participant connected: ${event.participant.identity}');
         _updateParticipants();
       })
       ..on<lk.ParticipantDisconnectedEvent>((event) {
-        print('👥 LiveKit: Participant disconnected: ${event.participant.identity}');
+        LoggerService.i('👥 LiveKit: Participant disconnected: ${event.participant.identity}');
         _updateParticipants();
       })
       ..on<lk.TrackSubscribedEvent>((event) {
-        print('📹 LiveKit: Track subscribed: ${event.track.kind}');
+        LoggerService.i('📹 LiveKit: Track subscribed: ${event.track.kind}');
         _updateParticipants();
       })
       ..on<lk.TrackUnsubscribedEvent>((event) {
-        print('📹 LiveKit: Track unsubscribed: ${event.track.kind}');
+        LoggerService.i('📹 LiveKit: Track unsubscribed: ${event.track.kind}');
         _updateParticipants();
       })
       ..on<lk.RoomDisconnectedEvent>((_) {
-        print('🔌 LiveKit: Room disconnected');
+        LoggerService.i('🔌 LiveKit: Room disconnected');
         _isConnected = false;
         _connectionStateController.add(lk.ConnectionState.disconnected);
       });
@@ -224,7 +224,7 @@ class LiveKitMeetingService {
       _isConnected = false;
       _connectionStateController.add(lk.ConnectionState.disconnected);
     } catch (e) {
-      print('❌ LiveKit: Error leaving meeting: $e');
+      LoggerService.e('❌ LiveKit: Error leaving meeting: $e');
     }
   }
 

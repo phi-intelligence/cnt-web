@@ -11,6 +11,7 @@ import '../../widgets/web/styled_search_field.dart';
 import '../../widgets/web/styled_filter_chip.dart';
 import '../../widgets/web/section_container.dart';
 import '../../services/api_service.dart';
+import '../../services/logger_service.dart';
 import '../../models/content_item.dart';
 import '../../providers/audio_player_provider.dart';
 import '../../providers/search_provider.dart';
@@ -180,7 +181,7 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
         _startHeroTimer();
       }
     } catch (e) {
-      print('Error fetching podcasts: $e');
+      LoggerService.e('Error fetching podcasts: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -338,7 +339,13 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
                               ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
-                                    // Filter chips (full width on small screens)
+                                    // Search field (full width on small screens) - FIRST
+                                    StyledSearchField(
+                                      controller: _searchController,
+                                      hintText: 'Search podcasts...',
+                                    ),
+                                    const SizedBox(height: AppSpacing.medium),
+                                    // Filter chips (full width on small screens) - SECOND
                                     SingleChildScrollView(
                                       scrollDirection: Axis.horizontal,
                                       child: Row(
@@ -376,12 +383,6 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
                                           );
                                         }).toList(),
                                       ),
-                                    ),
-                                    const SizedBox(height: AppSpacing.medium),
-                                    // Search field (full width on small screens)
-                                    StyledSearchField(
-                                      controller: _searchController,
-                                      hintText: 'Search podcasts...',
                                     ),
                                   ],
                                 )

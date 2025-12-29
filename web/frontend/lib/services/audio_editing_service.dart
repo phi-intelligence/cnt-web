@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'api_service.dart';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
+import 'logger_service.dart';
 
 /// Audio Editing Service
 /// Handles audio editing operations: trim, merge
@@ -50,7 +51,7 @@ class AudioEditingService {
   String _constructMediaUrl(String outputUrl) {
     // If outputUrl is already a full HTTP/HTTPS URL, use it directly
     if (outputUrl.startsWith('http://') || outputUrl.startsWith('https://')) {
-      print('✅ Using full URL directly: $outputUrl');
+      LoggerService.i('✅ Using full URL directly: $outputUrl');
       return outputUrl;
     }
     
@@ -66,20 +67,20 @@ class AudioEditingService {
         // Development: Use backend API URL to serve the file
         // Backend serves files via /media endpoint
         final constructedUrl = apiBase + outputUrl;
-        print('🔧 Development mode - Using backend URL: $constructedUrl');
+        LoggerService.d('🔧 Development mode - Using backend URL: $constructedUrl');
         return constructedUrl;
       } else {
         // Production: Use CloudFront/S3 URL
         // Note: /media/ prefix is kept here as it's part of the path from backend
         final constructedUrl = ApiService.mediaBaseUrl + outputUrl;
-        print('🌐 Production mode - Using CloudFront/S3 URL: $constructedUrl');
+        LoggerService.d('🌐 Production mode - Using CloudFront/S3 URL: $constructedUrl');
         return constructedUrl;
       }
     }
     
     // Fallback: Use mediaBaseUrl for relative paths
     final fallbackUrl = ApiService.mediaBaseUrl + (outputUrl.startsWith('/') ? outputUrl : '/$outputUrl');
-    print('⚠️ Fallback URL construction: $fallbackUrl');
+    LoggerService.w('⚠️ Fallback URL construction: $fallbackUrl');
     return fallbackUrl;
   }
 
@@ -92,10 +93,10 @@ class AudioEditingService {
     Function(String)? onError,
   }) async {
     try {
-      print('🎵 AudioEditingService.trimAudio called');
-      print('   Input path: $inputPath');
-      print('   Start time: ${startTime.inSeconds}s');
-      print('   End time: ${endTime.inSeconds}s');
+      LoggerService.i('🎵 AudioEditingService.trimAudio called');
+      LoggerService.d('   Input path: $inputPath');
+      LoggerService.d('   Start time: ${startTime.inSeconds}s');
+      LoggerService.d('   End time: ${endTime.inSeconds}s');
       
       final result = await _apiService.trimAudio(
         inputPath,
@@ -103,13 +104,13 @@ class AudioEditingService {
         endTime.inSeconds.toDouble(),
       );
 
-      print('🎵 Audio trim API response: $result');
+      LoggerService.d('🎵 Audio trim API response: $result');
 
       final outputUrl = result['url'] ?? result['path'] ?? '';
-      print('🎵 Extracted output URL: $outputUrl');
+      LoggerService.d('🎵 Extracted output URL: $outputUrl');
       
       if (outputUrl.isEmpty) {
-        print('❌ No output URL in response');
+        LoggerService.e('❌ No output URL in response');
         onError?.call('No output URL returned from server. Response: $result');
         return null;
       }
@@ -117,7 +118,7 @@ class AudioEditingService {
       // On web, return the URL directly
       if (kIsWeb) {
         final constructedUrl = _constructMediaUrl(outputUrl);
-        print('🎵 Constructed media URL: $constructedUrl');
+        LoggerService.d('🎵 Constructed media URL: $constructedUrl');
         return constructedUrl;
       }
 

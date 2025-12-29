@@ -11,6 +11,7 @@ import '../models/document_asset.dart';
 import '../models/content_draft.dart';
 import '../config/app_config.dart';
 import 'auth_service.dart';
+import 'logger_service.dart';
 
 /// API Service for connecting Flutter to backend
 class ApiService {
@@ -20,24 +21,27 @@ class ApiService {
   static String get baseUrl {
     const envUrl = String.fromEnvironment('API_BASE_URL');
     if (envUrl.isNotEmpty) {
-      print('🌐 API Base URL (from env): $envUrl');
+      LoggerService.i('🌐 API Base URL (from env): $envUrl');
       return envUrl;
     }
-    
+
     // Return config URL (will be placeholder if not set via --dart-define)
     // User should set API_BASE_URL via --dart-define when running locally
     final configUrl = AppConfig.apiBaseUrl;
     if (configUrl.isEmpty) {
-      print('❌ ERROR: API_BASE_URL is not set! Set it via --dart-define=API_BASE_URL=<your-api-url>');
-      throw Exception('API_BASE_URL is not configured. Please set it via --dart-define during build.');
+      LoggerService.e(
+          '❌ ERROR: API_BASE_URL is not set! Set it via --dart-define=API_BASE_URL=<your-api-url>');
+      throw Exception(
+          'API_BASE_URL is not configured. Please set it via --dart-define during build.');
     }
     if (configUrl.contains('yourdomain.com')) {
-      print('⚠️ API Base URL: Placeholder URL detected. Set API_BASE_URL via --dart-define when running locally.');
+      LoggerService.w(
+          '⚠️ API Base URL: Placeholder URL detected. Set API_BASE_URL via --dart-define when running locally.');
     }
-    
+
     return configUrl;
   }
-  
+
   static String get mediaBaseUrl {
     const envUrl = String.fromEnvironment('MEDIA_BASE_URL');
     if (envUrl.isNotEmpty) {
@@ -45,91 +49,103 @@ class ApiService {
     }
     final configUrl = AppConfig.mediaBaseUrl;
     if (configUrl.isEmpty) {
-      print('❌ ERROR: MEDIA_BASE_URL is not set! Set it via --dart-define=MEDIA_BASE_URL=<your-media-url>');
-      throw Exception('MEDIA_BASE_URL is not configured. Please set it via --dart-define during build.');
+      LoggerService.e(
+          '❌ ERROR: MEDIA_BASE_URL is not set! Set it via --dart-define=MEDIA_BASE_URL=<your-media-url>');
+      throw Exception(
+          'MEDIA_BASE_URL is not configured. Please set it via --dart-define during build.');
     }
     return configUrl;
   }
-  
+
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
   ApiService._internal();
-  
+
   /// Check if running in development environment
   /// Development: localhost, 127.0.0.1, private IPs, or ports like :8002
   static bool _isDevelopment() {
     final url = baseUrl;
-    return url.contains('localhost') || 
-           url.contains('127.0.0.1') ||
-           url.contains(':8002') ||
-           url.contains(':8000') ||
-           url.contains('192.168.') ||
-           url.contains('10.') ||
-           url.contains('172.');
+    return url.contains('localhost') ||
+        url.contains('127.0.0.1') ||
+        url.contains(':8002') ||
+        url.contains(':8000') ||
+        url.contains('192.168.') ||
+        url.contains('10.') ||
+        url.contains('172.');
   }
-  
+
   /// Check if a URL is from S3 or CloudFront (needs proxy in production)
   static bool _isS3OrCloudFrontUrl(String url) {
-    return url.contains('cloudfront.net') || 
-           url.contains('.s3.') ||
-           url.contains('s3.amazonaws.com') ||
-           url.contains('s3-') ||
-           // Also check if mediaBaseUrl is S3 and the URL matches
-           (mediaBaseUrl.contains('s3.') && url.startsWith(mediaBaseUrl));
+    return url.contains('cloudfront.net') ||
+        url.contains('.s3.') ||
+        url.contains('s3.amazonaws.com') ||
+        url.contains('s3-') ||
+        // Also check if mediaBaseUrl is S3 and the URL matches
+        (mediaBaseUrl.contains('s3.') && url.startsWith(mediaBaseUrl));
   }
-  
+
   /// Validate that baseUrl is configured before making requests
   void _validateBaseUrl() {
     try {
       final url = baseUrl;
       if (url.isEmpty) {
-        print('❌ API Configuration Error: API_BASE_URL is empty');
-        throw Exception('API_BASE_URL is not configured. Please set it via --dart-define during build.');
+        LoggerService.e('❌ API Configuration Error: API_BASE_URL is empty');
+        throw Exception(
+            'API_BASE_URL is not configured. Please set it via --dart-define during build.');
       }
       // Try to parse the URL to ensure it's valid
       final uri = Uri.parse(url);
       if (!uri.hasScheme || !uri.hasAuthority || uri.host.isEmpty) {
-        print('❌ API Configuration Error: Invalid URL format: $url (scheme: ${uri.scheme}, host: ${uri.host})');
-        throw Exception('API_BASE_URL is invalid: $url. Must include scheme (http/https) and valid hostname.');
+        LoggerService.e(
+            '❌ API Configuration Error: Invalid URL format: $url (scheme: ${uri.scheme}, host: ${uri.host})');
+        throw Exception(
+            'API_BASE_URL is invalid: $url. Must include scheme (http/https) and valid hostname.');
       }
-      print('✅ API Base URL validated: $url (host: ${uri.host})');
+      LoggerService.i('✅ API Base URL validated: $url (host: ${uri.host})');
     } catch (e) {
-      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured') || e.toString().contains('invalid')) {
-        print('❌ API Configuration Error: $e');
+      if (e.toString().contains('API_BASE_URL') ||
+          e.toString().contains('not configured') ||
+          e.toString().contains('invalid')) {
+        LoggerService.e('❌ API Configuration Error: $e');
         rethrow;
       }
       // Re-throw as configuration error if it's a parsing error
-      print('❌ API Configuration Error: Failed to parse URL - $e');
+      LoggerService.e('❌ API Configuration Error: Failed to parse URL - $e');
       throw Exception('API_BASE_URL is invalid: $e');
     }
   }
-  
+
   /// Validate that mediaBaseUrl is configured before constructing media URLs
   void _validateMediaBaseUrl() {
     try {
       final url = mediaBaseUrl;
       if (url.isEmpty) {
-        print('❌ Media Configuration Error: MEDIA_BASE_URL is empty');
-        throw Exception('MEDIA_BASE_URL is not configured. Please set it via --dart-define during build.');
+        LoggerService.e('❌ Media Configuration Error: MEDIA_BASE_URL is empty');
+        throw Exception(
+            'MEDIA_BASE_URL is not configured. Please set it via --dart-define during build.');
       }
       // Try to parse the URL to ensure it's valid
       final uri = Uri.parse(url);
       if (!uri.hasScheme || !uri.hasAuthority || uri.host.isEmpty) {
-        print('❌ Media Configuration Error: Invalid URL format: $url (scheme: ${uri.scheme}, host: ${uri.host})');
-        throw Exception('MEDIA_BASE_URL is invalid: $url. Must include scheme (http/https) and valid hostname.');
+        LoggerService.e(
+            '❌ Media Configuration Error: Invalid URL format: $url (scheme: ${uri.scheme}, host: ${uri.host})');
+        throw Exception(
+            'MEDIA_BASE_URL is invalid: $url. Must include scheme (http/https) and valid hostname.');
       }
-      print('✅ Media Base URL validated: $url (host: ${uri.host})');
+      LoggerService.i('✅ Media Base URL validated: $url (host: ${uri.host})');
     } catch (e) {
-      if (e.toString().contains('MEDIA_BASE_URL') || e.toString().contains('not configured') || e.toString().contains('invalid')) {
-        print('❌ Media Configuration Error: $e');
+      if (e.toString().contains('MEDIA_BASE_URL') ||
+          e.toString().contains('not configured') ||
+          e.toString().contains('invalid')) {
+        LoggerService.e('❌ Media Configuration Error: $e');
         rethrow;
       }
       // Re-throw as configuration error if it's a parsing error
-      print('❌ Media Configuration Error: Failed to parse URL - $e');
+      LoggerService.e('❌ Media Configuration Error: Failed to parse URL - $e');
       throw Exception('MEDIA_BASE_URL is invalid: $e');
     }
   }
-  
+
   /// Helper method to check if a URL is valid
   static bool _isValidUrl(String url) {
     if (url.isEmpty) return false;
@@ -140,9 +156,10 @@ class ApiService {
       return false;
     }
   }
-  
+
   /// Get headers with authentication token (checks expiration)
-  Future<Map<String, String>> _getHeaders({Map<String, String>? additional}) async {
+  Future<Map<String, String>> _getHeaders(
+      {Map<String, String>? additional}) async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
       ...?additional,
@@ -151,24 +168,24 @@ class ApiService {
     headers.addAll(authHeaders);
     return headers;
   }
-  
+
   /// Handle 401 Unauthorized errors - attempts token refresh before logging out
   Future<void> _handle401Error(http.Response response) async {
     // Try to refresh access token
-    print('🔄 401 error - attempting token refresh...');
+    LoggerService.i('🔄 401 error - attempting token refresh...');
     final refreshed = await _authService.refreshAccessToken();
-    
+
     if (refreshed) {
-      print('✅ Token refreshed, request can be retried');
+      LoggerService.i('✅ Token refreshed, request can be retried');
       // Don't throw error - let caller retry the request
       return;
     }
-    
+
     // Refresh failed - user needs to log in
     await _authService.logout();
     throw Exception('Your session has expired. Please log in again.');
   }
-  
+
   /// Check if response is 401 and handle accordingly
   void _checkResponse(http.Response response) {
     if (response.statusCode == 401) {
@@ -192,11 +209,13 @@ class ApiService {
         'scheduled_start': scheduledStart?.toIso8601String(),
       }..removeWhere((k, v) => v == null);
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/live/streams'),
-        headers: await _getHeaders(),
-        body: json.encode(body),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/live/streams'),
+            headers: await _getHeaders(),
+            body: json.encode(body),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -205,10 +224,12 @@ class ApiService {
         await _handle401Error(response);
         return {}; // Will never reach here, but satisfies return type
       }
-      throw Exception('Failed to create stream: HTTP ${response.statusCode} ${response.body}');
+      throw Exception(
+          'Failed to create stream: HTTP ${response.statusCode} ${response.body}');
     } catch (e) {
       // Re-throw if it's already our custom exception
-      if (e.toString().contains('session has expired') || e.toString().contains('Authentication failed')) {
+      if (e.toString().contains('session has expired') ||
+          e.toString().contains('Authentication failed')) {
         rethrow;
       }
       throw Exception('Network error creating stream: $e');
@@ -226,10 +247,12 @@ class ApiService {
       }
       // Include auth headers if available (optional for this endpoint)
       final headers = await _getHeaders();
-      final response = await http.get(
-        uri,
-        headers: headers,
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            uri,
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.cast<Map<String, dynamic>>();
@@ -238,10 +261,12 @@ class ApiService {
         await _handle401Error(response);
         // If refresh succeeded, retry the request
         final headers = await _getHeaders();
-        final retryResponse = await http.get(
-          uri,
-          headers: headers,
-        ).timeout(const Duration(seconds: 10));
+        final retryResponse = await http
+            .get(
+              uri,
+              headers: headers,
+            )
+            .timeout(const Duration(seconds: 10));
         if (retryResponse.statusCode == 200) {
           final List<dynamic> data = json.decode(retryResponse.body);
           return data.cast<Map<String, dynamic>>();
@@ -266,11 +291,11 @@ class ApiService {
   /// Get full media URL for audio/image files
   String getMediaUrl(String? path) {
     if (path == null || path.isEmpty) return '';
-    
+
     // Trim whitespace
     path = path.trim();
     if (path.isEmpty) return '';
-    
+
     // If path is already a full URL (http:// or https://)
     if (path.startsWith('http://') || path.startsWith('https://')) {
       // Convert S3 URLs to CloudFront URLs
@@ -285,8 +310,8 @@ class ApiService {
           'http://cnt-web-media.s3.amazonaws.com/',
         ];
         // Clean mediaBaseUrl to ensure no trailing slashes
-        final cleanBase = mediaBaseUrl.endsWith('/') 
-            ? mediaBaseUrl.substring(0, mediaBaseUrl.length - 1) 
+        final cleanBase = mediaBaseUrl.endsWith('/')
+            ? mediaBaseUrl.substring(0, mediaBaseUrl.length - 1)
             : mediaBaseUrl;
         for (final pattern in s3Patterns) {
           if (path.startsWith(pattern)) {
@@ -295,8 +320,9 @@ class ApiService {
             while (relativePath.startsWith('/')) {
               relativePath = relativePath.substring(1);
             }
-            final cloudFrontUrl = _cleanDoubleSlashes('$cleanBase/$relativePath');
-            print('🔄 getMediaUrl: Converted S3 to CloudFront: $cloudFrontUrl');
+            final cloudFrontUrl =
+                _cleanDoubleSlashes('$cleanBase/$relativePath');
+            LoggerService.d('🔄 getMediaUrl: Converted S3 to CloudFront: $cloudFrontUrl');
             return cloudFrontUrl;
           }
         }
@@ -304,100 +330,120 @@ class ApiService {
       // Already a CloudFront URL or other external URL, return as-is
       return path;
     }
-    
+
     // Check if path contains CloudFront domain or S3 domain (might be stored without protocol)
     // This handles cases where backend returns full URLs without http:// prefix
-    if (path.contains('cloudfront.net') || path.contains('.amazonaws.com') || path.contains('.s3.')) {
+    if (path.contains('cloudfront.net') ||
+        path.contains('.amazonaws.com') ||
+        path.contains('.s3.')) {
       // Path contains CloudFront or S3 domain, add https:// prefix if missing
       return path.startsWith('http') ? path : 'https://$path';
     }
-    
+
     // Check if path contains the configured media base URL domain
     // This handles cases where backend returns URLs matching our configured domain
-    final mediaBase = mediaBaseUrl.replaceAll('https://', '').replaceAll('http://', '').trim();
+    final mediaBase = mediaBaseUrl
+        .replaceAll('https://', '')
+        .replaceAll('http://', '')
+        .trim();
     if (mediaBase.isNotEmpty && path.contains(mediaBase)) {
       // Path already contains CloudFront/media domain, return with https:// prefix
       return path.startsWith('http') ? path : 'https://$path';
     }
-    
+
     // Clean mediaBaseUrl - remove trailing slashes to prevent double slashes
-    final cleanMediaBase = mediaBaseUrl.endsWith('/') 
-        ? mediaBaseUrl.substring(0, mediaBaseUrl.length - 1) 
+    final cleanMediaBase = mediaBaseUrl.endsWith('/')
+        ? mediaBaseUrl.substring(0, mediaBaseUrl.length - 1)
         : mediaBaseUrl;
-    
+
     // Clean path - remove all leading slashes to prevent double slashes
     String cleanPath = path;
     while (cleanPath.startsWith('/')) {
       cleanPath = cleanPath.substring(1);
     }
-    
+
     // Handle paths with 'media/' prefix - strip it for production CloudFront
     // In development, keep it since backend serves from /media endpoint
     if (cleanPath.startsWith('media/')) {
-      final isDev = cleanMediaBase.contains('localhost') || 
-                    cleanMediaBase.contains('127.0.0.1') ||
-                    cleanMediaBase.contains(':8002') ||
-                    cleanMediaBase.contains(':8000');
+      final isDev = cleanMediaBase.contains('localhost') ||
+          cleanMediaBase.contains('127.0.0.1') ||
+          cleanMediaBase.contains(':8002') ||
+          cleanMediaBase.contains(':8000');
       if (isDev) {
         // Development: Keep media/ prefix
-        final constructedUrl = _cleanDoubleSlashes('$cleanMediaBase/$cleanPath');
-        print('🔧 getMediaUrl: Dev mode - keeping media prefix: $constructedUrl');
+        final constructedUrl =
+            _cleanDoubleSlashes('$cleanMediaBase/$cleanPath');
+        LoggerService.d(
+            '🔧 getMediaUrl: Dev mode - keeping media prefix: $constructedUrl');
         return constructedUrl;
       } else {
         // Production: Strip media/ prefix (CloudFront maps directly to S3)
         cleanPath = cleanPath.substring(6); // Remove 'media/'
-        final constructedUrl = _cleanDoubleSlashes('$cleanMediaBase/$cleanPath');
-        print('🌐 getMediaUrl: Prod mode - stripped media prefix: $constructedUrl');
+        final constructedUrl =
+            _cleanDoubleSlashes('$cleanMediaBase/$cleanPath');
+        LoggerService.d(
+            '🌐 getMediaUrl: Prod mode - stripped media prefix: $constructedUrl');
         return constructedUrl;
       }
     }
-    
+
     // Convert assets/images/ paths to images/ (remove assets/ prefix)
     if (cleanPath.startsWith('assets/images/')) {
       cleanPath = cleanPath.replaceFirst('assets/', '');
       final constructedUrl = _cleanDoubleSlashes('$cleanMediaBase/$cleanPath');
-      print('🔧 getMediaUrl: Converted assets path: $constructedUrl');
+      LoggerService.d('🔧 getMediaUrl: Converted assets path: $constructedUrl');
       return constructedUrl;
     }
-    
+
     // Paths starting with 'images/', 'audio/', 'video/', 'movies/', or 'documents/' without 'media/' prefix
     // These are direct S3/CloudFront paths in production (e.g., images/quotes/quote_13.jpg)
     // OR they need /media/ prefix in development (e.g., audio/temp_xxx.webm -> media/audio/temp_xxx.webm)
     // For development (localhost), add /media/ prefix. For production, use as-is.
-    if (cleanPath.startsWith('images/') || cleanPath.startsWith('audio/') || cleanPath.startsWith('video/') || cleanPath.startsWith('movies/') || cleanPath.startsWith('documents/')) {
+    if (cleanPath.startsWith('images/') ||
+        cleanPath.startsWith('audio/') ||
+        cleanPath.startsWith('video/') ||
+        cleanPath.startsWith('movies/') ||
+        cleanPath.startsWith('documents/')) {
       // Check if we're in development mode (cleanMediaBase contains localhost)
-      final isDevelopment = cleanMediaBase.contains('localhost') || 
-                           cleanMediaBase.contains('127.0.0.1') ||
-                           cleanMediaBase.contains(':8002') ||
-                           cleanMediaBase.contains(':8000');
-      
+      final isDevelopment = cleanMediaBase.contains('localhost') ||
+          cleanMediaBase.contains('127.0.0.1') ||
+          cleanMediaBase.contains(':8002') ||
+          cleanMediaBase.contains(':8000');
+
       if (isDevelopment) {
         // Development: Add /media/ prefix since backend serves from /media endpoint
-        final constructedUrl = _cleanDoubleSlashes('$cleanMediaBase/media/$cleanPath');
-        print('🔧 getMediaUrl: Development mode - Added /media/ prefix: $constructedUrl (from input: $path)');
+        final constructedUrl =
+            _cleanDoubleSlashes('$cleanMediaBase/media/$cleanPath');
+        LoggerService.d(
+            '🔧 getMediaUrl: Development mode - Added /media/ prefix: $constructedUrl (from input: $path)');
         return constructedUrl;
       } else {
         // Production: Use as-is (direct S3/CloudFront path)
-        final constructedUrl = _cleanDoubleSlashes('$cleanMediaBase/$cleanPath');
-        print('🌐 getMediaUrl: Production mode - Using direct path: $constructedUrl');
+        final constructedUrl =
+            _cleanDoubleSlashes('$cleanMediaBase/$cleanPath');
+        LoggerService.d(
+            '🌐 getMediaUrl: Production mode - Using direct path: $constructedUrl');
         return constructedUrl;
       }
     }
-    
+
     // Default: Check if development mode for other paths
-    final isDev = cleanMediaBase.contains('localhost') || 
-                  cleanMediaBase.contains('127.0.0.1') ||
-                  cleanMediaBase.contains(':8002') ||
-                  cleanMediaBase.contains(':8000');
+    final isDev = cleanMediaBase.contains('localhost') ||
+        cleanMediaBase.contains('127.0.0.1') ||
+        cleanMediaBase.contains(':8002') ||
+        cleanMediaBase.contains(':8000');
     if (isDev) {
       // Development: Add /media/ prefix since backend serves from /media endpoint
-      final constructedUrl = _cleanDoubleSlashes('$cleanMediaBase/media/$cleanPath');
-      print('🔧 getMediaUrl: Default construction (dev): $constructedUrl (from input: $path)');
+      final constructedUrl =
+          _cleanDoubleSlashes('$cleanMediaBase/media/$cleanPath');
+      LoggerService.d(
+          '🔧 getMediaUrl: Default construction (dev): $constructedUrl (from input: $path)');
       return constructedUrl;
     }
     // Production: Use direct path (no /media/ prefix)
     final constructedUrl = _cleanDoubleSlashes('$cleanMediaBase/$cleanPath');
-    print('🌐 getMediaUrl: Default construction (prod): $constructedUrl (from input: $path)');
+    LoggerService.d(
+        '🌐 getMediaUrl: Default construction (prod): $constructedUrl (from input: $path)');
     return constructedUrl;
   }
 
@@ -421,11 +467,14 @@ class ApiService {
         queryParams['sort'] = 'newest';
       }
 
-      final uri = Uri.parse('$baseUrl/podcasts/').replace(queryParameters: queryParams);
-      final response = await http.get(
-        uri,
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final uri =
+          Uri.parse('$baseUrl/podcasts/').replace(queryParameters: queryParams);
+      final response = await http
+          .get(
+            uri,
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -434,7 +483,8 @@ class ApiService {
         throw Exception('Failed to load podcasts: ${response.statusCode}');
       }
     } catch (e) {
-      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+      if (e.toString().contains('API_BASE_URL') ||
+          e.toString().contains('not configured')) {
         rethrow;
       }
       throw Exception('Error fetching podcasts: $e');
@@ -456,7 +506,8 @@ class ApiService {
         throw Exception('Failed to load podcast: ${response.statusCode}');
       }
     } catch (e) {
-      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+      if (e.toString().contains('API_BASE_URL') ||
+          e.toString().contains('not configured')) {
         rethrow;
       }
       throw Exception('Error fetching podcast: $e');
@@ -527,7 +578,8 @@ class ApiService {
         throw Exception('Failed to load bible stories: ${response.statusCode}');
       }
     } catch (e) {
-      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+      if (e.toString().contains('API_BASE_URL') ||
+          e.toString().contains('not configured')) {
         rethrow;
       }
       throw Exception('Error fetching bible stories: $e');
@@ -549,7 +601,8 @@ class ApiService {
         throw Exception('Failed to load music track: ${response.statusCode}');
       }
     } catch (e) {
-      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+      if (e.toString().contains('API_BASE_URL') ||
+          e.toString().contains('not configured')) {
         rethrow;
       }
       throw Exception('Error fetching music track: $e');
@@ -577,8 +630,8 @@ class ApiService {
     String? category,
     int skip = 0,
     int limit = 20,
-    bool approvedOnly = true,  // Default to true - only show approved posts
-    String? postType,  // Optional filter by post type ('image' or 'text')
+    bool approvedOnly = true, // Default to true - only show approved posts
+    String? postType, // Optional filter by post type ('image' or 'text')
   }) async {
     try {
       Uri uri = Uri.parse('$baseUrl/community/posts');
@@ -593,12 +646,14 @@ class ApiService {
       if (postType != null && postType.isNotEmpty) {
         queryParams['post_type'] = postType;
       }
-      
-      final response = await http.get(
-        uri.replace(queryParameters: queryParams),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+
+      final response = await http
+          .get(
+            uri.replace(queryParameters: queryParams),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data;
@@ -616,7 +671,7 @@ class ApiService {
     required String content,
     String? category,
     String? imageUrl,
-    String? postType,  // 'image' or 'text' - auto-detected if not provided
+    String? postType, // 'image' or 'text' - auto-detected if not provided
   }) async {
     try {
       _validateBaseUrl();
@@ -631,13 +686,15 @@ class ApiService {
       if (postType != null && postType.isNotEmpty) {
         body['post_type'] = postType;
       }
-      
-      final response = await http.post(
-        Uri.parse('$baseUrl/community/posts'),
-        headers: await _getHeaders(),
-        body: json.encode(body),
-      ).timeout(const Duration(seconds: 10));
-      
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/community/posts'),
+            headers: await _getHeaders(),
+            body: json.encode(body),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       }
@@ -651,32 +708,37 @@ class ApiService {
   Future<Map<String, dynamic>?> likePost(int postId) async {
     try {
       _validateBaseUrl();
-      var response = await http.post(
-        Uri.parse('$baseUrl/community/posts/$postId/like'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+      var response = await http
+          .post(
+            Uri.parse('$baseUrl/community/posts/$postId/like'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       // If 401, try to refresh token and retry once
       if (response.statusCode == 401) {
         final refreshed = await _authService.refreshAccessToken();
         if (refreshed) {
-          response = await http.post(
-            Uri.parse('$baseUrl/community/posts/$postId/like'),
-            headers: await _getHeaders(),
-          ).timeout(const Duration(seconds: 10));
+          response = await http
+              .post(
+                Uri.parse('$baseUrl/community/posts/$postId/like'),
+                headers: await _getHeaders(),
+              )
+              .timeout(const Duration(seconds: 10));
         }
       }
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data as Map<String, dynamic>;
       }
       return null;
     } catch (e) {
-      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+      if (e.toString().contains('API_BASE_URL') ||
+          e.toString().contains('not configured')) {
         rethrow;
       }
-      print('Error liking post: $e');
+      LoggerService.e('Error liking post: $e');
       return null;
     }
   }
@@ -689,14 +751,15 @@ class ApiService {
         Uri.parse('$baseUrl/community/posts/$postId/comments'),
         headers: {'Content-Type': 'application/json'},
       ).timeout(const Duration(seconds: 10));
-      
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data;
       }
       throw Exception('Failed to get comments: ${response.statusCode}');
     } catch (e) {
-      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+      if (e.toString().contains('API_BASE_URL') ||
+          e.toString().contains('not configured')) {
         rethrow;
       }
       throw Exception('Error fetching comments: $e');
@@ -707,30 +770,35 @@ class ApiService {
   Future<Map<String, dynamic>> commentPost(int postId, String comment) async {
     try {
       _validateBaseUrl();
-      var response = await http.post(
-        Uri.parse('$baseUrl/community/posts/$postId/comments'),
-        headers: await _getHeaders(),
-        body: json.encode({'content': comment}),
-      ).timeout(const Duration(seconds: 10));
-      
+      var response = await http
+          .post(
+            Uri.parse('$baseUrl/community/posts/$postId/comments'),
+            headers: await _getHeaders(),
+            body: json.encode({'content': comment}),
+          )
+          .timeout(const Duration(seconds: 10));
+
       // If 401, try to refresh token and retry once
       if (response.statusCode == 401) {
         final refreshed = await _authService.refreshAccessToken();
         if (refreshed) {
-          response = await http.post(
-            Uri.parse('$baseUrl/community/posts/$postId/comments'),
-            headers: await _getHeaders(),
-            body: json.encode({'content': comment}),
-          ).timeout(const Duration(seconds: 10));
+          response = await http
+              .post(
+                Uri.parse('$baseUrl/community/posts/$postId/comments'),
+                headers: await _getHeaders(),
+                body: json.encode({'content': comment}),
+              )
+              .timeout(const Duration(seconds: 10));
         }
       }
-      
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       }
       throw Exception('Failed to comment: ${response.statusCode}');
     } catch (e) {
-      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+      if (e.toString().contains('API_BASE_URL') ||
+          e.toString().contains('not configured')) {
         rethrow;
       }
       throw Exception('Error commenting: $e');
@@ -741,17 +809,20 @@ class ApiService {
   Future<Map<String, dynamic>> getCurrentUser() async {
     try {
       _validateBaseUrl();
-      final response = await http.get(
-        Uri.parse('$baseUrl/users/me'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/users/me'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       }
       throw Exception('Failed to get user: HTTP ${response.statusCode}');
     } catch (e) {
-      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+      if (e.toString().contains('API_BASE_URL') ||
+          e.toString().contains('not configured')) {
         rethrow;
       }
       throw Exception('Error fetching user: $e');
@@ -774,7 +845,7 @@ class ApiService {
         'POST',
         Uri.parse('$baseUrl/upload/image'),
       );
-      
+
       // Add auth headers
       final headers = await _getHeaders();
       request.headers.addAll({
@@ -783,7 +854,8 @@ class ApiService {
 
       if (bytes != null) {
         // Determine content type from file extension
-        http.MediaType contentType = http.MediaType('image', 'jpeg'); // Default fallback
+        http.MediaType contentType =
+            http.MediaType('image', 'jpeg'); // Default fallback
         final lowerFileName = fileName.toLowerCase();
         if (lowerFileName.endsWith('.jpg') || lowerFileName.endsWith('.jpeg')) {
           contentType = http.MediaType('image', 'jpeg');
@@ -796,7 +868,7 @@ class ApiService {
         } else if (lowerFileName.endsWith('.bmp')) {
           contentType = http.MediaType('image', 'bmp');
         }
-        
+
         request.files.add(
           http.MultipartFile.fromBytes(
             'file',
@@ -811,7 +883,8 @@ class ApiService {
         );
       }
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final streamedResponse =
+          await request.send().timeout(const Duration(seconds: 30));
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -865,7 +938,7 @@ class ApiService {
           fileExt = '.bmp';
         }
       }
-      
+
       if (fileExt.endsWith('.jpg') || fileExt.endsWith('.jpeg')) {
         contentType = 'image/jpeg';
       } else if (fileExt.endsWith('.png')) {
@@ -929,7 +1002,7 @@ class ApiService {
             'POST',
             Uri.parse('$baseUrl/upload/profile-image'),
           );
-          
+
           // Re-add file
           if (bytes != null) {
             retryRequest.files.add(
@@ -949,9 +1022,10 @@ class ApiService {
               ),
             );
           }
-          
+
           retryRequest.headers.addAll(await _getHeaders());
-          streamedResponse = await retryRequest.send().timeout(const Duration(minutes: 2));
+          streamedResponse =
+              await retryRequest.send().timeout(const Duration(minutes: 2));
         }
       }
 
@@ -973,24 +1047,28 @@ class ApiService {
   /// Remove avatar (set to null)
   Future<bool> removeAvatar() async {
     try {
-      var response = await http.put(
-        Uri.parse('$baseUrl/users/me'),
-        headers: await _getHeaders(),
-        body: json.encode({'avatar': null}),
-      ).timeout(const Duration(seconds: 10));
-      
+      var response = await http
+          .put(
+            Uri.parse('$baseUrl/users/me'),
+            headers: await _getHeaders(),
+            body: json.encode({'avatar': null}),
+          )
+          .timeout(const Duration(seconds: 10));
+
       // If 401, try to refresh token and retry once
       if (response.statusCode == 401) {
         final refreshed = await _authService.refreshAccessToken();
         if (refreshed) {
-          response = await http.put(
-            Uri.parse('$baseUrl/users/me'),
-            headers: await _getHeaders(),
-            body: json.encode({'avatar': null}),
-          ).timeout(const Duration(seconds: 10));
+          response = await http
+              .put(
+                Uri.parse('$baseUrl/users/me'),
+                headers: await _getHeaders(),
+                body: json.encode({'avatar': null}),
+              )
+              .timeout(const Duration(seconds: 10));
         }
       }
-      
+
       return response.statusCode == 200;
     } catch (e) {
       throw Exception('Error removing avatar: $e');
@@ -1001,10 +1079,12 @@ class ApiService {
   Future<SupportStats> getSupportStats() async {
     try {
       _validateBaseUrl();
-      final response = await http.get(
-        Uri.parse('$baseUrl/support/messages/stats'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/support/messages/stats'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return SupportStats.fromJson(
@@ -1022,10 +1102,12 @@ class ApiService {
   Future<List<SupportMessage>> getMySupportMessages() async {
     try {
       _validateBaseUrl();
-      final response = await http.get(
-        Uri.parse('$baseUrl/support/messages/me'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/support/messages/me'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final list = json.decode(response.body) as List<dynamic>;
@@ -1041,7 +1123,8 @@ class ApiService {
     }
   }
 
-  Future<List<SupportMessage>> getSupportMessagesForAdmin({String? status}) async {
+  Future<List<SupportMessage>> getSupportMessagesForAdmin(
+      {String? status}) async {
     try {
       _validateBaseUrl();
       var uri = Uri.parse('$baseUrl/support/messages');
@@ -1049,10 +1132,12 @@ class ApiService {
         uri = uri.replace(queryParameters: {'status_filter': status});
       }
 
-      final response = await http.get(
-        uri,
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            uri,
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final list = json.decode(response.body) as List<dynamic>;
@@ -1074,14 +1159,16 @@ class ApiService {
   }) async {
     try {
       _validateBaseUrl();
-      final response = await http.post(
-        Uri.parse('$baseUrl/support/messages'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'subject': subject,
-          'message': message,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/support/messages'),
+            headers: await _getHeaders(),
+            body: json.encode({
+              'subject': subject,
+              'message': message,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return SupportMessage.fromJson(
@@ -1103,14 +1190,16 @@ class ApiService {
   }) async {
     try {
       _validateBaseUrl();
-      final response = await http.post(
-        Uri.parse('$baseUrl/support/messages/$messageId/reply'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'response': responseText,
-          'status': status,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/support/messages/$messageId/reply'),
+            headers: await _getHeaders(),
+            body: json.encode({
+              'response': responseText,
+              'status': status,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return SupportMessage.fromJson(
@@ -1131,11 +1220,13 @@ class ApiService {
   }) async {
     try {
       _validateBaseUrl();
-      final response = await http.post(
-        Uri.parse('$baseUrl/support/messages/$messageId/mark-read'),
-        headers: await _getHeaders(),
-        body: json.encode({'actor': actor}),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/support/messages/$messageId/mark-read'),
+            headers: await _getHeaders(),
+            body: json.encode({'actor': actor}),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return SupportMessage.fromJson(
@@ -1157,10 +1248,12 @@ class ApiService {
       if (category != null && category.isNotEmpty) {
         uri = uri.replace(queryParameters: {'category': category});
       }
-      final response = await http.get(
-        uri,
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            uri,
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -1168,7 +1261,8 @@ class ApiService {
       }
       throw Exception('Failed to load documents: HTTP ${response.statusCode}');
     } catch (e) {
-      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+      if (e.toString().contains('API_BASE_URL') ||
+          e.toString().contains('not configured')) {
         rethrow;
       }
       throw Exception('Error fetching documents: $e');
@@ -1185,18 +1279,20 @@ class ApiService {
   }) async {
     try {
       _validateBaseUrl();
-      final response = await http.post(
-        Uri.parse('$baseUrl/documents'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'title': title,
-          'description': description,
-          'file_path': filePath,
-          'thumbnail_path': thumbnailPath,
-          'category': category,
-          'is_featured': isFeatured,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/documents'),
+            headers: await _getHeaders(),
+            body: json.encode({
+              'title': title,
+              'description': description,
+              'file_path': filePath,
+              'thumbnail_path': thumbnailPath,
+              'category': category,
+              'is_featured': isFeatured,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return DocumentAsset.fromJson(
@@ -1212,13 +1308,16 @@ class ApiService {
   Future<void> deleteDocument(int documentId) async {
     try {
       _validateBaseUrl();
-      final response = await http.delete(
-        Uri.parse('$baseUrl/documents/$documentId'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .delete(
+            Uri.parse('$baseUrl/documents/$documentId'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('Failed to delete document: HTTP ${response.statusCode}');
+        throw Exception(
+            'Failed to delete document: HTTP ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Error deleting document: $e');
@@ -1276,14 +1375,17 @@ class ApiService {
   }
 
   /// Get user stats (total listening time, tracks played, etc.)
-  Future<Map<String, dynamic>?> updateProfile(Map<String, dynamic> profileData) async {
+  Future<Map<String, dynamic>?> updateProfile(
+      Map<String, dynamic> profileData) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/users/me'),
-        headers: await _getHeaders(),
-        body: jsonEncode(profileData),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/users/me'),
+            headers: await _getHeaders(),
+            body: jsonEncode(profileData),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       }
@@ -1292,50 +1394,58 @@ class ApiService {
       throw Exception('Error updating profile: $e');
     }
   }
-  
+
   Future<Map<String, dynamic>?> getBankDetails() async {
     try {
       _validateBaseUrl();
-      final response = await http.get(
-        Uri.parse('$baseUrl/bank-details'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/bank-details'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       } else if (response.statusCode == 404) {
         return null; // No bank details found
       }
-      throw Exception('Failed to get bank details: HTTP ${response.statusCode}');
+      throw Exception(
+          'Failed to get bank details: HTTP ${response.statusCode}');
     } catch (e) {
       throw Exception('Error getting bank details: $e');
     }
   }
-  
+
   Future<bool> updateBankDetails(Map<String, dynamic> bankData) async {
     try {
       _validateBaseUrl();
-      final response = await http.post(
-        Uri.parse('$baseUrl/bank-details'),
-        headers: await _getHeaders(),
-        body: jsonEncode(bankData),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/bank-details'),
+            headers: await _getHeaders(),
+            body: jsonEncode(bankData),
+          )
+          .timeout(const Duration(seconds: 10));
+
       return response.statusCode == 200;
     } catch (e) {
       throw Exception('Error updating bank details: $e');
     }
   }
-  
-  Future<Map<String, dynamic>> checkUsernameAvailability(String username) async {
+
+  Future<Map<String, dynamic>> checkUsernameAvailability(
+      String username) async {
     try {
       _validateBaseUrl();
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/check-username'),
-        headers: await _getHeaders(),
-        body: jsonEncode({'username': username}),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/check-username'),
+            headers: await _getHeaders(),
+            body: jsonEncode({'username': username}),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       }
@@ -1344,7 +1454,7 @@ class ApiService {
       throw Exception('Error checking username: $e');
     }
   }
-  
+
   Future<Map<String, dynamic>> getUserStats() async {
     try {
       // TODO: Implement actual stats endpoint
@@ -1369,13 +1479,13 @@ class ApiService {
         Uri.parse('$baseUrl/users/$userId/public'),
         headers: {'Content-Type': 'application/json'},
       ).timeout(const Duration(seconds: 10));
-      
+
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       }
       return null;
     } catch (e) {
-      print('Error fetching public user profile: $e');
+      LoggerService.e('Error fetching public user profile: $e');
       return null;
     }
   }
@@ -1384,11 +1494,13 @@ class ApiService {
   Future<List<dynamic>> getPlaylists() async {
     try {
       _validateBaseUrl();
-      final response = await http.get(
-        Uri.parse('$baseUrl/playlists'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/playlists'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data;
@@ -1396,10 +1508,12 @@ class ApiService {
         // Handle 401 error (token expired or invalid)
         await _handle401Error(response);
         // Retry the request after refresh
-        final retryResponse = await http.get(
-          Uri.parse('$baseUrl/playlists'),
-          headers: await _getHeaders(),
-        ).timeout(const Duration(seconds: 10));
+        final retryResponse = await http
+            .get(
+              Uri.parse('$baseUrl/playlists'),
+              headers: await _getHeaders(),
+            )
+            .timeout(const Duration(seconds: 10));
         if (retryResponse.statusCode == 200) {
           final List<dynamic> data = json.decode(retryResponse.body);
           return data;
@@ -1408,10 +1522,11 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      if (e.toString().contains('API_BASE_URL') || e.toString().contains('not configured')) {
+      if (e.toString().contains('API_BASE_URL') ||
+          e.toString().contains('not configured')) {
         rethrow;
       }
-      print('Error fetching playlists: $e');
+      LoggerService.e('Error fetching playlists: $e');
       return [];
     }
   }
@@ -1422,15 +1537,17 @@ class ApiService {
     String? description,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/playlists'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'name': name,
-          'description': description,
-        }),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/playlists'),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'name': name,
+              'description': description,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       }
@@ -1441,20 +1558,23 @@ class ApiService {
   }
 
   /// Add item to playlist
-  Future<bool> addToPlaylist(int playlistId, String contentType, int contentId) async {
+  Future<bool> addToPlaylist(
+      int playlistId, String contentType, int contentId) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/playlists/$playlistId/items'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'content_type': contentType,
-          'content_id': contentId,
-        }),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/playlists/$playlistId/items'),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'content_type': contentType,
+              'content_id': contentId,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
-      print('Error adding to playlist: $e');
+      LoggerService.e('Error adding to playlist: $e');
       return false;
     }
   }
@@ -1509,12 +1629,12 @@ class ApiService {
       if (type != null && type != 'All') {
         queryParams['type'] = type.toLowerCase();
       }
-      
+
       final response = await http.get(
         uri.replace(queryParameters: queryParams),
         headers: {'Content-Type': 'application/json'},
       ).timeout(const Duration(seconds: 10));
-      
+
       if (response.statusCode == 200) {
         return json.decode(response.body);
       }
@@ -1535,18 +1655,22 @@ class ApiService {
   }) async {
     try {
       final file = await http.MultipartFile.fromPath('file', filePath);
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$endpoint'));
+      final request =
+          http.MultipartRequest('POST', Uri.parse('$baseUrl$endpoint'));
       request.files.add(file);
       request.headers.addAll(await _getHeaders());
-      
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 5));
-      
-      if (streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201) {
+
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 5));
+
+      if (streamedResponse.statusCode == 200 ||
+          streamedResponse.statusCode == 201) {
         final response = await http.Response.fromStream(streamedResponse);
         final data = json.decode(response.body);
         return data['url'] ?? data['path'] ?? '';
       }
-      throw Exception('Failed to upload file: HTTP ${streamedResponse.statusCode}');
+      throw Exception(
+          'Failed to upload file: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error uploading file: $e');
     }
@@ -1568,16 +1692,20 @@ class ApiService {
       } else if (fileType == 'image') {
         defaultFilename = 'image.jpg';
       }
-      
-      final file = await _createMultipartFileFromSource(filePath, 'file', defaultFilename);
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/upload/$fileType'));
+
+      final file = await _createMultipartFileFromSource(
+          filePath, 'file', defaultFilename);
+      final request =
+          http.MultipartRequest('POST', Uri.parse('$baseUrl/upload/$fileType'));
       request.files.add(file);
       request.headers.addAll(await _getHeaders());
       request.headers.remove('Content-Type'); // Let multipart set it
-      
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
-      
-      if (streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201) {
+
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 10));
+
+      if (streamedResponse.statusCode == 200 ||
+          streamedResponse.statusCode == 201) {
         final response = await http.Response.fromStream(streamedResponse);
         final data = json.decode(response.body) as Map<String, dynamic>;
         // Convert 'url' to 'file_path' for consistency
@@ -1586,7 +1714,8 @@ class ApiService {
         }
         return data;
       }
-      throw Exception('Failed to upload file: HTTP ${streamedResponse.statusCode}');
+      throw Exception(
+          'Failed to upload file: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error uploading file: $e');
     }
@@ -1601,15 +1730,17 @@ class ApiService {
     try {
       final uri = Uri.parse(url.startsWith('http') ? url : '$mediaBaseUrl$url');
       final request = http.Request('GET', uri);
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 5));
-      
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 5));
+
       if (streamedResponse.statusCode == 200) {
         final file = await http.Response.fromStream(streamedResponse);
         // Save file to savePath
         // This is a simplified version - in production you'd write to FileSystem
         return savePath;
       }
-      throw Exception('Failed to download file: HTTP ${streamedResponse.statusCode}');
+      throw Exception(
+          'Failed to download file: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error downloading file: $e');
     }
@@ -1620,7 +1751,7 @@ class ApiService {
     try {
       final uri = Uri.parse(url.startsWith('http') ? url : '$mediaBaseUrl$url');
       final response = await http.get(uri).timeout(const Duration(minutes: 5));
-      
+
       if (response.statusCode == 200) {
         return response.bodyBytes;
       }
@@ -1669,24 +1800,26 @@ class ApiService {
     String fieldName,
     String defaultFilename,
   ) async {
-    print('🔍 _createMultipartFileFromSource: source=$source, fieldName=$fieldName');
-    
+    LoggerService.d(
+        '🔍 _createMultipartFileFromSource: source=$source, fieldName=$fieldName');
+
     // Check if source is a URL
     if (source.startsWith('http://') || source.startsWith('https://')) {
-      print('📥 Downloading file from URL: $source');
+      LoggerService.i('📥 Downloading file from URL: $source');
       // Network URL - download the file
       try {
         final isS3OrCloudFront = _isS3OrCloudFrontUrl(source);
         final isDev = _isDevelopment();
-        
+
         String downloadUrl = source;
         Map<String, String>? headers;
-        
+
         if (isS3OrCloudFront && !isDev) {
           // Production: Use backend proxy to access S3 files
           // The proxy handles S3 authentication via IAM credentials
-          print('🔄 Using backend proxy for S3/CloudFront URL in production');
-          downloadUrl = '$baseUrl/media/proxy?url=${Uri.encodeComponent(source)}';
+          LoggerService.d('🔄 Using backend proxy for S3/CloudFront URL in production');
+          downloadUrl =
+              '$baseUrl/media/proxy?url=${Uri.encodeComponent(source)}';
           headers = await _getHeaders();
           // Remove Content-Type for download request
           headers.remove('Content-Type');
@@ -1696,17 +1829,20 @@ class ApiService {
           headers.remove('Content-Type');
         }
         // else: Development with S3 URLs - these are actually local /media URLs
-        
-        print('📥 Fetching from: $downloadUrl');
-        final response = await http.get(
-          Uri.parse(downloadUrl),
-          headers: headers,
-        ).timeout(const Duration(minutes: 5));
-        
+
+        LoggerService.d('📥 Fetching from: $downloadUrl');
+        final response = await http
+            .get(
+              Uri.parse(downloadUrl),
+              headers: headers,
+            )
+            .timeout(const Duration(minutes: 5));
+
         if (response.statusCode != 200) {
-          throw Exception('Failed to download file from URL: HTTP ${response.statusCode}');
+          throw Exception(
+              'Failed to download file from URL: HTTP ${response.statusCode}');
         }
-        
+
         // Extract filename from URL or use default
         String filename = defaultFilename;
         try {
@@ -1721,7 +1857,7 @@ class ApiService {
         } catch (e) {
           // Use default filename if extraction fails
         }
-        
+
         return http.MultipartFile.fromBytes(
           fieldName,
           response.bodyBytes,
@@ -1735,38 +1871,39 @@ class ApiService {
       if (!kIsWeb) {
         throw Exception('Blob URLs are only supported on web platform');
       }
-      
+
       try {
         // Detect content type from filename extension
-        http.MediaType? contentType = _detectContentTypeFromFilename(defaultFilename);
-        
+        http.MediaType? contentType =
+            _detectContentTypeFromFilename(defaultFilename);
+
         // If we couldn't detect from filename, use fallback based on filename content
         if (contentType == null) {
           final lowerFilename = defaultFilename.toLowerCase();
-          if (lowerFilename.contains('audio') || 
+          if (lowerFilename.contains('audio') ||
               lowerFilename.contains('.mp3') ||
               lowerFilename.contains('.wav') ||
               lowerFilename.contains('.ogg')) {
             contentType = http.MediaType('audio', 'webm');
           } else if (lowerFilename.contains('video') ||
-                     lowerFilename.contains('.mp4')) {
+              lowerFilename.contains('.mp4')) {
             contentType = http.MediaType('video', 'webm');
           } else {
             // Default to audio/webm for audio editor context
             contentType = http.MediaType('audio', 'webm');
           }
         }
-        
+
         // Use HttpRequest to fetch blob URL as bytes
         final request = await html.HttpRequest.request(
           source,
           responseType: 'arraybuffer',
         );
-        
+
         if (request.status != 200) {
           throw Exception('Failed to fetch blob URL: HTTP ${request.status}');
         }
-        
+
         // Convert ArrayBuffer to Uint8List
         Uint8List bytes;
         if (request.response is ByteBuffer) {
@@ -1775,7 +1912,7 @@ class ApiService {
         } else {
           throw Exception('Unexpected response type from blob URL');
         }
-        
+
         return http.MultipartFile.fromBytes(
           fieldName,
           bytes,
@@ -1788,9 +1925,10 @@ class ApiService {
     } else {
       // File path - use fromPath (for mobile only)
       if (kIsWeb) {
-        throw Exception('File paths are not supported on web. Source must be a URL (http://, https://) or blob URL. Received: $source');
+        throw Exception(
+            'File paths are not supported on web. Source must be a URL (http://, https://) or blob URL. Received: $source');
       }
-      
+
       try {
         return await http.MultipartFile.fromPath(fieldName, source);
       } catch (e) {
@@ -1813,25 +1951,28 @@ class ApiService {
         'video_file',
         'video.mp4',
       );
-      
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/video-editing/trim'));
+
+      final request = http.MultipartRequest(
+          'POST', Uri.parse('$baseUrl/video-editing/trim'));
       request.files.add(file);
       request.fields['start_time'] = startTime.toString();
       request.fields['end_time'] = endTime.toString();
-      
+
       // Add authentication headers
       final headers = await _getHeaders();
       // Remove Content-Type as multipart request sets it automatically
       headers.remove('Content-Type');
       request.headers.addAll(headers);
-      
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
-      
+
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 10));
+
       if (streamedResponse.statusCode == 200) {
         final response = await http.Response.fromStream(streamedResponse);
         return json.decode(response.body);
       }
-      throw Exception('Failed to trim video: HTTP ${streamedResponse.statusCode}');
+      throw Exception(
+          'Failed to trim video: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error trimming video: $e');
     }
@@ -1845,29 +1986,33 @@ class ApiService {
         'video_file',
         'video.mp4',
       );
-      
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/video-editing/remove-audio'));
+
+      final request = http.MultipartRequest(
+          'POST', Uri.parse('$baseUrl/video-editing/remove-audio'));
       request.files.add(file);
-      
+
       // Add authentication headers
       final headers = await _getHeaders();
       // Remove Content-Type as multipart request sets it automatically
       headers.remove('Content-Type');
       request.headers.addAll(headers);
-      
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
-      
+
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 10));
+
       if (streamedResponse.statusCode == 200) {
         final response = await http.Response.fromStream(streamedResponse);
         return json.decode(response.body);
       }
-      throw Exception('Failed to remove audio: HTTP ${streamedResponse.statusCode}');
+      throw Exception(
+          'Failed to remove audio: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error removing audio: $e');
     }
   }
 
-  Future<Map<String, dynamic>> addAudio(String videoPath, String audioPath) async {
+  Future<Map<String, dynamic>> addAudio(
+      String videoPath, String audioPath) async {
     try {
       // Create multipart files from URLs or file paths
       final videoFile = await _createMultipartFileFromSource(
@@ -1875,30 +2020,33 @@ class ApiService {
         'video_file',
         'video.mp4',
       );
-      
+
       final audioFile = await _createMultipartFileFromSource(
         audioPath,
         'audio_file',
         'audio.mp3',
       );
-      
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/video-editing/add-audio'));
+
+      final request = http.MultipartRequest(
+          'POST', Uri.parse('$baseUrl/video-editing/add-audio'));
       request.files.add(videoFile);
       request.files.add(audioFile);
-      
+
       // Add authentication headers
       final headers = await _getHeaders();
       // Remove Content-Type as multipart request sets it automatically
       headers.remove('Content-Type');
       request.headers.addAll(headers);
-      
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
-      
+
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 10));
+
       if (streamedResponse.statusCode == 200) {
         final response = await http.Response.fromStream(streamedResponse);
         return json.decode(response.body);
       }
-      throw Exception('Failed to add audio: HTTP ${streamedResponse.statusCode}');
+      throw Exception(
+          'Failed to add audio: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error adding audio: $e');
     }
@@ -1912,19 +2060,24 @@ class ApiService {
   }) async {
     try {
       final file = await http.MultipartFile.fromPath('video_file', videoPath);
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/video-editing/apply-filters'));
+      final request = http.MultipartRequest(
+          'POST', Uri.parse('$baseUrl/video-editing/apply-filters'));
       request.files.add(file);
-      if (brightness != null) request.fields['brightness'] = brightness.toString();
+      if (brightness != null)
+        request.fields['brightness'] = brightness.toString();
       if (contrast != null) request.fields['contrast'] = contrast.toString();
-      if (saturation != null) request.fields['saturation'] = saturation.toString();
-      
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
-      
+      if (saturation != null)
+        request.fields['saturation'] = saturation.toString();
+
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 10));
+
       if (streamedResponse.statusCode == 200) {
         final response = await http.Response.fromStream(streamedResponse);
         return json.decode(response.body);
       }
-      throw Exception('Failed to apply filters: HTTP ${streamedResponse.statusCode}');
+      throw Exception(
+          'Failed to apply filters: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error applying filters: $e');
     }
@@ -1941,30 +2094,32 @@ class ApiService {
         'video_file',
         'video.mp4',
       );
-      
+
       // Convert overlays to JSON string
       final overlaysJson = json.encode(overlays);
-      
+
       final request = http.MultipartRequest(
         'POST',
         Uri.parse('$baseUrl/video-editing/add-text-overlays'),
       );
       request.files.add(file);
       request.fields['overlays_json'] = overlaysJson;
-      
+
       // Add authentication headers
       final headers = await _getHeaders();
       // Remove Content-Type as multipart request sets it automatically
       headers.remove('Content-Type');
       request.headers.addAll(headers);
-      
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
-      
+
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 10));
+
       if (streamedResponse.statusCode == 200) {
         final response = await http.Response.fromStream(streamedResponse);
         return json.decode(response.body);
       }
-      throw Exception('Failed to add text overlays: HTTP ${streamedResponse.statusCode}');
+      throw Exception(
+          'Failed to add text overlays: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error adding text overlays: $e');
     }
@@ -1981,24 +2136,27 @@ class ApiService {
         'video_file',
         'video.mp4',
       );
-      
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/video-editing/rotate'));
+
+      final request = http.MultipartRequest(
+          'POST', Uri.parse('$baseUrl/video-editing/rotate'));
       request.files.add(file);
       request.fields['degrees'] = degrees.toString();
-      
+
       // Add authentication headers
       final headers = await _getHeaders();
       // Remove Content-Type as multipart request sets it automatically
       headers.remove('Content-Type');
       request.headers.addAll(headers);
-      
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
-      
+
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 10));
+
       if (streamedResponse.statusCode == 200) {
         final response = await http.Response.fromStream(streamedResponse);
         return json.decode(response.body);
       }
-      throw Exception('Failed to rotate video: HTTP ${streamedResponse.statusCode}');
+      throw Exception(
+          'Failed to rotate video: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error rotating video: $e');
     }
@@ -2014,7 +2172,8 @@ class ApiService {
       // Extract filename from audioPath if possible
       String defaultFilename = 'audio.mp3';
       try {
-        if (audioPath.startsWith('http://') || audioPath.startsWith('https://')) {
+        if (audioPath.startsWith('http://') ||
+            audioPath.startsWith('https://')) {
           final uri = Uri.parse(audioPath);
           final pathSegments = uri.pathSegments;
           if (pathSegments.isNotEmpty) {
@@ -2035,67 +2194,75 @@ class ApiService {
         }
       } catch (e) {
         // Use default if extraction fails
-        print('⚠️ Could not extract filename from audioPath, using default: $e');
+        LoggerService.w(
+            '⚠️ Could not extract filename from audioPath, using default: $e');
       }
-      
+
       // Create multipart file from URL or file path
       final file = await _createMultipartFileFromSource(
         audioPath,
         'audio_file',
         defaultFilename,
       );
-      
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/audio-editing/trim'));
+
+      final request = http.MultipartRequest(
+          'POST', Uri.parse('$baseUrl/audio-editing/trim'));
       request.files.add(file);
       request.fields['start_time'] = startTime.toString();
       request.fields['end_time'] = endTime.toString();
-      
+
       // Add authentication headers
       final headers = await _getHeaders();
       // Remove Content-Type as multipart request sets it automatically
       headers.remove('Content-Type');
       request.headers.addAll(headers);
-      
-      print('🎵 Sending audio trim request: start=${startTime}s, end=${endTime}s, file=${audioPath}');
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
-      
-      print('🎵 Audio trim response status: ${streamedResponse.statusCode}');
-      
+
+      LoggerService.i(
+          '🎵 Sending audio trim request: start=${startTime}s, end=${endTime}s, file=${audioPath}');
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 10));
+
+      LoggerService.d('🎵 Audio trim response status: ${streamedResponse.statusCode}');
+
       if (streamedResponse.statusCode == 200) {
         final response = await http.Response.fromStream(streamedResponse);
         final responseBody = response.body;
-        print('🎵 Audio trim response body: $responseBody');
-        
+        LoggerService.d('🎵 Audio trim response body: $responseBody');
+
         try {
           final decoded = json.decode(responseBody);
-          print('🎵 Audio trim decoded response: $decoded');
+          LoggerService.d('🎵 Audio trim decoded response: $decoded');
           return decoded;
         } catch (e) {
-          print('❌ Failed to decode audio trim response: $e');
-          print('   Response body: $responseBody');
-          throw Exception('Invalid response format from audio trim endpoint: $e');
+          LoggerService.e('❌ Failed to decode audio trim response: $e');
+          LoggerService.d('   Response body: $responseBody');
+          throw Exception(
+              'Invalid response format from audio trim endpoint: $e');
         }
       } else {
         // Try to get error message from response
         try {
           final response = await http.Response.fromStream(streamedResponse);
           final errorBody = response.body;
-          print('❌ Audio trim error response: $errorBody');
-          throw Exception('Failed to trim audio: HTTP ${streamedResponse.statusCode} - $errorBody');
+          LoggerService.e('❌ Audio trim error response: $errorBody');
+          throw Exception(
+              'Failed to trim audio: HTTP ${streamedResponse.statusCode} - $errorBody');
         } catch (e) {
-          throw Exception('Failed to trim audio: HTTP ${streamedResponse.statusCode}');
+          throw Exception(
+              'Failed to trim audio: HTTP ${streamedResponse.statusCode}');
         }
       }
     } catch (e) {
-      print('❌ Error in trimAudio API call: $e');
+      LoggerService.e('❌ Error in trimAudio API call: $e');
       throw Exception('Error trimming audio: $e');
     }
   }
 
   Future<Map<String, dynamic>> mergeAudio(List<String> audioPaths) async {
     try {
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/audio-editing/merge'));
-      
+      final request = http.MultipartRequest(
+          'POST', Uri.parse('$baseUrl/audio-editing/merge'));
+
       // Create multipart files from URLs or file paths
       for (final audioPath in audioPaths) {
         final file = await _createMultipartFileFromSource(
@@ -2105,26 +2272,29 @@ class ApiService {
         );
         request.files.add(file);
       }
-      
+
       // Add authentication headers
       final headers = await _getHeaders();
       // Remove Content-Type as multipart request sets it automatically
       headers.remove('Content-Type');
       request.headers.addAll(headers);
-      
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
-      
+
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 10));
+
       if (streamedResponse.statusCode == 200) {
         final response = await http.Response.fromStream(streamedResponse);
         return json.decode(response.body);
       }
-      throw Exception('Failed to merge audio: HTTP ${streamedResponse.statusCode}');
+      throw Exception(
+          'Failed to merge audio: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error merging audio: $e');
     }
   }
 
-  Future<Map<String, dynamic>> fadeInAudio(String audioPath, double fadeDuration) async {
+  Future<Map<String, dynamic>> fadeInAudio(
+      String audioPath, double fadeDuration) async {
     try {
       // Create multipart file from URL or file path
       final file = await _createMultipartFileFromSource(
@@ -2132,30 +2302,34 @@ class ApiService {
         'audio_file',
         'audio.mp3',
       );
-      
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/audio-editing/fade-in'));
+
+      final request = http.MultipartRequest(
+          'POST', Uri.parse('$baseUrl/audio-editing/fade-in'));
       request.files.add(file);
       request.fields['fade_duration'] = fadeDuration.toString();
-      
+
       // Add authentication headers
       final headers = await _getHeaders();
       // Remove Content-Type as multipart request sets it automatically
       headers.remove('Content-Type');
       request.headers.addAll(headers);
-      
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
-      
+
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 10));
+
       if (streamedResponse.statusCode == 200) {
         final response = await http.Response.fromStream(streamedResponse);
         return json.decode(response.body);
       }
-      throw Exception('Failed to apply fade in: HTTP ${streamedResponse.statusCode}');
+      throw Exception(
+          'Failed to apply fade in: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error applying fade in: $e');
     }
   }
 
-  Future<Map<String, dynamic>> fadeOutAudio(String audioPath, double fadeDuration) async {
+  Future<Map<String, dynamic>> fadeOutAudio(
+      String audioPath, double fadeDuration) async {
     try {
       // Create multipart file from URL or file path
       final file = await _createMultipartFileFromSource(
@@ -2163,24 +2337,27 @@ class ApiService {
         'audio_file',
         'audio.mp3',
       );
-      
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/audio-editing/fade-out'));
+
+      final request = http.MultipartRequest(
+          'POST', Uri.parse('$baseUrl/audio-editing/fade-out'));
       request.files.add(file);
       request.fields['fade_duration'] = fadeDuration.toString();
-      
+
       // Add authentication headers
       final headers = await _getHeaders();
       // Remove Content-Type as multipart request sets it automatically
       headers.remove('Content-Type');
       request.headers.addAll(headers);
-      
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
-      
+
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 10));
+
       if (streamedResponse.statusCode == 200) {
         final response = await http.Response.fromStream(streamedResponse);
         return json.decode(response.body);
       }
-      throw Exception('Failed to apply fade out: HTTP ${streamedResponse.statusCode}');
+      throw Exception(
+          'Failed to apply fade out: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error applying fade out: $e');
     }
@@ -2198,25 +2375,28 @@ class ApiService {
         'audio_file',
         'audio.mp3',
       );
-      
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/audio-editing/fade-in-out'));
+
+      final request = http.MultipartRequest(
+          'POST', Uri.parse('$baseUrl/audio-editing/fade-in-out'));
       request.files.add(file);
       request.fields['fade_in_duration'] = fadeInDuration.toString();
       request.fields['fade_out_duration'] = fadeOutDuration.toString();
-      
+
       // Add authentication headers
       final headers = await _getHeaders();
       // Remove Content-Type as multipart request sets it automatically
       headers.remove('Content-Type');
       request.headers.addAll(headers);
-      
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
-      
+
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 10));
+
       if (streamedResponse.statusCode == 200) {
         final response = await http.Response.fromStream(streamedResponse);
         return json.decode(response.body);
       }
-      throw Exception('Failed to apply fade in/out: HTTP ${streamedResponse.statusCode}');
+      throw Exception(
+          'Failed to apply fade in/out: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error applying fade in/out: $e');
     }
@@ -2236,10 +2416,12 @@ class ApiService {
         'limit': limit.toString(),
       };
       if (featured != null) queryParams['featured'] = featured.toString();
-      if (categoryId != null) queryParams['category_id'] = categoryId.toString();
+      if (categoryId != null)
+        queryParams['category_id'] = categoryId.toString();
       if (status != null) queryParams['status'] = status;
 
-      final uri = Uri.parse('$baseUrl/movies/').replace(queryParameters: queryParams);
+      final uri =
+          Uri.parse('$baseUrl/movies/').replace(queryParameters: queryParams);
       final response = await http.get(
         uri,
         headers: {'Content-Type': 'application/json'},
@@ -2288,7 +2470,8 @@ class ApiService {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => Movie.fromJson(json)).toList();
       } else {
-        throw Exception('Failed to load featured movies: ${response.statusCode}');
+        throw Exception(
+            'Failed to load featured movies: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Error fetching featured movies: $e');
@@ -2308,7 +2491,8 @@ class ApiService {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => Movie.fromJson(json)).toList();
       } else {
-        throw Exception('Failed to load Kids Bible stories: ${response.statusCode}');
+        throw Exception(
+            'Failed to load Kids Bible stories: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Error fetching Kids Bible stories: $e');
@@ -2328,7 +2512,8 @@ class ApiService {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => Movie.fromJson(json)).toList();
       } else {
-        throw Exception('Failed to load similar movies: ${response.statusCode}');
+        throw Exception(
+            'Failed to load similar movies: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Error fetching similar movies: $e');
@@ -2358,9 +2543,11 @@ class ApiService {
       title: movie.title,
       creator: movie.director ?? 'Christ Tabernacle',
       description: movie.description,
-      coverImage: movie.coverImage != null ? getMediaUrl(movie.coverImage!) : null,
+      coverImage:
+          movie.coverImage != null ? getMediaUrl(movie.coverImage!) : null,
       videoUrl: getMediaUrl(effectiveVideoPath),
-      duration: movie.duration != null ? Duration(seconds: movie.duration!) : null,
+      duration:
+          movie.duration != null ? Duration(seconds: movie.duration!) : null,
       category: categoryName ?? 'Movies',
       plays: movie.playsCount,
       createdAt: movie.createdAt,
@@ -2376,55 +2563,141 @@ class ApiService {
   }
 
   /// Admin API Methods
-  Future<Map<String, dynamic>> getAdminDashboard() async {
+  Future<Map<String, dynamic>> getCommissionSettings() async {
     try {
       _validateBaseUrl();
-      final headers = await _getHeaders();
-      print('🔐 Admin Dashboard Request Headers: ${headers.keys.toList()}');
-      print('🔐 Authorization header present: ${headers.containsKey('Authorization')}');
-      
-      final response = await http.get(
-        Uri.parse('$baseUrl/admin/dashboard'),
-        headers: headers,
-      ).timeout(const Duration(seconds: 10));
-      
-      print('📡 Admin Dashboard Response Status: ${response.statusCode}');
-      if (response.statusCode != 200) {
-        print('❌ Admin Dashboard Error Response: ${response.body}');
-      }
-      
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/admin/settings/commission'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       } else if (response.statusCode == 401) {
         await _handle401Error(response);
         // Retry the request after refresh
         final retryHeaders = await _getHeaders();
-        final retryResponse = await http.get(
-          Uri.parse('$baseUrl/admin/dashboard'),
-          headers: retryHeaders,
-        ).timeout(const Duration(seconds: 10));
+        final retryResponse = await http
+            .get(
+              Uri.parse('$baseUrl/admin/settings/commission'),
+              headers: retryHeaders,
+            )
+            .timeout(const Duration(seconds: 10));
         if (retryResponse.statusCode == 200) {
           return json.decode(retryResponse.body) as Map<String, dynamic>;
         }
-        throw Exception('Unauthorized: Please log in again. Token may have expired.');
+        throw Exception(
+            'Unauthorized: Please log in again. Token may have expired.');
       } else if (response.statusCode == 403) {
         throw Exception('Forbidden: Admin access required.');
       }
-      throw Exception('Failed to get admin dashboard: ${response.statusCode} - ${response.body}');
+      throw Exception(
+          'Failed to get commission settings: ${response.statusCode} - ${response.body}');
     } catch (e) {
-      print('💥 Admin Dashboard Exception: $e');
+      throw Exception('Error fetching commission settings: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> updateCommissionSettings(
+      Map<String, dynamic> settings) async {
+    try {
+      _validateBaseUrl();
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/admin/settings/commission'),
+            headers: await _getHeaders(),
+            body: json.encode(settings),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else if (response.statusCode == 401) {
+        await _handle401Error(response);
+        // Retry the request after refresh
+        final retryHeaders = await _getHeaders();
+        final retryResponse = await http
+            .put(
+              Uri.parse('$baseUrl/admin/settings/commission'),
+              headers: retryHeaders,
+              body: json.encode(settings),
+            )
+            .timeout(const Duration(seconds: 10));
+        if (retryResponse.statusCode == 200) {
+          return json.decode(retryResponse.body) as Map<String, dynamic>;
+        }
+        throw Exception(
+            'Unauthorized: Please log in again. Token may have expired.');
+      } else if (response.statusCode == 403) {
+        throw Exception('Forbidden: Admin access required.');
+      }
+      throw Exception(
+          'Failed to update commission settings: ${response.statusCode} - ${response.body}');
+    } catch (e) {
+      throw Exception('Error updating commission settings: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> getAdminDashboard() async {
+    try {
+      _validateBaseUrl();
+      final headers = await _getHeaders();
+      LoggerService.d('🔐 Admin Dashboard Request Headers: ${headers.keys.toList()}');
+      LoggerService.d(
+          '🔐 Authorization header present: ${headers.containsKey('Authorization')}');
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/admin/dashboard'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 10));
+
+      LoggerService.d('📡 Admin Dashboard Response Status: ${response.statusCode}');
+      if (response.statusCode != 200) {
+        LoggerService.e('❌ Admin Dashboard Error Response: ${response.body}');
+      }
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else if (response.statusCode == 401) {
+        await _handle401Error(response);
+        // Retry the request after refresh
+        final retryHeaders = await _getHeaders();
+        final retryResponse = await http
+            .get(
+              Uri.parse('$baseUrl/admin/dashboard'),
+              headers: retryHeaders,
+            )
+            .timeout(const Duration(seconds: 10));
+        if (retryResponse.statusCode == 200) {
+          return json.decode(retryResponse.body) as Map<String, dynamic>;
+        }
+        throw Exception(
+            'Unauthorized: Please log in again. Token may have expired.');
+      } else if (response.statusCode == 403) {
+        throw Exception('Forbidden: Admin access required.');
+      }
+      throw Exception(
+          'Failed to get admin dashboard: ${response.statusCode} - ${response.body}');
+    } catch (e) {
+      LoggerService.e('💥 Admin Dashboard Exception: $e');
       throw Exception('Error fetching admin dashboard: $e');
     }
   }
-  
+
   Future<List<dynamic>> getPendingContent() async {
     try {
       _validateBaseUrl();
-      final response = await http.get(
-        Uri.parse('$baseUrl/admin/pending'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/admin/pending'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data;
@@ -2434,30 +2707,35 @@ class ApiService {
       throw Exception('Error fetching pending content: $e');
     }
   }
-  
+
   Future<bool> approveContent(String contentType, int contentId) async {
     try {
       _validateBaseUrl();
-      final response = await http.post(
-        Uri.parse('$baseUrl/admin/approve/$contentType/$contentId'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/admin/approve/$contentType/$contentId'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       return response.statusCode == 200;
     } catch (e) {
       throw Exception('Error approving content: $e');
     }
   }
-  
-  Future<bool> rejectContent(String contentType, int contentId, {String? reason}) async {
+
+  Future<bool> rejectContent(String contentType, int contentId,
+      {String? reason}) async {
     try {
       _validateBaseUrl();
-      final response = await http.post(
-        Uri.parse('$baseUrl/admin/reject/$contentType/$contentId'),
-        headers: await _getHeaders(),
-        body: json.encode({'reason': reason}),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/admin/reject/$contentType/$contentId'),
+            headers: await _getHeaders(),
+            body: json.encode({'reason': reason}),
+          )
+          .timeout(const Duration(seconds: 10));
+
       return response.statusCode == 200;
     } catch (e) {
       throw Exception('Error rejecting content: $e');
@@ -2467,11 +2745,13 @@ class ApiService {
   Future<bool> deleteContent(String contentType, int contentId) async {
     try {
       _validateBaseUrl();
-      final response = await http.delete(
-        Uri.parse('$baseUrl/admin/$contentType/$contentId'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .delete(
+            Uri.parse('$baseUrl/admin/$contentType/$contentId'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
       throw Exception('Error deleting content: $e');
@@ -2481,17 +2761,19 @@ class ApiService {
   Future<bool> archiveContent(String contentType, int contentId) async {
     try {
       _validateBaseUrl();
-      final response = await http.post(
-        Uri.parse('$baseUrl/admin/archive/$contentType/$contentId'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/admin/archive/$contentType/$contentId'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       return response.statusCode == 200;
     } catch (e) {
       throw Exception('Error archiving content: $e');
     }
   }
-  
+
   Future<List<dynamic>> getAllContent({
     String? contentType,
     String? status,
@@ -2506,13 +2788,16 @@ class ApiService {
       };
       if (contentType != null) queryParams['content_type'] = contentType;
       if (status != null) queryParams['status'] = status;
-      
-      final uri = Uri.parse('$baseUrl/admin/content').replace(queryParameters: queryParams);
-      final response = await http.get(
-        uri,
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+
+      final uri = Uri.parse('$baseUrl/admin/content')
+          .replace(queryParameters: queryParams);
+      final response = await http
+          .get(
+            uri,
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data;
@@ -2522,25 +2807,29 @@ class ApiService {
       throw Exception('Error fetching content: $e');
     }
   }
-  
+
   /// Google Drive API Methods
   Future<String> getGoogleDriveAuthUrl() async {
     try {
       _validateBaseUrl();
-      final response = await http.get(
-        Uri.parse('$baseUrl/admin/google-drive/auth-url'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/admin/google-drive/auth-url'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data['auth_url'] as String;
       } else if (response.statusCode == 503) {
         // Service Unavailable - Google Drive not configured
         final errorData = json.decode(response.body);
-        throw Exception('Google Drive not configured: ${errorData['detail']?['message'] ?? 'Setup required'}');
+        throw Exception(
+            'Google Drive not configured: ${errorData['detail']?['message'] ?? 'Setup required'}');
       }
-      throw Exception('Failed to get auth URL: ${response.statusCode} ${response.body}');
+      throw Exception(
+          'Failed to get auth URL: ${response.statusCode} ${response.body}');
     } catch (e) {
       throw Exception('Error getting Google Drive auth URL: $e');
     }
@@ -2550,17 +2839,19 @@ class ApiService {
   Future<String?> getGoogleClientId() async {
     try {
       _validateBaseUrl();
-      final response = await http.get(
-        Uri.parse('$baseUrl/auth/google-client-id'),
-      ).timeout(const Duration(seconds: 5));
-      
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/auth/google-client-id'),
+          )
+          .timeout(const Duration(seconds: 5));
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         return data['client_id'] as String?;
       }
       return null;
     } catch (e) {
-      print('⚠️  Could not fetch Google Client ID from backend: $e');
+      LoggerService.w('⚠️  Could not fetch Google Client ID from backend: $e');
       return null;
     }
   }
@@ -2569,11 +2860,13 @@ class ApiService {
   Future<Map<String, dynamic>> getGoogleDrivePickerToken() async {
     try {
       _validateBaseUrl();
-      final response = await http.get(
-        Uri.parse('$baseUrl/admin/google-drive/picker-token'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/admin/google-drive/picker-token'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       }
@@ -2582,19 +2875,23 @@ class ApiService {
       throw Exception('Error getting Google Drive picker token: $e');
     }
   }
-  
-  Future<List<dynamic>> listGoogleDriveFiles({String? mimeType, int limit = 100}) async {
+
+  Future<List<dynamic>> listGoogleDriveFiles(
+      {String? mimeType, int limit = 100}) async {
     try {
       _validateBaseUrl();
       final queryParams = <String, String>{'limit': limit.toString()};
       if (mimeType != null) queryParams['mime_type'] = mimeType;
-      
-      final uri = Uri.parse('$baseUrl/admin/google-drive/files').replace(queryParameters: queryParams);
-      final response = await http.get(
-        uri,
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+
+      final uri = Uri.parse('$baseUrl/admin/google-drive/files')
+          .replace(queryParameters: queryParams);
+      final response = await http
+          .get(
+            uri,
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data['files'] as List<dynamic>;
@@ -2604,15 +2901,19 @@ class ApiService {
       throw Exception('Error listing Google Drive files: $e');
     }
   }
-  
-  Future<Map<String, dynamic>> importGoogleDriveFile(String fileId, String fileType) async {
+
+  Future<Map<String, dynamic>> importGoogleDriveFile(
+      String fileId, String fileType) async {
     try {
       _validateBaseUrl();
-      final response = await http.post(
-        Uri.parse('$baseUrl/admin/google-drive/import/$fileId?file_type=$fileType'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(minutes: 5));
-      
+      final response = await http
+          .post(
+            Uri.parse(
+                '$baseUrl/admin/google-drive/import/$fileId?file_type=$fileType'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(minutes: 5));
+
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       }
@@ -2630,77 +2931,89 @@ class ApiService {
     }
     return AppConfig.livekitWsUrl;
   }
-  
+
   /// Get LiveKit access token for voice agent
-  Future<Map<String, dynamic>> getLiveKitVoiceToken(String roomName, {String? userIdentity}) async {
+  Future<Map<String, dynamic>> getLiveKitVoiceToken(String roomName,
+      {String? userIdentity}) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/livekit/voice/token'),
-        headers: await _getHeaders(),
-        body: jsonEncode({
-          'room_name': roomName,
-          if (userIdentity != null) 'user_identity': userIdentity,
-        }),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/livekit/voice/token'),
+            headers: await _getHeaders(),
+            body: jsonEncode({
+              'room_name': roomName,
+              if (userIdentity != null) 'user_identity': userIdentity,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       }
-      throw Exception('Failed to get token: HTTP ${response.statusCode} ${response.body}');
+      throw Exception(
+          'Failed to get token: HTTP ${response.statusCode} ${response.body}');
     } catch (e) {
       throw Exception('Error getting LiveKit token: $e');
     }
   }
-  
+
   /// Create a LiveKit room for voice agent
-  Future<Map<String, dynamic>> createLiveKitRoom(String roomName, {int maxParticipants = 10}) async {
+  Future<Map<String, dynamic>> createLiveKitRoom(String roomName,
+      {int maxParticipants = 10}) async {
     try {
       _validateBaseUrl();
       final url = '$baseUrl/livekit/voice/room';
-      print('🌐 Creating LiveKit room: POST $url');
-      print('🌐 Room name: $roomName, max participants: $maxParticipants');
-      
-      final response = await http.post(
+      LoggerService.i('🌐 Creating LiveKit room: POST $url');
+      LoggerService.i('🌐 Room name: $roomName, max participants: $maxParticipants');
+
+      final response = await http
+          .post(
         Uri.parse(url),
         headers: await _getHeaders(),
         body: jsonEncode({
           'room_name': roomName,
           'max_participants': maxParticipants,
         }),
-      ).timeout(
+      )
+          .timeout(
         const Duration(seconds: 10),
         onTimeout: () {
-          throw TimeoutException('Room creation request timed out. Check if backend is running at $baseUrl');
+          throw TimeoutException(
+              'Room creation request timed out. Check if backend is running at $baseUrl');
         },
       );
-      
-      print('🌐 Response status: ${response.statusCode}');
-      print('🌐 Response body: ${response.body}');
-      
+
+      LoggerService.d('🌐 Response status: ${response.statusCode}');
+      LoggerService.d('🌐 Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final result = json.decode(response.body) as Map<String, dynamic>;
-        print('✅ Room created successfully: $result');
+        LoggerService.i('✅ Room created successfully: $result');
         return result;
       } else if (response.statusCode == 500) {
         // Try to parse error message from response
         try {
           final errorBody = json.decode(response.body) as Map<String, dynamic>;
-          final detail = errorBody['detail'] ?? errorBody['message'] ?? response.body;
+          final detail =
+              errorBody['detail'] ?? errorBody['message'] ?? response.body;
           throw Exception('Backend error: $detail');
         } catch (_) {
-          throw Exception('Failed to create room: HTTP ${response.statusCode}. ${response.body}');
+          throw Exception(
+              'Failed to create room: HTTP ${response.statusCode}. ${response.body}');
         }
       } else {
-        throw Exception('Failed to create room: HTTP ${response.statusCode}. ${response.body}');
+        throw Exception(
+            'Failed to create room: HTTP ${response.statusCode}. ${response.body}');
       }
     } on TimeoutException catch (e) {
-      print('❌ Timeout creating room: $e');
+      LoggerService.e('❌ Timeout creating room: $e');
       rethrow;
     } on http.ClientException catch (e) {
-      print('❌ Network error creating room: $e');
-      throw Exception('Network error: Cannot connect to backend at $baseUrl. Please ensure the backend server is running.');
+      LoggerService.e('❌ Network error creating room: $e');
+      throw Exception(
+          'Network error: Cannot connect to backend at $baseUrl. Please ensure the backend server is running.');
     } catch (e) {
-      print('❌ Error creating LiveKit room: $e');
+      LoggerService.e('❌ Error creating LiveKit room: $e');
       if (e is Exception) {
         rethrow;
       }
@@ -2726,16 +3039,19 @@ class ApiService {
         body['email'] = userEmail;
       }
 
-      final response = await http.post(
-        url,
-        headers: await _getHeaders(),
-        body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .post(
+            url,
+            headers: await _getHeaders(),
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       }
-      throw Exception('Failed to get LiveKit meeting token: HTTP ${response.statusCode} ${response.body}');
+      throw Exception(
+          'Failed to get LiveKit meeting token: HTTP ${response.statusCode} ${response.body}');
     } catch (e) {
       throw Exception('Error getting LiveKit meeting token: $e');
     }
@@ -2750,7 +3066,8 @@ class ApiService {
     bool isHost = false,
   }) async {
     try {
-      final url = Uri.parse('$baseUrl/live/streams/by-room/$roomName/livekit-token');
+      final url =
+          Uri.parse('$baseUrl/live/streams/by-room/$roomName/livekit-token');
       final body = <String, dynamic>{
         'identity': userIdentity,
         'name': userName,
@@ -2759,16 +3076,19 @@ class ApiService {
         body['email'] = userEmail;
       }
 
-      final response = await http.post(
-        url,
-        headers: await _getHeaders(),
-        body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .post(
+            url,
+            headers: await _getHeaders(),
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       }
-      throw Exception('Failed to get LiveKit meeting token by room: HTTP ${response.statusCode} ${response.body}');
+      throw Exception(
+          'Failed to get LiveKit meeting token by room: HTTP ${response.statusCode} ${response.body}');
     } catch (e) {
       throw Exception('Error getting LiveKit meeting token by room: $e');
     }
@@ -2786,13 +3106,20 @@ class ApiService {
     // Helper to get category name
     String getCategoryName(int? categoryId) {
       switch (categoryId) {
-        case 1: return 'Sermons';
-        case 2: return 'Bible Study';
-        case 3: return 'Devotionals';
-        case 4: return 'Prayer';
-        case 5: return 'Worship';
-        case 6: return 'Gospel';
-        default: return categoryName ?? 'Podcast';
+        case 1:
+          return 'Sermons';
+        case 2:
+          return 'Bible Study';
+        case 3:
+          return 'Devotionals';
+        case 4:
+          return 'Prayer';
+        case 5:
+          return 'Worship';
+        case 6:
+          return 'Gospel';
+        default:
+          return categoryName ?? 'Podcast';
       }
     }
 
@@ -2801,10 +3128,13 @@ class ApiService {
       title: podcast.title,
       creator: 'Christ Tabernacle',
       description: podcast.description,
-      coverImage: podcast.coverImage != null ? getMediaUrl(podcast.coverImage!) : null,
+      coverImage:
+          podcast.coverImage != null ? getMediaUrl(podcast.coverImage!) : null,
       audioUrl: audioUrl,
       videoUrl: videoUrl,
-      duration: podcast.duration != null ? Duration(seconds: podcast.duration!) : null,
+      duration: podcast.duration != null
+          ? Duration(seconds: podcast.duration!)
+          : null,
       category: getCategoryName(podcast.categoryId),
       plays: podcast.playsCount,
       createdAt: podcast.createdAt,
@@ -2829,16 +3159,19 @@ class ApiService {
       final uri = Uri.parse('$baseUrl/upload/thumbnail/generate-from-video')
           .replace(queryParameters: queryParams);
 
-      final response = await http.post(
-        uri,
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            uri,
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         return data['thumbnail_url'] as String;
       }
-      throw Exception('Failed to generate thumbnail: HTTP ${response.statusCode} ${response.body}');
+      throw Exception(
+          'Failed to generate thumbnail: HTTP ${response.statusCode} ${response.body}');
     } catch (e) {
       throw Exception('Error generating thumbnail: $e');
     }
@@ -2847,28 +3180,32 @@ class ApiService {
   /// Get list of default thumbnails
   Future<List<String>> getDefaultThumbnails() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/upload/thumbnail/defaults'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/upload/thumbnail/defaults'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         final thumbnails = data['thumbnails'] as List;
         return thumbnails.cast<String>();
       }
-      throw Exception('Failed to get default thumbnails: HTTP ${response.statusCode}');
+      throw Exception(
+          'Failed to get default thumbnails: HTTP ${response.statusCode}');
     } catch (e) {
       throw Exception('Error getting default thumbnails: $e');
     }
   }
 
   /// Upload custom thumbnail
-  Future<String> uploadThumbnail(String filePath, {List<int>? bytes, String? fileName}) async {
+  Future<String> uploadThumbnail(String filePath,
+      {List<int>? bytes, String? fileName}) async {
     try {
       final uri = Uri.parse('$baseUrl/upload/thumbnail');
       final request = http.MultipartRequest('POST', uri);
-      
+
       // Add auth headers
       final headers = await _getHeaders();
       request.headers.addAll(headers);
@@ -2884,14 +3221,16 @@ class ApiService {
         request.files.add(file);
       }
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final streamedResponse =
+          await request.send().timeout(const Duration(seconds: 30));
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         return data['url'] as String;
       }
-      throw Exception('Failed to upload thumbnail: HTTP ${response.statusCode} ${response.body}');
+      throw Exception(
+          'Failed to upload thumbnail: HTTP ${response.statusCode} ${response.body}');
     } catch (e) {
       throw Exception('Error uploading thumbnail: $e');
     }
@@ -2910,7 +3249,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$baseUrl/upload/audio');
       final request = http.MultipartRequest('POST', uri);
-      
+
       // Add auth headers
       final headers = await _getHeaders();
       request.headers.addAll(headers);
@@ -2921,7 +3260,8 @@ class ApiService {
         http.MultipartFile.fromBytes('file', bytes, filename: fileName),
       );
 
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 10));
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -2932,7 +3272,8 @@ class ApiService {
         }
         return data;
       }
-      throw Exception('Failed to upload audio: HTTP ${response.statusCode} ${response.body}');
+      throw Exception(
+          'Failed to upload audio: HTTP ${response.statusCode} ${response.body}');
     } catch (e) {
       throw Exception('Error uploading audio: $e');
     }
@@ -2944,7 +3285,8 @@ class ApiService {
   /// Upload temporary media file (for persistence across page refresh)
   /// Used for blob URLs that need to be converted to backend URLs
   /// Does NOT require bank details - only authentication
-  Future<Map<String, dynamic>?> uploadTemporaryMedia(String sourcePath, String mediaType) async {
+  Future<Map<String, dynamic>?> uploadTemporaryMedia(
+      String sourcePath, String mediaType) async {
     try {
       // mediaType should be 'audio' or 'video'
       if (mediaType != 'audio' && mediaType != 'video') {
@@ -2952,18 +3294,26 @@ class ApiService {
       }
 
       Map<String, dynamic> result;
-      
+
       if (mediaType == 'audio') {
         // Use temporary audio endpoint (no bank details required)
-        final file = await _createMultipartFileFromSource(sourcePath, 'file', 'audio.webm');
-        final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/upload/temporary-audio'));
+        final file = await _createMultipartFileFromSource(
+            sourcePath, 'file', 'audio.webm');
+        final request = http.MultipartRequest(
+            'POST', Uri.parse('$baseUrl/upload/temporary-audio'));
         request.files.add(file);
-        request.headers.addAll(await _getHeaders());
+        final headers = await _getHeaders();
+        if (!headers.containsKey('Authorization')) {
+          throw Exception('Authentication required. Please log in again.');
+        }
+        request.headers.addAll(headers);
         request.headers.remove('Content-Type'); // Let multipart set it
-        
-        final streamedResponse = await request.send().timeout(const Duration(minutes: 10));
-        
-        if (streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201) {
+
+        final streamedResponse =
+            await request.send().timeout(const Duration(minutes: 10));
+
+        if (streamedResponse.statusCode == 200 ||
+            streamedResponse.statusCode == 201) {
           final response = await http.Response.fromStream(streamedResponse);
           result = json.decode(response.body) as Map<String, dynamic>;
           if (result.containsKey('url') && !result.containsKey('file_path')) {
@@ -2971,7 +3321,8 @@ class ApiService {
           }
         } else {
           final response = await http.Response.fromStream(streamedResponse);
-          throw Exception('Failed to upload temporary audio: HTTP ${streamedResponse.statusCode} ${response.body}');
+          throw Exception(
+              'Failed to upload temporary audio: HTTP ${streamedResponse.statusCode} ${response.body}');
         }
       } else {
         // Video - use regular upload endpoint for now (may need temporary-video endpoint later)
@@ -2985,8 +3336,9 @@ class ApiService {
       }
 
       final duration = result['duration'] as int?;
-      print('✅ Temporary $mediaType uploaded successfully: $url${duration != null ? " (duration: ${duration}s)" : ""}');
-      
+      LoggerService.i(
+          '✅ Temporary $mediaType uploaded successfully: $url${duration != null ? " (duration: ${duration}s)" : ""}');
+
       return {
         'url': url,
         'file_path': result['file_path'] ?? url,
@@ -2995,7 +3347,7 @@ class ApiService {
         'content_type': result['content_type'],
       };
     } catch (e) {
-      print('❌ Error uploading temporary $mediaType: $e');
+      LoggerService.e('❌ Error uploading temporary $mediaType: $e');
       rethrow;
     }
   }
@@ -3006,41 +3358,46 @@ class ApiService {
     Function(int sent, int total)? onProgress,
   }) async {
     try {
-      final file = await _createMultipartFileFromSource(filePath, 'file', 'video.mp4');
-      final uri = Uri.parse('$baseUrl/upload/video?generate_thumbnail=$generateThumbnail');
+      final file =
+          await _createMultipartFileFromSource(filePath, 'file', 'video.mp4');
+      final uri = Uri.parse(
+          '$baseUrl/upload/video?generate_thumbnail=$generateThumbnail');
       final request = http.MultipartRequest('POST', uri);
       request.files.add(file);
       final headers = await _getHeaders();
       headers.remove('Content-Type'); // Let multipart set it
       request.headers.addAll(headers);
-      
+
       // Get file size for progress tracking
       int? totalBytes = file.length;
-      
+
       // Notify start of upload if callback provided
-      if (onProgress != null && totalBytes != null) {
+      if (onProgress != null) {
         onProgress(0, totalBytes);
       }
-      
+
       // Increase timeout to 60 minutes for large movies
-      final streamedResponse = await request.send().timeout(const Duration(minutes: 60));
-      
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 60));
+
       // Note: Tracking actual upload progress requires wrapping the request body stream,
       // which is complex. For now, we'll notify completion when response is received.
       // The backend will handle the actual upload, and we'll report completion here.
-      
-      if (streamedResponse.statusCode == 200 || streamedResponse.statusCode == 201) {
+
+      if (streamedResponse.statusCode == 200 ||
+          streamedResponse.statusCode == 201) {
         final response = await http.Response.fromStream(streamedResponse);
         final data = json.decode(response.body) as Map<String, dynamic>;
-        
+
         // Notify completion if callback provided
-        if (onProgress != null && totalBytes != null) {
+        if (onProgress != null) {
           onProgress(totalBytes, totalBytes);
         }
-        
+
         return data;
       }
-      throw Exception('Failed to upload video: HTTP ${streamedResponse.statusCode}');
+      throw Exception(
+          'Failed to upload video: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error uploading video: $e');
     }
@@ -3057,35 +3414,41 @@ class ApiService {
         final uri = Uri.parse(cleanPath);
         cleanPath = uri.path;
       }
-      
+
       // Remove leading slash
-      cleanPath = cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
-      
-      final response = await http.get(
-        Uri.parse('$baseUrl/upload/media/duration?path=$cleanPath'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+      cleanPath =
+          cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/upload/media/duration?path=$cleanPath'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         final duration = data['duration'] as int?;
         if (duration != null && duration > 0) {
-          print('✅ Duration from backend (FFprobe): ${duration}s for $mediaPath');
+          LoggerService.d(
+              '✅ Duration from backend (FFprobe): ${duration}s for $mediaPath');
           return duration;
         } else {
           // Duration is null - this is valid for WebM files without metadata
-          print('⚠️ Backend returned null duration for $mediaPath (WebM file may be missing duration metadata)');
+          LoggerService.w(
+              '⚠️ Backend returned null duration for $mediaPath (WebM file may be missing duration metadata)');
           return null;
         }
       } else if (response.statusCode == 404) {
-        print('⚠️ Media file not found for duration: $mediaPath');
+        LoggerService.w('⚠️ Media file not found for duration: $mediaPath');
         return null;
       } else {
-        print('⚠️ Failed to get duration from backend: HTTP ${response.statusCode}');
+        LoggerService.w(
+            '⚠️ Failed to get duration from backend: HTTP ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print('❌ Error getting media duration from backend: $e');
+      LoggerService.e('❌ Error getting media duration from backend: $e');
       return null;
     }
     return null;
@@ -3112,16 +3475,19 @@ class ApiService {
         if (categoryId != null) 'category_id': categoryId,
       };
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/podcasts/'),
-        headers: await _getHeaders(),
-        body: json.encode(body),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/podcasts/'),
+            headers: await _getHeaders(),
+            body: json.encode(body),
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body) as Map<String, dynamic>;
       }
-      throw Exception('Failed to create podcast: HTTP ${response.statusCode} ${response.body}');
+      throw Exception(
+          'Failed to create podcast: HTTP ${response.statusCode} ${response.body}');
     } catch (e) {
       throw Exception('Error creating podcast: $e');
     }
@@ -3133,17 +3499,20 @@ class ApiService {
     List<Map<String, dynamic>> podcasts,
   ) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/podcasts/bulk/'),
-        headers: await _getHeaders(),
-        body: json.encode(podcasts),
-      ).timeout(const Duration(seconds: 120)); // Longer timeout for bulk
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/podcasts/bulk/'),
+            headers: await _getHeaders(),
+            body: json.encode(podcasts),
+          )
+          .timeout(const Duration(seconds: 120)); // Longer timeout for bulk
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final List<dynamic> data = json.decode(response.body);
         return data.cast<Map<String, dynamic>>();
       }
-      throw Exception('Failed to bulk create podcasts: HTTP ${response.statusCode} ${response.body}');
+      throw Exception(
+          'Failed to bulk create podcasts: HTTP ${response.statusCode} ${response.body}');
     } catch (e) {
       throw Exception('Error bulk creating podcasts: $e');
     }
@@ -3162,7 +3531,8 @@ class ApiService {
     double? rating,
     int? categoryId,
     bool isFeatured = false,
-    String status = 'pending', // Default to pending, but admins can set to 'approved'
+    String status =
+        'pending', // Default to pending, but admins can set to 'approved'
   }) async {
     try {
       final body = <String, dynamic>{
@@ -3177,19 +3547,23 @@ class ApiService {
         if (rating != null) 'rating': rating,
         if (categoryId != null) 'category_id': categoryId,
         'is_featured': isFeatured,
-        'status': status, // Admins can set to 'approved', others default to 'pending'
+        'status':
+            status, // Admins can set to 'approved', others default to 'pending'
       };
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/movies/'),
-        headers: await _getHeaders(),
-        body: json.encode(body),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/movies/'),
+            headers: await _getHeaders(),
+            body: json.encode(body),
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body) as Map<String, dynamic>;
       }
-      throw Exception('Failed to create movie: HTTP ${response.statusCode} ${response.body}');
+      throw Exception(
+          'Failed to create movie: HTTP ${response.statusCode} ${response.body}');
     } catch (e) {
       throw Exception('Error creating movie: $e');
     }
@@ -3198,14 +3572,18 @@ class ApiService {
   /// Get all categories
   Future<List<Category>> getCategories() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/categories/'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/categories/'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => Category.fromJson(json as Map<String, dynamic>)).toList();
+        return data
+            .map((json) => Category.fromJson(json as Map<String, dynamic>))
+            .toList();
       }
       throw Exception('Failed to load categories: ${response.statusCode}');
     } catch (e) {
@@ -3220,10 +3598,12 @@ class ApiService {
   /// Get artist by ID
   Future<Map<String, dynamic>> getArtist(int artistId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/artists/$artistId'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/artists/$artistId'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -3239,10 +3619,12 @@ class ApiService {
   /// Get artist by user ID
   Future<Map<String, dynamic>> getArtistByUserId(int userId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/artists/by-user/$userId'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/artists/by-user/$userId'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -3258,10 +3640,12 @@ class ApiService {
   /// Get current user's artist profile (auto-creates if not exists)
   Future<Map<String, dynamic>> getMyArtist() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/artists/me'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/artists/me'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -3269,9 +3653,11 @@ class ApiService {
         await _handle401Error(response);
         return {};
       }
-      throw Exception('Failed to get artist profile: HTTP ${response.statusCode}');
+      throw Exception(
+          'Failed to get artist profile: HTTP ${response.statusCode}');
     } catch (e) {
-      if (e.toString().contains('session has expired') || e.toString().contains('Authentication failed')) {
+      if (e.toString().contains('session has expired') ||
+          e.toString().contains('Authentication failed')) {
         rethrow;
       }
       throw Exception('Error getting artist profile: $e');
@@ -3281,11 +3667,13 @@ class ApiService {
   /// Update artist profile
   Future<Map<String, dynamic>> updateArtist(Map<String, dynamic> data) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/artists/me'),
-        headers: await _getHeaders(),
-        body: json.encode(data),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/artists/me'),
+            headers: await _getHeaders(),
+            body: json.encode(data),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -3295,7 +3683,8 @@ class ApiService {
       }
       throw Exception('Failed to update artist: HTTP ${response.statusCode}');
     } catch (e) {
-      if (e.toString().contains('session has expired') || e.toString().contains('Authentication failed')) {
+      if (e.toString().contains('session has expired') ||
+          e.toString().contains('Authentication failed')) {
         rethrow;
       }
       throw Exception('Error updating artist: $e');
@@ -3322,7 +3711,8 @@ class ApiService {
         filename: filename,
       ));
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final streamedResponse =
+          await request.send().timeout(const Duration(seconds: 30));
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
@@ -3334,7 +3724,8 @@ class ApiService {
       }
       throw Exception('Failed to upload cover: HTTP ${response.statusCode}');
     } catch (e) {
-      if (e.toString().contains('session has expired') || e.toString().contains('Authentication failed')) {
+      if (e.toString().contains('session has expired') ||
+          e.toString().contains('Authentication failed')) {
         rethrow;
       }
       throw Exception('Error uploading cover: $e');
@@ -3342,18 +3733,25 @@ class ApiService {
   }
 
   /// Get podcasts by artist
-  Future<List<ContentItem>> getArtistPodcasts(int artistId, {int skip = 0, int limit = 100}) async {
+  Future<List<ContentItem>> getArtistPodcasts(int artistId,
+      {int skip = 0, int limit = 100}) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/artists/$artistId/podcasts?skip=$skip&limit=$limit'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse(
+                '$baseUrl/artists/$artistId/podcasts?skip=$skip&limit=$limit'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => ContentItem.fromJson(json as Map<String, dynamic>)).toList();
+        return data
+            .map((json) => ContentItem.fromJson(json as Map<String, dynamic>))
+            .toList();
       }
-      throw Exception('Failed to get artist podcasts: HTTP ${response.statusCode}');
+      throw Exception(
+          'Failed to get artist podcasts: HTTP ${response.statusCode}');
     } catch (e) {
       throw Exception('Error getting artist podcasts: $e');
     }
@@ -3362,10 +3760,12 @@ class ApiService {
   /// Follow an artist
   Future<void> followArtist(int artistId) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/artists/$artistId/follow'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/artists/$artistId/follow'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200) {
         if (response.statusCode == 401) {
@@ -3374,7 +3774,8 @@ class ApiService {
         throw Exception('Failed to follow artist: HTTP ${response.statusCode}');
       }
     } catch (e) {
-      if (e.toString().contains('session has expired') || e.toString().contains('Authentication failed')) {
+      if (e.toString().contains('session has expired') ||
+          e.toString().contains('Authentication failed')) {
         rethrow;
       }
       throw Exception('Error following artist: $e');
@@ -3384,19 +3785,23 @@ class ApiService {
   /// Unfollow an artist
   Future<void> unfollowArtist(int artistId) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/artists/$artistId/follow'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .delete(
+            Uri.parse('$baseUrl/artists/$artistId/follow'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200) {
         if (response.statusCode == 401) {
           await _handle401Error(response);
         }
-        throw Exception('Failed to unfollow artist: HTTP ${response.statusCode}');
+        throw Exception(
+            'Failed to unfollow artist: HTTP ${response.statusCode}');
       }
     } catch (e) {
-      if (e.toString().contains('session has expired') || e.toString().contains('Authentication failed')) {
+      if (e.toString().contains('session has expired') ||
+          e.toString().contains('Authentication failed')) {
         rethrow;
       }
       throw Exception('Error unfollowing artist: $e');
@@ -3404,12 +3809,16 @@ class ApiService {
   }
 
   /// Get artist followers
-  Future<List<Map<String, dynamic>>> getArtistFollowers(int artistId, {int skip = 0, int limit = 100}) async {
+  Future<List<Map<String, dynamic>>> getArtistFollowers(int artistId,
+      {int skip = 0, int limit = 100}) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/artists/$artistId/followers?skip=$skip&limit=$limit'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse(
+                '$baseUrl/artists/$artistId/followers?skip=$skip&limit=$limit'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -3446,11 +3855,13 @@ class ApiService {
         'cover_image': coverImage,
       }..removeWhere((k, v) => v == null);
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/events/'),
-        headers: await _getHeaders(),
-        body: json.encode(body),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/events/'),
+            headers: await _getHeaders(),
+            body: json.encode(body),
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -3476,11 +3887,14 @@ class ApiService {
       if (statusFilter != null) queryParams['status_filter'] = statusFilter;
       if (upcomingOnly) queryParams['upcoming_only'] = 'true';
 
-      final uri = Uri.parse('$baseUrl/events/').replace(queryParameters: queryParams);
-      final response = await http.get(
-        uri,
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 15));
+      final uri =
+          Uri.parse('$baseUrl/events/').replace(queryParameters: queryParams);
+      final response = await http
+          .get(
+            uri,
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -3494,10 +3908,12 @@ class ApiService {
   /// Get event details by ID
   Future<Map<String, dynamic>> getEvent(int eventId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/events/$eventId'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/events/$eventId'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -3509,13 +3925,16 @@ class ApiService {
   }
 
   /// Update an event
-  Future<Map<String, dynamic>> updateEvent(int eventId, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> updateEvent(
+      int eventId, Map<String, dynamic> data) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/events/$eventId'),
-        headers: await _getHeaders(),
-        body: json.encode(data),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/events/$eventId'),
+            headers: await _getHeaders(),
+            body: json.encode(data),
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -3529,15 +3948,18 @@ class ApiService {
   /// Request to join an event
   Future<Map<String, dynamic>> joinEvent(int eventId) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/events/$eventId/join'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/events/$eventId/join'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       }
-      throw Exception('Failed to join event: HTTP ${response.statusCode} - ${response.body}');
+      throw Exception(
+          'Failed to join event: HTTP ${response.statusCode} - ${response.body}');
     } catch (e) {
       throw Exception('Error joining event: $e');
     }
@@ -3546,10 +3968,12 @@ class ApiService {
   /// Leave an event
   Future<bool> leaveEvent(int eventId) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/events/$eventId/leave'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .delete(
+            Uri.parse('$baseUrl/events/$eventId/leave'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       return response.statusCode == 200;
     } catch (e) {
@@ -3558,17 +3982,20 @@ class ApiService {
   }
 
   /// Get event attendees
-  Future<List<dynamic>> getEventAttendees(int eventId, {String? statusFilter}) async {
+  Future<List<dynamic>> getEventAttendees(int eventId,
+      {String? statusFilter}) async {
     try {
       var uri = Uri.parse('$baseUrl/events/$eventId/attendees');
       if (statusFilter != null) {
         uri = uri.replace(queryParameters: {'status_filter': statusFilter});
       }
 
-      final response = await http.get(
-        uri,
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            uri,
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as List<dynamic>;
@@ -3580,13 +4007,16 @@ class ApiService {
   }
 
   /// Update attendee status (approve/reject)
-  Future<bool> updateAttendeeStatus(int eventId, int userId, String status) async {
+  Future<bool> updateAttendeeStatus(
+      int eventId, int userId, String status) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/events/$eventId/attendees/$userId'),
-        headers: await _getHeaders(),
-        body: json.encode({'status': status}),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/events/$eventId/attendees/$userId'),
+            headers: await _getHeaders(),
+            body: json.encode({'status': status}),
+          )
+          .timeout(const Duration(seconds: 10));
 
       return response.statusCode == 200;
     } catch (e) {
@@ -3597,15 +4027,18 @@ class ApiService {
   /// Get my hosted events
   Future<List<dynamic>> getMyHostedEvents() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/events/my/hosted'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/events/my/hosted'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as List<dynamic>;
       }
-      throw Exception('Failed to fetch hosted events: HTTP ${response.statusCode}');
+      throw Exception(
+          'Failed to fetch hosted events: HTTP ${response.statusCode}');
     } catch (e) {
       throw Exception('Error fetching hosted events: $e');
     }
@@ -3614,15 +4047,18 @@ class ApiService {
   /// Get events I'm attending
   Future<List<dynamic>> getMyAttendingEvents() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/events/my/attending'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/events/my/attending'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as List<dynamic>;
       }
-      throw Exception('Failed to fetch attending events: HTTP ${response.statusCode}');
+      throw Exception(
+          'Failed to fetch attending events: HTTP ${response.statusCode}');
     } catch (e) {
       throw Exception('Error fetching attending events: $e');
     }
@@ -3631,10 +4067,12 @@ class ApiService {
   /// Delete/cancel an event
   Future<bool> deleteEvent(int eventId) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/events/$eventId'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .delete(
+            Uri.parse('$baseUrl/events/$eventId'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       return response.statusCode == 200;
     } catch (e) {
@@ -3645,13 +4083,16 @@ class ApiService {
   // ============ Content Drafts API Methods ============
 
   /// Create a new content draft (raw API)
-  Future<Map<String, dynamic>> createDraft(Map<String, dynamic> draftData) async {
+  Future<Map<String, dynamic>> createDraft(
+      Map<String, dynamic> draftData) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/drafts/'),
-        headers: await _getHeaders(),
-        body: json.encode(draftData),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/drafts/'),
+            headers: await _getHeaders(),
+            body: json.encode(draftData),
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -3706,11 +4147,14 @@ class ApiService {
       };
       if (draftType != null) queryParams['draft_type'] = draftType;
 
-      final uri = Uri.parse('$baseUrl/drafts/').replace(queryParameters: queryParams);
-      final response = await http.get(
-        uri,
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 15));
+      final uri =
+          Uri.parse('$baseUrl/drafts/').replace(queryParameters: queryParams);
+      final response = await http
+          .get(
+            uri,
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -3734,17 +4178,22 @@ class ApiService {
       };
       if (draftType != null) queryParams['draft_type'] = draftType;
 
-      final uri = Uri.parse('$baseUrl/drafts/').replace(queryParameters: queryParams);
-      final response = await http.get(
-        uri,
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 15));
+      final uri =
+          Uri.parse('$baseUrl/drafts/').replace(queryParameters: queryParams);
+      final response = await http
+          .get(
+            uri,
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         // Backend returns {drafts: [...], total: ..., skip: ..., limit: ...}
         final List<dynamic> draftsJson = responseData['drafts'] ?? [];
-        return draftsJson.map((json) => ContentDraft.fromJson(json as Map<String, dynamic>)).toList();
+        return draftsJson
+            .map((json) => ContentDraft.fromJson(json as Map<String, dynamic>))
+            .toList();
       }
       throw Exception('Failed to fetch drafts: HTTP ${response.statusCode}');
     } catch (e) {
@@ -3755,10 +4204,12 @@ class ApiService {
   /// Get a specific draft by ID
   Future<Map<String, dynamic>> getDraft(int draftId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/drafts/$draftId'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/drafts/$draftId'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -3770,13 +4221,16 @@ class ApiService {
   }
 
   /// Update an existing draft
-  Future<Map<String, dynamic>> updateDraft(int draftId, Map<String, dynamic> draftData) async {
+  Future<Map<String, dynamic>> updateDraft(
+      int draftId, Map<String, dynamic> draftData) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/drafts/$draftId'),
-        headers: await _getHeaders(),
-        body: json.encode(draftData),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/drafts/$draftId'),
+            headers: await _getHeaders(),
+            body: json.encode(draftData),
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
@@ -3790,10 +4244,12 @@ class ApiService {
   /// Delete a draft
   Future<bool> deleteDraft(int draftId) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/drafts/$draftId'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .delete(
+            Uri.parse('$baseUrl/drafts/$draftId'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
 
       return response.statusCode == 200;
     } catch (e) {
@@ -3802,23 +4258,28 @@ class ApiService {
   }
 
   /// Get drafts by type
-  Future<Map<String, dynamic>> getDraftsByType(String draftType, {int skip = 0, int limit = 20}) async {
+  Future<Map<String, dynamic>> getDraftsByType(String draftType,
+      {int skip = 0, int limit = 20}) async {
     try {
       final queryParams = <String, String>{
         'skip': skip.toString(),
         'limit': limit.toString(),
       };
 
-      final uri = Uri.parse('$baseUrl/drafts/type/$draftType').replace(queryParameters: queryParams);
-      final response = await http.get(
-        uri,
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 15));
+      final uri = Uri.parse('$baseUrl/drafts/type/$draftType')
+          .replace(queryParameters: queryParams);
+      final response = await http
+          .get(
+            uri,
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       }
-      throw Exception('Failed to fetch drafts by type: HTTP ${response.statusCode}');
+      throw Exception(
+          'Failed to fetch drafts by type: HTTP ${response.statusCode}');
     } catch (e) {
       throw Exception('Error fetching drafts by type: $e');
     }
@@ -3829,11 +4290,13 @@ class ApiService {
   /// Get all users (admin only)
   Future<List<dynamic>> getUsers({int skip = 0, int limit = 100}) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/admin/users?skip=$skip&limit=$limit'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/admin/users?skip=$skip&limit=$limit'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data;
@@ -3847,12 +4310,14 @@ class ApiService {
   /// Update user admin status
   Future<bool> updateUserAdmin(int userId, bool isAdmin) async {
     try {
-      final response = await http.patch(
-        Uri.parse('$baseUrl/admin/users/$userId/admin'),
-        headers: await _getHeaders(),
-        body: json.encode({'is_admin': isAdmin}),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .patch(
+            Uri.parse('$baseUrl/admin/users/$userId/admin'),
+            headers: await _getHeaders(),
+            body: json.encode({'is_admin': isAdmin}),
+          )
+          .timeout(const Duration(seconds: 10));
+
       return response.statusCode == 200;
     } catch (e) {
       throw Exception('Error updating user admin status: $e');
@@ -3862,11 +4327,13 @@ class ApiService {
   /// Delete a user (admin only)
   Future<bool> deleteUser(int userId) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/admin/users/$userId'),
-        headers: await _getHeaders(),
-      ).timeout(const Duration(seconds: 10));
-      
+      final response = await http
+          .delete(
+            Uri.parse('$baseUrl/admin/users/$userId'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
       throw Exception('Error deleting user: $e');

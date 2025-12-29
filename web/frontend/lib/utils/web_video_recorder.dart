@@ -2,6 +2,7 @@ import 'dart:html' if (dart.library.io) 'html_stub.dart' as html;
 import 'dart:typed_data';
 import 'dart:async';
 import 'package:cross_file/cross_file.dart';
+import '../services/logger_service.dart';
 
 /// Web-compatible video recorder using browser MediaDevices API
 /// Provides camera access and video recording functionality for web
@@ -36,13 +37,13 @@ class WebVideoRecorder {
                          (hostname?.startsWith('172.') ?? false);
       
       if (!isHttps && !isLocalhost) {
-        print('⚠️ Camera access requires HTTPS. Current protocol: $protocol, hostname: $hostname');
+        LoggerService.w('⚠️ Camera access requires HTTPS. Current protocol: $protocol, hostname: $hostname');
         return false;
       }
       
       return true;
     } catch (e) {
-      print('Error checking secure context: $e');
+      LoggerService.e('Error checking secure context: $e');
       return false;
     }
   }
@@ -52,13 +53,13 @@ class WebVideoRecorder {
     try {
       // First check if we're in a secure context
       if (!_isSecureContext()) {
-        print('❌ Not in secure context - camera access requires HTTPS');
+        LoggerService.e('❌ Not in secure context - camera access requires HTTPS');
         return false;
       }
       
       final mediaDevices = html.window.navigator.mediaDevices;
       if (mediaDevices == null) {
-        print('❌ MediaDevices API not available');
+        LoggerService.e('❌ MediaDevices API not available');
         return false;
       }
       
@@ -66,21 +67,21 @@ class WebVideoRecorder {
       final stream = await mediaDevices.getUserMedia({'video': true});
       // Stop the test stream immediately
       stream.getTracks().forEach((track) => track.stop());
-      print('✅ Camera permission granted');
+      LoggerService.i('✅ Camera permission granted');
       return true;
     } catch (e) {
-      print('❌ Camera permission check failed: $e');
+      LoggerService.e('❌ Camera permission check failed: $e');
       // Log specific error types for debugging
       if (e.toString().contains('NotAllowedError') || e.toString().contains('Permission denied')) {
-        print('   → User denied camera permission');
+        LoggerService.w('   → User denied camera permission');
       } else if (e.toString().contains('NotFoundError') || e.toString().contains('No camera')) {
-        print('   → No camera device found');
+        LoggerService.w('   → No camera device found');
       } else if (e.toString().contains('NotReadableError') || e.toString().contains('Device in use')) {
-        print('   → Camera device is in use by another application');
+        LoggerService.w('   → Camera device is in use by another application');
       } else if (e.toString().contains('OverconstrainedError')) {
-        print('   → Camera constraints cannot be satisfied');
+        LoggerService.w('   → Camera constraints cannot be satisfied');
       } else if (e.toString().contains('SecurityError') || e.toString().contains('secure context')) {
-        print('   → Security error - requires HTTPS');
+        LoggerService.w('   → Security error - requires HTTPS');
       }
       return false;
     }
@@ -122,13 +123,13 @@ class WebVideoRecorder {
         videoConstraints['facingMode'] = facingMode;
       }
 
-      print('📹 Requesting camera access...');
+      LoggerService.i('📹 Requesting camera access...');
       // Get media stream
       _mediaStream = await mediaDevices.getUserMedia({
         'video': videoConstraints,
         'audio': true,
       }).catchError((error) {
-        print('❌ getUserMedia error: $error');
+        LoggerService.e('❌ getUserMedia error: $error');
         // Provide user-friendly error messages
         final errorStr = error.toString();
         if (errorStr.contains('NotAllowedError') || errorStr.contains('Permission denied')) {
@@ -159,7 +160,7 @@ class WebVideoRecorder {
         }
       });
 
-      print('✅ Camera access granted');
+      LoggerService.i('✅ Camera access granted');
 
       // Create video element
       _videoElement = html.VideoElement()
@@ -178,10 +179,10 @@ class WebVideoRecorder {
       _facingMode = facingMode;
       _currentDeviceId = deviceId;
 
-      print('✅ Camera initialized successfully');
+      LoggerService.i('✅ Camera initialized successfully');
       return _videoElement!;
     } catch (e) {
-      print('❌ Error initializing camera: $e');
+      LoggerService.e('❌ Error initializing camera: $e');
       await dispose();
       rethrow;
     }
@@ -201,7 +202,7 @@ class WebVideoRecorder {
           .cast<html.MediaDeviceInfo>()
           .toList();
     } catch (e) {
-      print('Error enumerating cameras: $e');
+      LoggerService.e('Error enumerating cameras: $e');
       return <html.MediaDeviceInfo>[];
     }
   }
@@ -233,7 +234,7 @@ class WebVideoRecorder {
         facingMode: _facingMode,
       );
     } catch (e) {
-      print('Error switching camera: $e');
+      LoggerService.e('Error switching camera: $e');
       rethrow;
     }
   }
@@ -279,7 +280,7 @@ class WebVideoRecorder {
       }, false);
 
       _mediaRecorder!.addEventListener('error', (html.Event event) {
-        print('MediaRecorder error: $event');
+        LoggerService.e('MediaRecorder error: $event');
       }, false);
 
       _mediaRecorder!.addEventListener('stop', (html.Event event) {
@@ -330,11 +331,11 @@ class WebVideoRecorder {
 
         // Create blob and convert
         final blob = html.Blob(_recordedChunks, mimeType ?? 'video/webm');
-        print('📹 Created blob from ${_recordedChunks.length} chunks, total size: ${totalSize} bytes');
+        LoggerService.i('📹 Created blob from ${_recordedChunks.length} chunks, total size: ${totalSize} bytes');
         
         // Call async function but don't await (event handler)
         _convertBlobToXFile(blob, mimeType ?? 'video/webm').catchError((error) {
-          print('Error in _convertBlobToXFile: $error');
+          LoggerService.e('Error in _convertBlobToXFile: $error');
           if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
             _stopCompleter!.completeError(error);
           }
@@ -345,9 +346,9 @@ class WebVideoRecorder {
       _mediaRecorder!.start(100); // Request data every 100ms
       _isRecording = true;
       _recordingStartTime = DateTime.now();
-      print('📹 Recording started at ${_recordingStartTime}');
+      LoggerService.i('📹 Recording started at ${_recordingStartTime}');
     } catch (e) {
-      print('Error starting video recording: $e');
+      LoggerService.e('Error starting video recording: $e');
       _isRecording = false;
       rethrow;
     }
@@ -356,14 +357,14 @@ class WebVideoRecorder {
   /// Convert blob to XFile
   Future<void> _convertBlobToXFile(html.Blob blob, String mimeType) async {
     if (_stopCompleter == null || _stopCompleter!.isCompleted) {
-      print('Warning: _stopCompleter is null or already completed');
+      LoggerService.w('Warning: _stopCompleter is null or already completed');
       return;
     }
 
     // Validate blob size before attempting conversion
     if (blob.size == 0) {
       final error = Exception('Blob is empty - no video data was recorded');
-      print('❌ $error');
+      LoggerService.e('❌ $error');
       if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
         _stopCompleter!.completeError(error);
       }
@@ -376,7 +377,7 @@ class WebVideoRecorder {
         'Blob is too small (${blob.size} bytes) - recording may have been stopped before any valid video frames were captured. '
         'Minimum size required: $_minBlobSizeBytes bytes'
       );
-      print('❌ $error');
+      LoggerService.e('❌ $error');
       if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
         _stopCompleter!.completeError(error);
       }
@@ -423,7 +424,7 @@ class WebVideoRecorder {
             return;
           } else {
             // Unknown type - provide more context
-            print('⚠️ FileReader returned unexpected type: ${result.runtimeType}');
+            LoggerService.w('⚠️ FileReader returned unexpected type: ${result.runtimeType}');
             isCompleted = true;
             if (!completer.isCompleted) {
               completer.completeError(Exception(
@@ -491,7 +492,7 @@ class WebVideoRecorder {
           },
         );
       } catch (e) {
-        print('❌ Error reading blob bytes: $e');
+        LoggerService.e('❌ Error reading blob bytes: $e');
         if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
           _stopCompleter!.completeError(e);
         }
@@ -501,7 +502,7 @@ class WebVideoRecorder {
       // Validate bytes before creating XFile
       if (bytes.isEmpty) {
         final error = Exception('Blob contains no valid video data - bytes array is empty after conversion');
-        print('❌ $error');
+        LoggerService.e('❌ $error');
         if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
           _stopCompleter!.completeError(error);
         }
@@ -521,11 +522,11 @@ class WebVideoRecorder {
 
         // Complete the stop completer
         if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
-          print('✅ Successfully converted blob to XFile: $fileName (${bytes.length} bytes)');
+          LoggerService.i('✅ Successfully converted blob to XFile: $fileName (${bytes.length} bytes)');
           _stopCompleter!.complete(xFile);
         }
       } catch (e) {
-        print('❌ Error creating XFile from bytes: $e');
+        LoggerService.e('❌ Error creating XFile from bytes: $e');
         if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
           _stopCompleter!.completeError(Exception(
             'Failed to create video file. Error: $e. '
@@ -534,7 +535,7 @@ class WebVideoRecorder {
         }
       }
     } catch (e) {
-      print('❌ Error converting blob to XFile: $e');
+      LoggerService.e('❌ Error converting blob to XFile: $e');
       if (_stopCompleter != null && !_stopCompleter!.isCompleted) {
         _stopCompleter!.completeError(Exception(
           'Failed to process video recording. Error: $e. '
@@ -624,7 +625,7 @@ class WebVideoRecorder {
               throw Exception('Stop completer became null');
             }
           } catch (e2) {
-            print('Error in fallback blob conversion: $e2');
+            LoggerService.e('Error in fallback blob conversion: $e2');
             throw Exception('Failed to create video file: $e');
           }
         } else {
@@ -632,7 +633,7 @@ class WebVideoRecorder {
         }
       }
     } catch (e) {
-      print('Error stopping video recording: $e');
+      LoggerService.e('Error stopping video recording: $e');
       _recordedChunks.clear();
       _isRecording = false;
       _isPaused = false;
@@ -647,7 +648,7 @@ class WebVideoRecorder {
       try {
         _mediaRecorder!.stop();
       } catch (e) {
-        print('Error stopping recorder on dispose: $e');
+        LoggerService.e('Error stopping recorder on dispose: $e');
       }
     }
     

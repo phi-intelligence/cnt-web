@@ -23,8 +23,8 @@ Thumbs.db
 *.log
 
 # Environment
-.env
-.env.local
+env
+env.local
 *.pem
 *.key
 
@@ -41,7 +41,6 @@ scripts/
 cnt.pem
 
 # Mobile frontend (separate repo)
-mobile/
 
 # Config files (not needed for web frontend)
 nginx/
@@ -56,9 +55,11 @@ backend/*.db
 local.db
 
 # Media files (stored in S3 for production)
-media/
+/media/
+mobile/
 
 # Zip archives
 *.zip
 
 .playwright-mcp/
+.env

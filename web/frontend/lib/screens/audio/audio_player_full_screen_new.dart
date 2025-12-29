@@ -6,6 +6,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/shared/image_helper.dart';
 import '../donation_modal.dart';
+import '../../utils/bank_details_helper.dart';
 
 /// Full-Screen Audio Player Screen
 /// Modern design with large album art, depth effects, and intuitive controls
@@ -273,15 +274,26 @@ class _AudioPlayerFullScreenNewState extends State<AudioPlayerFullScreenNew> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () {
-                // Show donation modal
-                // Note: In a real implementation, you'd get creator_id from the track
-                // For now, we'll use a placeholder - you'll need to add creator_id to ContentItem model
+              onPressed: () async {
+                final recipientId = track.creatorId ?? 1; // Use creatorId from track
+                final recipientName = track.creator;
+                
+                // Check if recipient has bank details before showing donation modal
+                final hasRecipientBankDetails = await checkRecipientBankDetails(recipientId);
+                if (!hasRecipientBankDetails) {
+                  // Show error dialog if recipient doesn't have bank details
+                  if (context.mounted) {
+                    await showRecipientBankDetailsMissingDialog(context, recipientName);
+                  }
+                  return;
+                }
+                
+                if (!context.mounted) return;
                 showDialog(
                   context: context,
                   builder: (_) => DonationModal(
-                    recipientName: track.creator,
-                    recipientUserId: 1, // TODO: Get actual creator ID from track
+                    recipientName: recipientName,
+                    recipientUserId: recipientId,
                   ),
                 );
               },

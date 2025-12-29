@@ -169,8 +169,9 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
             child: Container(
               decoration: const BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage('assets/images/jesus.png'),
+                  image: AssetImage('assets/images/jesus-teaching.png'),
                   fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
                 ),
               ),
               child: Container(
@@ -248,6 +249,8 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
 
   Widget _buildMobileLayout(BuildContext context) {
     // Reuse existing options logic
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 800;
     final List<Map<String, dynamic>> options = [
       {
         'title': 'Instant Meeting',
@@ -322,25 +325,23 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
         height: MediaQuery.of(context).size.height,
         child: Stack(
           children: [
-             // Background Image
-            Positioned(
-              top: -30,
-              right: -MediaQuery.of(context).size.width * 0.4,
-              height: MediaQuery.of(context).size.height * 0.6,
-              width: MediaQuery.of(context).size.width * 1.3,
-              child: Opacity(
-                opacity: 0.6, // Reduce opacity to ensure text/content stands out
-                child: Container(
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: const AssetImage('assets/images/jesus-teaching.png'),
-                      fit: BoxFit.contain,
-                      alignment: Alignment.topRight,
+              // Background Image - ONLY ON LARGER SCREENS to prevent "poor view" on mobile
+              if (!isMobile)
+                Positioned(
+                  top: 0,
+                  bottom: 0,
+                  right: -50,
+                  width: screenWidth * 0.65,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: const AssetImage('assets/images/jesus.png'),
+                        fit: BoxFit.cover,
+                        alignment: Alignment.centerRight,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
              // Gradient Overlay for readability
             Positioned.fill(
               child: Container(
@@ -405,16 +406,11 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
                               showShadow: true,
                               child: Padding(
                                 padding: EdgeInsets.all(AppSpacing.medium),
-                                child: GridView.builder(
+                              child: ListView.separated(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
-                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 1, // Full width cards on mobile
-                                    crossAxisSpacing: AppSpacing.medium,
-                                    mainAxisSpacing: AppSpacing.medium,
-                                    childAspectRatio: 2.5, // Wider cards
-                                  ),
                                   itemCount: options.length,
+                                  separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.medium),
                                   itemBuilder: (context, index) {
                                     final option = options[index];
                                      // Ensure consistent colors
@@ -561,12 +557,11 @@ class _OptionCardState extends State<_OptionCard> {
                   style: AppTypography.heading4.copyWith(
                     color: _isHovered
                         ? Colors.white
-                        : AppColors.textPrimary,
+                        : AppColors.textPrimary, // Ensure high contrast
                     fontWeight: FontWeight.w600,
                   ),
                   textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  // Removed maxLines to allow text to wrap fully if needed on small screens
                 ),
               ),
               if (_isHovered) ...[

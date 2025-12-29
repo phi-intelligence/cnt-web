@@ -10,6 +10,7 @@ import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_grid_delegate.dart';
+import '../../services/logger_service.dart';
 
 /// Web Voice Agent Screen - Redesigned to match app styling
 /// Follows Netflix-style design with consistent app components
@@ -37,7 +38,7 @@ class _VoiceAgentScreenWebState extends State<VoiceAgentScreenWeb> {
   @override
   void initState() {
     super.initState();
-    print('🎤 VoiceAgentScreenWeb: Initializing...');
+    LoggerService.i('🎤 VoiceAgentScreenWeb: Initializing...');
     _setupListeners();
     // Start connection after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -68,7 +69,7 @@ class _VoiceAgentScreenWebState extends State<VoiceAgentScreenWeb> {
             throw TimeoutException('Room creation timed out after 10 seconds');
           },
         );
-        print('✅ Room created: $roomName');
+        LoggerService.i('✅ Room created: $roomName');
         setState(() {
           _connectionStatus = 'Room created, connecting...';
         });
@@ -76,7 +77,7 @@ class _VoiceAgentScreenWebState extends State<VoiceAgentScreenWeb> {
         // Check if error is because room already exists
         final errorMsg = e.toString().toLowerCase();
         if (errorMsg.contains('already exists') || errorMsg.contains('duplicate')) {
-          print('ℹ️ Room already exists: $roomName');
+          LoggerService.i('ℹ️ Room already exists: $roomName');
           setState(() {
             _connectionStatus = 'Room exists, connecting...';
           });
@@ -92,7 +93,7 @@ class _VoiceAgentScreenWebState extends State<VoiceAgentScreenWeb> {
           } else if (errorMsg.contains('cors')) {
             detailedError = 'CORS error. Please check backend CORS configuration.';
           }
-          print('❌ Room creation error: $detailedError');
+          LoggerService.e('❌ Room creation error: $detailedError');
           throw Exception(detailedError);
         }
       }
@@ -124,7 +125,7 @@ class _VoiceAgentScreenWebState extends State<VoiceAgentScreenWeb> {
               .any((p) => p.kind == lk.ParticipantKind.AGENT);
           if (hasAgent) {
             agentJoined = true;
-            print('✅ Agent joined the room');
+            LoggerService.i('✅ Agent joined the room');
             break;
           }
         }

@@ -28,6 +28,7 @@ import 'movie_detail_screen_web.dart';
 import 'video_podcast_detail_screen_web.dart';
 import 'audio_player_full_screen_web.dart';
 import '../audio/audio_player_full_screen_new.dart';
+import '../../services/logger_service.dart';
 
 /// Web Home Screen - Real data integration matching mobile
 class HomeScreenWeb extends StatefulWidget {
@@ -61,7 +62,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
   @override
   void initState() {
     super.initState();
-    print('✅ HomeScreenWeb initState');
+    LoggerService.i('✅ HomeScreenWeb initState');
     
     // Listen to scroll changes for fade and parallax effects
     _scrollController.addListener(() {
@@ -73,7 +74,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       try {
-        print('✅ HomeScreenWeb: Fetching data...');
+        LoggerService.i('✅ HomeScreenWeb: Fetching data...');
         _fetchPodcasts();
         _fetchBibleStories();
         _fetchBibleDocuments();
@@ -82,9 +83,9 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
         context.read<MusicProvider>().fetchTracks();
         context.read<UserProvider>().fetchUser();
         context.read<PlaylistProvider>().fetchPlaylists();
-        print('✅ HomeScreenWeb: Data fetch initiated');
+        LoggerService.i('✅ HomeScreenWeb: Data fetch initiated');
       } catch (e) {
-        print('❌ HomeScreenWeb: Error initializing providers: $e');
+        LoggerService.e('❌ HomeScreenWeb: Error initializing providers: $e');
       }
     });
   }
@@ -172,9 +173,9 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
       _recentPodcasts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       _recentPodcasts = _recentPodcasts.take(5).toList();
       
-      print('✅ Loaded ${_audioPodcasts.length} audio podcasts and ${_videoPodcasts.length} video podcasts');
+      LoggerService.i('✅ Loaded ${_audioPodcasts.length} audio podcasts and ${_videoPodcasts.length} video podcasts');
     } catch (e) {
-      print('❌ Error fetching podcasts: $e');
+      LoggerService.e('❌ Error fetching podcasts: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -199,7 +200,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
         });
       }
     } catch (e) {
-      print('❌ Error fetching bible stories: $e');
+      LoggerService.e('❌ Error fetching bible stories: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -224,7 +225,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
         });
       }
     } catch (e) {
-      print('❌ Error fetching bible documents: $e');
+      LoggerService.e('❌ Error fetching bible documents: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -276,9 +277,9 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
         return _api.movieToContentItem(movie);
       }).toList();
       
-      print('✅ Loaded ${_animatedBibleStories.length} Kids Bible Stories');
+      LoggerService.i('✅ Loaded ${_animatedBibleStories.length} Kids Bible Stories');
     } catch (e) {
-      print('❌ Error fetching Kids Bible Stories: $e');
+      LoggerService.e('❌ Error fetching Kids Bible Stories: $e');
     } finally {
       if (mounted) {
         setState(() {

@@ -19,6 +19,7 @@ import '../admin/admin_support_page.dart';
 import '../edit_profile_screen.dart';
 import '../../utils/media_utils.dart';
 import '../../utils/responsive_utils.dart';
+import '../../utils/bank_details_helper.dart';
 
 /// Web Profile Screen - Complete Redesign
 class ProfileScreenWeb extends StatefulWidget {
@@ -349,6 +350,18 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                           isMobile,
                         ),
                         const SizedBox(height: AppSpacing.extraLarge),
+                        // Donate Button
+                        _buildDonateButton(isMobile),
+                        const SizedBox(height: AppSpacing.extraLarge),
+                        // Support Button
+                        _buildSupportButton(
+                          context,
+                          isAdmin,
+                          supportSubtitle,
+                          unreadSupportCount,
+                          isMobile,
+                        ),
+                        const SizedBox(height: AppSpacing.extraLarge),
                         // User Details Box
                         _buildUserDetailsBox(profileUser, isAdmin),
                         const SizedBox(height: AppSpacing.extraLarge),
@@ -358,8 +371,6 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                           authProvider,
                           supportProvider,
                           isAdmin,
-                          supportSubtitle,
-                          unreadSupportCount,
                           isMobile,
                         ),
                         const SizedBox(height: AppSpacing.extraLarge),
@@ -381,12 +392,24 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // User Profile Box - shifted to left
+                          // User Profile Box - shifted to left
                                 _buildProfileCard(
                                   context,
                                   profileUser,
                                   avatarUrl,
                                   isAdmin,
+                                  isMobile,
+                                ),
+                                const SizedBox(height: AppSpacing.extraLarge),
+                                // Donate Button
+                                _buildDonateButton(isMobile),
+                                const SizedBox(height: AppSpacing.extraLarge),
+                                // Support Button
+                                _buildSupportButton(
+                                  context, 
+                                  isAdmin, 
+                                  supportSubtitle, 
+                                  unreadSupportCount,
                                   isMobile,
                                 ),
                                 const SizedBox(height: AppSpacing.extraLarge),
@@ -411,8 +434,6 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                                   authProvider,
                                   supportProvider,
                                   isAdmin,
-                                  supportSubtitle,
-                                  unreadSupportCount,
                                   isMobile,
                                 ),
                               ],
@@ -1072,8 +1093,6 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
     AuthProvider authProvider,
     SupportProvider supportProvider,
     bool isAdmin,
-    String supportSubtitle,
-    int unreadSupportCount,
     bool isMobile,
   ) {
     return Container(
@@ -1151,30 +1170,6 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
             subtitle: 'Manage payment information',
             onTap: () {
               context.push('/profile/bank-details');
-            },
-          ),
-          _buildDivider(),
-          _buildSettingItem(
-            icon: isAdmin ? Icons.support_agent : Icons.help_outline,
-            title: isAdmin ? 'Support Inbox' : 'Help & Support',
-            subtitle: supportSubtitle,
-            badge: unreadSupportCount > 0 ? unreadSupportCount.toString() : null,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => isAdmin
-                      ? const AdminSupportPage()
-                      : const SupportCenterScreen(),
-                ),
-              ).then((_) {
-                supportProvider.fetchStats();
-                if (isAdmin) {
-                  supportProvider.fetchAdminMessages();
-                } else {
-                  supportProvider.fetchMyMessages();
-                }
-              });
             },
           ),
           _buildDivider(),
@@ -1293,6 +1288,185 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.extraLarge),
       child: Divider(height: 1, color: AppColors.borderPrimary),
+    );
+  }
+
+  Widget _buildDonateButton(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? AppSpacing.large : AppSpacing.extraLarge),
+      decoration: BoxDecoration(
+        color: AppColors.primaryMain,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryMain.withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => showOrganizationDonationModal(context),
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: EdgeInsets.all(AppSpacing.medium),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.volunteer_activism,
+                  color: Colors.white,
+                  size: 28,
+                ),
+                const SizedBox(width: AppSpacing.medium),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Support Christ New Tabernacle',
+                        style: AppTypography.heading3.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppSpacing.tiny),
+                      Text(
+                        'Help us continue our mission',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSupportButton(
+    BuildContext context,
+    bool isAdmin,
+    String supportSubtitle,
+    int unreadSupportCount,
+    bool isMobile,
+  ) {
+    return Consumer<SupportProvider>(
+      builder: (context, supportProvider, _) {
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(isMobile ? AppSpacing.large : AppSpacing.extraLarge),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.warmBrown, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.warmBrown.withOpacity(0.1),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => isAdmin
+                        ? const AdminSupportPage()
+                        : const SupportCenterScreen(),
+                  ),
+                ).then((_) {
+                  supportProvider.fetchStats();
+                  if (isAdmin) {
+                    supportProvider.fetchAdminMessages();
+                  } else {
+                    supportProvider.fetchMyMessages();
+                  }
+                });
+              },
+              borderRadius: BorderRadius.circular(24),
+              child: Padding(
+                padding: EdgeInsets.all(AppSpacing.medium),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(
+                          isAdmin ? Icons.support_agent : Icons.help_outline,
+                          color: AppColors.warmBrown,
+                          size: 28,
+                        ),
+                        if (unreadSupportCount > 0)
+                          Positioned(
+                            top: -4,
+                            right: -4,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: AppColors.errorMain,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: Text(
+                                unreadSupportCount > 99 ? '99+' : unreadSupportCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(width: AppSpacing.medium),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            isAdmin ? 'Support Inbox' : 'Help & Support',
+                            style: AppTypography.heading3.copyWith(
+                              color: AppColors.warmBrown,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppSpacing.tiny),
+                          Text(
+                            supportSubtitle,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.warmBrown.withOpacity(0.8),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:flutter/foundation.dart';
+import '../services/logger_service.dart';
 import '../models/content_item.dart';
 import 'api_service.dart';
 
@@ -21,7 +23,7 @@ class DownloadService {
 
   Future<Database> _initDatabase() async {
     try {
-      print('✅ DownloadService: Initializing database...');
+      LoggerService.i('✅ DownloadService: Initializing database...');
       final documentsDirectory = await getApplicationDocumentsDirectory();
       final path = join(documentsDirectory.path, 'downloads.db');
 
@@ -45,10 +47,10 @@ class DownloadService {
           ''');
         },
       );
-      print('✅ DownloadService: Database initialized successfully');
+      LoggerService.i('✅ DownloadService: Database initialized successfully');
       return db;
     } catch (e) {
-      print('❌ DownloadService: Error initializing database: $e');
+      LoggerService.e('❌ DownloadService: Error initializing database: $e');
       rethrow; // Re-throw to let caller handle
     }
   }
@@ -106,7 +108,7 @@ class DownloadService {
 
       return true;
     } catch (e) {
-      print('Error downloading content: $e');
+      LoggerService.e('Error downloading content: $e');
       return false;
     }
   }
@@ -119,7 +121,7 @@ class DownloadService {
         orderBy: 'downloaded_at DESC',
       );
     } catch (e) {
-      print('Error getting downloads: $e');
+      LoggerService.e('Error getting downloads: $e');
       return [];
     }
   }
@@ -152,7 +154,7 @@ class DownloadService {
       
       return true;
     } catch (e) {
-      print('Error deleting download: $e');
+      LoggerService.e('Error deleting download: $e');
       return false;
     }
   }

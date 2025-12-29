@@ -13,6 +13,7 @@ import '../../providers/playlist_provider.dart';
 import '../../providers/favorites_provider.dart';
 import '../../providers/audio_player_provider.dart';
 import '../../services/download_service.dart';
+import '../../services/logger_service.dart';
 import '../../models/content_item.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/dimension_utils.dart';
@@ -35,7 +36,7 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
   @override
   void initState() {
     super.initState();
-    print('✅ LibraryScreenWeb initState');
+    LoggerService.d('✅ LibraryScreenWeb initState');
     _loadDownloads();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -43,7 +44,7 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
         context.read<PlaylistProvider>().fetchPlaylists();
         context.read<FavoritesProvider>().fetchFavorites();
       } catch (e) {
-        print('❌ LibraryScreenWeb: Error fetching playlists/favorites: $e');
+        LoggerService.e('❌ LibraryScreenWeb: Error fetching playlists/favorites: $e');
       }
     });
   }
@@ -61,7 +62,7 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
         });
       }
     } catch (e) {
-      print('❌ LibraryScreenWeb: Error loading downloads: $e');
+      LoggerService.e('❌ LibraryScreenWeb: Error loading downloads: $e');
       if (mounted) {
         setState(() => _isLoadingDownloads = false);
       }

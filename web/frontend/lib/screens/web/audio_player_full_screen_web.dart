@@ -7,11 +7,12 @@ import '../../providers/audio_player_provider.dart';
 import '../../providers/favorites_provider.dart';
 import '../../models/content_item.dart';
 import '../donation_modal.dart';
+import '../../utils/bank_details_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
-import '../../theme/app_spacing.dart';
 import '../../widgets/shared/image_helper.dart';
 import '../../widgets/web/queue_modal_web.dart';
+import '../../services/logger_service.dart';
 
 /// Web Full-Screen Audio Player - Spotify-style Design
 /// Features:
@@ -23,7 +24,8 @@ class AudioPlayerFullScreenWeb extends StatefulWidget {
   const AudioPlayerFullScreenWeb({super.key});
 
   @override
-  State<AudioPlayerFullScreenWeb> createState() => _AudioPlayerFullScreenWebState();
+  State<AudioPlayerFullScreenWeb> createState() =>
+      _AudioPlayerFullScreenWebState();
 }
 
 class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
@@ -33,7 +35,7 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
   bool _isShuffled = false;
   bool _isRepeat = false;
   bool _isRepeatOne = false;
-  
+
   late AnimationController _rotationController;
 
   @override
@@ -96,14 +98,14 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
                           AppColors.warmBrown.withOpacity(0.4),
                         ],
                       ),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.warmBrown.withOpacity(0.2),
-                        blurRadius: 30,
-                        offset: const Offset(0, 15),
-                      ),
-                    ],
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.warmBrown.withOpacity(0.2),
+                          blurRadius: 30,
+                          offset: const Offset(0, 15),
+                        ),
+                      ],
                     ),
                     child: Icon(
                       Icons.music_note_rounded,
@@ -165,15 +167,16 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
     final isWideScreen = screenWidth > 1000;
     final maxContentWidth = isWideScreen ? 1200.0 : screenWidth * 0.95;
     final horizontalPadding = isWideScreen ? 64.0 : 24.0;
-    
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0E8), // Warm background like landing page
+      backgroundColor:
+          const Color(0xFFF5F0E8), // Warm background like landing page
       body: SafeArea(
         child: Column(
           children: [
             // Top Header
             _buildHeader(),
-            
+
             // Content Area
             Expanded(
               child: Center(
@@ -191,9 +194,12 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
                               child: LayoutBuilder(
                                 builder: (context, constraints) {
                                   // Calculate available size for album art by subtracting slider width and spacing
-                                  final availableWidth = constraints.maxWidth - 24 - 60; // 24 spacing + 60 slider
-                                  final size = availableWidth.clamp(200.0, 500.0);
-                                  
+                                  final availableWidth = constraints.maxWidth -
+                                      24 -
+                                      60; // 24 spacing + 60 slider
+                                  final size =
+                                      availableWidth.clamp(200.0, 500.0);
+
                                   return Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -234,9 +240,12 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
                               // Album Art with Vertical Volume Slider
                               LayoutBuilder(
                                 builder: (context, constraints) {
-                                  final albumArtSize = screenWidth < 600 ? screenWidth * 0.7 : 350.0;
+                                  final albumArtSize = screenWidth < 600
+                                      ? screenWidth * 0.7
+                                      : 350.0;
                                   return Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       SizedBox(width: 40), // Balance spacer
@@ -288,7 +297,8 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
               ],
             ),
             child: IconButton(
-              icon: Icon(Icons.keyboard_arrow_down, 
+              icon: Icon(
+                Icons.keyboard_arrow_down,
                 color: AppColors.warmBrown,
                 size: 28,
               ),
@@ -320,7 +330,8 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
               ],
             ),
             child: IconButton(
-              icon: Icon(Icons.more_horiz, 
+              icon: Icon(
+                Icons.more_horiz,
                 color: AppColors.warmBrown,
                 size: 24,
               ),
@@ -336,7 +347,7 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
 
   Widget _buildAlbumArtCard(ContentItem track, double size) {
     // Size is now passed directly from caller for better responsiveness
-    
+
     return Center(
       child: Container(
         width: size,
@@ -444,11 +455,13 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
         const SizedBox(height: 8),
         // Artist - Tappable to view profile
         GestureDetector(
-          onTap: track.creatorId != null ? () {
-            // Navigate to artist profile
-            Navigator.pop(context); // Close player first
-            context.go('/artist/${track.creatorId}');
-          } : null,
+          onTap: track.creatorId != null
+              ? () {
+                  // Navigate to artist profile
+                  Navigator.pop(context); // Close player first
+                  context.go('/artist/${track.creatorId}');
+                }
+              : null,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -459,7 +472,8 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
                   color: AppColors.warmBrown,
                   fontWeight: FontWeight.w500,
                   fontSize: 16,
-                  decoration: track.creatorId != null ? TextDecoration.underline : null,
+                  decoration:
+                      track.creatorId != null ? TextDecoration.underline : null,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -480,14 +494,14 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
 
   bool _isSeeking = false;
   double _seekValue = 0.0;
-  
+
   Widget _buildProgressBar(AudioPlayerState audioPlayer) {
     // Check if duration is valid before allowing seeking
     final isValidDuration = audioPlayer.duration.inSeconds > 0;
     final progress = isValidDuration
         ? audioPlayer.position.inSeconds / audioPlayer.duration.inSeconds
         : 0.0;
-    
+
     // Use local seek value while actively seeking, otherwise use actual progress
     final displayProgress = _isSeeking ? _seekValue : progress;
 
@@ -510,7 +524,7 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
             max: 1.0,
             onChangeStart: (value) {
               if (!isValidDuration) {
-                print('⚠️ Cannot seek - duration not available');
+                LoggerService.w('⚠️ Cannot seek - duration not available');
                 return;
               }
               setState(() {
@@ -534,7 +548,8 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
                 return;
               }
               final newPosition = Duration(
-                milliseconds: (value * audioPlayer.duration.inMilliseconds).toInt(),
+                milliseconds:
+                    (value * audioPlayer.duration.inMilliseconds).toInt(),
               );
               await audioPlayer.seek(newPosition);
               if (mounted) {
@@ -552,16 +567,17 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                _isSeeking 
+                _isSeeking
                     ? _formatDuration(Duration(
-                        milliseconds: isValidDuration 
-                            ? (_seekValue * audioPlayer.duration.inMilliseconds).toInt()
+                        milliseconds: isValidDuration
+                            ? (_seekValue * audioPlayer.duration.inMilliseconds)
+                                .toInt()
                             : 0,
                       ))
                     : _formatDuration(audioPlayer.position),
                 style: AppTypography.caption.copyWith(
-                  color: _isSeeking 
-                      ? AppColors.warmBrown 
+                  color: _isSeeking
+                      ? AppColors.warmBrown
                       : AppColors.primaryDark.withOpacity(0.6),
                   fontWeight: FontWeight.w500,
                 ),
@@ -591,8 +607,8 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
           icon: Icon(
             Icons.shuffle_rounded,
             size: 24,
-            color: audioPlayer.shuffleEnabled 
-                ? AppColors.warmBrown 
+            color: audioPlayer.shuffleEnabled
+                ? AppColors.warmBrown
                 : AppColors.primaryDark.withOpacity(0.4),
           ),
           tooltip: 'Shuffle',
@@ -601,9 +617,9 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
             setState(() => _isShuffled = audioPlayer.shuffleEnabled);
           },
         ),
-        
+
         const SizedBox(width: 16),
-        
+
         // Previous Button
         Container(
           decoration: BoxDecoration(
@@ -619,16 +635,19 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
           ),
           child: IconButton(
             icon: Icon(Icons.skip_previous_rounded, size: 32),
-            color: audioPlayer.hasPrevious ? AppColors.primaryDark : AppColors.primaryDark.withOpacity(0.3),
+            color: audioPlayer.hasPrevious
+                ? AppColors.primaryDark
+                : AppColors.primaryDark.withOpacity(0.3),
             tooltip: 'Previous',
-            onPressed: audioPlayer.hasPrevious || audioPlayer.currentTrack != null
-                ? () => audioPlayer.previous()
-                : null,
+            onPressed:
+                audioPlayer.hasPrevious || audioPlayer.currentTrack != null
+                    ? () => audioPlayer.previous()
+                    : null,
           ),
         ),
-        
+
         const SizedBox(width: 20),
-        
+
         // Large Play Button with gradient
         GestureDetector(
           onTap: () => audioPlayer.togglePlayPause(),
@@ -654,17 +673,17 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
               ],
             ),
             child: Icon(
-              audioPlayer.isPlaying 
-                  ? Icons.pause_rounded 
+              audioPlayer.isPlaying
+                  ? Icons.pause_rounded
                   : Icons.play_arrow_rounded,
               color: Colors.white,
               size: 40,
             ),
           ),
         ),
-        
+
         const SizedBox(width: 20),
-        
+
         // Next Button
         Container(
           decoration: BoxDecoration(
@@ -680,29 +699,31 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
           ),
           child: IconButton(
             icon: Icon(Icons.skip_next_rounded, size: 32),
-            color: audioPlayer.hasNext ? AppColors.primaryDark : AppColors.primaryDark.withOpacity(0.3),
+            color: audioPlayer.hasNext
+                ? AppColors.primaryDark
+                : AppColors.primaryDark.withOpacity(0.3),
             tooltip: 'Next',
-            onPressed: audioPlayer.hasNext
-                ? () => audioPlayer.next()
-                : null,
+            onPressed: audioPlayer.hasNext ? () => audioPlayer.next() : null,
           ),
         ),
-        
+
         const SizedBox(width: 16),
-        
+
         // Repeat button - connected to provider
         IconButton(
           icon: Icon(
-            audioPlayer.repeatOneEnabled ? Icons.repeat_one_rounded : Icons.repeat_rounded,
+            audioPlayer.repeatOneEnabled
+                ? Icons.repeat_one_rounded
+                : Icons.repeat_rounded,
             size: 24,
             color: (audioPlayer.repeatEnabled || audioPlayer.repeatOneEnabled)
-                ? AppColors.warmBrown 
+                ? AppColors.warmBrown
                 : AppColors.primaryDark.withOpacity(0.4),
           ),
-          tooltip: audioPlayer.repeatOneEnabled 
-              ? 'Repeat One' 
-              : audioPlayer.repeatEnabled 
-                  ? 'Repeat All' 
+          tooltip: audioPlayer.repeatOneEnabled
+              ? 'Repeat One'
+              : audioPlayer.repeatEnabled
+                  ? 'Repeat All'
                   : 'Repeat',
           onPressed: () {
             audioPlayer.toggleRepeat();
@@ -739,8 +760,10 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
               child: SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   trackHeight: 4,
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                  thumbShape:
+                      const RoundSliderThumbShape(enabledThumbRadius: 8),
+                  overlayShape:
+                      const RoundSliderOverlayShape(overlayRadius: 14),
                   activeTrackColor: AppColors.warmBrown,
                   inactiveTrackColor: AppColors.warmBrown.withOpacity(0.2),
                   thumbColor: AppColors.warmBrown,
@@ -768,7 +791,9 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
               audioPlayer.setVolume(newVolume);
             },
             child: Icon(
-              _volume == 0 ? Icons.volume_off_rounded : Icons.volume_mute_rounded,
+              _volume == 0
+                  ? Icons.volume_off_rounded
+                  : Icons.volume_mute_rounded,
               color: AppColors.warmBrown.withOpacity(_volume == 0 ? 0.9 : 0.4),
               size: 18,
             ),
@@ -778,15 +803,16 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
     );
   }
 
-  /// Extra controls (queue, favorite, download) 
+  /// Extra controls (queue, favorite, download)
   Widget _buildExtraControls(AudioPlayerState audioPlayer) {
     final track = audioPlayer.currentTrack;
     final hasQueue = audioPlayer.queue.isNotEmpty;
-    
+
     return Consumer<FavoritesProvider>(
       builder: (context, favoritesProvider, _) {
-        final isFavorite = track != null && favoritesProvider.isFavorite(track.id);
-        
+        final isFavorite =
+            track != null && favoritesProvider.isFavorite(track.id);
+
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
@@ -810,8 +836,8 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
                     child: IconButton(
                       icon: Icon(
                         Icons.queue_music_rounded,
-                        color: hasQueue 
-                            ? AppColors.warmBrown 
+                        color: hasQueue
+                            ? AppColors.warmBrown
                             : AppColors.warmBrown.withOpacity(0.5),
                         size: 24,
                       ),
@@ -868,31 +894,39 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
                 ),
                 child: IconButton(
                   icon: Icon(
-                    isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                    color: isFavorite 
-                        ? AppColors.errorMain 
+                    isFavorite
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    color: isFavorite
+                        ? AppColors.errorMain
                         : AppColors.warmBrown.withOpacity(0.8),
                     size: 24,
                   ),
-                  tooltip: isFavorite ? 'Remove from Favorites' : 'Add to Favorites',
-                  onPressed: track != null ? () async {
-                    final success = await favoritesProvider.toggleFavorite(track);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            success 
-                                ? (isFavorite 
-                                    ? 'Removed from favorites' 
-                                    : 'Added to favorites')
-                                : 'Failed to update favorites',
-                          ),
-                          backgroundColor: success ? AppColors.successMain : AppColors.errorMain,
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  } : null,
+                  tooltip:
+                      isFavorite ? 'Remove from Favorites' : 'Add to Favorites',
+                  onPressed: track != null
+                      ? () async {
+                          final success =
+                              await favoritesProvider.toggleFavorite(track);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  success
+                                      ? (isFavorite
+                                          ? 'Removed from favorites'
+                                          : 'Added to favorites')
+                                      : 'Failed to update favorites',
+                                ),
+                                backgroundColor: success
+                                    ? AppColors.successMain
+                                    : AppColors.errorMain,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        }
+                      : null,
                 ),
               ),
               const SizedBox(width: 16),
@@ -916,7 +950,9 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
                     size: 24,
                   ),
                   tooltip: 'Download',
-                  onPressed: track?.audioUrl != null ? () => _handleDownload(track!) : null,
+                  onPressed: track?.audioUrl != null
+                      ? () => _handleDownload(track!)
+                      : null,
                 ),
               ),
               const SizedBox(width: 16),
@@ -953,7 +989,7 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
       },
     );
   }
-  
+
   /// Handle download of current track
   Future<void> _handleDownload(ContentItem track) async {
     if (track.audioUrl == null) {
@@ -962,13 +998,13 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
       );
       return;
     }
-    
+
     try {
       // For web, we create an anchor element to trigger download
       // This is handled via dart:html
       final url = track.audioUrl!;
       final filename = '${track.title.replaceAll(RegExp(r'[^\w\s-]'), '')}.mp3';
-      
+
       // Use JavaScript to trigger download
       // ignore: avoid_web_libraries_in_flutter
       // This import should be added at the top
@@ -991,7 +1027,7 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
           duration: const Duration(seconds: 2),
         ),
       );
-      
+
       // Trigger download via JavaScript
       _triggerWebDownload(url, filename);
     } catch (e) {
@@ -1005,21 +1041,21 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
       }
     }
   }
-  
+
   /// Trigger download on web using dart:html
   void _triggerWebDownload(String url, String filename) {
     if (!kIsWeb) return;
-    
+
     try {
       // Create an anchor element and trigger download
       final anchor = html.AnchorElement(href: url)
         ..setAttribute('download', filename)
         ..style.display = 'none';
-      
+
       html.document.body?.append(anchor);
       anchor.click();
       anchor.remove();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1029,7 +1065,7 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
         );
       }
     } catch (e) {
-      print('Download error: $e');
+      LoggerService.e('Download error: $e');
       if (mounted) {
         // Fallback: open in new tab
         html.window.open(url, '_blank');
@@ -1047,12 +1083,29 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
       width: double.infinity,
       constraints: const BoxConstraints(maxWidth: 300),
       child: ElevatedButton.icon(
-        onPressed: () {
+        onPressed: () async {
+          final recipientId =
+              track.creatorId ?? 1; // Fallback to 1 if not available
+          final recipientName = track.creator ?? 'Artist';
+
+          // Check if recipient has bank details before showing donation modal
+          final hasRecipientBankDetails =
+              await checkRecipientBankDetails(recipientId);
+          if (!hasRecipientBankDetails) {
+            // Show error dialog if recipient doesn't have bank details
+            if (context.mounted) {
+              await showRecipientBankDetailsMissingDialog(
+                  context, recipientName);
+            }
+            return;
+          }
+
+          if (!context.mounted) return;
           showDialog(
             context: context,
             builder: (_) => DonationModal(
-              recipientName: track.creator ?? 'Artist',
-              recipientUserId: 1, // TODO: Get actual creator ID from track
+              recipientName: recipientName,
+              recipientUserId: recipientId,
             ),
           );
         },
@@ -1076,5 +1129,4 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
       ),
     );
   }
-
 }

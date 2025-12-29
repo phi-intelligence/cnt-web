@@ -4,6 +4,7 @@ import '../models/content_item.dart';
 import '../utils/state_persistence.dart';
 import 'dart:async';
 import 'dart:math';
+import '../services/logger_service.dart';
 
 class AudioPlayerState extends ChangeNotifier {
   final AudioPlayer _player = AudioPlayer();
@@ -73,10 +74,10 @@ class AudioPlayerState extends ChangeNotifier {
         // The UI should check for saved state and restore the track separately
         // For now, we'll save the track ID and let the UI handle restoration
         
-        print('✅ Restored music player state: trackId=$savedTrackId, position=$savedPositionMs, playing=$savedIsPlaying');
+        LoggerService.i('✅ Restored music player state: trackId=$savedTrackId, position=$savedPositionMs, playing=$savedIsPlaying');
       }
     } catch (e) {
-      print('❌ Error loading music player state: $e');
+      LoggerService.e('❌ Error loading music player state: $e');
     }
   }
   
@@ -93,7 +94,7 @@ class AudioPlayerState extends ChangeNotifier {
         volume: _volume,
       );
     } catch (e) {
-      print('⚠️ Error saving music player state: $e');
+      LoggerService.w('⚠️ Error saving music player state: $e');
     }
   }
   
@@ -139,7 +140,7 @@ class AudioPlayerState extends ChangeNotifier {
 
   Future<void> loadTrack(ContentItem track) async {
     if (track.audioUrl == null) {
-      print('No audio URL available for track');
+      LoggerService.w('No audio URL available for track');
       return;
     }
     
@@ -150,20 +151,20 @@ class AudioPlayerState extends ChangeNotifier {
       _saveState(); // Save when track changes
       notifyListeners();
     } catch (e) {
-      print('Error loading track: $e');
+      LoggerService.e('Error loading track: $e');
     }
   }
 
   /// Play a ContentItem directly (main entry point from UI)
   Future<void> playContent(ContentItem item) async {
     if (item.audioUrl == null) {
-      print('No audio URL available for ${item.title}');
+      LoggerService.w('No audio URL available for ${item.title}');
       return;
     }
 
     _currentTrack = item;
     try {
-      print('Loading audio: ${item.audioUrl}');
+      LoggerService.i('Loading audio: ${item.audioUrl}');
       await _player.setUrl(item.audioUrl!);
       await _player.setVolume(_volume);
       
@@ -183,7 +184,7 @@ class AudioPlayerState extends ChangeNotifier {
       _saveState(); // Save when track starts playing
       notifyListeners();
     } catch (e) {
-      print('Error playing content: $e');
+      LoggerService.e('Error playing content: $e');
       _error = 'Failed to play audio: $e';
       notifyListeners();
     }
@@ -198,7 +199,7 @@ class AudioPlayerState extends ChangeNotifier {
       _isPlaying = true;
       notifyListeners();
     } catch (e) {
-      print('Error playing: $e');
+      LoggerService.e('Error playing: $e');
     }
   }
 
@@ -223,12 +224,12 @@ class AudioPlayerState extends ChangeNotifier {
     try {
       // Check if duration is available and valid
       if (_duration == Duration.zero || _duration.inMilliseconds <= 0) {
-        print('⚠️ Cannot seek - duration not yet available');
+        LoggerService.w('⚠️ Cannot seek - duration not yet available');
         // Wait a bit for duration to become available
         await Future.delayed(const Duration(milliseconds: 200));
         // Check again
         if (_duration == Duration.zero || _duration.inMilliseconds <= 0) {
-          print('❌ Seek failed - duration still not available');
+          LoggerService.e('❌ Seek failed - duration still not available');
           _error = 'Cannot seek - audio duration not available';
           notifyListeners();
           return;
@@ -243,7 +244,7 @@ class AudioPlayerState extends ChangeNotifier {
         milliseconds: position.inMilliseconds.clamp(0, _duration.inMilliseconds),
       );
       
-      print('🎵 Seeking to: ${clampedPosition.inSeconds}s / ${_duration.inSeconds}s');
+      LoggerService.d('🎵 Seeking to: ${clampedPosition.inSeconds}s / ${_duration.inSeconds}s');
       
       // Perform the seek operation
       await _player.seek(clampedPosition);
@@ -253,7 +254,7 @@ class AudioPlayerState extends ChangeNotifier {
       
       // Get the actual position after seek from the player
       final actualPosition = _player.position;
-      print('🎵 Seek completed - actual position: ${actualPosition.inSeconds}s (requested: ${clampedPosition.inSeconds}s)');
+      LoggerService.d('🎵 Seek completed - actual position: ${actualPosition.inSeconds}s (requested: ${clampedPosition.inSeconds}s)');
       
       // Validate seek result: if we requested a position > 0 but got 0, the seek failed
       // Also check if the actual position is significantly different from requested (more than 2 seconds)
@@ -261,7 +262,7 @@ class AudioPlayerState extends ChangeNotifier {
                          (clampedPosition.inSeconds > 2 && (actualPosition.inSeconds - clampedPosition.inSeconds).abs() > 2);
       
       if (seekFailed) {
-        print('⚠️ Seek failed - requested ${clampedPosition.inSeconds}s but got ${actualPosition.inSeconds}s. Attempting recovery...');
+        LoggerService.w('⚠️ Seek failed - requested ${clampedPosition.inSeconds}s but got ${actualPosition.inSeconds}s. Attempting recovery...');
         
         // Try to seek to a position slightly before the requested position (within actual duration)
         // This helps when seeking near the end of the audio
@@ -272,7 +273,7 @@ class AudioPlayerState extends ChangeNotifier {
           await _player.seek(recoveryPosition);
           await Future.delayed(const Duration(milliseconds: 200));
           final recoveredPosition = _player.position;
-          print('🎵 Recovery seek to ${recoveryPosition.inSeconds}s resulted in ${recoveredPosition.inSeconds}s');
+          LoggerService.i('🎵 Recovery seek to ${recoveryPosition.inSeconds}s resulted in ${recoveredPosition.inSeconds}s');
           
           _position = recoveredPosition;
           _saveState();
@@ -281,7 +282,7 @@ class AudioPlayerState extends ChangeNotifier {
         }
         
         // If recovery failed, restore to position before seek
-        print('⚠️ Recovery failed, restoring to position before seek: ${positionBeforeSeek.inSeconds}s');
+        LoggerService.w('⚠️ Recovery failed, restoring to position before seek: ${positionBeforeSeek.inSeconds}s');
         await _player.seek(positionBeforeSeek);
         await Future.delayed(const Duration(milliseconds: 200));
         
@@ -296,7 +297,7 @@ class AudioPlayerState extends ChangeNotifier {
       _saveState();
       notifyListeners();
     } catch (e) {
-      print('❌ Seek error: $e');
+      LoggerService.e('❌ Seek error: $e');
       _error = 'Failed to seek: $e';
       notifyListeners();
     }
@@ -374,11 +375,11 @@ class AudioPlayerState extends ChangeNotifier {
   
   /// Handle track completion - auto-play next based on shuffle/repeat settings
   Future<void> _handleTrackCompletion() async {
-    print('🎵 Track completed - checking auto-play settings');
+    LoggerService.d('🎵 Track completed - checking auto-play settings');
     
     // Repeat One: replay the same track
     if (_repeatOneEnabled) {
-      print('🔂 Repeat One enabled - replaying current track');
+      LoggerService.i('🔂 Repeat One enabled - replaying current track');
       await _player.seek(Duration.zero);
       await play();
       return;
@@ -390,12 +391,12 @@ class AudioPlayerState extends ChangeNotifier {
       
       if (currentIndex >= 0 && currentIndex < _queue.length - 1) {
         // Play next track in queue
-        print('⏭️ Playing next track in queue');
+        LoggerService.i('⏭️ Playing next track in queue');
         await next();
         return;
       } else if (_repeatEnabled && _queue.isNotEmpty) {
         // At end of queue but repeat is enabled - restart from beginning
-        print('🔁 Repeat enabled - restarting queue from beginning');
+        LoggerService.i('🔁 Repeat enabled - restarting queue from beginning');
         final firstTrack = _queue.first;
         await loadTrack(firstTrack);
         await play();
@@ -405,7 +406,7 @@ class AudioPlayerState extends ChangeNotifier {
     
     // Repeat All with single track (no queue)
     if (_repeatEnabled && _currentTrack != null) {
-      print('🔁 Repeat enabled - replaying single track');
+      LoggerService.i('🔁 Repeat enabled - replaying single track');
       await _player.seek(Duration.zero);
       await play();
       return;
@@ -413,7 +414,7 @@ class AudioPlayerState extends ChangeNotifier {
     
     // No auto-play - keep track visible but mark as stopped
     // This allows users to see what they just listened to and replay if desired
-    print('⏹️ Track completed - keeping track info visible');
+    LoggerService.i('⏹️ Track completed - keeping track info visible');
     _isPlaying = false;
     _position = _duration; // Keep position at end so user can see it finished
     // Don't clear _currentTrack - keep it visible
@@ -428,11 +429,11 @@ class AudioPlayerState extends ChangeNotifier {
       // Save original queue order and shuffle
       _originalQueue = List.from(_queue);
       _queue.shuffle(_random);
-      print('🔀 Shuffle enabled - queue shuffled');
+      LoggerService.i('🔀 Shuffle enabled - queue shuffled');
     } else if (!_shuffleEnabled && _originalQueue.isNotEmpty) {
       // Restore original queue order
       _queue = List.from(_originalQueue);
-      print('🔀 Shuffle disabled - queue restored');
+      LoggerService.i('🔀 Shuffle disabled - queue restored');
     }
     
     _saveState();
@@ -445,17 +446,17 @@ class AudioPlayerState extends ChangeNotifier {
       // Off -> Repeat All
       _repeatEnabled = true;
       _repeatOneEnabled = false;
-      print('🔁 Repeat All enabled');
+      LoggerService.i('🔁 Repeat All enabled');
     } else if (_repeatEnabled && !_repeatOneEnabled) {
       // Repeat All -> Repeat One
       _repeatEnabled = false;
       _repeatOneEnabled = true;
-      print('🔂 Repeat One enabled');
+      LoggerService.i('🔂 Repeat One enabled');
     } else {
       // Repeat One -> Off
       _repeatEnabled = false;
       _repeatOneEnabled = false;
-      print('🔁 Repeat disabled');
+      LoggerService.i('🔁 Repeat disabled');
     }
     
     _saveState();
@@ -496,7 +497,7 @@ class AudioPlayerState extends ChangeNotifier {
         ? _queue.first 
         : tracks[startIndex.clamp(0, tracks.length - 1)];
     
-    print('🎵 Playing queue with ${tracks.length} tracks, starting at ${trackToPlay.title}');
+    LoggerService.i('🎵 Playing queue with ${tracks.length} tracks, starting at ${trackToPlay.title}');
     await loadTrack(trackToPlay);
     await play();
   }

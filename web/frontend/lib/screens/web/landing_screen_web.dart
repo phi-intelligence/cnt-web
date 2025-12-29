@@ -11,6 +11,7 @@ import '../../services/auth_service.dart';
 import '../../models/api_models.dart';
 import '../../models/content_item.dart';
 import 'register_screen_web.dart';
+import '../../services/logger_service.dart';
 
 /// Modern landing page following Living Scriptures design structure
 /// Sections: Hero, Content Carousels, Features, Testimonials, Devices, Footer
@@ -68,7 +69,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
         });
       }
     } catch (e) {
-      print('Error fetching featured content: $e');
+      LoggerService.e('Error fetching featured content: $e');
       if (mounted) {
         setState(() {
           _isLoadingContent = false;
@@ -142,7 +143,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
             Navigator.of(dialogContext).pop();
           }
         } catch (e) {
-          print('⚠️ Dialog already dismissed: $e');
+          LoggerService.w('⚠️ Dialog already dismissed: $e');
         }
         if (authProvider.isAdmin) {
           context.go('/admin');

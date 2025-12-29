@@ -280,13 +280,17 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   widget.document?.title ?? 'The Holy Bible',
                   style: AppTypography.heading3.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
+                    fontSize: isMobile ? 18 : 22, // Smaller font on mobile
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 if (_totalPages > 0)
                   Text(

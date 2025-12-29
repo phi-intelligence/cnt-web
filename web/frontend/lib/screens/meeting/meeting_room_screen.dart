@@ -696,7 +696,7 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
                           borderRadius: BorderRadius.circular(8),
                           clipBehavior: Clip.antiAlias,
                           child: localVideoTrack != null
-                              ? VideoTrackView(track: localVideoTrack, isLocal: true, mirror: true)
+                              ? VideoTrackView(track: localVideoTrack, isLocal: true, mirror: false)
                               : PlaceholderVideoView(name: widget.userName, avatarUrl: widget.avatarUrl),
                         ),
                       ),

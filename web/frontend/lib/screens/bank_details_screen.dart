@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/user_provider.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import '../theme/app_typography.dart';
+import 'dart:html' if (dart.library.io) '../utils/html_stub.dart' as html;
+import '../services/stripe_connect_service.dart';
 
 class BankDetailsScreen extends StatefulWidget {
   final bool isFromUpload;
-  
+
   const BankDetailsScreen({super.key, this.isFromUpload = false});
 
   @override
@@ -15,103 +12,146 @@ class BankDetailsScreen extends StatefulWidget {
 }
 
 class _BankDetailsScreenState extends State<BankDetailsScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _accountNumberController = TextEditingController();
-  final _ifscCodeController = TextEditingController();
-  final _swiftCodeController = TextEditingController();
-  final _bankNameController = TextEditingController();
-  final _accountHolderNameController = TextEditingController();
-  final _branchNameController = TextEditingController();
+  final StripeConnectService _stripeConnect = StripeConnectService();
+  Map<String, dynamic>? _accountStatus;
   bool _isLoading = false;
-  bool _hasExistingDetails = false;
+  bool _accountExists = false;
 
   @override
   void initState() {
     super.initState();
-    _loadBankDetails();
+    _checkUrlParams();
+    _loadAccountStatus();
   }
 
-  Future<void> _loadBankDetails() async {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
+  void _checkUrlParams() {
+    // Check if returning from Stripe onboarding
+    final uri = Uri.parse(html.window.location.href);
+    if (uri.queryParameters.containsKey('success')) {
+      // Show success message and refresh status
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Stripe Connect setup completed successfully!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      });
+    }
+  }
+
+  Future<void> _loadAccountStatus() async {
     setState(() => _isLoading = true);
-    
+
     try {
-      final details = await userProvider.getBankDetails();
-      if (details != null) {
+      final status = await _stripeConnect.getAccountStatus();
+      if (status != null) {
         setState(() {
-          _hasExistingDetails = true;
-          // Don't load account number for security
-          _ifscCodeController.text = details['ifsc_code'] ?? '';
-          _swiftCodeController.text = details['swift_code'] ?? '';
-          _bankNameController.text = details['bank_name'] ?? '';
-          _accountHolderNameController.text = details['account_holder_name'] ?? '';
-          _branchNameController.text = details['branch_name'] ?? '';
+          _accountStatus = status;
+          _accountExists = status['account_exists'] == true;
         });
       }
     } catch (e) {
-      print('Error loading bank details: $e');
+      print('Error loading account status: $e');
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  @override
-  void dispose() {
-    _accountNumberController.dispose();
-    _ifscCodeController.dispose();
-    _swiftCodeController.dispose();
-    _bankNameController.dispose();
-    _accountHolderNameController.dispose();
-    _branchNameController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _handleSave() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
+  Future<void> _handleSetupPayouts() async {
     setState(() => _isLoading = true);
 
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    
     try {
-      final success = await userProvider.updateBankDetails({
-        'account_number': _accountNumberController.text.trim(),
-        'ifsc_code': _ifscCodeController.text.trim(),
-        'swift_code': _swiftCodeController.text.trim().isEmpty ? null : _swiftCodeController.text.trim(),
-        'bank_name': _bankNameController.text.trim(),
-        'account_holder_name': _accountHolderNameController.text.trim(),
-        'branch_name': _branchNameController.text.trim(),
-      });
-
-      if (mounted) {
-        if (success) {
+      // 1. Create account if doesn't exist
+      final accountId = await _stripeConnect.createConnectAccount();
+      if (accountId == null) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Bank details saved successfully'),
-              backgroundColor: Colors.green,
+              content: Text(
+                  'Failed to create Stripe Connect account. Please try again.'),
+              backgroundColor: Colors.red,
             ),
           );
-          
-          if (widget.isFromUpload) {
-            Navigator.of(context).pop(true); // Return true to indicate success
-          } else {
-            Navigator.of(context).pop();
-          }
-        } else {
+        }
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // 2. Get onboarding link
+      final onboardingUrl = await _stripeConnect.createOnboardingLink();
+      if (onboardingUrl != null) {
+        // Open in new window
+        html.window.open(onboardingUrl, '_blank');
+
+        // Show message to user
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(userProvider.error ?? 'Failed to save bank details'),
+            const SnackBar(
+              content: Text(
+                  'Opening Stripe onboarding in a new window. Complete the setup there.'),
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content:
+                  Text('Failed to create onboarding link. Please try again.'),
               backgroundColor: Colors.red,
             ),
           );
         }
       }
-    } finally {
+    } catch (e) {
+      print('Error setting up payouts: $e');
       if (mounted) {
-        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleViewDashboard() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final dashboardUrl = await _stripeConnect.getDashboardLink();
+      if (dashboardUrl != null) {
+        html.window.open(dashboardUrl, '_blank');
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to get dashboard link. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error getting dashboard link: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -119,187 +159,165 @@ class _BankDetailsScreenState extends State<BankDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bank Details'),
+        title: const Text('Payout Settings'),
       ),
-      body: _isLoading && !_hasExistingDetails
+      body: _isLoading && _accountStatus == null
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (widget.isFromUpload)
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        margin: const EdgeInsets.only(bottom: 24),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.orange.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.info_outline, color: Colors.orange.shade700),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Bank details are required to upload content and receive donations.',
-                                style: TextStyle(color: Colors.orange.shade900),
-                              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (widget.isFromUpload)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.only(bottom: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline,
+                              color: Colors.orange.shade700),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Set up payout information to receive donations from your audience.',
+                              style: TextStyle(color: Colors.orange.shade900),
                             ),
-                          ],
-                        ),
-                      ),
-                    
-                    Text(
-                      _hasExistingDetails ? 'Update Bank Details' : 'Add Bank Details',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Your bank details are encrypted and secure',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
+
+                  Text(
+                    'Stripe Connect Payouts',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 24),
-                    
-                    // Account Number
-                    TextFormField(
-                      controller: _accountNumberController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Account Number *',
-                        prefixIcon: Icon(Icons.account_balance),
-                        border: OutlineInputBorder(),
-                        hintText: 'Enter your bank account number',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter account number';
-                        }
-                        return null;
-                      },
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Set up your Stripe Connect account to receive donations and payments securely',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
                     ),
-                    const SizedBox(height: 16),
-                    
-                    // IFSC Code
-                    TextFormField(
-                      controller: _ifscCodeController,
-                      textCapitalization: TextCapitalization.characters,
-                      decoration: const InputDecoration(
-                        labelText: 'IFSC Code *',
-                        prefixIcon: Icon(Icons.qr_code),
-                        border: OutlineInputBorder(),
-                        hintText: 'e.g., HDFC0001234',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter IFSC code';
-                        }
-                        if (value.length != 11) {
-                          return 'IFSC code must be 11 characters';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // SWIFT Code (Optional)
-                    TextFormField(
-                      controller: _swiftCodeController,
-                      textCapitalization: TextCapitalization.characters,
-                      decoration: const InputDecoration(
-                        labelText: 'SWIFT Code (Optional)',
-                        prefixIcon: Icon(Icons.code),
-                        border: OutlineInputBorder(),
-                        hintText: 'For international transfers',
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Bank Name
-                    TextFormField(
-                      controller: _bankNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Bank Name *',
-                        prefixIcon: Icon(Icons.account_balance_wallet),
-                        border: OutlineInputBorder(),
-                        hintText: 'e.g., HDFC Bank',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter bank name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Account Holder Name
-                    TextFormField(
-                      controller: _accountHolderNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Account Holder Name *',
-                        prefixIcon: Icon(Icons.person),
-                        border: OutlineInputBorder(),
-                        hintText: 'Name as on bank account',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter account holder name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Branch Name
-                    TextFormField(
-                      controller: _branchNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Branch Name *',
-                        prefixIcon: Icon(Icons.location_on),
-                        border: OutlineInputBorder(),
-                        hintText: 'Bank branch name',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter branch name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 32),
-                    
-                    // Save Button
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _handleSave,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(
-                              _hasExistingDetails ? 'Update Bank Details' : 'Save Bank Details',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Show status or setup button
+                  if (_accountExists &&
+                      _accountStatus?['payouts_enabled'] == true)
+                    _buildActiveStatus()
+                  else
+                    _buildSetupButton(),
+                ],
               ),
             ),
     );
   }
-}
 
+  Widget _buildActiveStatus() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green, size: 32),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Payouts Enabled',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'You can now receive donations and payments',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _isLoading ? null : _handleViewDashboard,
+              icon: const Icon(Icons.dashboard),
+              label: const Text('View Stripe Dashboard'),
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSetupButton() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.account_balance_wallet, size: 48, color: Colors.blue),
+            const SizedBox(height: 16),
+            Text(
+              'Set Up Payouts',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Connect your Stripe account to start receiving donations and payments. This is a secure process handled by Stripe.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _isLoading ? null : _handleSetupPayouts,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.arrow_forward),
+              label: Text(_isLoading ? 'Setting up...' : 'Set Up Payouts'),
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

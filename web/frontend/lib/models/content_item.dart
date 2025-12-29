@@ -1,4 +1,5 @@
 import 'artist.dart';
+import '../services/logger_service.dart';
 
 class ContentItem {
   final String id;
@@ -60,7 +61,7 @@ class ContentItem {
       try {
         artistData = ArtistSummary.fromJson(json['artist'] as Map<String, dynamic>);
       } catch (e) {
-        print('Error parsing artist data: $e');
+        LoggerService.e('Error parsing artist data: $e');
       }
     }
     

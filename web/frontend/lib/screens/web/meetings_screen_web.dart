@@ -11,6 +11,7 @@ import '../../services/api_service.dart';
 import '../../screens/meeting/meeting_room_screen.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/dimension_utils.dart';
+import '../../services/logger_service.dart';
 
 /// Web Meetings Screen - Meeting list and management
 class MeetingsScreenWeb extends StatefulWidget {
@@ -40,7 +41,7 @@ class _MeetingsScreenWebState extends State<MeetingsScreenWeb> {
         _isLoading = false;
       });
     } catch (e) {
-      print('❌ Error loading meetings: $e');
+      LoggerService.e('❌ Error loading meetings: $e');
       setState(() => _isLoading = false);
     }
   }

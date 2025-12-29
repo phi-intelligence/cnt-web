@@ -2,972 +2,687 @@
 
 ## Executive Summary
 
-The **Christ New Tabernacle (CNT) Media Platform** is a comprehensive Christian media application built with Flutter (mobile/web) and FastAPI (backend). It provides a Spotify-like media consumption experience combined with social features (Instagram/Facebook-like) and real-time communication capabilities (LiveKit).
+The **Christ New Tabernacle (CNT) Media Platform** is a comprehensive Christian media application combining:
+- **Spotify-like** media consumption (podcasts, music, movies)
+- **Instagram/Facebook-like** social features (community posts, comments, likes)
+- **Real-time communication** (LiveKit for meetings, live streaming, voice agent)
+- **Content creation tools** (audio/video editing, quote generation)
+- **Admin dashboard** for content moderation and user management
 
-**Key Technologies:**
-- **Frontend (Mobile)**: Flutter/Dart - iOS & Android apps
-- **Frontend (Web)**: Flutter/Dart - Web application deployed on AWS Amplify
-- **Backend**: FastAPI (Python) with SQLAlchemy ORM
-- **Database**: PostgreSQL (production via AWS RDS), SQLite (local development)
+---
+
+## 1. Technology Stack
+
+### Frontend (Web)
+- **Framework**: Flutter/Dart (Web deployment)
+- **State Management**: Provider pattern
+- **Routing**: GoRouter
+- **Deployment**: AWS Amplify
+- **Build**: Flutter Web with environment variables via `--dart-define`
+
+### Backend
+- **Framework**: FastAPI (Python 3.11+)
+- **ORM**: SQLAlchemy 2.0 (async)
+- **Database**: 
+  - Production: PostgreSQL (AWS RDS)
+  - Development: SQLite
+- **Migrations**: Alembic
+- **Deployment**: AWS EC2 (eu-west-2) via Docker
+- **Server**: Uvicorn (ASGI)
+
+### Infrastructure
 - **Media Storage**: AWS S3 + CloudFront CDN
-- **Backend Hosting**: AWS EC2 (eu-west-2)
-- **Real-time**: LiveKit (meetings, live streaming, voice agent)
-- **AI Services**: OpenAI GPT-4o-mini, Deepgram (STT/TTS)
+- **Database**: AWS RDS (PostgreSQL)
+- **Backend Hosting**: AWS EC2 (52.56.78.203)
+- **Frontend Hosting**: AWS Amplify
+- **Real-time**: LiveKit Server (Docker container)
+- **CDN**: CloudFront (d126sja5o8ue54.cloudfront.net)
+
+### External Services
+- **AI/ML**: OpenAI GPT-4o-mini, Deepgram (STT/TTS)
+- **Authentication**: Google OAuth, JWT tokens
+- **Payments**: Stripe, PayPal
+- **Push Notifications**: Firebase Admin SDK
+- **Email**: AWS SES
 
 ---
 
-## 1. Database Schema Analysis
+## 2. Application Architecture
 
-### 1.1 Core User Models
-
-#### Users Table (`users`)
-- **Primary Key**: `id` (Integer)
-- **Fields**:
-  - `username` (String, unique, nullable) - Auto-generated unique username
-  - `name` (String, required)
-  - `email` (String, unique, required)
-  - `avatar` (String, nullable) - Profile image URL
-  - `password_hash` (String, nullable) - For email/password auth
-  - `is_admin` (Boolean, default: False)
-  - `phone` (String, nullable)
-  - `date_of_birth` (DateTime, nullable)
-  - `bio` (Text, nullable)
-  - `google_id` (String, unique, nullable) - For Google OAuth
-  - `auth_provider` (String, default: 'email') - 'email', 'google', or 'both'
-  - `created_at`, `updated_at` (DateTime)
-
-#### Artists Table (`artists`)
-- **Primary Key**: `id` (Integer)
-- **Fields**:
-  - `user_id` (Integer, ForeignKey to users, unique, required)
-  - `artist_name` (String, nullable) - Defaults to user.name if not set
-  - `cover_image` (String, nullable) - Banner/header image
-  - `bio` (Text, nullable)
-  - `social_links` (JSON, nullable) - Social media URLs object
-  - `followers_count` (Integer, default: 0)
-  - `total_plays` (Integer, default: 0) - Aggregate podcast plays
-  - `is_verified` (Boolean, default: False)
-  - `created_at`, `updated_at` (DateTime)
-
-**Relationship**: Auto-created when user uploads content
-**Follow System**: `artist_followers` table tracks user-artist follow relationships
-
----
-
-### 1.2 Content Models
-
-#### Podcasts Table (`podcasts`)
-- **Primary Key**: `id` (Integer)
-- **Fields**:
-  - `title` (String, required)
-  - `description` (Text, nullable)
-  - `audio_url` (String, nullable) - Relative path to audio file
-  - `video_url` (String, nullable) - Relative path to video file
-  - `cover_image` (String, nullable) - Thumbnail URL
-  - `creator_id` (Integer, ForeignKey to users, nullable)
-  - `category_id` (Integer, ForeignKey to categories, nullable)
-  - `duration` (Integer, nullable) - Duration in seconds
-  - `status` (String, default: "pending") - pending, approved, rejected
-  - `plays_count` (Integer, default: 0)
-  - `created_at` (DateTime)
-
-**Approval Workflow**: Non-admin posts require approval, admin posts auto-approved
-
-#### Movies Table (`movies`)
-- **Primary Key**: `id` (Integer)
-- **Fields**:
-  - `title`, `description`, `video_url`, `cover_image` (String)
-  - `preview_url` (String, nullable) - Optional pre-generated preview clip
-  - `preview_start_time`, `preview_end_time` (Integer, nullable) - Preview window in seconds
-  - `director`, `cast` (String/Text, nullable)
-  - `release_date` (DateTime, nullable)
-  - `rating` (Float, nullable) - User rating 0-10
-  - `category_id`, `creator_id` (Integer, ForeignKey)
-  - `duration` (Integer, nullable) - Total duration in seconds
-  - `status` (String, default: "pending")
-  - `plays_count` (Integer, default: 0)
-  - `is_featured` (Boolean, default: False) - For hero carousel
-  - `created_at` (DateTime)
-
-#### Music Tracks Table (`music_tracks`)
-- **Primary Key**: `id` (Integer)
-- **Fields**:
-  - `title`, `artist`, `album`, `genre` (String)
-  - `audio_url` (String, required)
-  - `cover_image` (String, nullable)
-  - `duration` (Integer, nullable)
-  - `lyrics` (Text, nullable)
-  - `is_featured`, `is_published` (Boolean)
-  - `plays_count` (Integer, default: 0)
-  - `created_at` (DateTime)
-
-#### Playlists Table (`playlists`)
-- **Primary Key**: `id` (Integer)
-- **Fields**:
-  - `user_id` (Integer, ForeignKey to users, required)
-  - `name` (String, required)
-  - `description` (Text, nullable)
-  - `cover_image` (String, nullable)
-  - `created_at` (DateTime)
-
-#### Playlist Items Table (`playlist_items`)
-- Links content to playlists
-- `content_type` (String) - "podcast", "music", etc.
-- `content_id` (Integer) - ID of the content item
-- `position` (Integer) - Order in playlist
-
----
-
-### 1.3 Community/Social Models
-
-#### Community Posts Table (`community_posts`)
-- **Primary Key**: `id` (Integer)
-- **Fields**:
-  - `user_id` (Integer, ForeignKey to users, required)
-  - `title` (String, required)
-  - `content` (Text, required)
-  - `image_url` (String, nullable) - Photo URL or generated quote image URL
-  - `category` (String, required) - testimony, prayer_request, question, announcement, general
-  - `post_type` (String, default: 'image') - 'image' or 'text'
-  - `is_approved` (Integer, default: 0) - 0=False, 1=True (SQLite boolean)
-  - `likes_count`, `comments_count` (Integer, default: 0)
-  - `created_at` (DateTime)
-
-**Text Posts**: Automatically converted to styled quote images via `quote_image_service.py`
-
-#### Comments Table (`comments`)
-- Links to community posts
-- `post_id`, `user_id` (Integer, ForeignKey)
-- `content` (Text, required)
-- `created_at` (DateTime)
-
-#### Likes Table (`likes`)
-- Links users to posts they liked
-- `post_id`, `user_id` (Integer, ForeignKey)
-- `created_at` (DateTime)
-- **Unique constraint** on (post_id, user_id) to prevent duplicates
-
----
-
-### 1.4 Payment/Financial Models
-
-#### Bank Details Table (`bank_details`)
-- **Primary Key**: `id` (Integer)
-- **Fields**:
-  - `user_id` (Integer, ForeignKey to users, unique, required)
-  - `account_number` (String, required) - Should be encrypted
-  - `ifsc_code`, `swift_code`, `bank_name`, `account_holder_name`, `branch_name` (String)
-  - `is_verified` (Boolean, default: False)
-  - `created_at`, `updated_at` (DateTime)
-
-**Purpose**: Creator payment information for revenue sharing
-
-#### Payment Accounts Table (`payment_accounts`)
-- Alternative payment gateway accounts (Stripe, PayPal)
-- `user_id` (Integer, ForeignKey, unique)
-- `provider` (String) - 'stripe', 'paypal'
-- `account_id` (String)
-- `is_active` (Boolean)
-
-#### Donations Table (`donations`)
-- Tracks donation transactions
-- `user_id`, `recipient_id` (Integer, ForeignKey)
-- `amount` (Float)
-- `currency` (String)
-- `status` (String) - pending, completed, failed
-- `payment_method` (String)
-- `created_at` (DateTime)
-
----
-
-### 1.5 Other Models
-
-#### Categories Table (`categories`)
-- `id`, `name` (String), `type` (String) - podcast, music, community, etc.
-
-#### Live Streams Table (`live_streams`)
-- Meeting/stream records
-- Links to LiveKit rooms
-- `user_id`, `title`, `description`, `status`, `room_name`, `started_at`, `ended_at`
-
-#### Document Assets Table (`document_assets`)
-- PDF documents (Bible, etc.)
-- `title`, `file_url`, `file_type`, `file_size`
-- Admin-only uploads
-
-#### Support Messages Table (`support_messages`)
-- Support ticket system
-- `user_id`, `subject`, `message`, `status`, `admin_response`, `created_at`
-
-#### Bible Stories Table (`bible_stories`)
-- `title`, `scripture_reference`, `content`, `audio_url`, `cover_image`, `created_at`
-
-#### Notifications Table (`notifications`)
-- User notifications
-- `user_id`, `type` (enum), `title`, `message`, `data` (JSON), `is_read`, `created_at`
-
----
-
-## 2. Authentication & User Registration
-
-### 2.1 Authentication Methods
-
-1. **Email/Password Login**
-   - Endpoint: `POST /api/v1/auth/login`
-   - Accepts `email` or `username` + `password`
-   - Returns JWT access token (30-minute expiration)
-   - Token stored in secure storage (flutter_secure_storage)
-
-2. **Google OAuth**
-   - Endpoint: `POST /api/v1/auth/google-login`
-   - Supports both `id_token` and `access_token`
-   - Auto-creates user account if first login
-   - Links to existing account if email matches
-
-3. **User Registration**
-   - Endpoint: `POST /api/v1/auth/register`
-   - Required: `email`, `password`, `name`
-   - Optional: `phone`, `date_of_birth`, `bio`
-   - Auto-generates unique `username` via `username_service.py`
-   - Returns JWT token and user data
-
-### 2.2 Username Generation
-
-- Automatic unique username generation on registration
-- Format: Based on name + random suffix if needed
-- Check availability: `POST /api/v1/auth/check-username`
-
-### 2.3 Token Management
-
-- **Storage**: flutter_secure_storage (mobile), localStorage (web)
-- **Expiration**: 30 minutes (configurable via `ACCESS_TOKEN_EXPIRE_MINUTES`)
-- **Refresh**: Not implemented (user re-authenticates)
-- **Middleware**: `auth_middleware.py` validates tokens on protected routes
-
----
-
-## 3. S3 Bucket Structure & File Uploads
-
-### 3.1 S3 Bucket Configuration
-
-- **Bucket Name**: `cnt-web-media`
-- **Region**: `eu-west-2` (London)
-- **Access Method**: 
-  - CloudFront OAC (Origin Access Control) for public reads
-  - Server IP (52.56.78.203) for backend uploads
-- **CloudFront URL**: `https://d126sja5o8ue54.cloudfront.net`
-- **Distribution ID**: `E3ER061DLFYFK8`
-- **OAC ID**: `E1LSA9PF0Z69X7`
-
-### 3.2 S3 Folder Structure
+### 2.1 Backend Architecture
 
 ```
-cnt-web-media/
-├── audio/                      # Audio podcast files
-│   └── {uuid}.{ext}           # MP3, WAV, WebM, etc.
-├── video/                      # Video podcast files
-│   ├── {uuid}.{ext}           # MP4, WebM, etc.
-│   └── previews/              # Short preview clips (optional)
-├── images/
-│   ├── quotes/                # Generated quote images
-│   │   └── quote_{post_id}_{hash}.jpg
-│   ├── thumbnails/
-│   │   ├── podcasts/
-│   │   │   ├── custom/        # User-uploaded thumbnails
-│   │   │   └── generated/     # Auto-generated from video
-│   │   └── default/           # Default thumbnail templates (1-12.jpg)
-│   ├── movies/                # Movie posters/cover images
-│   └── {uuid}.{ext}           # General images (community posts, etc.)
-├── documents/                 # PDF documents (Bible, etc.)
-│   └── {filename}.pdf
-└── animated-bible-stories/    # Video files for Bible stories
-    └── *.mp4
+backend/
+├── app/
+│   ├── main.py                 # FastAPI app entry, Socket.io setup
+│   ├── config.py               # Settings and environment config
+│   ├── database/               # Database connection and models
+│   │   ├── connection.py       # Async engine, session management
+│   │   └── __init__.py
+│   ├── models/                 # SQLAlchemy ORM models (23 models)
+│   ├── routes/                 # API route handlers (26 route modules)
+│   ├── services/               # Business logic services (15 services)
+│   ├── schemas/                # Pydantic request/response schemas
+│   ├── middleware/             # Auth middleware, CORS
+│   ├── agents/                 # LiveKit voice agent
+│   └── websocket/              # Socket.io handlers
+├── migrations/                 # Alembic database migrations
+├── scripts/                    # Utility scripts
+└── Dockerfile                  # Container definition
 ```
 
-### 3.3 Upload Mechanisms
+### 2.2 Frontend Architecture
 
-#### Development Mode (Local)
-- Files stored in `backend/media/` directory
-- Backend serves via `/media` endpoint
-- Same folder structure as S3
-
-#### Production Mode (S3)
-- Files uploaded via `boto3` client
-- Uses `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` from EC2 .env
-- Uploads directly to S3 bucket
-- Returns CloudFront URL
-
-### 3.4 Upload Endpoints
-
-1. **Audio Upload**: `POST /api/v1/upload/audio`
-   - Requires authentication
-   - Optional thumbnail upload
-   - Returns: `filename`, `url`, `file_path`, `duration`, `thumbnail_url`
-
-2. **Video Upload**: `POST /api/v1/upload/video`
-   - Requires authentication
-   - Auto-generates thumbnail if `generate_thumbnail=true`
-   - Returns: `filename`, `url`, `file_path`, `duration`, `thumbnail_url`
-
-3. **Image Upload**: `POST /api/v1/upload/image`
-   - Requires authentication
-   - Returns: `filename`, `url`, `content_type`
-
-4. **Profile Image**: `POST /api/v1/upload/profile-image`
-   - Updates user avatar
-   - Saves to `images/profiles/` subfolder
-
-5. **Thumbnail Upload**: `POST /api/v1/upload/thumbnail`
-   - Custom thumbnail for podcasts
-   - Saves to `images/thumbnails/podcasts/custom/`
-
-6. **Temporary Audio**: `POST /api/v1/upload/temporary-audio`
-   - For editing workflows (no bank details required)
-   - Saves as `temp_{uuid}.{ext}`
-
-7. **Document Upload**: `POST /api/v1/upload/document`
-   - Admin-only
-   - PDF documents only
-   - Saves to `documents/`
-
-### 3.5 EC2 Backend S3 Access
-
-**Configuration**:
-- Backend uses `boto3` client initialized on startup
-- Credentials from environment variables:
-  - `AWS_ACCESS_KEY_ID`
-  - `AWS_SECRET_ACCESS_KEY`
-  - `AWS_REGION=eu-west-2`
-  - `S3_BUCKET_NAME=cnt-web-media`
-
-**Permissions Required**:
-- `s3:PutObject` - Upload files
-- `s3:GetObject` - Read/download files (for editing)
-- `s3:ListBucket` - List objects (for thumbnail defaults)
-
-**Current Setup**: EC2 has direct S3 access via IAM credentials
-
----
-
-## 4. Mobile Application Structure
-
-### 4.1 Navigation
-
-**Main Bottom Tab Navigation** (5 tabs):
-1. **Home** - Featured content, podcasts, movies carousel
-2. **Search** - Content discovery
-3. **Create** - Content creation hub (audio/video/quote)
-4. **Community** - Social feed with posts
-5. **Profile** - User profile, settings, library
-
-### 4.2 Mobile Screens
-
-#### Core Screens (`screens/mobile/`)
-- `home_screen_mobile.dart` - Layered UI with carousel and parallax
-- `discover_screen_mobile.dart` - Content discovery
-- `podcasts_screen_mobile.dart` - Podcast listing
-- `music_screen_mobile.dart` - Music player
-- `community_screen_mobile.dart` - Social feed
-- `create_screen_mobile.dart` - Content creation hub
-- `library_screen_mobile.dart` - User library
-- `profile_screen_mobile.dart` - User profile
-- `search_screen_mobile.dart` - Search functionality
-- `live_screen_mobile.dart` - Live streaming
-- `meeting_options_screen_mobile.dart` - Meeting options
-- `bible_stories_screen_mobile.dart` - Bible stories
-- `quote_create_screen_mobile.dart` - Quote post creation
-- `voice_chat_modal.dart` - Voice agent modal
-- `downloads_screen_mobile.dart` - Offline downloads
-- `favorites_screen_mobile.dart` - User favorites
-- `notifications_screen_mobile.dart` - Notifications
-
-#### Content Creation (`screens/creation/`)
-- `audio_podcast_create_screen.dart` - Choose record or upload
-- `audio_recording_screen.dart` - Record audio
-- `audio_preview_screen.dart` - Preview before publishing
-- `video_podcast_create_screen.dart` - Choose record or gallery
-- `video_recording_screen.dart` - Record video
-- `video_preview_screen.dart` - Preview before publishing
-
-#### Audio/Video Players
-- `audio_player_full_screen_new.dart` - Full-screen audio player
-- `video_player_full_screen.dart` - Full-screen video player
-
-#### Editing (`screens/editing/`)
-- `audio_editor_screen.dart` - Trim, merge, fade audio
-- `video_editor_screen.dart` - Trim, remove audio, add overlays
-
-#### Community (`screens/community/`)
-- `create_post_screen.dart` - Create image or text post
-- `comment_screen.dart` - View/add comments
-
-#### Live/Meeting (`screens/live/`, `screens/meeting/`)
-- `live_stream_broadcaster.dart` - Host broadcast interface
-- `live_stream_viewer.dart` - Viewer interface
-- `stream_creation_screen.dart` - Setup stream
-- `meeting_room_screen.dart` - LiveKit meeting room
-- `join_meeting_screen.dart` - Join meeting
-- `schedule_meeting_screen.dart` - Schedule future meeting
-
-#### Admin (`screens/admin/`)
-- 7 admin pages for content moderation and management
-
-### 4.3 Mobile Providers (State Management)
-
-Located in `lib/providers/`:
-1. `app_state.dart` - Global app state
-2. `auth_provider.dart` - Authentication state
-3. `artist_provider.dart` - Artist profile management
-4. `audio_player_provider.dart` - Audio playback state
-5. `community_provider.dart` - Community posts
-6. `documents_provider.dart` - Documents/Bible
-7. `favorites_provider.dart` - User favorites
-8. `music_provider.dart` - Music playback
-9. `notification_provider.dart` - Push notifications
-10. `playlist_provider.dart` - Playlists
-11. `search_provider.dart` - Search functionality
-12. `support_provider.dart` - Support tickets
-13. `user_provider.dart` - User data
-
-### 4.4 Mobile Services
-
-Located in `lib/services/`:
-1. `api_service.dart` - REST API calls, media URL handling
-2. `auth_service.dart` - Authentication (login, register, Google OAuth)
-3. `websocket_service.dart` - Real-time notifications
-4. `donation_service.dart` - Payment processing
-5. `download_service.dart` - Offline downloads (SQLite cache)
-6. `google_auth_service.dart` - Google OAuth
-7. `livekit_meeting_service.dart` - LiveKit meetings
-8. `livekit_voice_service.dart` - Voice agent
-9. `video_editing_service.dart` - Video editing API calls
-10. `audio_editing_service.dart` - Audio editing API calls
-
-### 4.5 Media URL Handling
-
-**File**: `mobile/frontend/lib/services/api_service.dart`
-
-```dart
-String getMediaUrl(String? path) {
-  // 1. Return full URLs directly
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path;
-  }
-  
-  // 2. Strip legacy 'media/' prefix
-  if (cleanPath.startsWith('media/')) {
-    cleanPath = cleanPath.substring(6);
-  }
-  
-  // 3. CloudFront URL maps directly to S3 paths
-  return '$mediaBaseUrl/$cleanPath';
-}
+```
+web/frontend/
+├── lib/
+│   ├── main.dart               # App entry point
+│   ├── config/                 # App configuration
+│   ├── navigation/             # Routing (GoRouter)
+│   ├── providers/              # State management (14 providers)
+│   ├── services/               # API and external services (12 services)
+│   ├── screens/                # UI screens (100+ screens)
+│   │   ├── web/                # Web-specific screens
+│   │   ├── admin/              # Admin dashboard screens
+│   │   ├── creation/           # Content creation workflows
+│   │   └── ...
+│   ├── widgets/                # Reusable UI components (56 widgets)
+│   ├── models/                 # Data models
+│   ├── theme/                  # Design system (colors, typography)
+│   └── utils/                  # Utility functions
+└── web/                        # Web-specific assets
 ```
 
-**Development**: Uses localhost URLs  
-**Production**: Uses CloudFront URLs from `.env`
+---
+
+## 3. Database Schema
+
+### 3.1 Core Models (23 Total)
+
+#### User Management
+- **User**: Core user model with email, username, Google OAuth, admin flag
+- **RefreshToken**: JWT refresh token storage
+- **DeviceToken**: Push notification device tokens
+- **EmailVerification**: Email verification codes
+
+#### Content Models
+- **Podcast**: Audio/video podcasts (title, description, audio_url, video_url, cover_image)
+- **MusicTrack**: Music tracks (title, artist, album, audio_url, lyrics)
+- **Movie**: Faith movies (title, video_url, preview_url, cover_image, duration)
+- **BibleStory**: Animated Bible stories
+- **DocumentAsset**: PDF documents (Bible, etc.)
+- **Category**: Content categorization
+
+#### Social Features
+- **CommunityPost**: Instagram-like posts (text, image, category, likes_count, comments_count)
+- **Comment**: Post comments
+- **Like**: Post likes
+- **Event**: Community events with location
+- **EventAttendee**: Event attendance tracking
+
+#### User Content
+- **Playlist**: User-created playlists
+- **PlaylistItem**: Playlist content items
+- **Favorite**: User favorites
+- **ContentDraft**: Draft content (audio, video, images)
+
+#### Live Features
+- **LiveStream**: Live streaming sessions (LiveKit room_name, status, viewer_count)
+
+#### Monetization
+- **Artist**: Artist profiles for content creators
+- **ArtistFollower**: Artist follow relationships
+- **BankDetails**: User bank account details
+- **PaymentAccount**: Stripe Connect accounts
+- **Donation**: Donation transactions
+
+#### Support & Admin
+- **SupportMessage**: User support tickets
+- **Notification**: User notifications
+- **PlatformSettings**: Platform-wide settings
+
+### 3.2 Database Relationships
+
+```
+User (1) ──< (N) Podcast
+User (1) ──< (N) CommunityPost
+User (1) ──< (N) Playlist
+User (1) ──< (1) BankDetails
+User (1) ──< (1) PaymentAccount
+User (1) ──< (1) Artist
+User (1) ──< (N) Event (as host)
+User (1) ──< (N) EventAttendee
+
+CommunityPost (1) ──< (N) Comment
+CommunityPost (1) ──< (N) Like
+
+Playlist (1) ──< (N) PlaylistItem
+```
 
 ---
 
-## 5. File Upload Features
+## 4. API Structure
 
-### 5.1 Audio Podcast Upload
+### 4.1 API Routes (26 Route Modules)
 
-**Flow**:
-1. User selects "Audio Podcast" from Create screen
-2. Options: Record audio OR Upload file
-3. If recording: Uses device microphone via `record` package
-4. If uploading: File picker (MP3, WAV, WebM, etc.)
-5. Preview screen shows duration, allows editing
-6. Upload to backend: `POST /api/v1/upload/audio`
-7. Backend saves to S3: `audio/{uuid}.{ext}`
-8. Create podcast record: `POST /api/v1/podcasts`
-9. Status: "pending" (requires admin approval unless user is admin)
+**Authentication & Users**
+- `/api/v1/auth/*` - Login, register, Google OAuth, OTP, token refresh
+- `/api/v1/users/*` - User profiles, updates
+- `/api/v1/device-tokens/*` - Push notification tokens
 
-**Requirements**:
-- Authentication required
-- Bank details optional (soft warning, not blocking)
+**Content**
+- `/api/v1/podcasts/*` - Podcast CRUD, search, categories
+- `/api/v1/music/*` - Music tracks
+- `/api/v1/movies/*` - Movie library
+- `/api/v1/documents/*` - PDF documents (Bible)
+- `/api/v1/bible-stories/*` - Animated Bible stories
+- `/api/v1/categories/*` - Content categories
 
-### 5.2 Video Podcast Upload
+**Social Features**
+- `/api/v1/community/*` - Posts, comments, likes
+- `/api/v1/events/*` - Community events
+- `/api/v1/artists/*` - Artist profiles
 
-**Flow**:
-1. User selects "Video Podcast" from Create screen
-2. Options: Record video OR Choose from gallery
-3. If recording: Uses device camera via `camera` package
-4. If gallery: Image picker for video files
-5. Preview screen shows video, allows editing
-6. Upload to backend: `POST /api/v1/upload/video`
-7. Backend saves to S3: `video/{uuid}.{ext}`
-8. Auto-generates thumbnail if not provided
-9. Create podcast record: `POST /api/v1/podcasts`
-10. Status: "pending" (requires admin approval)
+**User Content**
+- `/api/v1/playlists/*` - Playlist management
+- `/api/v1/favorites/*` - Favorites
+- `/api/v1/content-drafts/*` - Draft management
 
-**Thumbnail Generation**:
-- Automatic from video at 45 seconds (or 10% of duration)
-- Saved to `images/thumbnails/podcasts/generated/`
-- User can upload custom thumbnail later
+**Live Features**
+- `/api/v1/live/*` - Live streaming
+- `/api/v1/livekit/*` - LiveKit token generation
+- `/api/v1/voice-chat/*` - Voice agent chat
 
-### 5.3 Image Upload (Community Posts)
+**Content Creation**
+- `/api/v1/upload/*` - File uploads
+- `/api/v1/audio-editing/*` - Audio processing
+- `/api/v1/video-editing/*` - Video processing
 
-**Flow**:
-1. User creates post from Community screen
-2. Select "Image Post" type
-3. Choose photo from gallery or take photo
-4. Add caption
-5. Upload image: `POST /api/v1/upload/image`
-6. Backend saves to S3: `images/{uuid}.{ext}`
-7. Create post: `POST /api/v1/community/posts`
-8. Status: "pending" (requires admin approval)
+**Monetization**
+- `/api/v1/donations/*` - Donations
+- `/api/v1/bank-details/*` - Bank account management
+- `/api/v1/stripe-connect/*` - Stripe Connect onboarding
 
-### 5.4 Text Post (Quote Image Generation)
+**Admin**
+- `/api/v1/admin/*` - Admin dashboard, content moderation
+- `/api/v1/admin/google-drive/*` - Google Drive integration
 
-**Flow**:
-1. User creates post, selects "Text Post" type
-2. Enter text content
-3. Create post: `POST /api/v1/community/posts` (no image yet)
-4. Backend detects `post_type='text'`
-5. Calls `generate_quote_image()` service
-6. Service:
-   - Selects random template from `quote_templates.py`
-   - Renders text with PIL/Pillow
-   - Saves to S3: `images/quotes/quote_{post_id}_{hash}.jpg`
-   - Updates post with `image_url`
-7. Returns CloudFront URL
+**Utilities**
+- `/api/v1/search/*` - Global search
+- `/api/v1/media/*` - Media URL resolution
+- `/api/v1/notifications/*` - Notifications
+- `/api/v1/support/*` - Support tickets
 
-**Templates**: Predefined styles with backgrounds, fonts, colors
+### 4.2 Authentication Flow
 
-### 5.5 Profile Image Upload
+1. **Login/Register**: Email/username + password or Google OAuth
+2. **Token Generation**: JWT access token (30 min) + refresh token (30 days)
+3. **Token Refresh**: Automatic refresh when access token expires
+4. **Token Storage**: 
+   - Web: Browser localStorage (via WebStorageService)
+   - Mobile: Secure storage (FlutterSecureStorage)
 
-**Flow**:
-1. User edits profile
-2. Select new avatar image
-3. Upload: `POST /api/v1/upload/profile-image`
-4. Backend saves to S3: `images/profiles/profile_{uuid}.{ext}`
-5. Updates user record with new `avatar` URL
+### 4.3 WebSocket (Socket.io)
+
+- **Real-time notifications**: User notifications
+- **Live stream updates**: Viewer counts, comments
+- **Community updates**: New posts, comments, likes
 
 ---
 
-## 6. Content Creation Workflow
+## 5. Media Storage Architecture
 
-### 6.1 Podcast Creation Process
-
-**Step 1: Record/Upload**
-- Mobile: Record via device OR upload file
-- Web: Record via browser OR upload file
-- Temporary files stored for editing
-
-**Step 2: Preview & Edit**
-- Preview screen shows metadata (duration, file size)
-- Option to edit (trim, fade, etc.)
-- Editing uses backend FFmpeg services
-
-**Step 3: Add Details**
-- Title, description
-- Category selection
-- Thumbnail selection (default or custom)
-
-**Step 4: Upload**
-- Final file upload to S3
-- Create podcast record in database
-- Status: "pending" for non-admin users
-
-**Step 5: Approval**
-- Admin reviews in Admin Dashboard
-- Approve/Reject actions
-- Approved podcasts visible to all users
-
-### 6.2 Editing Capabilities
-
-#### Audio Editing
-- **Trim**: `POST /api/v1/audio-editing/trim` - Cut start/end
-- **Merge**: `POST /api/v1/audio-editing/merge` - Combine files
-- **Fade In/Out**: `POST /api/v1/audio-editing/fade-in-out`
-
-#### Video Editing
-- **Trim**: `POST /api/v1/video-editing/trim` - Cut segments
-- **Remove Audio**: `POST /api/v1/video-editing/remove-audio`
-- **Add Audio**: `POST /api/v1/video-editing/add-audio`
-- **Text Overlays**: `POST /api/v1/video-editing/add-text-overlays`
-
-**All editing uses FFmpeg on backend**
-
----
-
-## 7. Cloud-Friendly Setup Analysis
-
-### 7.1 Backend S3 Access ✅
-
-**Current Status**: **PROPERLY CONFIGURED**
-
-- EC2 backend has AWS credentials in `.env`
-- Uses `boto3` client for S3 operations
-- All file uploads go directly to S3
-- CloudFront serves files via CDN
-
-**Bucket Policy**:
-- Allows CloudFront OAC access (public reads)
-- Allows EC2 server IP (52.56.78.203) access
-- Secure and cloud-native setup
-
-### 7.2 User Upload Process ✅
-
-**Status**: **FULLY FUNCTIONAL**
-
-1. **Images**: Users can upload images easily
-   - Community posts: Direct upload to S3
-   - Profile images: Direct upload to S3
-   - Works seamlessly in production
-
-2. **Audio Podcasts**: Users can upload audio
-   - Record or upload file
-   - Backend uploads to S3: `audio/{uuid}.{ext}`
-   - Returns CloudFront URL
-   - Fully functional
-
-3. **Video Podcasts**: Users can upload video
-   - Record or upload from gallery
-   - Backend uploads to S3: `video/{uuid}.{ext}`
-   - Auto-generates thumbnails
-   - Returns CloudFront URL
-   - Fully functional
-
-### 7.3 Media URL Resolution ✅
+### 5.1 Storage Strategy
 
 **Development Mode**:
-- Local files served from `/media` endpoint
-- Paths include `/media/` prefix
+- Local file system: `./media/` directory
+- Served via FastAPI static files: `/media/*`
+- Structure:
+  ```
+  media/
+  ├── audio/              # Podcast audio files
+  ├── video/              # Podcast video files
+  │   └── previews/       # Video preview clips
+  ├── images/
+  │   ├── thumbnails/     # Generated/custom thumbnails
+  │   ├── movies/         # Movie posters
+  │   ├── profiles/       # User avatars
+  │   └── quotes/         # Generated quote images
+  ├── documents/          # PDF documents
+  ├── movies/             # Movie video files
+  └── animated-bible-stories/  # Bible story videos
+  ```
 
 **Production Mode**:
-- Files served from CloudFront
-- Direct S3 path mapping (no `/media/` prefix)
-- Frontend handles URL resolution correctly
+- AWS S3 bucket: `cnt-web-media` (or `cnt-media-bucket`)
+- CloudFront CDN: `https://d126sja5o8ue54.cloudfront.net`
+- Same folder structure in S3
+- URLs: `{CLOUDFRONT_URL}/{path}`
 
-### 7.4 Issues/Improvements
+### 5.2 Media Service
 
-**Potential Issues**:
-1. **No file size limits** enforced in frontend (backend may have limits)
-2. **No progress indicators** for large video uploads (may timeout)
-3. **Temporary files** may accumulate if upload fails mid-process
-
-**Recommendations**:
-1. Add upload progress indicators
-2. Implement chunked uploads for large files
-3. Add file size validation (frontend + backend)
-4. Implement retry logic for failed uploads
+The `MediaService` class handles:
+- **File Upload**: S3 multipart upload for large files (>100MB)
+- **Thumbnail Generation**: FFmpeg-based thumbnail extraction
+- **Video Preview Generation**: Short preview clips (15 seconds)
+- **Duration Detection**: FFprobe for media duration
+- **WebM Handling**: Special processing for browser-recorded WebM files
 
 ---
 
-## 8. Web Application Features (Reference)
+## 6. LiveKit Integration
 
-### 8.1 Web Screens
+### 6.1 LiveKit Server
 
-Located in `web/frontend/lib/screens/web/`:
-- 35+ web-specific screens
-- Similar functionality to mobile
-- Responsive design for desktop/tablet
+**Docker Container**: `livekit/livekit-server:latest`
+- **Ports**: 
+  - 7880: WebSocket (frontend connections)
+  - 7881: HTTP API (backend operations)
+  - 50100-50200/udp: RTP (video/audio streams)
 
-### 8.2 Key Differences
+**Configuration**: `livekit-server/livekit.yaml`
 
-- **Build**: Uses `--dart-define` flags (no `.env` file)
-- **Deployment**: AWS Amplify
-- **Media URLs**: Different handling (keeps `/media/` in dev)
+### 6.2 Use Cases
 
----
+1. **Video Meetings**: Multi-participant video conferencing
+   - Route: `/api/v1/livekit/meeting-token`
+   - Frontend: `LiveKitMeetingService`
 
-## 9. Environment Configuration
+2. **Live Streaming**: Real-time broadcasting
+   - Route: `/api/v1/live/*`
+   - Model: `LiveStream` (room_name, status, viewer_count)
 
-### 9.1 Mobile App (.env)
+3. **Voice Agent**: AI voice assistant
+   - Agent: `CNTVoiceAssistant` (app/agents/voice_agent.py)
+   - STT: Deepgram
+   - TTS: Deepgram
+   - LLM: OpenAI GPT-4o-mini
+   - Route: `/api/v1/livekit/voice-token`
+   - Frontend: `LiveKitVoiceService`
 
-**Production** (`mobile/frontend/.env`):
-```env
-ENVIRONMENT=production
-API_BASE_URL=https://api.christnewtabernacle.com/api/v1
-WEBSOCKET_URL=wss://api.christnewtabernacle.com
-MEDIA_BASE_URL=https://d126sja5o8ue54.cloudfront.net
-LIVEKIT_WS_URL=wss://livekit.christnewtabernacle.com
-LIVEKIT_HTTP_URL=https://livekit.christnewtabernacle.com
+### 6.3 Voice Agent Architecture
+
+```
+User (Frontend)
+  ↓ WebSocket
+LiveKit Server
+  ↓ Agent Connection
+Voice Agent Container (cnt-voice-agent)
+  ├── Deepgram STT (Speech-to-Text)
+  ├── OpenAI LLM (GPT-4o-mini)
+  └── Deepgram TTS (Text-to-Speech)
 ```
 
-**Development**: Auto-detects localhost (or 10.0.2.2 on Android emulator)
+**Features**:
+- Prewarm for low latency
+- Turn detection (VAD)
+- Noise cancellation
+- Preemptive generation
+- Interruption handling
 
-### 9.2 Backend (.env)
+---
 
-**Production** (`backend/.env`):
-- `DATABASE_URL` - PostgreSQL connection string
+## 7. Frontend Services
+
+### 7.1 Core Services
+
+**ApiService** (`services/api_service.dart`):
+- Main HTTP client
+- Environment-aware URL construction
+- Automatic token refresh
+- Error handling and retries
+
+**AuthService** (`services/auth_service.dart`):
+- Login/logout
+- Token management
+- Token expiration checking
+- Google OAuth
+
+**WebSocketService** (`services/websocket_service.dart`):
+- Socket.io client
+- Real-time notifications
+- Connection management
+
+### 7.2 Media Services
+
+**AudioEditingService**: Audio processing workflows
+**VideoEditingService**: Video processing workflows
+**DownloadService**: Content downloading
+
+### 7.3 External Services
+
+**LiveKitMeetingService**: Video conferencing
+**LiveKitVoiceService**: Voice agent chat
+**GoogleAuthService**: Google OAuth
+**DonationService**: Payment processing
+**StripeConnectService**: Stripe Connect integration
+
+---
+
+## 8. State Management (Provider Pattern)
+
+### 8.1 Providers (14 Total)
+
+- **AuthProvider**: Authentication state, user session
+- **AppState**: Global app state
+- **AudioPlayerState**: Audio playback (global player)
+- **MusicProvider**: Music library
+- **CommunityProvider**: Social features
+- **SearchProvider**: Search functionality
+- **UserProvider**: User profiles
+- **PlaylistProvider**: Playlist management
+- **FavoritesProvider**: Favorites
+- **SupportProvider**: Support tickets
+- **DocumentsProvider**: Document management
+- **NotificationProvider**: Notifications
+- **ArtistProvider**: Artist profiles
+- **EventProvider**: Events
+
+---
+
+## 9. Deployment Configuration
+
+### 9.1 Backend (EC2)
+
+**Docker Containers** (3 containers):
+1. **cnt-backend**: FastAPI application
+   - Image: `cnt-web-deployment_backend:latest`
+   - Port: 8000
+   - Command: `uvicorn app.main:app --host 0.0.0.0 --port 8000`
+
+2. **cnt-livekit-server**: LiveKit server
+   - Image: `livekit/livekit-server:latest`
+   - Ports: 7880 (WS), 7881 (HTTP), 50100-50200/udp (RTP)
+
+3. **cnt-voice-agent**: AI voice agent
+   - Image: `cnt-web-deployment_voice-agent`
+   - Command: `python -m app.agents.voice_agent dev`
+
+**Environment Variables** (`.env` on EC2):
+- `ENVIRONMENT=production`
+- `DATABASE_URL=postgresql+asyncpg://...` (RDS)
 - `S3_BUCKET_NAME=cnt-web-media`
 - `CLOUDFRONT_URL=https://d126sja5o8ue54.cloudfront.net`
-- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`
-- `SECRET_KEY` - JWT signing key
-- `LIVEKIT_WS_URL`, `LIVEKIT_HTTP_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
+- `LIVEKIT_WS_URL=wss://livekit.christnewtabernacle.com`
+- `LIVEKIT_HTTP_URL=https://livekit.christnewtabernacle.com`
+- `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
 - `OPENAI_API_KEY`, `DEEPGRAM_API_KEY`
-- `ENVIRONMENT=production`
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+- `CORS_ORIGINS=https://main.d1poes9tyirmht.amplifyapp.com,...`
+
+### 9.2 Frontend (Amplify)
+
+**Build Configuration** (`amplify.yml`):
+- Flutter SDK installation
+- Build command with environment variables:
+  ```bash
+  flutter build web --release \
+    --dart-define=API_BASE_URL=$API_BASE_URL \
+    --dart-define=MEDIA_BASE_URL=$MEDIA_BASE_URL \
+    --dart-define=LIVEKIT_WS_URL=$LIVEKIT_WS_URL \
+    --dart-define=LIVEKIT_HTTP_URL=$LIVEKIT_HTTP_URL \
+    --dart-define=WEBSOCKET_URL=$WEBSOCKET_URL \
+    --dart-define=ENVIRONMENT=production \
+    --dart-define=GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
+  ```
+
+**Environment Variables** (`amplify-env-vars.json`):
+- `API_BASE_URL`: `https://api.christnewtabernacle.com/api/v1`
+- `MEDIA_BASE_URL`: `https://d126sja5o8ue54.cloudfront.net`
+- `LIVEKIT_WS_URL`: `wss://livekit.christnewtabernacle.com`
+- `LIVEKIT_HTTP_URL`: `https://livekit.christnewtabernacle.com`
+- `WEBSOCKET_URL`: `wss://api.christnewtabernacle.com`
+- `GOOGLE_CLIENT_ID`: Google OAuth client ID
 
 ---
 
-## 10. Key Features Summary
+## 10. Key Features
 
-### 10.1 Content Consumption
-- ✅ Podcasts (audio/video) with play counts
-- ✅ Movies with preview clips
-- ✅ Music tracks
-- ✅ Bible reader (PDF viewer)
-- ✅ Playlists
-- ✅ Offline downloads (mobile)
+### 10.1 Media Consumption
+- **Audio Podcasts**: Streaming, playlists, favorites
+- **Video Podcasts**: Video playback, thumbnails
+- **Music Library**: Music tracks with lyrics
+- **Movies**: Full-length faith movies with previews
+- **Bible Stories**: Animated Bible story videos
+- **Documents**: PDF Bible reader
 
-### 10.2 Content Creation
-- ✅ Audio podcast recording/upload
-- ✅ Video podcast recording/upload
-- ✅ Audio editing (trim, merge, fade)
-- ✅ Video editing (trim, overlays, audio)
-- ✅ Community posts (images)
-- ✅ Quote posts (auto-generated images)
+### 10.2 Social Features
+- **Community Posts**: Instagram-like posts (text, images)
+- **Comments & Likes**: Social interactions
+- **Events**: Community events with location
+- **User Profiles**: Customizable profiles
+- **Following**: Artist follow system
 
-### 10.3 Social Features
-- ✅ Community feed (Instagram-like)
-- ✅ Like/unlike posts
-- ✅ Comments on posts
-- ✅ Artist profiles with follow system
-- ✅ User profiles
+### 10.3 Content Creation
+- **Audio Podcasts**: Record, edit, upload audio
+- **Video Podcasts**: Record, edit, upload video
+- **Quotes**: Generate inspirational quote images
+- **Live Streaming**: Real-time broadcasting
+- **Drafts**: Save work-in-progress content
 
-### 10.4 Real-Time Features
-- ✅ Live streaming (broadcaster/viewer)
-- ✅ Video meetings (LiveKit)
-- ✅ Voice agent (AI assistant)
-- ✅ Real-time notifications (WebSocket)
+### 10.4 Real-time Features
+- **Video Meetings**: Multi-participant video calls (LiveKit)
+- **Live Streaming**: Real-time broadcasts
+- **Voice Agent**: AI voice assistant chat
+- **Real-time Notifications**: Socket.io notifications
+- **Live Comments**: Real-time stream comments
 
 ### 10.5 Admin Features
-- ✅ Content moderation (approve/reject)
-- ✅ User management
-- ✅ Support ticket handling
-- ✅ Bulk upload from Google Drive
+- **Content Moderation**: Approve/reject posts, podcasts
+- **User Management**: User roles, permissions
+- **Analytics Dashboard**: Usage statistics
+- **Support System**: Ticket management
+- **Google Drive Integration**: Bulk content import
+
+### 10.6 Monetization
+- **Donations**: User-to-user and organization donations
+- **Stripe Connect**: Artist payment accounts
+- **Bank Details**: Payment account management
 
 ---
 
-## 11. Database Tables Summary
+## 11. Security & Authentication
 
-| Table | Primary Purpose |
-|-------|----------------|
-| `users` | User accounts and authentication |
-| `artists` | Creator profiles (auto-created) |
-| `artist_followers` | Follow relationships |
-| `podcasts` | Audio/video podcast content |
-| `movies` | Full-length movie content |
-| `music_tracks` | Music content |
-| `community_posts` | Social media posts |
-| `likes` | Post likes |
-| `comments` | Post comments |
-| `categories` | Content categories |
-| `playlists` | User playlists |
-| `playlist_items` | Playlist content links |
-| `bank_details` | Creator payment info |
-| `payment_accounts` | Payment gateway accounts |
-| `donations` | Donation transactions |
-| `live_streams` | Meeting/stream records |
-| `document_assets` | Bible/PDF documents |
-| `support_messages` | Support tickets |
-| `bible_stories` | Bible story content |
-| `notifications` | User notifications |
-| `email_verification` | Email verification tokens |
+### 11.1 Authentication Methods
+1. **Email/Username + Password**: Bcrypt hashing
+2. **Google OAuth**: Google Sign-In integration
+3. **OTP (One-Time Password)**: Email-based verification
 
-**Total: 21 tables**
+### 11.2 Token Management
+- **Access Token**: JWT, 30-minute expiration
+- **Refresh Token**: 30-day expiration, rotation enabled
+- **Token Storage**: Secure storage (web: localStorage, mobile: secure storage)
+- **Auto-refresh**: Proactive refresh 5 minutes before expiration
+
+### 11.3 Security Features
+- **CORS**: Production-specific origins
+- **Password Hashing**: Bcrypt
+- **JWT Signing**: HS256 algorithm
+- **HTTPS**: All production endpoints
+- **Input Validation**: Pydantic schemas
 
 ---
 
-## 12. API Routes Summary
+## 12. Database Migrations
 
-### Authentication (`/api/v1/auth`)
-- `POST /login` - Email/password login
-- `POST /register` - User registration
-- `POST /google-login` - Google OAuth
-- `POST /check-username` - Username availability
-- `GET /google-client-id` - Get OAuth client ID
+**Alembic Migrations** (`backend/migrations/versions/`):
+- `000_initial_schema.py`: Initial database schema
+- `002_add_username_to_users.py`: Username column
+- `003_add_user_registration_fields.py`: Registration fields
+- `004_add_post_approval_and_type.py`: Post moderation
+- `005_add_artist_model.py`: Artist profiles
+- `006_add_device_tokens.py`: Push notifications
+- `007_add_content_drafts.py`: Draft system
+- `008_add_refresh_tokens.py`: Token refresh
+- `aee808aa6fbf_add_email_verification_and_notification_.py`: Email verification
 
-### Content
-- `GET/POST /podcasts` - List/create podcasts
-- `GET/POST /movies` - List/create movies
-- `GET/POST /music` - List/create music tracks
-
-### Community
-- `GET/POST /community/posts` - List/create posts
-- `POST /community/posts/{id}/like` - Like/unlike
-- `POST /community/posts/{id}/comments` - Add comment
-
-### Upload
-- `POST /upload/audio` - Upload audio file
-- `POST /upload/video` - Upload video file
-- `POST /upload/image` - Upload image
-- `POST /upload/profile-image` - Upload avatar
-- `POST /upload/thumbnail` - Upload thumbnail
-- `GET /upload/media/duration` - Get media duration
-
-### Editing
-- `POST /video-editing/trim` - Trim video
-- `POST /audio-editing/merge` - Merge audio
-
-### Admin
-- `GET /admin/dashboard` - Admin stats
-- `POST /admin/approve/{type}/{id}` - Approve content
-- `POST /admin/reject/{type}/{id}` - Reject content
-
-**Full API documentation available in backend routes**
+**SQL Migrations**:
+- `add_events_tables.sql`: Events schema
+- `add_event_coordinates.sql`: Event location
+- `add_animated_bible_stories_category.sql`: Bible stories category
 
 ---
 
-## 13. Security Considerations
+## 13. Development Workflow
 
-### 13.1 Authentication
-- ✅ JWT tokens with expiration
-- ✅ Secure storage (flutter_secure_storage)
-- ✅ Google OAuth integration
+### 13.1 Local Backend Setup
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp env.example .env
+# Configure .env for local development
+uvicorn app.main:app --reload --port 8002
+```
 
-### 13.2 File Uploads
-- ✅ Authentication required for uploads
-- ✅ File type validation
-- ✅ Unique filenames (UUID-based)
-- ⚠️ No explicit file size limits documented
+### 13.2 Local Frontend Setup
+```bash
+cd web/frontend
+flutter pub get
+flutter run -d chrome \
+  --dart-define=API_BASE_URL=http://localhost:8002/api/v1 \
+  --dart-define=MEDIA_BASE_URL=http://localhost:8002 \
+  --dart-define=WEBSOCKET_URL=ws://localhost:8002 \
+  --dart-define=LIVEKIT_WS_URL=ws://localhost:7880 \
+  --dart-define=LIVEKIT_HTTP_URL=http://localhost:7881 \
+  --dart-define=ENVIRONMENT=development
+```
 
-### 13.3 S3 Security
-- ✅ Bucket policy restricts access
-- ✅ CloudFront OAC for public reads
-- ✅ EC2 IP whitelist for backend writes
-
-### 13.4 CORS
-- ✅ Production: Restricted to specific domains
-- ✅ Development: Allows all (for local testing)
-
----
-
-## 14. Testing & Local Development
-
-### 14.1 Local Setup
-
-**Backend**:
-- SQLite database: `backend/local.db`
-- Media folder: `backend/media/`
-- Environment: `ENVIRONMENT=development`
-- Local server: `http://localhost:8002`
-
-**Mobile**:
-- `.env` file with `ENVIRONMENT=development`
-- Auto-uses localhost URLs
-- Can test with Android emulator (10.0.2.2)
-
-**Testing**:
-- Can test all upload features locally
-- Files saved to `backend/media/`
-- Same folder structure as S3
+### 13.3 Docker Development
+```bash
+docker-compose up -d
+# Starts: backend, livekit-server, voice-agent
+```
 
 ---
 
-## 15. Known Issues & Recommendations
+## 14. File Structure Summary
 
-### 15.1 Issues Found
+### Backend Files
+- **Models**: 23 SQLAlchemy models
+- **Routes**: 26 route modules (~100+ endpoints)
+- **Services**: 15 service classes
+- **Migrations**: 9 Alembic migrations + SQL scripts
 
-1. **No upload progress indicators** for large files
-2. **No explicit file size limits** in frontend
-3. **Temporary files** may accumulate on failed uploads
-4. **Bank details** warning but not enforced (may confuse users)
-
-### 15.2 Recommendations
-
-1. ✅ **Add upload progress bars** for better UX
-2. ✅ **Implement chunked uploads** for large video files
-3. ✅ **Add file size validation** (frontend + backend)
-4. ✅ **Add retry logic** for failed uploads
-5. ✅ **Cleanup temporary files** on upload failure
-6. ✅ **Add upload queue** for multiple files
+### Frontend Files
+- **Screens**: 100+ screen widgets
+- **Widgets**: 56 reusable components
+- **Services**: 12 service classes
+- **Providers**: 14 state management providers
+- **Models**: Data model classes
 
 ---
 
-## 16. Conclusion
+## 15. Environment-Specific Behavior
 
-### 16.1 Overall Assessment
+### Development
+- **Database**: SQLite (`local.db`)
+- **Media**: Local file system (`./media/`)
+- **CORS**: All origins allowed
+- **Static Files**: Served via FastAPI `/media` endpoint
 
-**The application is well-structured and cloud-friendly:**
-
-✅ **S3 Integration**: Fully functional, all uploads go to S3  
-✅ **CloudFront CDN**: Properly configured for media delivery  
-✅ **EC2 Backend Access**: Has proper AWS credentials  
-✅ **User Uploads**: Images, audio, video all work seamlessly  
-✅ **Database**: Comprehensive schema with all necessary tables  
-✅ **Authentication**: JWT + Google OAuth working  
-✅ **Mobile App**: Complete feature set with proper navigation  
-
-### 16.2 Upload Process Status
-
-**Images**: ✅ Fully functional  
-**Audio Podcasts**: ✅ Fully functional  
-**Video Podcasts**: ✅ Fully functional  
-**Profile Images**: ✅ Fully functional  
-**Quote Images**: ✅ Auto-generated successfully  
-
-### 16.3 Ready for Production
-
-The application is **production-ready** with:
-- Proper S3/CloudFront setup
-- Secure authentication
-- Complete upload workflows
-- Admin moderation system
-- Real-time features (LiveKit)
-
-**Minor improvements recommended** (progress indicators, file size limits) but not blocking.
+### Production
+- **Database**: PostgreSQL (AWS RDS)
+- **Media**: AWS S3 + CloudFront
+- **CORS**: Specific allowed origins
+- **Static Files**: CloudFront CDN
+- **HTTPS**: All endpoints use HTTPS
 
 ---
 
-## 17. Mobile Application Production Status
+## 16. API Endpoints Summary
 
-### 17.1 Implementation Complete (December 8, 2024)
+**Total Endpoints**: ~150+ API endpoints across 26 route modules
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Core Features (5 tabs) | ✅ Complete | Home, Search, Create, Community, Profile |
-| Authentication | ✅ Complete | JWT + Google OAuth |
-| Content Playback | ✅ Complete | Audio/video with continuous queue |
-| Content Creation | ✅ Complete | Upload with actual API integration |
-| Community Features | ✅ Complete | Posts, likes, comments |
-| Events Feature | ✅ Complete | Map-based location picker |
-| Admin Dashboard | ✅ Complete | Redesigned 4-tab navigation |
-| Real-time Features | ✅ Complete | LiveKit meetings, streams, voice |
-| UI/UX Polish | ✅ Complete | Pill design, consistent theme |
-| Bug Fixes | ✅ Complete | Card heights, overflow issues fixed |
-
-### 17.2 Recent Fixes
-
-- ✅ Card height mismatch (Video/Movies/Animated cards white space)
-- ✅ RenderFlex overflow issues
-- ✅ Camera mirroring in prejoin screen
-- ✅ File upload with actual API integration
-- ✅ LiveKit service connection fixes
-- ✅ PostgreSQL boolean comparison fixes
-
-### 17.3 Pending for Store Submission
-
-| Task | Status |
-|------|--------|
-| Android Keystore | 📋 Required |
-| iOS Provisioning | 📋 Required |
-| App Store Assets | 📋 Required |
-| Privacy Policy URL | 📋 Required |
-| Store Submissions | 📋 Pending |
-
-### 17.4 Detailed Documentation
-
-See `MOBILE_APPLICATION_COMPREHENSIVE_ANALYSIS.md` for complete mobile app documentation including:
-- 14 state providers
-- 50+ screens
-- Full API integration (2400+ lines)
-- Platform-specific configurations
-- Build commands and deployment steps
+**Key Endpoint Categories**:
+- Authentication: 10+ endpoints
+- Content: 50+ endpoints (podcasts, music, movies, documents)
+- Social: 20+ endpoints (community, events, artists)
+- Live: 10+ endpoints (streaming, meetings, voice)
+- Admin: 30+ endpoints (moderation, management)
+- Utilities: 20+ endpoints (search, upload, media)
 
 ---
 
-**Document Created**: Based on complete codebase analysis  
-**Last Updated**: December 8, 2024  
-**Status**: ✅ Production-ready (Mobile app pending store submission)
+## 17. Integration Points
 
+1. **AWS S3**: Media file storage
+2. **CloudFront**: CDN for media delivery
+3. **AWS RDS**: PostgreSQL database
+4. **LiveKit**: Real-time communication
+5. **OpenAI**: LLM for voice agent
+6. **Deepgram**: STT/TTS for voice agent
+7. **Google OAuth**: Authentication
+8. **Stripe**: Payment processing
+9. **Firebase**: Push notifications
+10. **AWS SES**: Email sending
 
+---
 
+## 18. Current Deployment Status
 
+### Backend (EC2: 52.56.78.203)
+- ✅ FastAPI backend running (port 8000)
+- ✅ LiveKit server running (ports 7880-7881)
+- ✅ Voice agent running (healthy)
+- ✅ Docker containers: 3 active
 
+### Frontend (Amplify)
+- ✅ Web app deployed
+- ✅ Environment variables configured
+- ✅ Build pipeline: Flutter Web
 
+### Database (RDS)
+- ✅ PostgreSQL production database
+- ✅ Migrations applied
+
+### Media Storage
+- ✅ S3 bucket configured
+- ✅ CloudFront distribution active
+- ✅ CORS configured
+
+---
+
+## 19. Known Architecture Patterns
+
+1. **Repository Pattern**: Services abstract database operations
+2. **Dependency Injection**: FastAPI dependency system
+3. **Provider Pattern**: Flutter state management
+4. **Service Layer**: Business logic separation
+5. **Schema Validation**: Pydantic for request/response
+6. **Async/Await**: Full async backend operations
+7. **WebSocket**: Real-time bidirectional communication
+8. **CDN Strategy**: CloudFront for media delivery
+
+---
+
+## 20. Next Steps for Development
+
+When working on this application, consider:
+
+1. **Database**: Check migrations before schema changes
+2. **Media**: Understand S3 vs local storage logic
+3. **Authentication**: Token refresh flow is critical
+4. **Environment**: Always check ENVIRONMENT variable
+5. **CORS**: Production has strict CORS policies
+6. **LiveKit**: Separate container for voice agent
+7. **Docker**: Backend uses Docker (not docker-compose in production)
+8. **Frontend**: Environment variables via `--dart-define`
+
+---
+
+## Conclusion
+
+This is a **production-ready, full-stack media platform** with:
+- ✅ Comprehensive content management
+- ✅ Real-time features (LiveKit)
+- ✅ Social networking capabilities
+- ✅ Content creation tools
+- ✅ Admin moderation system
+- ✅ Monetization features
+- ✅ Scalable architecture (S3, RDS, CDN)
+- ✅ Modern tech stack (FastAPI, Flutter, Docker)
+
+The application is well-structured, follows best practices, and is ready for feature development and enhancements.
 

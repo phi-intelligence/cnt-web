@@ -847,7 +847,7 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
         onChanged: onChanged,
         validator: validator,
         style: AppTypography.body.copyWith(
-          color: AppColors.primaryDark,
+          color: AppColors.textPrimary,
           fontSize: isMobile ? 14 : 15,
         ),
         decoration: InputDecoration(

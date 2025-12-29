@@ -3,7 +3,6 @@ import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/content_item.dart';
-import '../../models/api_models.dart';
 import '../../services/api_service.dart';
 import '../../providers/artist_provider.dart';
 import '../../theme/app_colors.dart';
@@ -17,6 +16,7 @@ import '../../screens/video/video_player_full_screen.dart';
 import '../../screens/donation_modal.dart';
 import '../../utils/bank_details_helper.dart';
 import 'dart:async';
+import '../../services/logger_service.dart';
 
 /// Web-specific Video Podcast Detail Screen with Netflix-style layout
 class VideoPodcastDetailScreenWeb extends StatefulWidget {
@@ -28,20 +28,22 @@ class VideoPodcastDetailScreenWeb extends StatefulWidget {
   });
 
   @override
-  State<VideoPodcastDetailScreenWeb> createState() => _VideoPodcastDetailScreenWebState();
+  State<VideoPodcastDetailScreenWeb> createState() =>
+      _VideoPodcastDetailScreenWebState();
 }
 
-class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWeb> {
+class _VideoPodcastDetailScreenWebState
+    extends State<VideoPodcastDetailScreenWeb> {
   final ApiService _apiService = ApiService();
   List<ContentItem> _similarPodcasts = [];
   bool _isLoadingSimilar = false;
-  
+
   // Video preview
   VideoPlayerController? _previewController;
   bool _isPreviewLoading = false;
   bool _hasPreviewError = false;
   Timer? _previewLoopTimer;
-  
+
   // User/Creator info
   Map<String, dynamic>? _creatorInfo;
   bool _isLoadingCreator = false;
@@ -80,51 +82,47 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
           (p) => p.id.toString() == widget.item.id,
           orElse: () => podcasts.first,
         );
-        
+
         if (podcast.creatorId != null) {
           setState(() {
             _creatorId = podcast.creatorId;
           });
           
-          setState(() {
-            _isLoadingCreator = true;
-          });
-
-          try {
-            final creatorData = await _apiService.getPublicUserProfile(podcast.creatorId!);
-            setState(() {
-              _creatorInfo = creatorData;
-              _isLoadingCreator = false;
-            });
-          } catch (e) {
-            print('Error loading creator info: $e');
-            setState(() {
-              _isLoadingCreator = false;
-            });
-          }
+          await _fetchCreatorProfile();
         }
       } catch (e) {
-        print('Error fetching podcast for creator ID: $e');
+        LoggerService.e('Error fetching podcast for creator ID: $e');
       }
     } else {
-      setState(() {
-        _isLoadingCreator = true;
-      });
+      await _fetchCreatorProfile();
+    }
+  }
 
-      try {
-        final creatorData = await _apiService.getPublicUserProfile(_creatorId!);
+  Future<void> _fetchCreatorProfile() async {
+    if (_creatorId == null) return;
+    
+    setState(() {
+      _isLoadingCreator = true;
+    });
+
+    try {
+      final creatorData = await _apiService.getPublicUserProfile(_creatorId!);
+      if (mounted) {
         setState(() {
           _creatorInfo = creatorData;
           _isLoadingCreator = false;
         });
-      } catch (e) {
-        print('Error loading creator info: $e');
+      }
+    } catch (e) {
+      LoggerService.e('Error loading creator info: $e');
+      if (mounted) {
         setState(() {
           _isLoadingCreator = false;
         });
       }
     }
   }
+
 
   Future<void> _initializePreview() async {
     if (widget.item.videoUrl == null || widget.item.videoUrl!.isEmpty) {
@@ -138,26 +136,27 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
       });
 
       _previewController?.dispose();
-      
+
       _previewController = VideoPlayerController.networkUrl(
         Uri.parse(widget.item.videoUrl!),
       );
 
       await _previewController!.initialize();
-      
+
       // Set volume to 0 (muted)
       await _previewController!.setVolume(0.0);
-      
+
       // Set loop to true
       await _previewController!.setLooping(true);
-      
+
       // Start playing from beginning (first 30-60 seconds will loop)
       await _previewController!.seekTo(Duration.zero);
       await _previewController!.play();
 
       // Set up loop timer to restart preview every 60 seconds
       _previewLoopTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
-        if (_previewController != null && _previewController!.value.isInitialized) {
+        if (_previewController != null &&
+            _previewController!.value.isInitialized) {
           _previewController!.seekTo(Duration.zero);
         }
       });
@@ -166,7 +165,7 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
         _isPreviewLoading = false;
       });
     } catch (e) {
-      print('Error initializing preview: $e');
+      LoggerService.e('Error initializing preview: $e');
       setState(() {
         _isPreviewLoading = false;
         _hasPreviewError = true;
@@ -185,17 +184,18 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
         limit: 20,
         status: 'approved',
       );
-      
+
       // Filter by same category name and exclude current podcast
       // Get category name from current item
       final currentCategoryName = widget.item.category;
       final similar = podcasts
-          .where((p) => 
+          .where((p) =>
               p.id.toString() != widget.item.id &&
               p.videoUrl != null &&
               p.videoUrl!.isNotEmpty)
           .take(10)
-          .map((podcast) => _apiService.podcastToContentItem(podcast, categoryName: currentCategoryName))
+          .map((podcast) => _apiService.podcastToContentItem(podcast,
+              categoryName: currentCategoryName))
           .toList();
 
       setState(() {
@@ -203,7 +203,7 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
         _isLoadingSimilar = false;
       });
     } catch (e) {
-      print('Error loading similar podcasts: $e');
+      LoggerService.e('Error loading similar podcasts: $e');
       setState(() {
         _isLoadingSimilar = false;
       });
@@ -222,12 +222,12 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
     final playlist = _similarPodcasts
         .where((p) => p.videoUrl != null && p.videoUrl!.isNotEmpty)
         .toList();
-    
+
     // Add current item to playlist if not already there
     if (!playlist.any((p) => p.id == widget.item.id)) {
       playlist.insert(0, widget.item);
     }
-    
+
     final initialIndex = playlist.indexWhere((p) => p.id == widget.item.id);
 
     Navigator.push(
@@ -238,7 +238,10 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
           title: widget.item.title,
           author: widget.item.creator,
           duration: widget.item.duration?.inSeconds ?? 0,
-          gradientColors: const [AppColors.backgroundPrimary, AppColors.backgroundSecondary],
+          gradientColors: const [
+            AppColors.backgroundPrimary,
+            AppColors.backgroundSecondary
+          ],
           videoUrl: widget.item.videoUrl!,
           playlist: playlist,
           initialIndex: initialIndex >= 0 ? initialIndex : 0,
@@ -259,16 +262,23 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
       return;
     }
 
-    final hasBankDetails = await checkBankDetailsAndNavigate(context);
-    if (!hasBankDetails) {
+    final recipientId = _creatorInfo!['id'] as int;
+    final recipientName = _creatorInfo!['name'] ?? 'Creator';
+
+    // Check if recipient has bank details before showing donation modal
+    final hasRecipientBankDetails =
+        await checkRecipientBankDetails(recipientId);
+    if (!hasRecipientBankDetails) {
+      // Show error dialog if recipient doesn't have bank details
+      await showRecipientBankDetailsMissingDialog(context, recipientName);
       return;
     }
 
     showDialog(
       context: context,
       builder: (context) => DonationModal(
-        recipientName: _creatorInfo!['name'] ?? 'Creator',
-        recipientUserId: _creatorInfo!['id'] as int,
+        recipientName: recipientName,
+        recipientUserId: recipientId,
       ),
     );
   }
@@ -291,7 +301,7 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 1024;
     final isTablet = screenWidth >= 768 && screenWidth < 1024;
-    
+
     // Responsive hero height
     final heroHeight = isDesktop ? 0.8 : (isTablet ? 0.6 : 0.5);
     final heroHeightValue = MediaQuery.of(context).size.height * heroHeight;
@@ -308,8 +318,8 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
                 fit: StackFit.expand,
                 children: [
                   // Background video preview or cover image
-                  if (_previewController != null && 
-                      _previewController!.value.isInitialized && 
+                  if (_previewController != null &&
+                      _previewController!.value.isInitialized &&
                       !_hasPreviewError)
                     FittedBox(
                       fit: BoxFit.cover,
@@ -319,7 +329,8 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
                         child: VideoPlayer(_previewController!),
                       ),
                     )
-                  else if (item.coverImage != null && item.coverImage!.isNotEmpty)
+                  else if (item.coverImage != null &&
+                      item.coverImage!.isNotEmpty)
                     Image.network(
                       _apiService.getMediaUrl(item.coverImage!),
                       fit: BoxFit.cover,
@@ -327,7 +338,8 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
                         return Container(
                           color: Colors.black,
                           child: const Center(
-                            child: Icon(Icons.video_library, color: Colors.white70, size: 64),
+                            child: Icon(Icons.video_library,
+                                color: Colors.white70, size: 64),
                           ),
                         );
                       },
@@ -336,7 +348,8 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
                     Container(
                       color: Colors.black,
                       child: const Center(
-                        child: Icon(Icons.video_library, color: Colors.white70, size: 64),
+                        child: Icon(Icons.video_library,
+                            color: Colors.white70, size: 64),
                       ),
                     ),
 
@@ -363,8 +376,11 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
                     right: 0,
                     child: Container(
                       padding: EdgeInsets.all(
-                        isDesktop ? AppSpacing.extraLarge * 2 : 
-                        (isTablet ? AppSpacing.extraLarge : AppSpacing.large),
+                        isDesktop
+                            ? AppSpacing.extraLarge * 2
+                            : (isTablet
+                                ? AppSpacing.extraLarge
+                                : AppSpacing.large),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -394,7 +410,8 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
                           const SizedBox(height: AppSpacing.medium),
 
                           // Short description (truncated)
-                          if (item.description != null && item.description!.isNotEmpty)
+                          if (item.description != null &&
+                              item.description!.isNotEmpty)
                             Text(
                               item.description!.length > 150
                                   ? '${item.description!.substring(0, 150)}...'
@@ -487,7 +504,9 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
                               // Favorite button
                               IconButton(
                                 icon: Icon(
-                                  item.isFavorite ? Icons.favorite : Icons.favorite_border,
+                                  item.isFavorite
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
                                   color: Colors.white,
                                   size: 32,
                                 ),
@@ -516,7 +535,8 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
                     top: MediaQuery.of(context).padding.top + AppSpacing.medium,
                     left: AppSpacing.medium,
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white, size: 32),
+                      icon: const Icon(Icons.arrow_back,
+                          color: Colors.white, size: 32),
                       onPressed: () => Navigator.of(context).pop(),
                       style: IconButton.styleFrom(
                         backgroundColor: Colors.black.withOpacity(0.5),
@@ -532,196 +552,129 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.all(
-                isDesktop ? AppSpacing.extraLarge * 2 : 
-                (isTablet ? AppSpacing.extraLarge : AppSpacing.large),
+                isDesktop
+                    ? AppSpacing.extraLarge * 2
+                    : (isTablet ? AppSpacing.extraLarge : AppSpacing.large),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Creator/User Information Card
                   if (_creatorInfo != null) ...[
-                      SectionContainer(
-                        child: screenWidth < 768 
-                        ? Column( // Mobile Layout
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Clickable Creator Info
-                              InkWell(
-                                onTap: () async {
-                                  if (_creatorInfo!['id'] != null) {
-                                    // Fetch artist profile by user ID
-                                    final artistProvider = context.read<ArtistProvider>();
-                                    final artist = await artistProvider.fetchArtistByUserId(_creatorInfo!['id']);
-                                    
-                                    if (artist != null && mounted) {
-                                      context.go('/artist/${artist.id}');
-                                    } else if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Creator profile not found')),
-                                      );
-                                    }
-                                  }
-                                },
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                                child: Padding(
-                                  padding: EdgeInsets.all(AppSpacing.medium),
-                                  child: Row(
-                                    children: [
-                                      // Avatar
-                                      CircleAvatar(
-                                        radius: 30,
-                                        backgroundColor: AppColors.primaryMain.withOpacity(0.2),
-                                        backgroundImage: _creatorInfo!['avatar'] != null
-                                            ? NetworkImage(_apiService.getMediaUrl(_creatorInfo!['avatar']))
-                                            : null,
-                                        child: _creatorInfo!['avatar'] == null
-                                            ? Icon(Icons.person, size: 30, color: AppColors.primaryMain)
-                                            : null,
-                                      ),
-                                      const SizedBox(width: AppSpacing.large),
-                                      // Creator info
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Flexible(
-                                                  child: Text(
-                                                    _creatorInfo!['name'] ?? item.creator,
-                                                    style: AppTypography.heading3.copyWith(
-                                                      fontWeight: FontWeight.bold,
-                                                      color: AppColors.primaryMain,
-                                                    ),
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                                SizedBox(width: AppSpacing.small),
-                                                Icon(
-                                                  Icons.arrow_forward_ios,
-                                                  size: 16,
-                                                  color: AppColors.primaryMain,
-                                                ),
-                                              ],
-                                            ),
-                                            SizedBox(height: 4),
-                                            Text(
-                                              'View Creator Profile',
-                                              style: AppTypography.caption.copyWith(
-                                                color: AppColors.textSecondary,
-                                              ),
-                                            ),
-                                            if (_creatorInfo!['bio'] != null && _creatorInfo!['bio'].toString().isNotEmpty) ...[
-                                              const SizedBox(height: AppSpacing.small),
-                                              Text(
-                                                _creatorInfo!['bio'],
-                                                style: AppTypography.body.copyWith(
-                                                  color: AppColors.textSecondary,
-                                                ),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              // Donate button (Full width on mobile)
-                              Padding(
-                                padding: EdgeInsets.all(AppSpacing.medium),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  child: StyledPillButton(
-                                    label: 'Donate',
-                                    icon: Icons.favorite,
-                                    onPressed: _handleDonate,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        : Row( // Desktop/Tablet Layout
-                            children: [
-                              // Clickable Creator Info
-                              Expanded(
-                                child: InkWell(
+                    SectionContainer(
+                      child: screenWidth < 768
+                          ? Column(
+                              // Mobile Layout
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Clickable Creator Info
+                                InkWell(
                                   onTap: () async {
                                     if (_creatorInfo!['id'] != null) {
                                       // Fetch artist profile by user ID
-                                      final artistProvider = context.read<ArtistProvider>();
-                                      final artist = await artistProvider.fetchArtistByUserId(_creatorInfo!['id']);
-                                      
+                                      final artistProvider =
+                                          context.read<ArtistProvider>();
+                                      final artist = await artistProvider
+                                          .fetchArtistByUserId(
+                                              _creatorInfo!['id']);
+
                                       if (artist != null && mounted) {
                                         context.go('/artist/${artist.id}');
                                       } else if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Creator profile not found')),
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                              content: Text(
+                                                  'Creator profile not found')),
                                         );
                                       }
                                     }
                                   },
-                                  borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                                  borderRadius: BorderRadius.circular(
+                                      AppSpacing.radiusMedium),
                                   child: Padding(
                                     padding: EdgeInsets.all(AppSpacing.medium),
                                     child: Row(
                                       children: [
                                         // Avatar
                                         CircleAvatar(
-                                          radius: isDesktop ? 40 : 30,
-                                          backgroundColor: AppColors.primaryMain.withOpacity(0.2),
-                                          backgroundImage: _creatorInfo!['avatar'] != null
-                                              ? NetworkImage(_apiService.getMediaUrl(_creatorInfo!['avatar']))
+                                          radius: 30,
+                                          backgroundColor: AppColors.primaryMain
+                                              .withOpacity(0.2),
+                                          backgroundImage: _creatorInfo![
+                                                      'avatar'] !=
+                                                  null
+                                              ? NetworkImage(
+                                                  _apiService.getMediaUrl(
+                                                      _creatorInfo!['avatar']))
                                               : null,
                                           child: _creatorInfo!['avatar'] == null
-                                              ? Icon(
-                                                  Icons.person,
-                                                  size: isDesktop ? 40 : 30,
-                                                  color: AppColors.primaryMain,
-                                                )
+                                              ? Icon(Icons.person,
+                                                  size: 30,
+                                                  color: AppColors.primaryMain)
                                               : null,
                                         ),
                                         const SizedBox(width: AppSpacing.large),
                                         // Creator info
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Row(
                                                 children: [
-                                                  Text(
-                                                    _creatorInfo!['name'] ?? item.creator,
-                                                    style: AppTypography.heading3.copyWith(
-                                                      fontWeight: FontWeight.bold,
-                                                      color: AppColors.primaryMain,
+                                                  Flexible(
+                                                    child: Text(
+                                                      _creatorInfo!['name'] ??
+                                                          item.creator,
+                                                      style: AppTypography
+                                                          .heading3
+                                                          .copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: AppColors
+                                                            .primaryMain,
+                                                      ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
                                                     ),
                                                   ),
-                                                  SizedBox(width: AppSpacing.small),
+                                                  SizedBox(
+                                                      width: AppSpacing.small),
                                                   Icon(
                                                     Icons.arrow_forward_ios,
                                                     size: 16,
-                                                    color: AppColors.primaryMain,
+                                                    color:
+                                                        AppColors.primaryMain,
                                                   ),
                                                 ],
                                               ),
                                               SizedBox(height: 4),
                                               Text(
                                                 'View Creator Profile',
-                                                style: AppTypography.caption.copyWith(
-                                                  color: AppColors.textSecondary,
+                                                style: AppTypography.caption
+                                                    .copyWith(
+                                                  color:
+                                                      AppColors.textSecondary,
                                                 ),
                                               ),
-                                              if (_creatorInfo!['bio'] != null && _creatorInfo!['bio'].toString().isNotEmpty) ...[
-                                                const SizedBox(height: AppSpacing.small),
+                                              if (_creatorInfo!['bio'] !=
+                                                      null &&
+                                                  _creatorInfo!['bio']
+                                                      .toString()
+                                                      .isNotEmpty) ...[
+                                                const SizedBox(
+                                                    height: AppSpacing.small),
                                                 Text(
                                                   _creatorInfo!['bio'],
-                                                  style: AppTypography.body.copyWith(
-                                                    color: AppColors.textSecondary,
+                                                  style: AppTypography.body
+                                                      .copyWith(
+                                                    color:
+                                                        AppColors.textSecondary,
                                                   ),
                                                   maxLines: 2,
-                                                  overflow: TextOverflow.ellipsis,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ],
                                             ],
@@ -731,24 +684,164 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
                                     ),
                                   ),
                                 ),
-                              ),
-                              // Donate button
-                              Padding(
-                                padding: EdgeInsets.all(AppSpacing.medium),
-                                child: StyledPillButton(
-                                  label: 'Donate',
-                                  icon: Icons.favorite,
-                                  onPressed: _handleDonate,
+                                // Donate button (Full width on mobile)
+                                Padding(
+                                  padding: EdgeInsets.all(AppSpacing.medium),
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    child: StyledPillButton(
+                                      label: 'Donate',
+                                      icon: Icons.favorite,
+                                      onPressed: _handleDonate,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                      ),
+                              ],
+                            )
+                          : Row(
+                              // Desktop/Tablet Layout
+                              children: [
+                                // Clickable Creator Info
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () async {
+                                      if (_creatorInfo!['id'] != null) {
+                                        // Fetch artist profile by user ID
+                                        final artistProvider =
+                                            context.read<ArtistProvider>();
+                                        final artist = await artistProvider
+                                            .fetchArtistByUserId(
+                                                _creatorInfo!['id']);
+
+                                        if (artist != null && mounted) {
+                                          context.go('/artist/${artist.id}');
+                                        } else if (mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                                content: Text(
+                                                    'Creator profile not found')),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    borderRadius: BorderRadius.circular(
+                                        AppSpacing.radiusMedium),
+                                    child: Padding(
+                                      padding:
+                                          EdgeInsets.all(AppSpacing.medium),
+                                      child: Row(
+                                        children: [
+                                          // Avatar
+                                          CircleAvatar(
+                                            radius: isDesktop ? 40 : 30,
+                                            backgroundColor: AppColors
+                                                .primaryMain
+                                                .withOpacity(0.2),
+                                            backgroundImage:
+                                                _creatorInfo!['avatar'] != null
+                                                    ? NetworkImage(
+                                                        _apiService.getMediaUrl(
+                                                            _creatorInfo![
+                                                                'avatar']))
+                                                    : null,
+                                            child: _creatorInfo!['avatar'] ==
+                                                    null
+                                                ? Icon(
+                                                    Icons.person,
+                                                    size: isDesktop ? 40 : 30,
+                                                    color:
+                                                        AppColors.primaryMain,
+                                                  )
+                                                : null,
+                                          ),
+                                          const SizedBox(
+                                              width: AppSpacing.large),
+                                          // Creator info
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Text(
+                                                      _creatorInfo!['name'] ??
+                                                          item.creator,
+                                                      style: AppTypography
+                                                          .heading3
+                                                          .copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: AppColors
+                                                            .primaryMain,
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                        width:
+                                                            AppSpacing.small),
+                                                    Icon(
+                                                      Icons.arrow_forward_ios,
+                                                      size: 16,
+                                                      color:
+                                                          AppColors.primaryMain,
+                                                    ),
+                                                  ],
+                                                ),
+                                                SizedBox(height: 4),
+                                                Text(
+                                                  'View Creator Profile',
+                                                  style: AppTypography.caption
+                                                      .copyWith(
+                                                    color:
+                                                        AppColors.textSecondary,
+                                                  ),
+                                                ),
+                                                if (_creatorInfo!['bio'] !=
+                                                        null &&
+                                                    _creatorInfo!['bio']
+                                                        .toString()
+                                                        .isNotEmpty) ...[
+                                                  const SizedBox(
+                                                      height: AppSpacing.small),
+                                                  Text(
+                                                    _creatorInfo!['bio'],
+                                                    style: AppTypography.body
+                                                        .copyWith(
+                                                      color: AppColors
+                                                          .textSecondary,
+                                                    ),
+                                                    maxLines: 2,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Donate button
+                                Padding(
+                                  padding: EdgeInsets.all(AppSpacing.medium),
+                                  child: StyledPillButton(
+                                    label: 'Donate',
+                                    icon: Icons.favorite,
+                                    onPressed: _handleDonate,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
                     const SizedBox(height: AppSpacing.extraLarge),
                   ],
 
                   // Full Description
-                  if (item.description != null && item.description!.isNotEmpty) ...[
+                  if (item.description != null &&
+                      item.description!.isNotEmpty) ...[
                     SectionContainer(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -813,7 +906,7 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
   String _formatDuration(Duration duration) {
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);
-    
+
     if (hours > 0) {
       return '${hours}h ${minutes}m';
     } else {
@@ -821,4 +914,3 @@ class _VideoPodcastDetailScreenWebState extends State<VideoPodcastDetailScreenWe
     }
   }
 }
-

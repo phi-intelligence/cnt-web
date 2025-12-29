@@ -16,7 +16,9 @@ import '../providers/artist_provider.dart';
 import '../providers/event_provider.dart';
 import '../services/websocket_service.dart';
 import '../theme/app_theme.dart';
+import '../config/app_config.dart';
 import 'app_routes.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 class AppRouter extends StatefulWidget {
   const AppRouter({super.key});
@@ -35,6 +37,7 @@ class _AppRouterState extends State<AppRouter> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _initializeWebSocket();
+      _initializeStripe();
     });
   }
 
@@ -47,6 +50,24 @@ class _AppRouterState extends State<AppRouter> {
       // Log error but don't crash the app
       // WebSocket connection is non-critical for app functionality
       print('❌ AppRouter: WebSocket connection failed (non-critical): $e');
+      print('Stack trace: $stackTrace');
+    }
+  }
+
+  void _initializeStripe() async {
+    try {
+      // Stripe publishable key will be set when creating payment intent
+      // For now, we'll initialize with empty key and update it later
+      // The key will be fetched from backend when creating payment intent
+      if (AppConfig.stripePublishableKey.isNotEmpty) {
+        Stripe.publishableKey = AppConfig.stripePublishableKey;
+        Stripe.merchantIdentifier = 'merchant.com.cnt.media';
+        print('✅ AppRouter: Stripe SDK initialized with publishable key');
+      } else {
+        print('ℹ️  AppRouter: Stripe publishable key not set, will be fetched from backend');
+      }
+    } catch (e, stackTrace) {
+      print('❌ AppRouter: Stripe initialization failed (non-critical): $e');
       print('Stack trace: $stackTrace');
     }
   }

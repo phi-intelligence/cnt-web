@@ -1,6 +1,7 @@
 import 'dart:html' as html;
 import 'dart:typed_data';
 import 'dart:async';
+import '../services/logger_service.dart';
 
 /// Web-compatible audio recorder using browser MediaRecorder API
 /// Provides same interface as record package for mobile
@@ -24,7 +25,7 @@ class WebAudioRecorder {
       stream.getTracks().forEach((track) => track.stop());
       return true;
     } catch (e) {
-      print('Microphone permission check failed: $e');
+      LoggerService.e('Microphone permission check failed: $e');
       return false;
     }
   }
@@ -71,7 +72,7 @@ class WebAudioRecorder {
       }, false);
 
       _mediaRecorder!.addEventListener('error', (html.Event event) {
-        print('MediaRecorder error: $event');
+        LoggerService.e('MediaRecorder error: $event');
       }, false);
 
       _mediaRecorder!.addEventListener('stop', (html.Event event) {
@@ -93,7 +94,7 @@ class WebAudioRecorder {
       // Return a placeholder path - actual blob URL will come from stop()
       return 'web_recording_${DateTime.now().millisecondsSinceEpoch}.webm';
     } catch (e) {
-      print('Error starting web audio recording: $e');
+      LoggerService.e('Error starting web audio recording: $e');
       await stop();
       rethrow;
     }
@@ -162,7 +163,7 @@ class WebAudioRecorder {
 
       return blobUrl; // Return blob URL as path-like string
     } catch (e) {
-      print('Error stopping web audio recording: $e');
+      LoggerService.e('Error stopping web audio recording: $e');
       _mediaStream?.getTracks().forEach((track) => track.stop());
       _mediaStream = null;
       _recordedChunks.clear();
@@ -190,7 +191,7 @@ class WebAudioRecorder {
         return Uint8List.view(buffer);
       }
     } catch (e) {
-      print('Error getting audio bytes: $e');
+      LoggerService.e('Error getting audio bytes: $e');
     }
     return null;
   }

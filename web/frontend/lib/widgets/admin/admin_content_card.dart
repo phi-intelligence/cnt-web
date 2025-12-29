@@ -18,7 +18,6 @@ class AdminContentCard extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onArchive;
   final VoidCallback? onTap;
-  final VoidCallback? onView;
   final bool isSelected;
   final ValueChanged<bool>? onSelectionChanged;
   final bool showApproveReject;
@@ -36,7 +35,6 @@ class AdminContentCard extends StatelessWidget {
     this.onSelectionChanged,
     this.showApproveReject = true,
     this.showDeleteArchive = false,
-    this.onView,
   });
 
   String _getTypeIcon(String type) {

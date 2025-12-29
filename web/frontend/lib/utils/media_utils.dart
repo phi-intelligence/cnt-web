@@ -1,4 +1,5 @@
 import '../services/api_service.dart';
+import '../services/logger_service.dart';
 
 String? resolveMediaUrl(String? path) {
   if (path == null || path.isEmpty) return null;
@@ -9,12 +10,12 @@ String? resolveMediaUrl(String? path) {
   try {
     mediaBase = ApiService.mediaBaseUrl;
   } catch (e) {
-    print('❌ Error getting media base URL: $e');
+    LoggerService.e('❌ Error getting media base URL: $e');
     return null;
   }
   
   if (mediaBase.isEmpty) {
-    print('❌ MEDIA_BASE_URL is empty, cannot resolve media URL for: $path');
+    LoggerService.w('❌ MEDIA_BASE_URL is empty, cannot resolve media URL for: $path');
     return null;
   }
   

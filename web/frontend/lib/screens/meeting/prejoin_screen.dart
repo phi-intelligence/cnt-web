@@ -4,15 +4,14 @@ import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
-import '../../utils/responsive_grid_delegate.dart';
-import '../../widgets/web/styled_page_header.dart';
-import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
-import '../../services/livekit_meeting_service.dart';
 import 'meeting_room_screen.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/media_utils.dart';
+import '../../utils/web_video_recorder.dart';
+import '../../utils/platform_view_registry_helper.dart';
+import 'dart:html' if (dart.library.io) '../utils/html_stub.dart' as html;
 
 /// Prejoin Screen - Device check before joining meeting
 /// Allows user to toggle camera/mic before joining
@@ -47,12 +46,40 @@ class PrejoinScreen extends StatefulWidget {
 class _PrejoinScreenState extends State<PrejoinScreen> {
   late bool cameraEnabled;
   late bool micEnabled;
+  
+  // Camera preview state
+  WebVideoRecorder? _cameraRecorder;
+  html.VideoElement? _videoElement;
+  String? _videoElementViewId;
+  bool _isInitializingCamera = false;
+  String? _cameraError;
+  bool _actualCameraEnabled = false;
 
   @override
   void initState() {
     super.initState();
     cameraEnabled = widget.initialCameraEnabled;
     micEnabled = widget.initialMicEnabled;
+    
+    // Initialize camera if enabled on web
+    if (kIsWeb && widget.initialCameraEnabled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _initializeCamera();
+      });
+    }
+    
+    // Request microphone permission if enabled on web
+    if (kIsWeb && widget.initialMicEnabled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _requestMicrophonePermission();
+      });
+    }
+  }
+  
+  @override
+  void dispose() {
+    _disposeCamera();
+    super.dispose();
   }
 
   void _onJoin() {
@@ -82,6 +109,123 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
       );
     }
   }
+  
+  Future<void> _initializeCamera() async {
+    if (!kIsWeb) return;
+    
+    setState(() {
+      _isInitializingCamera = true;
+      _cameraError = null;
+    });
+    
+    try {
+      _cameraRecorder = WebVideoRecorder();
+      
+      // Check permissions first
+      final hasPermission = await _cameraRecorder!.hasPermission();
+      if (!hasPermission) {
+        setState(() {
+          _cameraError = 'Camera permission denied. Please allow camera access in your browser settings.';
+          _isInitializingCamera = false;
+          _actualCameraEnabled = false;
+          cameraEnabled = false;
+        });
+        return;
+      }
+      
+      // Initialize camera
+      _videoElement = await _cameraRecorder!.initializeCamera();
+      
+      // Register video element for HtmlElementView
+      _videoElementViewId = 'prejoin-camera-${DateTime.now().millisecondsSinceEpoch}';
+      platformViewRegistry.registerViewFactory(
+        _videoElementViewId!,
+        (int viewId) => _videoElement!,
+      );
+      
+      setState(() {
+        _isInitializingCamera = false;
+        _actualCameraEnabled = true;
+      });
+    } catch (e) {
+      print('❌ Error initializing camera: $e');
+      String errorMsg = e.toString();
+      if (errorMsg.contains('Exception: ')) {
+        errorMsg = errorMsg.replaceFirst('Exception: ', '');
+      }
+      
+      setState(() {
+        _cameraError = errorMsg.isNotEmpty ? errorMsg : 'Failed to initialize camera. Please check your browser settings.';
+        _isInitializingCamera = false;
+        _actualCameraEnabled = false;
+        cameraEnabled = false;
+      });
+    }
+  }
+  
+  Future<void> _disposeCamera() async {
+    if (_cameraRecorder != null) {
+      await _cameraRecorder!.dispose();
+      _cameraRecorder = null;
+      _videoElement = null;
+      _videoElementViewId = null;
+    }
+    
+    if (mounted) {
+      setState(() {
+        _actualCameraEnabled = false;
+      });
+    }
+  }
+  
+  Future<void> _onCameraToggle(bool enabled) async {
+    setState(() {
+      cameraEnabled = enabled;
+    });
+    
+    if (enabled) {
+      await _initializeCamera();
+    } else {
+      await _disposeCamera();
+    }
+  }
+  
+  Future<void> _requestMicrophonePermission() async {
+    if (!kIsWeb) return;
+    
+    try {
+      final mediaDevices = html.window.navigator.mediaDevices;
+      if (mediaDevices != null) {
+        // Request microphone permission
+        final stream = await mediaDevices.getUserMedia({'audio': true});
+        // Stop the test stream immediately
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    } catch (e) {
+      print('❌ Microphone permission error: $e');
+      if (mounted) {
+        setState(() {
+          micEnabled = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Microphone permission denied. Please allow microphone access in your browser settings.'),
+            backgroundColor: AppColors.errorMain,
+          ),
+        );
+      }
+    }
+  }
+  
+  Future<void> _onMicrophoneToggle(bool enabled) async {
+    setState(() {
+      micEnabled = enabled;
+    });
+    
+    if (enabled && kIsWeb) {
+      await _requestMicrophonePermission();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,22 +244,23 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
           child: Stack(
             children: [
               // Background image positioned to the right
-              Positioned(
-                top: isMobile ? -30 : 0,
-                bottom: isMobile ? null : 0,
-                right: isMobile ? -screenWidth * 0.4 : -50,
-                height: isMobile ? screenHeight * 0.6 : null,
-                width: isMobile ? screenWidth * 1.3 : screenWidth * 0.65,
-                child: Container(
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: const AssetImage('assets/images/jesus.png'),
-                      fit: isMobile ? BoxFit.contain : BoxFit.cover,
-                      alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
+              // Background image positioned to the right (Hidden on mobile for better visibility)
+              if (!isMobile)
+                Positioned(
+                  top: 0,
+                  bottom: 0,
+                  right: -50,
+                  width: screenWidth * 0.65,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: const AssetImage('assets/images/jesus.png'),
+                        fit: BoxFit.cover,
+                        alignment: Alignment.centerRight,
+                      ),
                     ),
                   ),
                 ),
-              ),
               
               // Gradient overlay from left
               Positioned.fill(
@@ -216,7 +361,7 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                           ),
                           child: Column(
                             children: [
-                              // Preview placeholder
+                              // Preview with actual camera feed or placeholder
                               Container(
                                 height: 300,
                                 decoration: BoxDecoration(
@@ -226,10 +371,54 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                                     color: AppColors.warmBrown.withOpacity(0.2),
                                   ),
                                 ),
-                                alignment: Alignment.center,
-                                child: cameraEnabled
-                                    ? Icon(Icons.videocam, size: 80, color: AppColors.warmBrown)
-                                    : Icon(Icons.videocam_off, size: 80, color: AppColors.textSecondary),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(24),
+                                  child: _videoElementViewId != null && _actualCameraEnabled
+                                      ? AspectRatio(
+                                          aspectRatio: 16 / 9,
+                                          child: HtmlElementView(viewType: _videoElementViewId!),
+                                        )
+                                      : _isInitializingCamera
+                                          ? Center(
+                                              child: CircularProgressIndicator(
+                                                color: AppColors.warmBrown,
+                                              ),
+                                            )
+                                          : Container(
+                                              alignment: Alignment.center,
+                                              child: _cameraError != null
+                                                  ? Column(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      children: [
+                                                        Icon(
+                                                          Icons.error_outline,
+                                                          size: 60,
+                                                          color: AppColors.errorMain,
+                                                        ),
+                                                        SizedBox(height: AppSpacing.medium),
+                                                        Padding(
+                                                          padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
+                                                          child: Text(
+                                                            _cameraError!,
+                                                            textAlign: TextAlign.center,
+                                                            style: AppTypography.bodySmall.copyWith(
+                                                              color: AppColors.errorMain,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    )
+                                                  : Icon(
+                                                      cameraEnabled
+                                                          ? Icons.videocam
+                                                          : Icons.videocam_off,
+                                                      size: 80,
+                                                      color: cameraEnabled
+                                                          ? AppColors.warmBrown
+                                                          : AppColors.textSecondary,
+                                                    ),
+                                            ),
+                                ),
                               ),
                               const SizedBox(height: AppSpacing.large),
                               Text(
@@ -288,11 +477,7 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                                           title: 'Camera',
                                           subtitle: cameraEnabled ? 'On' : 'Off',
                                           enabled: cameraEnabled,
-                                          onChanged: (value) {
-                                            setState(() {
-                                              cameraEnabled = value;
-                                            });
-                                          },
+                                          onChanged: _onCameraToggle,
                                         ),
                                         const SizedBox(height: AppSpacing.medium),
                                         _buildDeviceControlCard(
@@ -300,11 +485,7 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                                           title: 'Microphone',
                                           subtitle: micEnabled ? 'On' : 'Off',
                                           enabled: micEnabled,
-                                          onChanged: (value) {
-                                            setState(() {
-                                              micEnabled = value;
-                                            });
-                                          },
+                                          onChanged: _onMicrophoneToggle,
                                         ),
                                       ],
                                     );
@@ -318,11 +499,7 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                                             title: 'Camera',
                                             subtitle: cameraEnabled ? 'On' : 'Off',
                                             enabled: cameraEnabled,
-                                            onChanged: (value) {
-                                              setState(() {
-                                                cameraEnabled = value;
-                                              });
-                                            },
+                                            onChanged: _onCameraToggle,
                                           ),
                                         ),
                                         const SizedBox(width: AppSpacing.large),
@@ -332,11 +509,7 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                                             title: 'Microphone',
                                             subtitle: micEnabled ? 'On' : 'Off',
                                             enabled: micEnabled,
-                                            onChanged: (value) {
-                                              setState(() {
-                                                micEnabled = value;
-                                              });
-                                            },
+                                            onChanged: _onMicrophoneToggle,
                                           ),
                                         ),
                                       ],
@@ -391,7 +564,7 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
           child: Column(
             children: [
               const SizedBox(height: AppSpacing.extraLarge),
-              // Preview placeholder
+              // Preview with actual camera feed or placeholder
               Container(
                 height: 300,
                 decoration: BoxDecoration(
@@ -399,10 +572,54 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: AppColors.borderPrimary),
                 ),
-                alignment: Alignment.center,
-                child: cameraEnabled
-                    ? Icon(Icons.videocam, size: 80, color: AppColors.primaryMain)
-                    : Icon(Icons.videocam_off, size: 80, color: AppColors.textSecondary),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: _videoElementViewId != null && _actualCameraEnabled
+                      ? AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: HtmlElementView(viewType: _videoElementViewId!),
+                        )
+                      : _isInitializingCamera
+                          ? Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.primaryMain,
+                              ),
+                            )
+                          : Container(
+                              alignment: Alignment.center,
+                              child: _cameraError != null
+                                  ? Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.error_outline,
+                                          size: 60,
+                                          color: AppColors.errorMain,
+                                        ),
+                                        SizedBox(height: AppSpacing.medium),
+                                        Padding(
+                                          padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
+                                          child: Text(
+                                            _cameraError!,
+                                            textAlign: TextAlign.center,
+                                            style: AppTypography.bodySmall.copyWith(
+                                              color: AppColors.errorMain,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : Icon(
+                                      cameraEnabled
+                                          ? Icons.videocam
+                                          : Icons.videocam_off,
+                                      size: 80,
+                                      color: cameraEnabled
+                                          ? AppColors.primaryMain
+                                          : AppColors.textSecondary,
+                                    ),
+                            ),
+                ),
               ),
               const SizedBox(height: AppSpacing.extraLarge),
               Text(
@@ -422,11 +639,7 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                 ),
                 trailing: Switch(
                   value: cameraEnabled,
-                  onChanged: (value) {
-                    setState(() {
-                      cameraEnabled = value;
-                    });
-                  },
+                  onChanged: _onCameraToggle,
                 ),
               ),
               // Microphone toggle
@@ -441,11 +654,7 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                 ),
                 trailing: Switch(
                   value: micEnabled,
-                  onChanged: (value) {
-                    setState(() {
-                      micEnabled = value;
-                    });
-                  },
+                  onChanged: _onMicrophoneToggle,
                 ),
               ),
               const Spacer(),

@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '../services/logger_service.dart';
 
 /// Utility class for persisting editor state across page refreshes
 class StatePersistence {
@@ -36,7 +37,7 @@ class StatePersistence {
       };
       await prefs.setString(_videoEditorStateKey, jsonEncode(state));
     } catch (e) {
-      print('Error saving video editor state: $e');
+      LoggerService.e('Error saving video editor state: $e');
     }
   }
   
@@ -62,7 +63,7 @@ class StatePersistence {
       
       return state;
     } catch (e) {
-      print('Error loading video editor state: $e');
+      LoggerService.e('Error loading video editor state: $e');
       return null;
     }
   }
@@ -73,7 +74,7 @@ class StatePersistence {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_videoEditorStateKey);
     } catch (e) {
-      print('Error clearing video editor state: $e');
+      LoggerService.e('Error clearing video editor state: $e');
     }
   }
   
@@ -95,7 +96,7 @@ class StatePersistence {
       };
       await prefs.setString(_audioEditorStateKey, jsonEncode(state));
     } catch (e) {
-      print('Error saving audio editor state: $e');
+      LoggerService.e('Error saving audio editor state: $e');
     }
   }
   
@@ -121,7 +122,7 @@ class StatePersistence {
       
       return state;
     } catch (e) {
-      print('Error loading audio editor state: $e');
+      LoggerService.e('Error loading audio editor state: $e');
       return null;
     }
   }
@@ -132,7 +133,7 @@ class StatePersistence {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_audioEditorStateKey);
     } catch (e) {
-      print('Error clearing audio editor state: $e');
+      LoggerService.e('Error clearing audio editor state: $e');
     }
   }
   
@@ -160,7 +161,7 @@ class StatePersistence {
       };
       await prefs.setString(_videoPreviewStateKey, jsonEncode(state));
     } catch (e) {
-      print('Error saving video preview state: $e');
+      LoggerService.e('Error saving video preview state: $e');
     }
   }
   
@@ -186,7 +187,7 @@ class StatePersistence {
       
       return state;
     } catch (e) {
-      print('Error loading video preview state: $e');
+      LoggerService.e('Error loading video preview state: $e');
       return null;
     }
   }
@@ -197,7 +198,7 @@ class StatePersistence {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_videoPreviewStateKey);
     } catch (e) {
-      print('Error clearing video preview state: $e');
+      LoggerService.e('Error clearing video preview state: $e');
     }
   }
   
@@ -223,7 +224,7 @@ class StatePersistence {
       };
       await prefs.setString(_audioPreviewStateKey, jsonEncode(state));
     } catch (e) {
-      print('Error saving audio preview state: $e');
+      LoggerService.e('Error saving audio preview state: $e');
     }
   }
   
@@ -249,7 +250,7 @@ class StatePersistence {
       
       return state;
     } catch (e) {
-      print('Error loading audio preview state: $e');
+      LoggerService.e('Error loading audio preview state: $e');
       return null;
     }
   }
@@ -260,7 +261,7 @@ class StatePersistence {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_audioPreviewStateKey);
     } catch (e) {
-      print('Error clearing audio preview state: $e');
+      LoggerService.e('Error clearing audio preview state: $e');
     }
   }
   
@@ -284,7 +285,7 @@ class StatePersistence {
       };
       await prefs.setString(_musicPlayerStateKey, jsonEncode(state));
     } catch (e) {
-      print('Error saving music player state: $e');
+      LoggerService.e('Error saving music player state: $e');
     }
   }
   
@@ -310,7 +311,7 @@ class StatePersistence {
       
       return state;
     } catch (e) {
-      print('Error loading music player state: $e');
+      LoggerService.e('Error loading music player state: $e');
       return null;
     }
   }
@@ -321,7 +322,7 @@ class StatePersistence {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_musicPlayerStateKey);
     } catch (e) {
-      print('Error clearing music player state: $e');
+      LoggerService.e('Error clearing music player state: $e');
     }
   }
   
@@ -351,7 +352,7 @@ class StatePersistence {
       };
       await prefs.setString(_meetingStateKey, jsonEncode(state));
     } catch (e) {
-      print('Error saving meeting state: $e');
+      LoggerService.e('Error saving meeting state: $e');
     }
   }
   
@@ -377,7 +378,7 @@ class StatePersistence {
       
       return state;
     } catch (e) {
-      print('Error loading meeting state: $e');
+      LoggerService.e('Error loading meeting state: $e');
       return null;
     }
   }
@@ -388,7 +389,7 @@ class StatePersistence {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_meetingStateKey);
     } catch (e) {
-      print('Error clearing meeting state: $e');
+      LoggerService.e('Error clearing meeting state: $e');
     }
   }
 }

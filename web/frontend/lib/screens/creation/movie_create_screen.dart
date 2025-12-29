@@ -10,6 +10,7 @@ import '../web/movie_preview_screen_web.dart';
 import '../web/video_recording_screen_web.dart';
 // Conditional import for dart:io (only on non-web platforms)
 import 'dart:io' if (dart.library.html) '../../utils/file_stub.dart' as io;
+import '../../services/logger_service.dart';
 
 /// Movie Create Screen
 /// Shows options to record video or choose from gallery
@@ -33,7 +34,7 @@ class MovieCreateScreen extends StatelessWidget {
             final bytes = await video.readAsBytes();
             fileSize = bytes.length;
           } catch (e) {
-            print('Error reading video bytes on web: $e');
+            LoggerService.e('Error reading video bytes on web: $e');
             // Continue with fileSize = 0
           }
           

@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../utils/platform_helper.dart';
 import 'web_storage_service.dart';
+import 'logger_service.dart';
 
 class AuthService {
   static const _secureStorage = FlutterSecureStorage();
@@ -60,8 +61,8 @@ class AuthService {
   /// Login with username or email and password
   Future<Map<String, dynamic>> login(String usernameOrEmail, String password) async {
     try {
-      print('🔐 Attempting login to: $baseUrl/auth/login');
-      print('👤 Username/Email: $usernameOrEmail');
+      LoggerService.i('🔐 Attempting login to: $baseUrl/auth/login');
+      LoggerService.d('👤 Username/Email: $usernameOrEmail');
       
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
@@ -77,8 +78,8 @@ class AuthService {
         },
       );
       
-      print('📡 Login response status: ${response.statusCode}');
-      print('📄 Login response body: ${response.body}');
+      LoggerService.d('📡 Login response status: ${response.statusCode}');
+      LoggerService.d('📄 Login response body: ${response.body}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -96,11 +97,11 @@ class AuthService {
           'is_admin': data['is_admin'],
         }));
         
-        print('✅ Token, refresh token, and user data stored successfully');
+        LoggerService.i('✅ Token, refresh token, and user data stored successfully');
         return data;
       } else {
         final errorBody = response.body;
-        print('❌ Login failed with status ${response.statusCode}: $errorBody');
+        LoggerService.e('❌ Login failed with status ${response.statusCode}: $errorBody');
         try {
           final error = jsonDecode(errorBody);
           throw Exception(error['detail'] ?? 'Login failed');
@@ -109,7 +110,7 @@ class AuthService {
         }
       }
     } catch (e) {
-      print('💥 Login exception: $e');
+      LoggerService.e('💥 Login exception: $e');
       if (e.toString().contains('timeout')) {
         throw e; // Re-throw timeout as-is
       }
@@ -167,12 +168,12 @@ class AuthService {
       final isExpired = DateTime.now().isAfter(expirationDate);
       
       if (isExpired) {
-        print('⚠️ Token expired. Expiration: ${expirationDate.toIso8601String()}, Now: ${DateTime.now().toIso8601String()}');
+        LoggerService.w('⚠️ Token expired. Expiration: ${expirationDate.toIso8601String()}, Now: ${DateTime.now().toIso8601String()}');
       }
       
       return isExpired;
     } catch (e) {
-      print('⚠️ Error checking token expiration: $e');
+      LoggerService.e('⚠️ Error checking token expiration: $e');
       return true; // If we can't decode, assume expired
     }
   }
@@ -212,7 +213,7 @@ class AuthService {
           ).timeout(const Duration(seconds: 5));
         } catch (e) {
           // Continue even if logout request fails
-          print('Logout request failed: $e');
+          LoggerService.w('Logout request failed: $e');
         }
       }
       
@@ -226,9 +227,9 @@ class AuthService {
         await WebStorageService.clearAuthData();
       }
       
-      print('✅ Logged out successfully');
+      LoggerService.i('✅ Logged out successfully');
     } catch (e) {
-      print('Logout error: $e');
+      LoggerService.e('Logout error: $e');
       // Still clear local storage even if backend call fails
       await _delete(key: _tokenKey);
       await _delete(key: _refreshTokenKey);
@@ -246,7 +247,7 @@ class AuthService {
     String? bio,
   }) async {
     try {
-      print('📝 Attempting registration to: $baseUrl/auth/register');
+      LoggerService.i('📝 Attempting registration to: $baseUrl/auth/register');
       
       final response = await http.post(
         Uri.parse('$baseUrl/auth/register'),
@@ -266,8 +267,8 @@ class AuthService {
         },
       );
       
-      print('📡 Registration response status: ${response.statusCode}');
-      print('📄 Registration response body: ${response.body}');
+      LoggerService.d('📡 Registration response status: ${response.statusCode}');
+      LoggerService.d('📄 Registration response body: ${response.body}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -285,11 +286,11 @@ class AuthService {
           'is_admin': data['is_admin'],
         }));
         
-        print('✅ Registration successful and tokens stored');
+        LoggerService.i('✅ Registration successful and tokens stored');
         return data;
       } else {
         final errorBody = response.body;
-        print('❌ Registration failed with status ${response.statusCode}: $errorBody');
+        LoggerService.e('❌ Registration failed with status ${response.statusCode}: $errorBody');
         try {
           final error = jsonDecode(errorBody);
           throw Exception(error['detail'] ?? 'Registration failed');
@@ -298,7 +299,7 @@ class AuthService {
         }
       }
     } catch (e) {
-      print('💥 Registration exception: $e');
+      LoggerService.e('💥 Registration exception: $e');
       throw Exception('Registration error: $e');
     }
   }
@@ -313,8 +314,8 @@ class AuthService {
     String? photoUrl,
   }) async {
     try {
-      print('🔐 Attempting Google login to: $baseUrl/auth/google-login');
-      print('🔑 Token type: ${tokenType ?? 'id_token'}');
+      LoggerService.i('🔐 Attempting Google login to: $baseUrl/auth/google-login');
+      LoggerService.d('🔑 Token type: ${tokenType ?? 'id_token'}');
       
       // Build request body based on token type
       final Map<String, dynamic> body = {};
@@ -342,8 +343,8 @@ class AuthService {
         },
       );
       
-      print('📡 Google login response status: ${response.statusCode}');
-      print('📄 Google login response body: ${response.body}');
+      LoggerService.d('📡 Google login response status: ${response.statusCode}');
+      LoggerService.d('📄 Google login response body: ${response.body}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -366,11 +367,11 @@ class AuthService {
           'is_admin': data['is_admin'],
         }));
         
-        print('✅ Google login successful and tokens stored');
+        LoggerService.i('✅ Google login successful and tokens stored');
         return data;
       } else {
         final errorBody = response.body;
-        print('❌ Google login failed with status ${response.statusCode}: $errorBody');
+        LoggerService.e('❌ Google login failed with status ${response.statusCode}: $errorBody');
         try {
           final error = jsonDecode(errorBody);
           throw Exception(error['detail'] ?? 'Google login failed');
@@ -379,7 +380,7 @@ class AuthService {
         }
       }
     } catch (e) {
-      print('💥 Google login exception: $e');
+      LoggerService.e('💥 Google login exception: $e');
       throw Exception('Google login error: $e');
     }
   }
@@ -401,7 +402,7 @@ class AuthService {
         throw Exception('Failed to check username availability');
       }
     } catch (e) {
-      print('💥 Username check exception: $e');
+      LoggerService.e('💥 Username check exception: $e');
       throw Exception('Username check error: $e');
     }
   }
@@ -409,7 +410,7 @@ class AuthService {
   /// Send OTP to email for verification
   Future<Map<String, dynamic>> sendOTP(String email) async {
     try {
-      print('📧 Sending OTP to: $email');
+      LoggerService.i('📧 Sending OTP to: $email');
       
       final response = await http.post(
         Uri.parse('$baseUrl/auth/send-otp'),
@@ -424,15 +425,15 @@ class AuthService {
         },
       );
       
-      print('📡 Send OTP response status: ${response.statusCode}');
+      LoggerService.d('📡 Send OTP response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('✅ OTP sent successfully');
+        LoggerService.i('✅ OTP sent successfully');
         return data;
       } else {
         final errorBody = response.body;
-        print('❌ Send OTP failed: $errorBody');
+        LoggerService.e('❌ Send OTP failed: $errorBody');
         try {
           final error = jsonDecode(errorBody);
           throw Exception(error['detail'] ?? 'Failed to send verification code');
@@ -441,7 +442,7 @@ class AuthService {
         }
       }
     } catch (e) {
-      print('💥 Send OTP exception: $e');
+      LoggerService.e('💥 Send OTP exception: $e');
       rethrow;
     }
   }
@@ -449,7 +450,7 @@ class AuthService {
   /// Verify OTP code
   Future<Map<String, dynamic>> verifyOTP(String email, String otpCode) async {
     try {
-      print('🔐 Verifying OTP for: $email');
+      LoggerService.i('🔐 Verifying OTP for: $email');
       
       final response = await http.post(
         Uri.parse('$baseUrl/auth/verify-otp'),
@@ -460,15 +461,15 @@ class AuthService {
         }),
       ).timeout(const Duration(seconds: 15));
       
-      print('📡 Verify OTP response status: ${response.statusCode}');
+      LoggerService.d('📡 Verify OTP response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('✅ OTP verification result: ${data['success']}');
+        LoggerService.i('✅ OTP verification result: ${data['success']}');
         return data;
       } else {
         final errorBody = response.body;
-        print('❌ Verify OTP failed: $errorBody');
+        LoggerService.e('❌ Verify OTP failed: $errorBody');
         try {
           final error = jsonDecode(errorBody);
           throw Exception(error['detail'] ?? 'Verification failed');
@@ -477,7 +478,7 @@ class AuthService {
         }
       }
     } catch (e) {
-      print('💥 Verify OTP exception: $e');
+      LoggerService.e('💥 Verify OTP exception: $e');
       rethrow;
     }
   }
@@ -493,7 +494,7 @@ class AuthService {
     String? bio,
   }) async {
     try {
-      print('📝 Registering with OTP to: $baseUrl/auth/register-with-otp');
+      LoggerService.i('📝 Registering with OTP to: $baseUrl/auth/register-with-otp');
       
       final response = await http.post(
         Uri.parse('$baseUrl/auth/register-with-otp'),
@@ -514,7 +515,7 @@ class AuthService {
         },
       );
       
-      print('📡 Register with OTP response status: ${response.statusCode}');
+      LoggerService.d('📡 Register with OTP response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -532,11 +533,11 @@ class AuthService {
           'is_admin': data['is_admin'],
         }));
         
-        print('✅ Registration with OTP successful and tokens stored');
+        LoggerService.i('✅ Registration with OTP successful and tokens stored');
         return data;
       } else {
         final errorBody = response.body;
-        print('❌ Register with OTP failed: $errorBody');
+        LoggerService.e('❌ Register with OTP failed: $errorBody');
         try {
           final error = jsonDecode(errorBody);
           throw Exception(error['detail'] ?? 'Registration failed');
@@ -545,7 +546,7 @@ class AuthService {
         }
       }
     } catch (e) {
-      print('💥 Register with OTP exception: $e');
+      LoggerService.e('💥 Register with OTP exception: $e');
       rethrow;
     }
   }
@@ -555,7 +556,7 @@ class AuthService {
   Future<bool> refreshAccessToken({int maxRetries = 3}) async {
     final refreshToken = await getRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
-      print('⚠️ No refresh token available');
+      LoggerService.w('⚠️ No refresh token available');
       return false;
     }
     
@@ -564,7 +565,7 @@ class AuthService {
     
     while (retryCount < maxRetries) {
       try {
-        print('🔄 Token refresh attempt ${retryCount + 1}/$maxRetries');
+        LoggerService.d('🔄 Token refresh attempt ${retryCount + 1}/$maxRetries');
         
         final response = await http.post(
           Uri.parse('$baseUrl/auth/refresh'),
@@ -578,15 +579,15 @@ class AuthService {
           if (data['refresh_token'] != null) {
             await _write(key: _refreshTokenKey, value: data['refresh_token']);
           }
-          print('✅ Access token refreshed successfully');
+          LoggerService.i('✅ Access token refreshed successfully');
           return true;
         } else if (response.statusCode == 401) {
           // Refresh token is invalid/expired - don't retry
-          print('❌ Refresh token invalid or expired');
+          LoggerService.w('❌ Refresh token invalid or expired');
           return false;
         } else {
           // Server error - might be temporary, retry
-          print('⚠️ Token refresh failed with status ${response.statusCode}, will retry');
+          LoggerService.w('⚠️ Token refresh failed with status ${response.statusCode}, will retry');
           retryCount++;
           if (retryCount < maxRetries) {
             await Future.delayed(Duration(milliseconds: delayMs));
@@ -594,7 +595,7 @@ class AuthService {
           }
         }
       } catch (e) {
-        print('💥 Token refresh error (attempt ${retryCount + 1}): $e');
+        LoggerService.e('💥 Token refresh error (attempt ${retryCount + 1}): $e');
         retryCount++;
         if (retryCount < maxRetries) {
           await Future.delayed(Duration(milliseconds: delayMs));
@@ -603,7 +604,7 @@ class AuthService {
       }
     }
     
-    print('❌ Token refresh failed after $maxRetries attempts');
+    LoggerService.e('❌ Token refresh failed after $maxRetries attempts');
     return false;
   }
   
@@ -634,20 +635,36 @@ class AuthService {
   
   /// Get authorization header (checks token expiration)
   Future<Map<String, String>> getAuthHeaders() async {
-    final token = await getToken();
+    var token = await getToken();
+    
+    // If no token, return empty
     if (token == null || token.isEmpty) {
-      print('⚠️ No auth token found');
+      LoggerService.w('⚠️ No auth token found');
       return {};
     }
     
     // Check if token is expired
     if (isTokenExpired(token)) {
-      print('⚠️ Token is expired, clearing stored token');
-      await logout(); // Clear expired token
+      LoggerService.w('⚠️ Token is expired, attempting refresh...');
+      // Attempt to refresh token before logging out
+      final refreshed = await refreshAccessToken();
+      
+      if (refreshed) {
+        // Get new token after refresh
+        token = await getToken();
+        if (token != null && !isTokenExpired(token)) {
+          LoggerService.i('✅ Token refreshed successfully');
+          return {'Authorization': 'Bearer $token'};
+        }
+      }
+      
+      // Refresh failed - clear expired token
+      LoggerService.w('⚠️ Token refresh failed, clearing stored token');
+      await logout();
       return {};
     }
     
-    print('🔑 Auth token retrieved: ${token.substring(0, 20)}...');
+    LoggerService.d('🔑 Auth token retrieved: ${token.substring(0, 20)}...');
     return {'Authorization': 'Bearer $token'};
   }
 
