@@ -336,6 +336,7 @@ class _DonationModalState extends State<DonationModal> {
           ),
         ),
       ),
+      ),
     );
   }
 }
