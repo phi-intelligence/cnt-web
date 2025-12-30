@@ -6,6 +6,7 @@ import '../../theme/app_typography.dart';
 import '../shared/image_helper.dart';
 import '../../utils/responsive_utils.dart';
 import '../../services/api_service.dart';
+import '../../services/logger_service.dart';
 import '../../screens/video/video_player_full_screen.dart';
 import 'admin_status_badge.dart';
 
@@ -91,88 +92,138 @@ class AdminContentCard extends StatelessWidget {
     return apiService.getMediaUrl(path.toString());
   }
 
-  void _handlePreview(BuildContext context) {
+  void _handlePreview(BuildContext context) async {
     final contentType = _getContentType();
     if (contentType == null) return;
     
     final contentId = item['id'];
     if (contentId == null) return;
     
-    if (contentType == 'audio') {
-      context.push('/player/audio/$contentId');
-    } else if (contentType == 'video') {
+    try {
+      // Validate content exists before attempting to view
+      // This prevents 404 errors when content was deleted
       final type = item['type'] as String? ?? '';
-      if (type == 'movie') {
-        // Show movie in video player dialog
-        final videoUrl = item['video_url'] as String?;
-        if (videoUrl != null && videoUrl.toString().isNotEmpty) {
-          final fullVideoUrl = _getMediaUrl(videoUrl);
-          final title = item['title'] as String? ?? 'Movie';
-          final creator = item['creator_name'] as String? ?? 
-                        item['user']?['name'] as String? ?? 
-                        'Unknown';
-          final duration = (item['duration'] as int?) ?? 0;
-          
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => VideoPlayerFullScreen(
-                videoId: contentId.toString(),
-                title: title,
-                author: creator,
-                duration: duration,
-                gradientColors: const [AppColors.backgroundPrimary, AppColors.backgroundSecondary],
-                videoUrl: fullVideoUrl,
-                onBack: () => Navigator.of(context).pop(),
+      final apiService = ApiService();
+      
+      if (type == 'podcast') {
+        // Verify podcast exists by fetching it
+        try {
+          await apiService.getPodcast(contentId);
+        } catch (e) {
+          if (e.toString().contains('404') || 
+              e.toString().contains('not found') ||
+              e.toString().contains('Failed to get podcast')) {
+            _showError(context, 'This content is no longer available. It may have been deleted.');
+            return;
+          }
+          rethrow;
+        }
+      } else if (type == 'movie') {
+        // Verify movie exists
+        try {
+          await apiService.getMovie(contentId);
+        } catch (e) {
+          if (e.toString().contains('404') || 
+              e.toString().contains('not found') ||
+              e.toString().contains('Failed to get movie')) {
+            _showError(context, 'This content is no longer available. It may have been deleted.');
+            return;
+          }
+          rethrow;
+        }
+      }
+      // Similar validation could be added for other content types if needed
+      
+      // Proceed with preview/playback
+      if (contentType == 'audio') {
+        context.push('/player/audio/$contentId');
+      } else if (contentType == 'video') {
+        final videoType = item['type'] as String? ?? '';
+        if (videoType == 'movie') {
+          // Show movie in video player dialog
+          final videoUrl = item['video_url'] as String?;
+          if (videoUrl != null && videoUrl.toString().isNotEmpty) {
+            final fullVideoUrl = _getMediaUrl(videoUrl);
+            final title = item['title'] as String? ?? 'Movie';
+            final creator = item['creator_name'] as String? ?? 
+                          item['user']?['name'] as String? ?? 
+                          'Unknown';
+            final duration = (item['duration'] as int?) ?? 0;
+            
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => VideoPlayerFullScreen(
+                  videoId: contentId.toString(),
+                  title: title,
+                  author: creator,
+                  duration: duration,
+                  gradientColors: const [AppColors.backgroundPrimary, AppColors.backgroundSecondary],
+                  videoUrl: fullVideoUrl,
+                  onBack: () => Navigator.of(context).pop(),
+                ),
+              ),
+            );
+          }
+        } else {
+          // Podcast video
+          context.push('/player/video/$contentId');
+        }
+      } else if (contentType == 'image') {
+        final imageUrl = item['image_url'] as String?;
+        if (imageUrl != null && imageUrl.toString().isNotEmpty) {
+          final fullImageUrl = _getMediaUrl(imageUrl);
+          showDialog(
+            context: context,
+            barrierColor: Colors.black87,
+            builder: (context) => Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.all(20),
+              child: Stack(
+                children: [
+                  Center(
+                    child: InteractiveViewer(
+                      minScale: 0.5,
+                      maxScale: 4.0,
+                      child: Image.network(
+                        fullImageUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Center(
+                            child: Icon(Icons.error, color: Colors.white, size: 48),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                ],
               ),
             ),
           );
         }
-      } else {
-        // Podcast video
-        context.push('/player/video/$contentId');
       }
-    } else if (contentType == 'image') {
-      final imageUrl = item['image_url'] as String?;
-      if (imageUrl != null && imageUrl.toString().isNotEmpty) {
-        final fullImageUrl = _getMediaUrl(imageUrl);
-        showDialog(
-          context: context,
-          barrierColor: Colors.black87,
-          builder: (context) => Dialog(
-            backgroundColor: Colors.transparent,
-            insetPadding: const EdgeInsets.all(20),
-            child: Stack(
-              children: [
-                Center(
-                  child: InteractiveViewer(
-                    minScale: 0.5,
-                    maxScale: 4.0,
-                    child: Image.network(
-                      fullImageUrl,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Center(
-                          child: Icon(Icons.error, color: Colors.white, size: 48),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
+    } catch (e) {
+      LoggerService.e('Error previewing content: $e');
+      _showError(context, 'Failed to load content. Please try again.');
     }
+  }
+
+  void _showError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.errorMain,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override

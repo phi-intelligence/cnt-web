@@ -1505,6 +1505,10 @@ class ApiService {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data;
+      } else if (response.statusCode == 404) {
+        // 404 means no playlists exist, return empty list
+        LoggerService.d('No playlists found (404), returning empty list');
+        return [];
       } else if (response.statusCode == 401) {
         // Handle 401 error (token expired or invalid)
         await _handle401Error(response);
@@ -1518,6 +1522,8 @@ class ApiService {
         if (retryResponse.statusCode == 200) {
           final List<dynamic> data = json.decode(retryResponse.body);
           return data;
+        } else if (retryResponse.statusCode == 404) {
+          return [];
         }
         throw Exception('Authentication failed. Please log in again.');
       }
@@ -1970,11 +1976,47 @@ class ApiService {
       } catch (e) {
         throw Exception('Error converting blob URL to bytes: $e');
       }
+    } else if (source.startsWith('data:')) {
+      // Data URI - decode base64 data (fallback support)
+      if (!kIsWeb) {
+        throw Exception('Data URIs are only supported on web platform');
+      }
+      
+      try {
+        // Parse data URI: data:[<mediatype>][;base64],<data>
+        final uri = Uri.parse(source);
+        final dataPart = uri.data;
+        
+        if (dataPart == null) {
+          throw Exception('Invalid data URI format');
+        }
+        
+        // Get bytes from data URI
+        final bytes = dataPart.contentAsBytes();
+        
+        // Detect content type
+        http.MediaType? contentType = _detectContentTypeFromFilename(defaultFilename);
+        if (contentType == null && dataPart.mimeType != null) {
+          final mimeParts = dataPart.mimeType.split('/');
+          if (mimeParts.length == 2) {
+            contentType = http.MediaType(mimeParts[0], mimeParts[1]);
+          }
+        }
+        
+        return http.MultipartFile.fromBytes(
+          fieldName,
+          bytes,
+          filename: defaultFilename,
+          contentType: contentType,
+        );
+      } catch (e) {
+        throw Exception('Error parsing data URI: $e');
+      }
     } else {
       // File path - use fromPath (for mobile only)
       if (kIsWeb) {
         throw Exception(
-            'File paths are not supported on web. Source must be a URL (http://, https://) or blob URL. Received: $source');
+            'File paths are not supported on web. Source must be a URL (http://, https://), blob URL, or data URI. Received: $source');
       }
 
       try {
@@ -2847,15 +2889,37 @@ class ApiService {
             uri,
             headers: await _getHeaders(),
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 30)); // Increased timeout
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data;
+        try {
+          final List<dynamic> data = json.decode(response.body);
+          // Validate response structure
+          if (data is! List) {
+            LoggerService.e('getAllContent: Expected List but got ${data.runtimeType}');
+            LoggerService.d('Response body: ${response.body}');
+            throw Exception('Invalid response format from server: expected List');
+          }
+          return data;
+        } catch (e) {
+          LoggerService.e('Error parsing getAllContent response: $e');
+          LoggerService.d('Response body: ${response.body}');
+          throw Exception('Invalid response format from server');
+        }
+      } else if (response.statusCode == 401) {
+        throw Exception('Authentication required. Please log in again.');
+      } else if (response.statusCode == 403) {
+        throw Exception('Access denied. Admin privileges required.');
+      } else {
+        LoggerService.e('getAllContent failed: ${response.statusCode} ${response.body}');
+        throw Exception('Failed to get content: HTTP ${response.statusCode}');
       }
-      throw Exception('Failed to get content: ${response.statusCode}');
     } catch (e) {
-      throw Exception('Error fetching content: $e');
+      LoggerService.e('Error fetching content: $e');
+      if (e.toString().contains('timeout')) {
+        throw Exception('Request timeout. Please try again.');
+      }
+      rethrow;
     }
   }
 

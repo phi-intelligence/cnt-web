@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../services/logger_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
@@ -128,14 +129,36 @@ class _AdminPendingPageState extends State<AdminPendingPage>
     });
 
     try {
-      // Load all pending content types in parallel
-      final results = await Future.wait([
-        _api.getAllContent(contentType: 'podcast', status: 'pending'),
-        _api.getAllContent(contentType: 'movie', status: 'pending'),
-        _api.getAllContent(contentType: 'community_post', status: 'pending'),
-        _api.getAllContent(contentType: 'music', status: 'pending'),
-        _api.getAllContent(contentType: 'event', status: 'pending'),
-      ]);
+      // Load all pending content types with individual error handling
+      final List<Future<List<dynamic>>> futures = [
+        _api.getAllContent(contentType: 'podcast', status: 'pending')
+            .catchError((e) {
+          LoggerService.e('Error loading podcasts: $e');
+          return <dynamic>[];
+        }),
+        _api.getAllContent(contentType: 'movie', status: 'pending')
+            .catchError((e) {
+          LoggerService.e('Error loading movies: $e');
+          return <dynamic>[];
+        }),
+        _api.getAllContent(contentType: 'community_post', status: 'pending')
+            .catchError((e) {
+          LoggerService.e('Error loading posts: $e');
+          return <dynamic>[];
+        }),
+        _api.getAllContent(contentType: 'music', status: 'pending')
+            .catchError((e) {
+          LoggerService.e('Error loading music: $e');
+          return <dynamic>[];
+        }),
+        _api.getAllContent(contentType: 'event', status: 'pending')
+            .catchError((e) {
+          LoggerService.e('Error loading events: $e');
+          return <dynamic>[];
+        }),
+      ];
+
+      final results = await Future.wait(futures);
 
       if (mounted) {
         setState(() {
@@ -155,9 +178,10 @@ class _AdminPendingPageState extends State<AdminPendingPage>
         });
       }
     } catch (e) {
+      LoggerService.e('Error loading all content: $e');
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = 'Failed to load content. Please try again.';
           _isLoading = false;
         });
       }

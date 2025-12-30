@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
+import 'dart:html' if (dart.library.io) '../utils/html_stub.dart' as html;
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../services/api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/responsive_utils.dart';
+import '../../widgets/web/styled_pill_button.dart';
 
 /// Model for a file to be uploaded
 class BulkUploadFile {
@@ -23,6 +25,7 @@ class BulkUploadFile {
   String? error;
   bool isUploading;
   bool isCompleted;
+  bool _isBlobUrl; // Track if path is a blob URL that needs cleanup
 
   BulkUploadFile({
     required this.name,
@@ -37,7 +40,20 @@ class BulkUploadFile {
     this.error,
     this.isUploading = false,
     this.isCompleted = false,
-  }) : title = title ?? _extractTitle(name);
+    bool isBlobUrl = false,
+  }) : title = title ?? _extractTitle(name),
+       _isBlobUrl = isBlobUrl;
+
+  /// Cleanup blob URL if this file uses one
+  void cleanupBlobUrl() {
+    if (kIsWeb && _isBlobUrl && path.startsWith('blob:')) {
+      try {
+        html.Url.revokeObjectUrl(path);
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+    }
+  }
 
   static String _extractTitle(String filename) {
     // Remove extension and clean up filename
@@ -102,10 +118,13 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
             if (_files.any((f) => f.name == file.name)) continue;
 
             String path;
+            bool isBlobUrl = false;
             if (kIsWeb && file.bytes != null) {
-              // For web, create a blob URL
-              final blob = Uri.dataFromBytes(file.bytes!, mimeType: _getMimeType(file.name));
-              path = blob.toString();
+              // For web, create a blob URL instead of data URI
+              final mimeType = _getMimeType(file.name);
+              final blob = html.Blob([file.bytes!], mimeType);
+              path = html.Url.createObjectUrlFromBlob(blob);
+              isBlobUrl = true;
             } else {
               path = file.path ?? '';
             }
@@ -115,6 +134,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
               path: path,
               size: file.size,
               isVideo: _isVideoFile(file.name),
+              isBlobUrl: isBlobUrl,
             ));
           }
         });
@@ -156,6 +176,8 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
 
   void _removeFile(int index) {
     setState(() {
+      // Cleanup blob URL before removing
+      _files[index].cleanupBlobUrl();
       _files.removeAt(index);
     });
   }
@@ -228,6 +250,8 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
           file.isUploading = false;
           file.isCompleted = true;
           _completedUploads++;
+          // Cleanup blob URL after successful upload
+          file.cleanupBlobUrl();
         });
       } catch (e) {
         setState(() {
@@ -235,6 +259,8 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
           file.isUploading = false;
           file.isCompleted = true;
           _failedUploads++;
+          // Cleanup blob URL even on failure
+          file.cleanupBlobUrl();
         });
       }
     }
@@ -256,6 +282,10 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
 
   void _reset() {
     setState(() {
+      // Cleanup all blob URLs before clearing
+      for (final file in _files) {
+        file.cleanupBlobUrl();
+      }
       _currentStep = 0;
       _files.clear();
       _autoGenerateThumbnails = true;
@@ -284,8 +314,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
 
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
-    final isTablet = screenWidth >= 600 && screenWidth < 1024;
+    final isMobile = ResponsiveUtils.isMobile(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0E8),
@@ -304,7 +333,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
               child: Container(
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: const AssetImage('assets/images/Crucifixion.png'),
+                    image: const AssetImage('assets/images/jesus-teaching.png'),
                     fit: isMobile ? BoxFit.contain : BoxFit.cover,
                     alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
                   ),
@@ -352,14 +381,18 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
               child: SafeArea(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.only(
-                    left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
-                    right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
-                    top: isMobile ? 20 : 40,
-                    bottom: AppSpacing.extraLarge,
+                    left: ResponsiveUtils.getPageHorizontalPadding(context),
+                    right: ResponsiveUtils.getPageHorizontalPadding(context),
+                    top: ResponsiveUtils.getPageVerticalPadding(context),
+                    bottom: ResponsiveUtils.getPageVerticalPadding(context),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: ResponsiveUtils.getResponsiveMaxWidth(context),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                       // Header with back button
                       Row(
                         children: [
@@ -373,7 +406,12 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                               style: AppTypography.getResponsiveHeroTitle(context).copyWith(
                                 color: AppColors.primaryDark,
                                 fontWeight: FontWeight.bold,
-                                fontSize: isMobile ? 28 : (isTablet ? 36 : 42),
+                                fontSize: ResponsiveUtils.getResponsiveValue(
+                                  context: context,
+                                  mobile: 28.0,
+                                  tablet: 36.0,
+                                  desktop: 42.0,
+                                ),
                                 height: 1.1,
                               ),
                             ),
@@ -385,7 +423,12 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                         'Upload multiple audio and video files at once',
                         style: AppTypography.getResponsiveBody(context).copyWith(
                           color: AppColors.primaryDark.withOpacity(0.7),
-                          fontSize: isMobile ? 14 : 16,
+                          fontSize: ResponsiveUtils.getResponsiveValue(
+                            context: context,
+                            mobile: 14.0,
+                            tablet: 15.0,
+                            desktop: 16.0,
+                          ),
                         ),
                       ),
                       SizedBox(height: AppSpacing.extraLarge * 1.5),
@@ -396,7 +439,8 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                       
                       // Content
                       _buildStepContent(),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -500,29 +544,38 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
     return Column(
       children: [
         // Drag and drop zone
-        GestureDetector(
-          onTap: _pickFiles,
-          child: Container(
-            height: 400,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: AppColors.warmBrown.withOpacity(0.2),
-                width: 1,
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: ResponsiveUtils.getResponsiveMaxWidth(context),
+          ),
+          child: GestureDetector(
+            onTap: _pickFiles,
+            child: Container(
+              height: ResponsiveUtils.getResponsiveValue(
+                context: context,
+                mobile: 300.0,
+                tablet: 350.0,
+                desktop: 400.0,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: AppColors.warmBrown.withOpacity(0.2),
+                  width: 1,
                 ),
-              ],
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                       Container(
                         width: 80,
                         height: 80,
@@ -570,12 +623,13 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                           ),
                         ),
                       ],
-                    ],
-                  ),
+                  ],
                 ),
               ),
             ),
-        SizedBox(height: AppSpacing.medium),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.medium),
         // Selected files preview
         if (_files.isNotEmpty) ...[
           Container(
@@ -619,25 +673,14 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
           SizedBox(height: AppSpacing.medium),
         ],
         // Next button
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
+        Align(
+          alignment: Alignment.centerRight,
+          child: StyledPillButton(
+            label: 'Continue to Review',
             onPressed: _files.isNotEmpty
                 ? () => setState(() => _currentStep = 1)
                 : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.warmBrown,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-              disabledBackgroundColor: AppColors.warmBrown.withOpacity(0.3),
-            ),
-            child: Text(
-              'Continue to Review',
-              style: AppTypography.button.copyWith(color: Colors.white),
-            ),
+            variant: StyledPillButtonVariant.filled,
           ),
         ),
       ],
@@ -701,8 +744,15 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
         ),
         const SizedBox(height: AppSpacing.medium),
         // File list
-        SizedBox(
-          height: 400, // Fixed height for list within column
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: ResponsiveUtils.getResponsiveValue(
+              context: context,
+              mobile: 300.0,
+              tablet: 350.0,
+              desktop: 400.0,
+            ),
+          ),
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.large),
             itemCount: _files.length,
@@ -716,39 +766,18 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
         Container(
           padding: const EdgeInsets.all(AppSpacing.large),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => setState(() => _currentStep = 0),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.warmBrown,
-                    side: BorderSide(color: AppColors.warmBrown),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: const Text('Back'),
-                ),
+              StyledPillButton(
+                label: 'Back',
+                onPressed: () => setState(() => _currentStep = 0),
+                variant: StyledPillButtonVariant.outlined,
               ),
               const SizedBox(width: AppSpacing.medium),
-              Expanded(
-                flex: 2,
-                child: ElevatedButton(
-                  onPressed: _files.isNotEmpty ? _startUpload : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.warmBrown,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: Text(
-                    'Upload ${_files.length} File(s)',
-                    style: AppTypography.button.copyWith(color: Colors.white),
-                  ),
-                ),
+              StyledPillButton(
+                label: 'Upload ${_files.length} File(s)',
+                onPressed: _files.isNotEmpty ? _startUpload : null,
+                variant: StyledPillButtonVariant.filled,
               ),
             ],
           ),
@@ -799,31 +828,40 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
               children: [
                 // Title input
                 Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(
-                      color: AppColors.borderPrimary,
-                      width: 1,
-                    ),
-                  ),
+                  constraints: const BoxConstraints(maxWidth: 500),
                   child: TextFormField(
                     initialValue: file.title,
                     onChanged: (value) => _updateTitle(index, value),
+                    style: AppTypography.body.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
                     decoration: InputDecoration(
                       labelText: 'Title',
-                      labelStyle: TextStyle(color: AppColors.textSecondary),
-                      filled: false,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                      labelStyle: AppTypography.body.copyWith(
+                        color: AppColors.textSecondary,
                       ),
-                    ),
-                    style: AppTypography.body.copyWith(
-                      color: AppColors.primaryDark,
+                      hintText: 'Enter title',
+                      hintStyle: AppTypography.body.copyWith(
+                        color: AppColors.textSecondary.withOpacity(0.6),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(999),
+                        borderSide: BorderSide(color: AppColors.borderPrimary),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(999),
+                        borderSide: BorderSide(color: AppColors.borderPrimary),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(999),
+                        borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.large,
+                        vertical: 14,
+                      ),
                     ),
                   ),
                 ),
@@ -926,8 +964,15 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
           ),
           const SizedBox(height: AppSpacing.large),
           // Individual file progress
-          SizedBox(
-            height: 400,
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: ResponsiveUtils.getResponsiveValue(
+                context: context,
+                mobile: 300.0,
+                tablet: 350.0,
+                desktop: 400.0,
+              ),
+            ),
             child: ListView.builder(
               itemCount: _files.length,
               itemBuilder: (context, index) {
@@ -1109,35 +1154,18 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
           // Action buttons
           const SizedBox(height: AppSpacing.large),
           Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _reset,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.warmBrown,
-                    side: BorderSide(color: AppColors.warmBrown),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: const Text('Upload More'),
-                ),
+              StyledPillButton(
+                label: 'Upload More',
+                onPressed: _reset,
+                variant: StyledPillButtonVariant.outlined,
               ),
               const SizedBox(width: AppSpacing.medium),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.warmBrown,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: const Text('Done'),
-                ),
+              StyledPillButton(
+                label: 'Done',
+                onPressed: () => Navigator.pop(context),
+                variant: StyledPillButtonVariant.filled,
               ),
             ],
           ),

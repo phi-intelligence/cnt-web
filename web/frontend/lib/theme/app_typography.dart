@@ -38,69 +38,104 @@ class AppTypography {
   static const double lineHeightRelaxed = 1.625;
   static const double lineHeightLoose = 2.0;
 
+  // Font fallbacks for when Inter fails to load
+  static const List<String> _fontFallbacks = ['Roboto', 'Arial', 'sans-serif'];
+
+  /// Safe wrapper for GoogleFonts.inter() with fallback handling
+  /// Prevents CanvasKit errors when Inter font fails to load
+  static TextStyle _safeInter({
+    required double fontSize,
+    required FontWeight fontWeight,
+    required double height,
+    double? letterSpacing,
+  }) {
+    try {
+      // Get TextStyle from GoogleFonts and add fallback fonts
+      return GoogleFonts.inter(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        height: height,
+        letterSpacing: letterSpacing,
+      ).copyWith(
+        fontFamilyFallback: _fontFallbacks,
+      );
+    } catch (e) {
+      // Fallback to system fonts if Google Fonts fails
+      // This prevents CanvasKit "Aborted()" errors
+      return TextStyle(
+        fontFamily: 'Roboto',
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        height: height,
+        letterSpacing: letterSpacing,
+        fontFamilyFallback: ['Arial', 'sans-serif'],
+      );
+    }
+  }
+
   // Text styles for common use cases
-  static TextStyle get heroTitle => GoogleFonts.inter(
+  static TextStyle get heroTitle => _safeInter(
         fontSize: fontSize4XL,
         fontWeight: fontWeightBold,
         height: lineHeightTight,
       );
 
-  static TextStyle get heading1 => GoogleFonts.inter(
+  static TextStyle get heading1 => _safeInter(
         fontSize: fontSize3XL,
         fontWeight: fontWeightBold,
         height: lineHeightTight,
       );
 
-  static TextStyle get heading2 => GoogleFonts.inter(
+  static TextStyle get heading2 => _safeInter(
         fontSize: fontSize2XL,
         fontWeight: fontWeightBold,
         height: lineHeightTight,
       );
 
-  static TextStyle get heading3 => GoogleFonts.inter(
+  static TextStyle get heading3 => _safeInter(
         fontSize: fontSizeXL,
         fontWeight: fontWeightSemibold,
         height: lineHeightSnug,
       );
 
-  static TextStyle get heading4 => GoogleFonts.inter(
+  static TextStyle get heading4 => _safeInter(
         fontSize: fontSizeLG,
         fontWeight: fontWeightSemibold,
         height: lineHeightNormal,
       );
 
-  static TextStyle get body => GoogleFonts.inter(
+  static TextStyle get body => _safeInter(
         fontSize: fontSizeBase,
         fontWeight: fontWeightNormal,
         height: lineHeightNormal,
       );
 
-  static TextStyle get bodyMedium => GoogleFonts.inter(
+  static TextStyle get bodyMedium => _safeInter(
         fontSize: fontSizeBase,
         fontWeight: fontWeightMedium,
         height: lineHeightNormal,
       );
 
-  static TextStyle get bodySmall => GoogleFonts.inter(
+  static TextStyle get bodySmall => _safeInter(
         fontSize: fontSizeSM,
         fontWeight: fontWeightNormal,
         height: lineHeightNormal,
       );
 
-  static TextStyle get caption => GoogleFonts.inter(
+  static TextStyle get caption => _safeInter(
         fontSize: fontSizeXS,
         fontWeight: fontWeightNormal,
         height: lineHeightNormal,
       );
 
-  static TextStyle get button => GoogleFonts.inter(
+  static TextStyle get button => _safeInter(
         fontSize: fontSizeBase,
         fontWeight: fontWeightSemibold,
         height: lineHeightNormal,
         letterSpacing: 0.5,
       );
 
-  static TextStyle get label => GoogleFonts.inter(
+  static TextStyle get label => _safeInter(
         fontSize: fontSizeSM,
         fontWeight: fontWeightMedium,
         height: lineHeightNormal,
@@ -114,7 +149,7 @@ class AppTypography {
 
   static TextStyle getResponsiveHeroTitle(BuildContext context) {
     final scale = ResponsiveUtils.getFontSizeScale(context);
-    return GoogleFonts.inter(
+    return _safeInter(
       fontSize: fontSize4XL * scale,
       fontWeight: fontWeightBold,
       height: lineHeightTight,
@@ -123,7 +158,7 @@ class AppTypography {
 
   static TextStyle getResponsiveHeading1(BuildContext context) {
     final scale = ResponsiveUtils.getFontSizeScale(context);
-    return GoogleFonts.inter(
+    return _safeInter(
       fontSize: fontSize3XL * scale,
       fontWeight: fontWeightBold,
       height: lineHeightTight,
@@ -132,7 +167,7 @@ class AppTypography {
 
   static TextStyle getResponsiveHeading2(BuildContext context) {
     final scale = ResponsiveUtils.getFontSizeScale(context);
-    return GoogleFonts.inter(
+    return _safeInter(
       fontSize: fontSize2XL * scale,
       fontWeight: fontWeightBold,
       height: lineHeightTight,
@@ -141,7 +176,7 @@ class AppTypography {
 
   static TextStyle getResponsiveHeading3(BuildContext context) {
     final scale = ResponsiveUtils.getFontSizeScale(context);
-    return GoogleFonts.inter(
+    return _safeInter(
       fontSize: fontSizeXL * scale,
       fontWeight: fontWeightSemibold,
       height: lineHeightSnug,
@@ -150,7 +185,7 @@ class AppTypography {
 
   static TextStyle getResponsiveHeading4(BuildContext context) {
     final scale = ResponsiveUtils.getFontSizeScale(context);
-    return GoogleFonts.inter(
+    return _safeInter(
       fontSize: fontSizeLG * scale,
       fontWeight: fontWeightSemibold,
       height: lineHeightNormal,
@@ -159,7 +194,7 @@ class AppTypography {
 
   static TextStyle getResponsiveBody(BuildContext context) {
     final scale = ResponsiveUtils.getFontSizeScale(context);
-    return GoogleFonts.inter(
+    return _safeInter(
       fontSize: fontSizeBase * scale,
       fontWeight: fontWeightNormal,
       height: lineHeightNormal,
@@ -168,7 +203,7 @@ class AppTypography {
 
   static TextStyle getResponsiveBodyMedium(BuildContext context) {
     final scale = ResponsiveUtils.getFontSizeScale(context);
-    return GoogleFonts.inter(
+    return _safeInter(
       fontSize: fontSizeBase * scale,
       fontWeight: fontWeightMedium,
       height: lineHeightNormal,
@@ -177,7 +212,7 @@ class AppTypography {
 
   static TextStyle getResponsiveBodySmall(BuildContext context) {
     final scale = ResponsiveUtils.getFontSizeScale(context);
-    return GoogleFonts.inter(
+    return _safeInter(
       fontSize: fontSizeSM * scale,
       fontWeight: fontWeightNormal,
       height: lineHeightNormal,
@@ -186,7 +221,7 @@ class AppTypography {
 
   static TextStyle getResponsiveCaption(BuildContext context) {
     final scale = ResponsiveUtils.getFontSizeScale(context);
-    return GoogleFonts.inter(
+    return _safeInter(
       fontSize: fontSizeXS * scale,
       fontWeight: fontWeightNormal,
       height: lineHeightNormal,
@@ -195,7 +230,7 @@ class AppTypography {
 
   static TextStyle getResponsiveButton(BuildContext context) {
     final scale = ResponsiveUtils.getFontSizeScale(context);
-    return GoogleFonts.inter(
+    return _safeInter(
       fontSize: fontSizeBase * scale,
       fontWeight: fontWeightSemibold,
       height: lineHeightNormal,
@@ -205,7 +240,7 @@ class AppTypography {
 
   static TextStyle getResponsiveLabel(BuildContext context) {
     final scale = ResponsiveUtils.getFontSizeScale(context);
-    return GoogleFonts.inter(
+    return _safeInter(
       fontSize: fontSizeSM * scale,
       fontWeight: fontWeightMedium,
       height: lineHeightNormal,

@@ -15,6 +15,7 @@ import '../../providers/audio_player_provider.dart';
 import '../../services/download_service.dart';
 import '../../models/content_item.dart';
 import '../../utils/responsive_grid_delegate.dart';
+import '../../utils/responsive_utils.dart';
 
 /// Web Library Screen - Full implementation
 class LibraryScreenWeb extends StatefulWidget {
@@ -153,7 +154,12 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
 
               // Content
               Expanded(
-                child: _buildContent(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: ResponsiveUtils.getResponsiveMaxWidth(context),
+                  ),
+                  child: _buildContent(),
+                ),
               ),
             ],
           ),
@@ -205,8 +211,11 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
 
     return GridView.builder(
       padding: EdgeInsets.zero,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 5,
+      gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+        context,
+        desktop: 5,
+        tablet: 3,
+        mobile: 2,
         childAspectRatio: 0.75,
         crossAxisSpacing: AppSpacing.medium,
         mainAxisSpacing: AppSpacing.medium,
@@ -284,8 +293,11 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
 
         return GridView.builder(
           padding: EdgeInsets.zero,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 5,
+          gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+            context,
+            desktop: 5,
+            tablet: 3,
+            mobile: 2,
             childAspectRatio: 0.9,
             crossAxisSpacing: AppSpacing.medium,
             mainAxisSpacing: AppSpacing.medium,
@@ -352,8 +364,11 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
         if (provider.isLoading) {
           return GridView.builder(
             padding: EdgeInsets.zero,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
+            gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+              context,
+              desktop: 5,
+              tablet: 3,
+              mobile: 2,
               childAspectRatio: 0.75,
               crossAxisSpacing: AppSpacing.medium,
               mainAxisSpacing: AppSpacing.medium,
@@ -375,8 +390,11 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
 
         return GridView.builder(
           padding: EdgeInsets.zero,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 5,
+          gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+            context,
+            desktop: 5,
+            tablet: 3,
+            mobile: 2,
             childAspectRatio: 0.75,
             crossAxisSpacing: AppSpacing.medium,
             mainAxisSpacing: AppSpacing.medium,

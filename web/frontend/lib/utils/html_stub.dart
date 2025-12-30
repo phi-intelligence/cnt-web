@@ -61,3 +61,22 @@ abstract class Storage {
 /// Global window instance (stub for mobile)
 final window = Window();
 
+/// Stub Blob class for mobile platform
+class Blob {
+  final List<dynamic> data;
+  final String? type;
+  
+  Blob(this.data, [this.type]);
+}
+
+/// Stub Url class for mobile platform
+class Url {
+  static String createObjectUrlFromBlob(Blob blob) {
+    throw UnsupportedError('createObjectUrlFromBlob is not supported on mobile platform');
+  }
+  
+  static void revokeObjectUrl(String url) {
+    // No-op on mobile
+  }
+}
+
