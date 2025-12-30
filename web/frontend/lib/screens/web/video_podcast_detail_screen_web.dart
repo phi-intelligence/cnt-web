@@ -6,11 +6,10 @@ import '../../models/content_item.dart';
 import '../../services/api_service.dart';
 import '../../providers/artist_provider.dart';
 import '../../providers/playlist_provider.dart';
+import '../../providers/favorites_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
-import '../../widgets/web/section_container.dart';
-import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../widgets/shared/content_section.dart';
 import '../../screens/video/video_player_full_screen.dart';
@@ -404,182 +403,21 @@ class _VideoPodcastDetailScreenWebState
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    child: Container(
-                      padding: EdgeInsets.all(
-                        isDesktop
-                            ? AppSpacing.extraLarge * 2
-                            : (isTablet
-                                ? AppSpacing.extraLarge
-                                : AppSpacing.large),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Title
-                          Text(
-                            item.title,
-                            style: AppTypography.heading1.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: isDesktop ? 48 : (isTablet ? 36 : 28),
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: AppSpacing.small),
-
-                          // Creator name
-                          Text(
-                            'By ${item.creator}',
-                            style: AppTypography.body.copyWith(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: isDesktop ? 18 : 16,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.medium),
-
-                          // Short description (truncated)
-                          if (item.description != null &&
-                              item.description!.isNotEmpty)
-                            Text(
-                              item.description!.length > 150
-                                  ? '${item.description!.substring(0, 150)}...'
-                                  : item.description!,
-                              style: AppTypography.body.copyWith(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: isDesktop ? 16 : 14,
-                              ),
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          const SizedBox(height: AppSpacing.large),
-
-                          // Metadata row
-                          Wrap(
-                            spacing: AppSpacing.medium,
-                            runSpacing: AppSpacing.small,
-                            children: [
-                              if (item.duration != null)
-                                Text(
-                                  _formatDuration(item.duration!),
-                                  style: AppTypography.body.copyWith(
-                                    color: Colors.white.withOpacity(0.8),
-                                  ),
-                                ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryMain.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(30),
-                                  border: Border.all(
-                                    color: AppColors.primaryMain,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Text(
-                                  item.category,
-                                  style: AppTypography.caption.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              if (item.plays > 0)
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.play_arrow,
-                                      color: Colors.white70,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${item.plays} plays',
-                                      style: AppTypography.caption.copyWith(
-                                        color: Colors.white.withOpacity(0.8),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.large),
-
-                          // Action buttons
-                          Wrap(
-                            spacing: AppSpacing.medium,
-                            runSpacing: AppSpacing.medium,
-                            children: [
-                              // Play button
-                              StyledPillButton(
-                                label: 'Play',
-                                icon: Icons.play_arrow,
-                                onPressed: _handlePlay,
-                                width: isDesktop ? 200 : 150,
-                              ),
-                              // Add to List button
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.add,
-                                  color: Colors.white,
-                                  size: 32,
-                                ),
-                                onPressed: _handleAddToList,
-                                tooltip: 'Add to List',
-                              ),
-                              // Donate button
-                              if (_creatorInfo != null)
-                                StyledPillButton(
-                                  label: 'Donate',
-                                  icon: Icons.favorite,
-                                  variant: StyledPillButtonVariant.outlined,
-                                  onPressed: _handleDonate,
-                                  width: isDesktop ? 200 : 150,
-                                ),
-                              // Favorite button
-                              IconButton(
-                                icon: Icon(
-                                  item.isFavorite
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: Colors.white,
-                                  size: 32,
-                                ),
-                                onPressed: _handleFavorite,
-                                tooltip: 'Favorite',
-                              ),
-                              // Share button
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.share,
-                                  color: Colors.white,
-                                  size: 32,
-                                ),
-                                onPressed: _handleShare,
-                                tooltip: 'Share',
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                    child: _buildHeroContent(item, isDesktop, isTablet),
                   ),
 
                   // Back button
                   Positioned(
                     top: MediaQuery.of(context).padding.top + AppSpacing.medium,
-                    left: AppSpacing.medium,
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back,
-                          color: Colors.white, size: 32),
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.black.withOpacity(0.5),
+                    left: AppSpacing.large,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.of(context).pop(),
                       ),
                     ),
                   ),
@@ -590,357 +428,405 @@ class _VideoPodcastDetailScreenWebState
 
           // Content Section
           SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(
-                isDesktop
-                    ? AppSpacing.extraLarge * 2
-                    : (isTablet ? AppSpacing.extraLarge : AppSpacing.large),
+            child: _buildContentSection(item, isDesktop, isTablet),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroContent(ContentItem item, bool isDesktop, bool isTablet) {
+    final horizontalPadding = isDesktop ? 80.0 : (isTablet ? 40.0 : 24.0);
+    
+    return Padding(
+      padding: EdgeInsets.fromLTRB(horizontalPadding, 0, horizontalPadding, 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Category badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.warmBrown,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              item.category.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
               ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.medium),
+
+          // Title
+          Text(
+            item.title,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: isDesktop ? 48 : (isTablet ? 36 : 28),
+              height: 1.1,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: AppSpacing.medium),
+
+          // Metadata row
+          _buildMetadataRow(item),
+          const SizedBox(height: AppSpacing.large),
+
+          // Description preview
+          if (item.description != null && item.description!.isNotEmpty)
+            Text(
+              item.description!.length > 180
+                  ? '${item.description!.substring(0, 180)}...'
+                  : item.description!,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.85),
+                fontSize: isDesktop ? 16 : 14,
+                height: 1.5,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          const SizedBox(height: AppSpacing.extraLarge),
+
+          // Action buttons
+          _buildActionButtons(isDesktop),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(bool isDesktop) {
+    return Consumer<FavoritesProvider>(
+      builder: (context, favoritesProvider, _) {
+        final isFavorite = favoritesProvider.isFavorite(widget.item.id);
+        
+        return Wrap(
+          spacing: AppSpacing.medium,
+          runSpacing: AppSpacing.medium,
+          children: [
+            // Add to List button
+            _buildSecondaryButton(
+              icon: Icons.add,
+              onTap: _handleAddToList,
+              tooltip: 'Add to List',
+            ),
+            // Favorite button
+            _buildSecondaryButton(
+              icon: isFavorite ? Icons.favorite : Icons.favorite_border,
+              onTap: _handleFavorite,
+              tooltip: isFavorite ? 'Remove from Favorites' : 'Add to Favorites',
+              isActive: isFavorite,
+            ),
+            // Share button
+            _buildSecondaryButton(
+              icon: Icons.share,
+              onTap: _handleShare,
+              tooltip: 'Share',
+            ),
+            // Donate button
+            if (_creatorInfo != null)
+              _buildSecondaryButton(
+                icon: Icons.volunteer_activism,
+                onTap: _handleDonate,
+                tooltip: 'Support Creator',
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildContentSection(ContentItem item, bool isDesktop, bool isTablet) {
+    final horizontalPadding = isDesktop ? 80.0 : (isTablet ? 40.0 : 24.0);
+    
+    return Padding(
+      padding: EdgeInsets.all(horizontalPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Creator Card
+          if (_creatorInfo != null) ...[
+            _buildCreatorCard(isDesktop),
+            const SizedBox(height: AppSpacing.extraLarge),
+          ],
+
+          // Description
+          if (item.description != null && item.description!.isNotEmpty) ...[
+            _buildInfoCard(
+              title: 'About This Podcast',
+              child: Text(
+                item.description!,
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textSecondary,
+                  height: 1.7,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.extraLarge),
+          ],
+
+          // Similar Content
+          if (_similarPodcasts.isNotEmpty) ...[
+            Text(
+              'You Might Also Like',
+              style: AppTypography.heading3.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.large),
+            ContentSection(
+              title: '',
+              items: _similarPodcasts,
+              isHorizontal: true,
+              onItemTap: (similarItem) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => VideoPodcastDetailScreenWeb(
+                      item: similarItem,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ] else if (_isLoadingSimilar) ...[
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(AppSpacing.large),
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.warmBrown),
+                ),
+              ),
+            ),
+          ],
+          
+          const SizedBox(height: AppSpacing.extraLarge),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCreatorCard(bool isDesktop) {
+    final isMobile = MediaQuery.of(context).size.width < 768;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.large),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: isMobile 
+      ? Column( // Mobile Layout
+          children: [
+             Row(
+               children: [
+                 // Avatar
+                 GestureDetector(
+                   onTap: () => _navigateToCreatorProfile(),
+                   child: Container(
+                     width: 56,
+                     height: 56,
+                     decoration: BoxDecoration(
+                       shape: BoxShape.circle,
+                       gradient: LinearGradient(
+                         colors: [AppColors.warmBrown, AppColors.warmBrown.withOpacity(0.7)],
+                       ),
+                     ),
+                     child: ClipOval(
+                       child: _creatorInfo!['avatar'] != null
+                           ? Image.network(
+                               _apiService.getMediaUrl(_creatorInfo!['avatar']),
+                               fit: BoxFit.cover,
+                               errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white, size: 32),
+                             )
+                           : const Icon(Icons.person, color: Colors.white, size: 32),
+                     ),
+                   ),
+                 ),
+                 const SizedBox(width: AppSpacing.large),
+                 
+                 // Creator info
+                 Expanded(
+                   child: GestureDetector(
+                     onTap: () => _navigateToCreatorProfile(),
+                     child: Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                         Text(
+                           'Created by',
+                           style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                         ),
+                         const SizedBox(height: 4),
+                         Row(
+                           children: [
+                             Flexible(
+                               child: Text(
+                                 _creatorInfo!['name'] ?? widget.item.creator,
+                                 style: AppTypography.heading4.copyWith(
+                                   fontWeight: FontWeight.bold,
+                                   color: AppColors.textPrimary,
+                                 ),
+                                 overflow: TextOverflow.ellipsis,
+                               ),
+                             ),
+                             const SizedBox(width: AppSpacing.small),
+                             Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.warmBrown),
+                           ],
+                         ),
+                         if (_creatorInfo!['bio'] != null && _creatorInfo!['bio'].toString().isNotEmpty) ...[
+                           const SizedBox(height: 4),
+                           Text(
+                             _creatorInfo!['bio'],
+                             style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                             maxLines: 1,
+                             overflow: TextOverflow.ellipsis,
+                           ),
+                         ],
+                       ],
+                     ),
+                   ),
+                 ),
+               ],
+             ),
+             const SizedBox(height: AppSpacing.large),
+             
+             // Donate button (Full Width)
+             SizedBox(
+               width: double.infinity,
+               child: StyledPillButton(
+                 label: 'Donate',
+                 icon: Icons.favorite,
+                 onPressed: _handleDonate,
+               ),
+             ),
+          ],
+        )
+      : Row( // Desktop/Tablet Layout
+        children: [
+          // Avatar
+          GestureDetector(
+            onTap: () => _navigateToCreatorProfile(),
+            child: Container(
+              width: isDesktop ? 70 : 56,
+              height: isDesktop ? 70 : 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [AppColors.warmBrown, AppColors.warmBrown.withOpacity(0.7)],
+                ),
+              ),
+              child: ClipOval(
+                child: _creatorInfo!['avatar'] != null
+                    ? Image.network(
+                        _apiService.getMediaUrl(_creatorInfo!['avatar']),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.large),
+          
+          // Creator info
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _navigateToCreatorProfile(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Creator/User Information Card
-                  if (_creatorInfo != null) ...[
-                    SectionContainer(
-                      child: screenWidth < 768
-                          ? Column(
-                              // Mobile Layout
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Clickable Creator Info
-                                InkWell(
-                                  onTap: () async {
-                                    if (_creatorInfo!['id'] != null) {
-                                      // Fetch artist profile by user ID
-                                      final artistProvider =
-                                          context.read<ArtistProvider>();
-                                      final artist = await artistProvider
-                                          .fetchArtistByUserId(
-                                              _creatorInfo!['id']);
-
-                                      if (artist != null && mounted) {
-                                        context.go('/artist/${artist.id}');
-                                      } else if (mounted) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                              content: Text(
-                                                  'Creator profile not found')),
-                                        );
-                                      }
-                                    }
-                                  },
-                                  borderRadius: BorderRadius.circular(
-                                      AppSpacing.radiusMedium),
-                                  child: Padding(
-                                    padding: EdgeInsets.all(AppSpacing.medium),
-                                    child: Row(
-                                      children: [
-                                        // Avatar
-                                        CircleAvatar(
-                                          radius: 30,
-                                          backgroundColor: AppColors.primaryMain
-                                              .withOpacity(0.2),
-                                          backgroundImage: _creatorInfo![
-                                                      'avatar'] !=
-                                                  null
-                                              ? NetworkImage(
-                                                  _apiService.getMediaUrl(
-                                                      _creatorInfo!['avatar']))
-                                              : null,
-                                          child: _creatorInfo!['avatar'] == null
-                                              ? Icon(Icons.person,
-                                                  size: 30,
-                                                  color: AppColors.primaryMain)
-                                              : null,
-                                        ),
-                                        const SizedBox(width: AppSpacing.large),
-                                        // Creator info
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Flexible(
-                                                    child: Text(
-                                                      _creatorInfo!['name'] ??
-                                                          item.creator,
-                                                      style: AppTypography
-                                                          .heading3
-                                                          .copyWith(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color: AppColors
-                                                            .primaryMain,
-                                                      ),
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                  SizedBox(
-                                                      width: AppSpacing.small),
-                                                  Icon(
-                                                    Icons.arrow_forward_ios,
-                                                    size: 16,
-                                                    color:
-                                                        AppColors.primaryMain,
-                                                  ),
-                                                ],
-                                              ),
-                                              SizedBox(height: 4),
-                                              Text(
-                                                'View Creator Profile',
-                                                style: AppTypography.caption
-                                                    .copyWith(
-                                                  color:
-                                                      AppColors.textSecondary,
-                                                ),
-                                              ),
-                                              if (_creatorInfo!['bio'] !=
-                                                      null &&
-                                                  _creatorInfo!['bio']
-                                                      .toString()
-                                                      .isNotEmpty) ...[
-                                                const SizedBox(
-                                                    height: AppSpacing.small),
-                                                Text(
-                                                  _creatorInfo!['bio'],
-                                                  style: AppTypography.body
-                                                      .copyWith(
-                                                    color:
-                                                        AppColors.textSecondary,
-                                                  ),
-                                                  maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                // Donate button (Full width on mobile)
-                                Padding(
-                                  padding: EdgeInsets.all(AppSpacing.medium),
-                                  child: SizedBox(
-                                    width: double.infinity,
-                                    child: StyledPillButton(
-                                      label: 'Donate',
-                                      icon: Icons.favorite,
-                                      onPressed: _handleDonate,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : Row(
-                              // Desktop/Tablet Layout
-                              children: [
-                                // Clickable Creator Info
-                                Expanded(
-                                  child: InkWell(
-                                    onTap: () async {
-                                      if (_creatorInfo!['id'] != null) {
-                                        // Fetch artist profile by user ID
-                                        final artistProvider =
-                                            context.read<ArtistProvider>();
-                                        final artist = await artistProvider
-                                            .fetchArtistByUserId(
-                                                _creatorInfo!['id']);
-
-                                        if (artist != null && mounted) {
-                                          context.go('/artist/${artist.id}');
-                                        } else if (mounted) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                                content: Text(
-                                                    'Creator profile not found')),
-                                          );
-                                        }
-                                      }
-                                    },
-                                    borderRadius: BorderRadius.circular(
-                                        AppSpacing.radiusMedium),
-                                    child: Padding(
-                                      padding:
-                                          EdgeInsets.all(AppSpacing.medium),
-                                      child: Row(
-                                        children: [
-                                          // Avatar
-                                          CircleAvatar(
-                                            radius: isDesktop ? 40 : 30,
-                                            backgroundColor: AppColors
-                                                .primaryMain
-                                                .withOpacity(0.2),
-                                            backgroundImage:
-                                                _creatorInfo!['avatar'] != null
-                                                    ? NetworkImage(
-                                                        _apiService.getMediaUrl(
-                                                            _creatorInfo![
-                                                                'avatar']))
-                                                    : null,
-                                            child: _creatorInfo!['avatar'] ==
-                                                    null
-                                                ? Icon(
-                                                    Icons.person,
-                                                    size: isDesktop ? 40 : 30,
-                                                    color:
-                                                        AppColors.primaryMain,
-                                                  )
-                                                : null,
-                                          ),
-                                          const SizedBox(
-                                              width: AppSpacing.large),
-                                          // Creator info
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Row(
-                                                  children: [
-                                                    Text(
-                                                      _creatorInfo!['name'] ??
-                                                          item.creator,
-                                                      style: AppTypography
-                                                          .heading3
-                                                          .copyWith(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color: AppColors
-                                                            .primaryMain,
-                                                      ),
-                                                    ),
-                                                    SizedBox(
-                                                        width:
-                                                            AppSpacing.small),
-                                                    Icon(
-                                                      Icons.arrow_forward_ios,
-                                                      size: 16,
-                                                      color:
-                                                          AppColors.primaryMain,
-                                                    ),
-                                                  ],
-                                                ),
-                                                SizedBox(height: 4),
-                                                Text(
-                                                  'View Creator Profile',
-                                                  style: AppTypography.caption
-                                                      .copyWith(
-                                                    color:
-                                                        AppColors.textSecondary,
-                                                  ),
-                                                ),
-                                                if (_creatorInfo!['bio'] !=
-                                                        null &&
-                                                    _creatorInfo!['bio']
-                                                        .toString()
-                                                        .isNotEmpty) ...[
-                                                  const SizedBox(
-                                                      height: AppSpacing.small),
-                                                  Text(
-                                                    _creatorInfo!['bio'],
-                                                    style: AppTypography.body
-                                                        .copyWith(
-                                                      color: AppColors
-                                                          .textSecondary,
-                                                    ),
-                                                    maxLines: 2,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                // Donate button
-                                Padding(
-                                  padding: EdgeInsets.all(AppSpacing.medium),
-                                  child: StyledPillButton(
-                                    label: 'Donate',
-                                    icon: Icons.favorite,
-                                    onPressed: _handleDonate,
-                                  ),
-                                ),
-                              ],
-                            ),
+                  Text(
+                    'Created by',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textTertiary,
                     ),
-                    const SizedBox(height: AppSpacing.extraLarge),
-                  ],
-
-                  // Full Description
-                  if (item.description != null &&
-                      item.description!.isNotEmpty) ...[
-                    SectionContainer(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          StyledPageHeader(
-                            title: 'Description',
-                            size: StyledPageHeaderSize.h2,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          _creatorInfo!['name'] ?? widget.item.creator,
+                          style: AppTypography.heading4.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
                           ),
-                          const SizedBox(height: AppSpacing.medium),
-                          Text(
-                            item.description!,
-                            style: AppTypography.body.copyWith(
-                              color: AppColors.textSecondary,
-                              height: 1.6,
-                            ),
-                          ),
-                        ],
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.extraLarge),
-                  ],
-
-                  // Similar Content Section
-                  if (_similarPodcasts.isNotEmpty) ...[
-                    StyledPageHeader(
-                      title: 'Similar Podcasts',
-                      size: StyledPageHeaderSize.h2,
-                    ),
-                    const SizedBox(height: AppSpacing.large),
-                    ContentSection(
-                      title: '',
-                      items: _similarPodcasts,
-                      isHorizontal: true,
-                      onItemTap: (similarItem) {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => VideoPodcastDetailScreenWeb(
-                              item: similarItem,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ] else if (_isLoadingSimilar) ...[
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(AppSpacing.large),
-                        child: CircularProgressIndicator(),
+                      const SizedBox(width: AppSpacing.small),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size: 14,
+                        color: AppColors.warmBrown,
                       ),
+                    ],
+                  ),
+                  if (_creatorInfo!['bio'] != null && _creatorInfo!['bio'].toString().isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      _creatorInfo!['bio'],
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ],
               ),
             ),
           ),
+          
+          // Donate button
+          StyledPillButton(
+            label: 'Donate',
+            icon: Icons.favorite,
+            onPressed: _handleDonate,
+          ),
         ],
       ),
     );
+  }
+
+  void _navigateToCreatorProfile() async {
+    if (_creatorInfo!['id'] != null) {
+      final artistProvider = context.read<ArtistProvider>();
+      final artist = await artistProvider.fetchArtistByUserId(_creatorInfo!['id']);
+      
+      if (artist != null && mounted) {
+        context.go('/artist/${artist.id}');
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Creator profile not found')),
+        );
+      }
+    }
   }
 
   String _formatDuration(Duration duration) {
@@ -952,6 +838,123 @@ class _VideoPodcastDetailScreenWebState
     } else {
       return '${minutes}m';
     }
+  }
+
+  Widget _buildMetadataRow(ContentItem item) {
+    return Wrap(
+      spacing: AppSpacing.medium,
+      runSpacing: AppSpacing.small,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        if (item.duration != null)
+          _buildMetadataChip(
+            icon: Icons.schedule,
+            text: _formatDuration(item.duration!),
+          ),
+        if (item.plays > 0)
+          _buildMetadataChip(
+            icon: Icons.play_arrow,
+            text: '${item.plays} plays',
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMetadataChip({required IconData icon, required String text, Color? iconColor}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: iconColor ?? Colors.white.withOpacity(0.9)),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecondaryButton({
+    required IconData icon, 
+    required VoidCallback onTap,
+    String? tooltip,
+    bool isActive = false,
+  }) {
+    final button = GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: isActive 
+              ? AppColors.warmBrown.withOpacity(0.3) 
+              : Colors.white.withOpacity(0.15),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isActive 
+                ? AppColors.warmBrown 
+                : Colors.white.withOpacity(0.3), 
+            width: 1,
+          ),
+        ),
+        child: Icon(
+          icon, 
+          color: isActive ? AppColors.warmBrown : Colors.white, 
+          size: 24,
+        ),
+      ),
+    );
+    
+    if (tooltip != null) {
+      return Tooltip(
+        message: tooltip,
+        child: button,
+      );
+    }
+    return button;
+  }
+
+  Widget _buildInfoCard({required String title, required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.large),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: AppTypography.heading4.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.medium),
+          child,
+        ],
+      ),
+    );
   }
 }
 

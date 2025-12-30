@@ -72,31 +72,60 @@ class CreateScreenWeb extends StatelessWidget {
   }
 
   Widget _buildMobileLayout(BuildContext context) {
-    final options = _getOptionCards(context);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final isAdmin = authProvider.isAdmin;
+    
+    // Build mobile option cards
+    final List<Widget> optionCards = _getMobileOptionCards(context, isAdmin);
     
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
-      appBar: AppBar(
-        title: Text(
-          'Create',
-          style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-           color: AppColors.backgroundPrimary,
-        ),
-        child: ListView.separated(
-          padding: const EdgeInsets.all(AppSpacing.medium),
-          itemCount: options.length,
-          separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.medium),
-          itemBuilder: (context, index) {
-        return options[index];
-      },
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.large),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Create Content',
+                    style: AppTypography.heading2.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      }
+                    },
+                    color: AppColors.textSecondary,
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: AppSpacing.large),
+              
+              // 2-column Grid
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: AppSpacing.medium,
+                  mainAxisSpacing: AppSpacing.medium,
+                  childAspectRatio: 0.9,
+                ),
+                itemCount: optionCards.length,
+                itemBuilder: (context, index) => optionCards[index],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -227,6 +256,181 @@ class CreateScreenWeb extends StatelessWidget {
     }
     
     return cards;
+  }
+
+  List<Widget> _getMobileOptionCards(BuildContext context, bool isAdmin) {
+    final cards = <Widget>[
+      // 1. Audio Podcast
+      _buildMobileOptionCard(
+        context,
+        title: 'Audio',
+        icon: Icons.mic,
+        onTap: () => _navigateToScreen(
+          context,
+          const AudioPodcastCreateScreen(),
+        ),
+      ),
+      // 2. Video Podcast
+      _buildMobileOptionCard(
+        context,
+        title: 'Video',
+        icon: Icons.videocam,
+        onTap: () => _navigateToScreen(
+          context,
+          const VideoPodcastCreateScreen(),
+        ),
+      ),
+      // 3. Meeting
+      _buildMobileOptionCard(
+        context,
+        title: 'Meeting',
+        icon: Icons.group,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MeetingOptionsScreenWeb(),
+            ),
+          );
+        },
+      ),
+      // 4. Live Stream
+      _buildMobileOptionCard(
+        context,
+        title: 'Live Stream',
+        icon: Icons.live_tv,
+        onTap: () => _navigateToScreen(
+          context,
+          const LiveStreamStartScreen(),
+        ),
+      ),
+      // 5. Quote
+      _buildMobileOptionCard(
+        context,
+        title: 'Quote',
+        icon: Icons.format_quote,
+        onTap: () => _navigateToScreen(
+          context,
+          const QuoteCreateScreenWeb(),
+        ),
+      ),
+      // 6. Events
+      _buildMobileOptionCard(
+        context,
+        title: 'Events',
+        icon: Icons.event,
+        onTap: () => _navigateToScreen(
+          context,
+          const EventsListScreenWeb(),
+        ),
+      ),
+      // 7. My Drafts
+      _buildMobileOptionCard(
+        context,
+        title: 'My Drafts',
+        icon: Icons.drafts_outlined,
+        onTap: () => context.push('/my-drafts'),
+      ),
+      // 8. Movie
+      _buildMobileOptionCard(
+        context,
+        title: 'Movie',
+        icon: Icons.movie,
+        onTap: () => _navigateToScreen(
+          context,
+          const MovieCreateScreen(),
+        ),
+      ),
+    ];
+    
+    // Add Bulk Upload card for admins only
+    if (isAdmin) {
+      cards.add(
+        _buildMobileOptionCard(
+          context,
+          title: 'Bulk Upload',
+          icon: Icons.cloud_upload,
+          isAdminFeature: true,
+          onTap: () => _navigateToScreen(
+            context,
+            const BulkUploadScreen(),
+          ),
+        ),
+      );
+    }
+    
+    return cards;
+  }
+
+  Widget _buildMobileOptionCard(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+    bool isAdminFeature = false,
+  }) {
+    final cardColor = isAdminFeature ? Colors.red.shade700 : AppColors.warmBrown;
+    
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.large),
+        decoration: BoxDecoration(
+          color: cardColor.withOpacity(0.95),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: cardColor.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 28),
+                ),
+                if (isAdminFeature)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'ADMIN',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            Text(
+              title,
+              style: AppTypography.heading3.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildOptionCard(
