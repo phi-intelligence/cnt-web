@@ -182,6 +182,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget _buildDesktopLayout(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Row(
         children: [
           // Left: Form (40%)

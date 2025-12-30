@@ -196,6 +196,7 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
 
   Widget _buildDesktopLayout(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Row(
         children: [
           // Left Side - Form (40% width)

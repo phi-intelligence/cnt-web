@@ -350,6 +350,7 @@ class _ScheduledMeetingsListScreenState extends State<ScheduledMeetingsListScree
   Widget _buildDesktopLayout() {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),

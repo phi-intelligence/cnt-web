@@ -64,6 +64,7 @@ class _LiveStreamOptionsScreenWebState extends State<LiveStreamOptionsScreenWeb>
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Container(
         padding: ResponsiveGridDelegate.getResponsivePadding(context),
         child: Column(

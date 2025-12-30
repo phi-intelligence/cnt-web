@@ -172,7 +172,7 @@ class _SearchScreenWebState extends State<SearchScreenWeb> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false, AppColors.backgroundPrimary,
       body: SafeArea(
         child: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),

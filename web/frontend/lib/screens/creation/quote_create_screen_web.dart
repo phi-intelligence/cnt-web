@@ -376,7 +376,8 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.backgroundPrimary,
+      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
         body: Stack(
           children: [
             // Background pattern/gradient

@@ -36,7 +36,7 @@ class _StreamCreationScreenState extends State<StreamCreationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false, AppColors.backgroundPrimary,
       appBar: AppBar(
         backgroundColor: AppColors.backgroundPrimary,
         elevation: 0,

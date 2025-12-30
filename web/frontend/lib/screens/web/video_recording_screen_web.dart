@@ -377,6 +377,7 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Container(
         padding: ResponsiveGridDelegate.getResponsivePadding(context),
         child: Column(

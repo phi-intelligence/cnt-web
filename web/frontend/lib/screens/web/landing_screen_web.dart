@@ -165,6 +165,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: SingleChildScrollView(
         child: Column(
           children: [

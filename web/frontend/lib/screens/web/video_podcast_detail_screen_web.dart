@@ -56,6 +56,17 @@ class _VideoPodcastDetailScreenWebState
     _loadCreatorInfo();
     _loadSimilarPodcasts();
     _initializePreview();
+    _checkFavoriteStatus();
+  }
+  
+  Future<void> _checkFavoriteStatus() async {
+    // Check favorite status when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final favoritesProvider = context.read<FavoritesProvider>();
+        favoritesProvider.checkFavoriteStatus(widget.item);
+      }
+    });
   }
 
   @override
@@ -246,7 +257,6 @@ class _VideoPodcastDetailScreenWebState
           initialIndex: initialIndex >= 0 ? initialIndex : 0,
           onBack: () => Navigator.of(context).pop(),
           onDonate: _handleDonate,
-          onFavorite: _handleFavorite,
           onSeek: null,
         ),
       ),
@@ -282,10 +292,26 @@ class _VideoPodcastDetailScreenWebState
     );
   }
 
-  void _handleFavorite() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${widget.item.title} added to favorites')),
-    );
+  Future<void> _handleFavorite() async {
+    final favoritesProvider = context.read<FavoritesProvider>();
+    final isFavorite = favoritesProvider.isFavorite(widget.item.id);
+    
+    final success = await favoritesProvider.toggleFavorite(widget.item);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success 
+                ? (isFavorite 
+                    ? 'Removed from favorites' 
+                    : 'Added to favorites')
+                : 'Failed to update favorites',
+          ),
+          backgroundColor: success ? AppColors.successMain : AppColors.errorMain,
+        ),
+      );
+    }
   }
 
   Future<void> _handleAddToList() async {
@@ -308,8 +334,7 @@ class _VideoPodcastDetailScreenWebState
                 content: Text(
                   success ? 'Added to playlist' : 'Failed to add to playlist',
                 ),
-                backgroundColor:
-                    success ? AppColors.successMain : AppColors.errorMain,
+                backgroundColor: success ? AppColors.successMain : AppColors.errorMain,
               ),
             );
           }
@@ -336,6 +361,7 @@ class _VideoPodcastDetailScreenWebState
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: CustomScrollView(
         slivers: [
           // Hero Section with Video Preview
@@ -1167,8 +1193,7 @@ class _PlaylistSelectionDialogState extends State<_PlaylistSelectionDialog> {
                                                   SnackBar(
                                                     content: const Text(
                                                         'Failed to create playlist'),
-                                                    backgroundColor:
-                                                        AppColors.errorMain,
+                                                    backgroundColor: AppColors.errorMain,
                                                   ),
                                                 );
                                               }
@@ -1183,8 +1208,7 @@ class _PlaylistSelectionDialogState extends State<_PlaylistSelectionDialog> {
                                                 SnackBar(
                                                   content: Text(
                                                       'Error: ${e.toString()}'),
-                                                  backgroundColor:
-                                                      AppColors.errorMain,
+                                                  backgroundColor: AppColors.errorMain,
                                                 ),
                                               );
                                             }

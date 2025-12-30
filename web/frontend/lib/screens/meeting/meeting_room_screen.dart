@@ -568,7 +568,8 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
   Widget build(BuildContext context) {
     if (_joining) {
       return Scaffold(
-        backgroundColor: Colors.black,
+      backgroundColor: Colors.black,
+      resizeToAvoidBottomInset: false,
         body: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

@@ -292,6 +292,7 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0E8),
+      resizeToAvoidBottomInset: false,
       body: SizedBox(
         width: double.infinity,
         height: screenHeight,

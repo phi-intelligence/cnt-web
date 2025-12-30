@@ -221,6 +221,7 @@ class _VoiceAgentScreenWebState extends State<VoiceAgentScreenWeb> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: _buildSimplifiedBody(),
       ),

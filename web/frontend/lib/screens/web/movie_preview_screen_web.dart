@@ -583,6 +583,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Container(
         padding: ResponsiveGridDelegate.getResponsivePadding(context),
         child: Column(

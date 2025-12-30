@@ -22,7 +22,8 @@ class AdminWebLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundSecondary, // Slightly darker background for the main area to make cards pop
+      backgroundColor: AppColors.backgroundPrimary, // White background for light theme
+      resizeToAvoidBottomInset: false,
       body: Row(
         children: [
           // Sidebar

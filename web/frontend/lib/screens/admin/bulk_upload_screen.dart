@@ -301,7 +301,8 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
 
     if (!authProvider.isAdmin) {
       return Scaffold(
-        backgroundColor: AppColors.backgroundPrimary,
+      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
         appBar: AppBar(
           title: const Text('Access Denied'),
           backgroundColor: AppColors.backgroundSecondary,

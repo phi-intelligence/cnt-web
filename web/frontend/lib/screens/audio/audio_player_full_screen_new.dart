@@ -40,6 +40,7 @@ class _AudioPlayerFullScreenNewState extends State<AudioPlayerFullScreenNew> {
       });
       return Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
+        resizeToAvoidBottomInset: false,
         body: const Center(
           child: CircularProgressIndicator(),
         ),

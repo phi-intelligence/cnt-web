@@ -381,6 +381,7 @@ class _GoogleDrivePickerScreenState extends State<GoogleDrivePickerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(
           widget.fileType != null

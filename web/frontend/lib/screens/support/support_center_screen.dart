@@ -83,6 +83,7 @@ class _SupportCenterScreenState extends State<SupportCenterScreen> {
     
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Container(
         padding: ResponsiveGridDelegate.getResponsivePadding(context),
         width: double.infinity,

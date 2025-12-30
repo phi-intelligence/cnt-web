@@ -190,7 +190,7 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
     final room = _meetingService.currentRoom;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      resizeToAvoidBottomInset: false, Colors.black,
       body: Stack(
         children: [
           // Video preview

@@ -156,7 +156,7 @@ class _LocationPickerScreenWebState extends State<LocationPickerScreenWeb> {
     final isMediumScreen = screenWidth > 768;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false, AppColors.backgroundPrimary,
       appBar: AppBar(
         backgroundColor: AppColors.backgroundPrimary,
         elevation: 0,

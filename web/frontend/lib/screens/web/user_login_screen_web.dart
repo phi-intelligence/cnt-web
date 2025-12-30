@@ -62,7 +62,7 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
     final isMobile = ResponsiveUtils.isMobile(context);
     
     return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false, AppColors.backgroundPrimary,
       body: Center(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(isSmallMobile ? 12.0 : 24.0),

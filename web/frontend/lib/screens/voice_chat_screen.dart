@@ -21,7 +21,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false, AppColors.backgroundPrimary,
       body: VoiceResponsiveLayout(
         agentState: _isListening ? 'listening' : _isProcessing ? 'thinking' : 'ready',
         isLoading: _isProcessing,

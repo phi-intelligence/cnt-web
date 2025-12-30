@@ -176,6 +176,7 @@ class _AdminCommissionSettingsPageState extends State<AdminCommissionSettingsPag
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Container(
         padding: isMobile 
             ? const EdgeInsets.all(AppSpacing.medium)
@@ -545,6 +546,7 @@ class _AdminCommissionSettingsPageState extends State<AdminCommissionSettingsPag
         TextFormField(
           initialValue: initialValue,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: const TextStyle(color: Colors.black),
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
           ],
@@ -563,10 +565,6 @@ class _AdminCommissionSettingsPageState extends State<AdminCommissionSettingsPag
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             isDense: true,
-          ),
-          style: AppTypography.heading3.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
           ),
           onChanged: onChanged,
           validator: validator,

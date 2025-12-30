@@ -17,11 +17,11 @@ class StreamNotificationBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<NotificationProvider>(
       builder: (context, notificationProvider, _) {
-        if (!notificationProvider.hasNotification) {
+        if (!notificationProvider.hasLiveStreamNotification) {
           return const SizedBox.shrink();
         }
 
-        final notification = notificationProvider.currentNotification!;
+        final notification = notificationProvider.currentLiveStreamNotification!;
         final isMobile = ResponsiveUtils.isMobile(context);
         
         final margin = ResponsiveUtils.getResponsivePadding(context, AppSpacing.medium);
@@ -126,7 +126,7 @@ class StreamNotificationBanner extends StatelessWidget {
             const SizedBox(width: AppSpacing.small),
             // Dismiss button
             IconButton(
-              onPressed: () => notificationProvider.dismissNotification(),
+              onPressed: () => notificationProvider.dismissLiveStreamNotification(),
               icon: const Icon(Icons.close, color: Colors.white, size: 20),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(
@@ -176,7 +176,7 @@ class StreamNotificationBanner extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  onPressed: () => notificationProvider.dismissNotification(),
+                  onPressed: () => notificationProvider.dismissLiveStreamNotification(),
                   icon: const Icon(Icons.close, color: Colors.white, size: 18),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(
@@ -251,7 +251,7 @@ class StreamNotificationBanner extends StatelessWidget {
       if (!context.mounted) return;
 
       // Dismiss notification
-      context.read<NotificationProvider>().dismissNotification();
+      context.read<NotificationProvider>().dismissLiveStreamNotification();
 
       // Navigate to prejoin screen (mic/cam OFF by default for participants)
       Navigator.push(

@@ -361,7 +361,8 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
     if (kIsWeb) {
       // Web version with horizontal layout matching VideoPreviewScreenWeb
       return Scaffold(
-        backgroundColor: AppColors.backgroundPrimary,
+      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
         body: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),
           child: Column(

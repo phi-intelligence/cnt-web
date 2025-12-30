@@ -19,6 +19,7 @@ class LiveStreamStartScreen extends StatelessWidget {
     });
 
     return const Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Center(
         child: CircularProgressIndicator(),
       ),

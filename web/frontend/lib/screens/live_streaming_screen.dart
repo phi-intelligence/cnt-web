@@ -38,7 +38,7 @@ class _LiveStreamingScreenState extends State<LiveStreamingScreen> with SingleTi
     if (kIsWeb) {
       // Web version with design system
       return Scaffold(
-        backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false, AppColors.backgroundPrimary,
         body: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),
           child: Column(

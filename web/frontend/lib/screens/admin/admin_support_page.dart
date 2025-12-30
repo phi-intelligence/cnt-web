@@ -102,6 +102,7 @@ class _AdminSupportPageState extends State<AdminSupportPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: RefreshIndicator(
         onRefresh: _refresh,
         color: AppColors.primaryMain,
@@ -514,6 +515,7 @@ class _AdminSupportPageState extends State<AdminSupportPage> {
                 const SizedBox(height: AppSpacing.medium),
                 TextField(
                   controller: controller,
+                  style: const TextStyle(color: Colors.black),
                   maxLines: 4,
                   decoration: InputDecoration(
                     labelText: 'Reply to ${message.user?.name ?? 'user'}',
@@ -565,6 +567,7 @@ class _AdminSupportPageState extends State<AdminSupportPage> {
           const SizedBox(height: AppSpacing.medium),
           TextField(
             controller: controller,
+            style: const TextStyle(color: Colors.black),
             maxLines: 4,
             decoration: InputDecoration(
               labelText: 'Reply',

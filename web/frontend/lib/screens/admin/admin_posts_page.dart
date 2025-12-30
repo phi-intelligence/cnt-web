@@ -166,6 +166,7 @@ class _AdminPostsPageState extends State<AdminPostsPage> {
                       // Search
                       TextField(
                         controller: _searchController,
+                        style: const TextStyle(color: Colors.black),
                         decoration: InputDecoration(
                           hintText: 'Search by title or creator...',
                           prefixIcon: const Icon(Icons.search),
@@ -421,12 +422,14 @@ class _RejectReasonDialogState extends State<_RejectReasonDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      backgroundColor: Colors.white,
       title: Text(
         'Reject Post',
         style: AppTypography.heading3,
       ),
       content: TextField(
         controller: _controller,
+        style: const TextStyle(color: Colors.black),
         decoration: InputDecoration(
           labelText: 'Reason (optional)',
           hintText: 'Enter reason for rejection...',

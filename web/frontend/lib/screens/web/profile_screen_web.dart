@@ -14,6 +14,7 @@ import '../../utils/responsive_grid_delegate.dart';
 
 import '../../providers/artist_provider.dart';
 import '../../providers/playlist_provider.dart';
+import '../../providers/notification_provider.dart';
 import 'landing_screen_web.dart';
 import 'library_screen_web.dart';
 import '../support/support_center_screen.dart';
@@ -43,6 +44,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
       context.read<SupportProvider>().fetchStats();
       context.read<ArtistProvider>().fetchMyArtist();
       context.read<PlaylistProvider>().fetchPlaylists();
+      context.read<NotificationProvider>().fetchUnreadCount();
     });
   }
 
@@ -318,6 +320,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
     
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Container(
         padding: ResponsiveGridDelegate.getResponsivePadding(context),
         width: double.infinity,
@@ -1171,6 +1174,22 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
             subtitle: 'View and manage saved drafts',
             onTap: () {
               context.push('/my-drafts');
+            },
+          ),
+          _buildDivider(),
+          Consumer<NotificationProvider>(
+            builder: (context, notificationProvider, _) {
+              return _buildSettingItem(
+                icon: Icons.notifications_outlined,
+                title: 'Notifications',
+                subtitle: 'View your notifications',
+                badge: notificationProvider.unreadCount > 0
+                    ? '${notificationProvider.unreadCount > 99 ? '99+' : notificationProvider.unreadCount}'
+                    : null,
+                onTap: () {
+                  context.push('/notifications');
+                },
+              );
             },
           ),
           _buildDivider(),

@@ -138,6 +138,7 @@ class AudioPodcastCreateScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Row(
         children: [
           // Left Side: Content (40%)

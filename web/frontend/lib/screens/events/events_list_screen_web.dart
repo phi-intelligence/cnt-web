@@ -57,6 +57,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb>
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: CustomScrollView(
         slivers: [
           // Hero Section

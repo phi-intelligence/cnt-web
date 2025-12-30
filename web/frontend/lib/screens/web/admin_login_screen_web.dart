@@ -64,7 +64,7 @@ class _AdminLoginScreenWebState extends State<AdminLoginScreenWeb> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false, AppColors.backgroundPrimary,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),

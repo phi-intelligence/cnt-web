@@ -1,29 +1,27 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:html' as html;
 import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
 import '../services/google_auth_service.dart';
-import '../services/logger_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
   final GoogleAuthService _googleAuthService = GoogleAuthService();
-  
+
   Map<String, dynamic>? _user;
   bool _isAuthenticated = false;
   bool _isLoading = false;
   String? _error;
   Timer? _tokenExpirationTimer;
   bool _isRefreshing = false; // Prevent concurrent refresh attempts
-  
+
   Map<String, dynamic>? get user => _user;
   bool get isAuthenticated => _isAuthenticated;
   bool get isAdmin => _user?['is_admin'] == true;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  
+
   AuthProvider() {
     // Start auth check in background - don't block UI
     checkAuthStatus();
@@ -32,19 +30,19 @@ class AuthProvider extends ChangeNotifier {
     // Listen for visibility changes (user returns to tab/window)
     _setupVisibilityListener();
   }
-  
+
   /// Setup listener for when user returns to the app/tab (web)
   void _setupVisibilityListener() {
     if (kIsWeb) {
       html.document.addEventListener('visibilitychange', (event) {
         if (html.document.visibilityState == 'visible') {
-          LoggerService.d('🔍 App became visible, checking token...');
+          print('🔍 App became visible, checking token...');
           _checkTokenExpiration();
         }
       });
     }
   }
-  
+
   /// Start periodic check for token expiration (every 5 minutes)
   void _startTokenExpirationCheck() {
     _tokenExpirationTimer?.cancel();
@@ -52,13 +50,13 @@ class AuthProvider extends ChangeNotifier {
       _checkTokenExpiration();
     });
   }
-  
+
   /// Check if token should be refreshed (expires within 5 minutes)
   bool _shouldRefreshToken(String token) {
     try {
       final parts = token.split('.');
       if (parts.length != 3) return false;
-      
+
       final payload = parts[1];
       // Base64 decode with padding handling
       String normalized = payload;
@@ -73,87 +71,89 @@ class AuthProvider extends ChangeNotifier {
           normalized += '=';
           break;
       }
-      
+
       final decoded = base64Decode(normalized);
       final json = jsonDecode(utf8.decode(decoded));
       final exp = json['exp'] as int?;
       if (exp == null) return false;
-      
+
       final expirationDate = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
       final now = DateTime.now();
       final timeUntilExpiration = expirationDate.difference(now);
-      
+
       // Refresh if expires within 5 minutes
       return timeUntilExpiration.inMinutes <= 5;
     } catch (e) {
       return false;
     }
   }
-  
+
   /// Check if token is expired and refresh if needed
   /// Uses _isRefreshing flag to prevent concurrent refresh attempts
   Future<void> _checkTokenExpiration() async {
     if (!_isAuthenticated || _isRefreshing) return;
-    
+
     try {
       final token = await _authService.getToken();
       if (token == null) return;
-      
+
       // Check if access token expires within 5 minutes
       if (_shouldRefreshToken(token)) {
-        LoggerService.i('🔄 Access token expires soon, refreshing...');
+        print('🔄 Access token expires soon, refreshing...');
         _isRefreshing = true;
         final refreshed = await _authService.refreshAccessToken();
         _isRefreshing = false;
-        
+
         if (!refreshed) {
           // Refresh failed - might be network issue, try again later
-          LoggerService.w('⚠️ Token refresh failed, will retry');
+          print('⚠️ Token refresh failed, will retry');
           // Don't logout immediately - might be temporary
         } else {
-          LoggerService.i('✅ Token proactively refreshed');
+          print('✅ Token proactively refreshed');
         }
       } else if (AuthService.isTokenExpired(token)) {
         // Token already expired - try refresh
-        LoggerService.i('🔄 Access token expired, refreshing...');
+        print('🔄 Access token expired, refreshing...');
         _isRefreshing = true;
         final refreshed = await _authService.refreshAccessToken();
         _isRefreshing = false;
-        
+
         if (!refreshed) {
           // Refresh token also expired/revoked - logout
-          LoggerService.w('⚠️ Refresh token expired/revoked, logging out');
+          print('⚠️ Refresh token expired/revoked, logging out');
           await logout();
           _error = 'Your session has expired. Please log in again.';
           notifyListeners();
         } else {
-          LoggerService.i('✅ Expired token successfully refreshed');
+          print('✅ Expired token successfully refreshed');
         }
       }
     } catch (e) {
       _isRefreshing = false;
-      LoggerService.e('Error checking token expiration: $e');
+      print('Error checking token expiration: $e');
     }
   }
-  
+
   @override
   void dispose() {
     _tokenExpirationTimer?.cancel();
     super.dispose();
   }
-  
+
   Future<void> checkAuthStatus() async {
     // Don't set loading to true initially - show login screen immediately
     // Only check auth in background
-    
+
     try {
       // Quick check - if no token exists, immediately show login screen
-      final token = await _authService.getToken()
+      final token = await _authService
+          .getToken()
           .timeout(const Duration(milliseconds: 300), onTimeout: () => null);
-      
+
       if (token != null && !AuthService.isTokenExpired(token)) {
         // Access token is valid - user is logged in
-        _user = await _authService.getUser()
+        _user = await _authService
+            .getUser()
             .timeout(const Duration(milliseconds: 500), onTimeout: () => null);
         _isAuthenticated = _user != null;
         _startTokenExpirationCheck(); // Start auto-refresh timer
@@ -162,26 +162,27 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return;
       }
-      
+
       // Access token expired or missing - try refresh token
       final refreshToken = await _authService.getRefreshToken();
       if (refreshToken != null && refreshToken.isNotEmpty) {
-        LoggerService.i('🔄 Access token expired, attempting refresh...');
+        print('🔄 Access token expired, attempting refresh...');
         _isLoading = true;
         notifyListeners();
-        
+
         final refreshed = await _authService.refreshAccessToken();
         if (refreshed) {
           // Successfully refreshed - user is logged in
-          _user = await _authService.getUser()
-              .timeout(const Duration(milliseconds: 500), onTimeout: () => null);
+          _user = await _authService.getUser().timeout(
+              const Duration(milliseconds: 500),
+              onTimeout: () => null);
           _isAuthenticated = _user != null;
           _startTokenExpirationCheck();
-          LoggerService.i('✅ Auto-login successful via refresh token');
+          print('✅ Auto-login successful via refresh token');
           _error = null;
         } else {
           // Refresh failed - user needs to log in
-          LoggerService.w('⚠️ Auto-login failed - refresh token expired/revoked');
+          print('⚠️ Auto-login failed - refresh token expired/revoked');
           _user = null;
           _isAuthenticated = false;
           await _authService.logout(); // Clear invalid tokens
@@ -193,7 +194,7 @@ class AuthProvider extends ChangeNotifier {
       }
       _error = null;
     } catch (e) {
-      LoggerService.e('Auth check error: $e');
+      print('Auth check error: $e');
       _error = 'Failed to check auth status: $e';
       _isAuthenticated = false;
       _user = null;
@@ -202,12 +203,12 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   Future<bool> login(String usernameOrEmail, String password) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
       final data = await _authService.login(usernameOrEmail, password);
       _user = {
@@ -231,11 +232,11 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   Future<void> logout() async {
     _isLoading = true;
     notifyListeners();
-    
+
     try {
       _tokenExpirationTimer?.cancel();
       await _authService.logout();
@@ -249,18 +250,18 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   /// Force logout due to token expiration
   Future<void> logoutDueToExpiration() async {
     await logout();
     _error = 'Your session has expired. Please log in again.';
     notifyListeners();
   }
-  
+
   Future<Map<String, String>> getAuthHeaders() async {
     return await _authService.getAuthHeaders();
   }
-  
+
   Future<bool> register({
     required String email,
     required String password,
@@ -272,7 +273,7 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
       final data = await _authService.register(
         email: email,
@@ -303,23 +304,23 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   Future<bool> googleLogin() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
       // Get Google authentication result (may be id_token or access_token)
       final authResult = await _googleAuthService.signInWithGoogle();
-      
+
       if (authResult == null) {
         _error = 'Google sign-in cancelled';
         _isLoading = false;
         notifyListeners();
         return false;
       }
-      
+
       // Send to backend with token type info
       final data = await _authService.googleLogin(
         authResult['token']!,
@@ -354,7 +355,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   Future<Map<String, dynamic>> checkUsername(String username) async {
     try {
       return await _authService.checkUsername(username);
@@ -362,13 +363,13 @@ class AuthProvider extends ChangeNotifier {
       return {'available': false, 'error': e.toString()};
     }
   }
-  
+
   /// Send OTP to email
   Future<bool> sendOTP(String email) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
       final result = await _authService.sendOTP(email);
       _error = null;
@@ -381,13 +382,13 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   /// Verify OTP code
   Future<bool> verifyOTP(String email, String otpCode) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
       final result = await _authService.verifyOTP(email, otpCode);
       if (result['success'] == true) {
@@ -405,7 +406,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   /// Register with OTP verification
   Future<bool> registerWithOTP({
     required String email,
@@ -419,7 +420,7 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
       final data = await _authService.registerWithOTP(
         email: email,
@@ -467,4 +468,3 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
-

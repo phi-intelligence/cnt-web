@@ -262,6 +262,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
     
     // Mobile version (original design with gradient)
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,

@@ -72,6 +72,7 @@ class _AudioPlayerFullScreenState extends State<AudioPlayerFullScreen> {
     final vinylSize = DimensionUtils.getVinylDiscSize(context);
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

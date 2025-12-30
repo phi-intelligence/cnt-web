@@ -106,7 +106,7 @@ class _PodcastsScreenState extends State<PodcastsScreen> {
   Widget build(BuildContext context) {
     
     return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false, AppColors.backgroundPrimary,
       appBar: AppBar(
         title: Text(
           'Podcasts',

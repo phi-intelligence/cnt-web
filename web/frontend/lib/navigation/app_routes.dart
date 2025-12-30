@@ -29,6 +29,7 @@ import '../screens/drafts/my_drafts_screen.dart';
 import '../screens/bible/bible_reader_screen.dart';
 import '../screens/web/bank_details_screen_web.dart';
 import '../screens/admin/admin_commission_settings_page.dart';
+import '../screens/web/notifications_screen_web.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'web_navigation.dart';
@@ -120,6 +121,14 @@ GoRouter createAppRouter(AuthProvider authProvider) {
           context,
           state,
           const WebNavigationLayout(child: ProfileScreenWeb()),
+        ),
+      ),
+      GoRoute(
+        path: '/notifications',
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: NotificationsScreenWeb()),
         ),
       ),
       GoRoute(

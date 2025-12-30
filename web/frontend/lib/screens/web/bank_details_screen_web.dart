@@ -197,6 +197,7 @@ class _BankDetailsScreenWebState extends State<BankDetailsScreenWeb> {
     
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Container(
         padding: ResponsiveGridDelegate.getResponsivePadding(context),
         child: SingleChildScrollView(

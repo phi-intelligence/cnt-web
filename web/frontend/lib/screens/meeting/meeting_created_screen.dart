@@ -185,7 +185,8 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
 
       // Web version with background image pattern
       return Scaffold(
-        backgroundColor: const Color(0xFFF5F0E8),
+      backgroundColor: const Color(0xFFF5F0E8),
+      resizeToAvoidBottomInset: false,
         body: SizedBox(
           width: double.infinity,
           height: screenHeight,

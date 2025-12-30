@@ -1633,32 +1633,151 @@ class ApiService {
   }
 
   /// Get favorites
-  Future<List<dynamic>> getFavorites() async {
+  Future<List<dynamic>> getFavorites({String? contentType}) async {
+    _validateBaseUrl();
     try {
-      // TODO: Implement favorites endpoint
-      // For now, return empty list
-      return [];
+      Uri uri = Uri.parse('$baseUrl/favorites');
+      if (contentType != null) {
+        uri = uri.replace(queryParameters: {'content_type': contentType});
+      }
+      
+      final response = await http
+          .get(uri, headers: await _getHeaders())
+          .timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data;
+      } else if (response.statusCode == 401) {
+        // Token expired, try refresh
+        final refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          final retryResponse = await http
+              .get(uri, headers: await _getHeaders())
+              .timeout(const Duration(seconds: 10));
+          if (retryResponse.statusCode == 200) {
+            final List<dynamic> data = json.decode(retryResponse.body);
+            return data;
+          }
+        }
+        throw Exception('Authentication failed. Please log in again.');
+      }
+      throw Exception('Failed to fetch favorites: HTTP ${response.statusCode}');
     } catch (e) {
-      return [];
+      LoggerService.e('Error fetching favorites: $e');
+      rethrow;
     }
   }
 
   /// Add to favorites
   Future<bool> addToFavorites(String contentType, int contentId) async {
+    _validateBaseUrl();
     try {
-      // TODO: Implement favorites endpoint
-      return true;
+      final uri = Uri.parse('$baseUrl/favorites');
+      final body = json.encode({
+        'content_type': contentType,
+        'content_id': contentId,
+      });
+      
+      final response = await http
+          .post(uri, headers: await _getHeaders(), body: body)
+          .timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      } else if (response.statusCode == 400) {
+        // Already favorited - not an error, return true
+        final body = json.decode(response.body);
+        if (body['detail']?.toString().contains('already in favorites') == true) {
+          return true;
+        }
+        LoggerService.w('Failed to add favorite: ${body['detail']}');
+        return false;
+      } else if (response.statusCode == 401) {
+        // Token expired, try refresh
+        final refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          final retryResponse = await http
+              .post(uri, headers: await _getHeaders(), body: body)
+              .timeout(const Duration(seconds: 10));
+          return retryResponse.statusCode == 200 || retryResponse.statusCode == 201;
+        }
+        return false;
+      }
+      LoggerService.e('Failed to add favorite: HTTP ${response.statusCode}');
+      return false;
     } catch (e) {
+      LoggerService.e('Error adding to favorites: $e');
       return false;
     }
   }
 
   /// Remove from favorites
   Future<bool> removeFromFavorites(String contentType, int contentId) async {
+    _validateBaseUrl();
     try {
-      // TODO: Implement favorites endpoint
-      return true;
+      final uri = Uri.parse('$baseUrl/favorites/$contentType/$contentId');
+      
+      final response = await http
+          .delete(uri, headers: await _getHeaders())
+          .timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return true;
+      } else if (response.statusCode == 404) {
+        // Not found - might already be removed, return true
+        return true;
+      } else if (response.statusCode == 401) {
+        // Token expired, try refresh
+        final refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          final retryResponse = await http
+              .delete(uri, headers: await _getHeaders())
+              .timeout(const Duration(seconds: 10));
+          return retryResponse.statusCode == 200 || 
+                 retryResponse.statusCode == 204 || 
+                 retryResponse.statusCode == 404;
+        }
+        return false;
+      }
+      LoggerService.e('Failed to remove favorite: HTTP ${response.statusCode}');
+      return false;
     } catch (e) {
+      LoggerService.e('Error removing from favorites: $e');
+      return false;
+    }
+  }
+
+  /// Check if item is favorited
+  Future<bool> checkFavorite(String contentType, int contentId) async {
+    _validateBaseUrl();
+    try {
+      final uri = Uri.parse('$baseUrl/favorites/check/$contentType/$contentId');
+      
+      final response = await http
+          .get(uri, headers: await _getHeaders())
+          .timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        return data['is_favorited'] as bool? ?? false;
+      } else if (response.statusCode == 401) {
+        // Token expired, try refresh
+        final refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          final retryResponse = await http
+              .get(uri, headers: await _getHeaders())
+              .timeout(const Duration(seconds: 10));
+          if (retryResponse.statusCode == 200) {
+            final data = json.decode(retryResponse.body) as Map<String, dynamic>;
+            return data['is_favorited'] as bool? ?? false;
+          }
+        }
+        return false;
+      }
+      return false;
+    } catch (e) {
+      LoggerService.e('Error checking favorite status: $e');
       return false;
     }
   }
@@ -4508,6 +4627,162 @@ class ApiService {
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
       throw Exception('Error deleting user: $e');
+    }
+  }
+
+  // ============================================
+  // NOTIFICATIONS API
+  // ============================================
+
+  /// Get notifications for the current user
+  Future<Map<String, dynamic>> getNotifications({
+    int limit = 20,
+    int offset = 0,
+    bool unreadOnly = false,
+  }) async {
+    _validateBaseUrl();
+    try {
+      final queryParams = <String, String>{
+        'limit': limit.toString(),
+        'offset': offset.toString(),
+        if (unreadOnly) 'unread_only': 'true',
+      };
+      
+      final uri = Uri.parse('$baseUrl/notifications').replace(queryParameters: queryParams);
+      final response = await http
+          .get(uri, headers: await _getHeaders())
+          .timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else if (response.statusCode == 401) {
+        // Token expired, try refresh
+        final refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          final retryResponse = await http
+              .get(uri, headers: await _getHeaders())
+              .timeout(const Duration(seconds: 10));
+          if (retryResponse.statusCode == 200) {
+            return json.decode(retryResponse.body) as Map<String, dynamic>;
+          }
+        }
+        throw Exception('Authentication failed. Please log in again.');
+      }
+      throw Exception('Failed to fetch notifications: HTTP ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error fetching notifications: $e');
+    }
+  }
+
+  /// Get unread notification count
+  Future<int> getUnreadNotificationCount() async {
+    _validateBaseUrl();
+    try {
+      final uri = Uri.parse('$baseUrl/notifications/unread-count');
+      final response = await http
+          .get(uri, headers: await _getHeaders())
+          .timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        return data['unread_count'] as int? ?? 0;
+      } else if (response.statusCode == 401) {
+        final refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          final retryResponse = await http
+              .get(uri, headers: await _getHeaders())
+              .timeout(const Duration(seconds: 10));
+          if (retryResponse.statusCode == 200) {
+            final data = json.decode(retryResponse.body) as Map<String, dynamic>;
+            return data['unread_count'] as int? ?? 0;
+          }
+        }
+        return 0;
+      }
+      return 0;
+    } catch (e) {
+      LoggerService.e('Error fetching unread count: $e');
+      return 0;
+    }
+  }
+
+  /// Mark notifications as read
+  Future<bool> markNotificationsAsRead(List<int> notificationIds) async {
+    _validateBaseUrl();
+    try {
+      final uri = Uri.parse('$baseUrl/notifications/read');
+      final response = await http
+          .post(
+            uri,
+            headers: await _getHeaders(),
+            body: json.encode({'notification_ids': notificationIds}),
+          )
+          .timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        return true;
+      } else if (response.statusCode == 401) {
+        final refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          final retryResponse = await http
+              .post(
+                uri,
+                headers: await _getHeaders(),
+                body: json.encode({'notification_ids': notificationIds}),
+              )
+              .timeout(const Duration(seconds: 10));
+          return retryResponse.statusCode == 200;
+        }
+        return false;
+      }
+      return false;
+    } catch (e) {
+      LoggerService.e('Error marking notifications as read: $e');
+      return false;
+    }
+  }
+
+  /// Mark all notifications as read
+  Future<bool> markAllNotificationsAsRead() async {
+    _validateBaseUrl();
+    try {
+      final uri = Uri.parse('$baseUrl/notifications/read-all');
+      final response = await http
+          .post(uri, headers: await _getHeaders())
+          .timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        return true;
+      } else if (response.statusCode == 401) {
+        final refreshed = await _authService.refreshAccessToken();
+        if (refreshed) {
+          final retryResponse = await http
+              .post(uri, headers: await _getHeaders())
+              .timeout(const Duration(seconds: 10));
+          return retryResponse.statusCode == 200;
+        }
+        return false;
+      }
+      return false;
+    } catch (e) {
+      LoggerService.e('Error marking all notifications as read: $e');
+      return false;
+    }
+  }
+
+  /// Delete a notification
+  Future<bool> deleteNotification(int notificationId) async {
+    _validateBaseUrl();
+    try {
+      final uri = Uri.parse('$baseUrl/notifications/$notificationId');
+      final response = await http
+          .delete(uri, headers: await _getHeaders())
+          .timeout(const Duration(seconds: 10));
+      
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      LoggerService.e('Error deleting notification: $e');
+      return false;
     }
   }
 }

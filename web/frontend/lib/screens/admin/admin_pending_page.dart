@@ -27,12 +27,14 @@ class _RejectReasonDialogState extends State<_RejectReasonDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      backgroundColor: Colors.white,
       title: Text('Reject Content', style: AppTypography.heading3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
       ),
       content: TextField(
         controller: _controller,
+        style: const TextStyle(color: Colors.black),
         decoration: InputDecoration(
           labelText: 'Reason (optional)',
           hintText: 'Enter reason for rejection...',
@@ -289,6 +291,7 @@ class _AdminPendingPageState extends State<AdminPendingPage>
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0E8), // Cream background match
+      resizeToAvoidBottomInset: false,
       body: Column(
         children: [
           // Header

@@ -96,6 +96,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildMobileLayout() {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(
           _navItems[_currentIndex].label,

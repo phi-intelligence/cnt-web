@@ -132,6 +132,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       length: 3,
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,

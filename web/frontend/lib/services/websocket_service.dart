@@ -14,6 +14,7 @@ class WebSocketService {
   // Stream controllers for different event types
   final _liveStreamStartedController = StreamController<Map<String, dynamic>>.broadcast();
   final _speakPermissionRequestedController = StreamController<Map<String, dynamic>>.broadcast();
+  final _newNotificationController = StreamController<Map<String, dynamic>>.broadcast();
   
   WebSocketService._internal();
   
@@ -22,6 +23,7 @@ class WebSocketService {
   // Streams for listening to events
   Stream<Map<String, dynamic>> get liveStreamStarted => _liveStreamStartedController.stream;
   Stream<Map<String, dynamic>> get speakPermissionRequested => _speakPermissionRequestedController.stream;
+  Stream<Map<String, dynamic>> get newNotification => _newNotificationController.stream;
   
   Future<void> connect() async {
     if (_isConnected) return;
@@ -143,6 +145,16 @@ class WebSocketService {
           LoggerService.e('Error handling speak_permission_requested: $e');
         }
       });
+      _socket!.on('new_notification', (data) {
+        try {
+          if (data is Map<String, dynamic>) {
+            _newNotificationController.add(data);
+            LoggerService.i('📬 New notification received via WebSocket: $data');
+          }
+        } catch (e) {
+          LoggerService.e('Error handling new_notification: $e');
+        }
+      });
       _socket!.on('error', (error) {
         _isConnected = false;
         LoggerService.e('❌ WebSocket error: $error');
@@ -174,6 +186,7 @@ class WebSocketService {
     _socket = null;
     _liveStreamStartedController.close();
     _speakPermissionRequestedController.close();
+    _newNotificationController.close();
   }
   
   void send(Map<String, dynamic> data) {

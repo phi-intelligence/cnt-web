@@ -224,6 +224,7 @@ class _GooglePickerWebViewScreenState extends State<GooglePickerWebViewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(
           widget.fileType != null

@@ -14,7 +14,7 @@ class StreamScreenWeb extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false, AppColors.backgroundPrimary,
       body: Container(
         padding: ResponsiveGridDelegate.getResponsivePadding(context),
         child: Column(

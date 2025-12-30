@@ -189,7 +189,8 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
       final isTablet = screenWidth >= 600 && screenWidth < 1024;
 
       return Scaffold(
-        backgroundColor: const Color(0xFFF5F0E8),
+      backgroundColor: const Color(0xFFF5F0E8),
+      resizeToAvoidBottomInset: false,
         body: SizedBox(
           width: double.infinity,
           height: screenHeight,

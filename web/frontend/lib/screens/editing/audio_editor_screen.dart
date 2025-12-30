@@ -1017,7 +1017,8 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
           }
         },
         child: Scaffold(
-        backgroundColor: AppColors.backgroundPrimary,
+      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
         body: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),
           child: SingleChildScrollView(

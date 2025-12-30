@@ -110,6 +110,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
   Widget _buildDesktopSplitLayout(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Row(
         children: [
           // Left Side: Content (40%)

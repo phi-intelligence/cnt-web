@@ -9,6 +9,6 @@ class AppTheme {
   static ThemeData get lightTheme => AppThemeData.lightTheme;
 
   /// Get dark theme
-  static ThemeData get darkTheme => AppThemeData.darkTheme;
+  static ThemeData get darkTheme => AppThemeData.lightTheme; // Fallback to light theme as dark theme is disabled
 }
 

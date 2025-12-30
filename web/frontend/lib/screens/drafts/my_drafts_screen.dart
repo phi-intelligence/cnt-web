@@ -446,6 +446,7 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Container(
         padding: ResponsiveGridDelegate.getResponsivePadding(context),
         child: Center(

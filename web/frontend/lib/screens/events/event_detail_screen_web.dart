@@ -116,6 +116,7 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Consumer<EventProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading && provider.selectedEvent == null) {

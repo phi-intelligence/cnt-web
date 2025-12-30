@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
+import 'package:provider/provider.dart';
 import 'dart:async';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../models/content_item.dart';
+import '../../providers/favorites_provider.dart';
 import 'dart:html' as html show document;
 
 /// Video Player Full Screen - Exact replica of React Native implementation
@@ -17,11 +19,9 @@ class VideoPlayerFullScreen extends StatefulWidget {
   final String author;
   final int duration;
   final List<Color> gradientColors;
-  final bool isFavorite;
   final String videoUrl;
   final VoidCallback? onBack;
   final VoidCallback? onDonate;
-  final VoidCallback? onFavorite;
   final void Function(int)? onSeek;
   // Optional playlist support
   final List<ContentItem>? playlist;
@@ -35,10 +35,8 @@ class VideoPlayerFullScreen extends StatefulWidget {
     required this.duration,
     required this.gradientColors,
     required this.videoUrl,
-    this.isFavorite = false,
     this.onBack,
     this.onDonate,
-    this.onFavorite,
     this.onSeek,
     this.playlist,
     this.initialIndex,
@@ -975,7 +973,8 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
       onKeyEvent: _handleKeyEvent,
       autofocus: true,
       child: Scaffold(
-        body: Container(
+      resizeToAvoidBottomInset: false,
+      body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -1022,8 +1021,7 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                                   icon: const Icon(Icons.favorite, size: 20),
                                   label: const Text('Donate'),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        AppColors.primaryMain.withOpacity(0.9),
+                                    backgroundColor: AppColors.primaryMain.withOpacity(0.9),
                                     foregroundColor: Colors.white,
                                     padding: EdgeInsets.symmetric(
                                       horizontal: AppSpacing.small,
@@ -1035,14 +1033,37 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                                   ),
                                 ),
                               ),
-                              IconButton(
-                                icon: Icon(
-                                  widget.isFavorite
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                ),
-                                color: Colors.white,
-                                onPressed: widget.onFavorite,
+                              Consumer<FavoritesProvider>(
+                                builder: (context, favoritesProvider, _) {
+                                  final isFavorite = favoritesProvider.isFavorite(widget.videoId);
+                                  return IconButton(
+                                    icon: Icon(
+                                      isFavorite
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                    ),
+                                    color: isFavorite ? Colors.red : Colors.white,
+                                    onPressed: () async {
+                                      // Use current item from playlist
+                                      final currentItem = _currentItem;
+                                      final success = await favoritesProvider.toggleFavorite(currentItem);
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              success 
+                                                  ? (isFavorite 
+                                                      ? 'Removed from favorites' 
+                                                      : 'Added to favorites')
+                                                  : 'Failed to update favorites',
+                                            ),
+                                            backgroundColor: success ? AppColors.successMain : AppColors.errorMain,
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  );
+                                },
                               ),
                             ],
                           ),

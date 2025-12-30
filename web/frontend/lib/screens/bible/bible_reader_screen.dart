@@ -137,7 +137,7 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
         setState(() {
           _pdfController = PdfControllerPinch(
             document: Future.value(document),
-            initialPage: _currentPage,
+            initialPage: _currentPage - 1, // Convert 1-based to 0-based for PDF controller
           );
           _totalPages = document.pagesCount;
           _isLoading = false;
@@ -168,8 +168,9 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
   }
 
   void _onPageChanged(int page) {
+    // PDF library uses 0-based indexing, convert to 1-based for display
     setState(() {
-      _currentPage = page;
+      _currentPage = page + 1;
     });
     _saveLastPage();
   }
@@ -182,8 +183,9 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
   }
 
   void _goToPage(int page) {
+    // page is 1-based, convert to 0-based for PDF controller
     if (page >= 1 && page <= _totalPages && _pdfController != null) {
-      _pdfController!.jumpToPage(page);
+      _pdfController!.jumpToPage(page - 1);
     }
   }
 
@@ -200,6 +202,7 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           Column(

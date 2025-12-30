@@ -77,7 +77,8 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
     if (track == null) {
       // Show a friendly "No track playing" state instead of auto-navigating
       return Scaffold(
-        backgroundColor: const Color(0xFFF5F0E8),
+      backgroundColor: const Color(0xFFF5F0E8),
+      resizeToAvoidBottomInset: false,
         body: SafeArea(
           child: Center(
             child: Container(
@@ -170,8 +171,7 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
     final horizontalPadding = isWideScreen ? 64.0 : 24.0;
 
     return Scaffold(
-      backgroundColor:
-          const Color(0xFFF5F0E8), // Warm background like landing page
+      backgroundColor: const Color(0xFFF5F0E8), // Warm background like landing page
       body: SafeArea(
         child: Column(
           children: [

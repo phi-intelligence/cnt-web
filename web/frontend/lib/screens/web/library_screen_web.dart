@@ -83,6 +83,7 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: SizedBox.expand(
         child: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),

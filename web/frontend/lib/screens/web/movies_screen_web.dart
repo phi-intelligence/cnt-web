@@ -339,6 +339,7 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // Background Layer: Carousel with fade and parallax

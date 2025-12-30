@@ -272,6 +272,7 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // Background Layer: Carousel with fade and parallax

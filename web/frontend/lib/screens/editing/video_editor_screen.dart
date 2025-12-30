@@ -618,7 +618,8 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> with SingleTicker
     // Mobile version
     if (_isInitializing) {
       return Scaffold(
-        backgroundColor: AppColors.backgroundPrimary,
+      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
         body: const Center(child: CircularProgressIndicator(color: AppColors.primaryMain)),
       );
     }

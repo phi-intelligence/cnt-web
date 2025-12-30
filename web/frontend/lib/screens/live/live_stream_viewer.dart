@@ -189,7 +189,8 @@ class _LiveStreamViewerState extends State<LiveStreamViewer> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: Colors.black,
+      backgroundColor: Colors.black,
+      resizeToAvoidBottomInset: false,
         body: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

@@ -122,6 +122,7 @@ class _AdminApprovedPageState extends State<AdminApprovedPage>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         title: Text('Delete Content', style: AppTypography.heading3),
         content: Text(
           'Are you sure you want to delete "$title"? This action cannot be undone.',
@@ -184,6 +185,7 @@ class _AdminApprovedPageState extends State<AdminApprovedPage>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         title: Text('Archive Content', style: AppTypography.heading3),
         content: Text(
           'Are you sure you want to archive "$title"? It will be hidden from users.',
@@ -276,6 +278,7 @@ class _AdminApprovedPageState extends State<AdminApprovedPage>
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0E8), // Cream background match
+      resizeToAvoidBottomInset: false,
       body: Column(
         children: [
           // Header

@@ -178,6 +178,7 @@ class _ArtistProfileManageScreenState extends State<ArtistProfileManageScreen> w
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Consumer<ArtistProvider>(

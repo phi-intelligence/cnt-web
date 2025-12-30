@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -56,6 +57,17 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
   void initState() {
     super.initState();
     _loadMovie();
+    _checkFavoriteStatus();
+  }
+  
+  Future<void> _checkFavoriteStatus() async {
+    // Check favorite status when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _item != null) {
+        final favoritesProvider = context.read<FavoritesProvider>();
+        favoritesProvider.checkFavoriteStatus(_item!);
+      }
+    });
   }
 
   @override
@@ -208,7 +220,6 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
             videoUrl: _item!.videoUrl!,
             onBack: () => Navigator.of(context).pop(),
             onDonate: _handleDonate,
-            onFavorite: _handleFavorite,
             onSeek: null,
           ),
         ),
@@ -322,7 +333,8 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: AppColors.backgroundPrimary,
+      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
         body: const Center(
           child: CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(AppColors.warmBrown),

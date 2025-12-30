@@ -341,7 +341,8 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen>
     if (kIsWeb) {
       // Web version with web design system
       return Scaffold(
-        backgroundColor: AppColors.backgroundPrimary,
+      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
         body: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),
           child: Column(

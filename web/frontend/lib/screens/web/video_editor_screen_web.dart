@@ -1813,7 +1813,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   Widget build(BuildContext context) {
     if (_isInitializing) {
       return Scaffold(
-        backgroundColor: AppColors.backgroundPrimary,
+      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
         body: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),
           child: Center(

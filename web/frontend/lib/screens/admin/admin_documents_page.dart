@@ -97,6 +97,7 @@ class _AdminDocumentsPageState extends State<AdminDocumentsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: RefreshIndicator(
         onRefresh: () => context.read<DocumentsProvider>().fetchDocuments(),
         color: AppColors.primaryMain,

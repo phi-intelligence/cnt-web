@@ -69,6 +69,7 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
   Widget _buildDesktopSplitLayout(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: Row(
         children: [
           // Left Side: Content (40%)
@@ -736,8 +737,7 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
             child: ElevatedButton(
               onPressed: canJoin ? () => _joinScheduledMeeting(meeting) : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    canJoin ? AppColors.warmBrown : AppColors.borderPrimary,
+                backgroundColor: canJoin ? AppColors.warmBrown : AppColors.borderPrimary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(

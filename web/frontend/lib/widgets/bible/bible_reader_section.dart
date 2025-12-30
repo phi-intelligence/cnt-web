@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../../models/api_models.dart';
 import '../../models/document_asset.dart';
 import '../../screens/bible/bible_document_selector_screen.dart';
-import '../../screens/bible/pdf_viewer_screen.dart';
 import '../../screens/bible/bible_reader_screen.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
@@ -14,36 +13,146 @@ import '../../utils/responsive_utils.dart';
 
 /// Popular Bible verses for the daily quote feature
 const List<Map<String, String>> _bibleVerses = [
-  {'reference': 'John 3:16', 'text': 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.'},
-  {'reference': 'Jeremiah 29:11', 'text': 'For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, plans to give you hope and a future.'},
-  {'reference': 'Philippians 4:13', 'text': 'I can do all this through him who gives me strength.'},
-  {'reference': 'Romans 8:28', 'text': 'And we know that in all things God works for the good of those who love him, who have been called according to his purpose.'},
-  {'reference': 'Proverbs 3:5-6', 'text': 'Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.'},
-  {'reference': 'Isaiah 41:10', 'text': 'So do not fear, for I am with you; do not be dismayed, for I am your God. I will strengthen you and help you; I will uphold you with my righteous right hand.'},
-  {'reference': 'Psalm 23:1', 'text': 'The Lord is my shepherd, I lack nothing.'},
-  {'reference': 'Matthew 11:28', 'text': 'Come to me, all you who are weary and burdened, and I will give you rest.'},
-  {'reference': 'Romans 12:2', 'text': 'Do not conform to the pattern of this world, but be transformed by the renewing of your mind.'},
-  {'reference': 'Joshua 1:9', 'text': 'Have I not commanded you? Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go.'},
-  {'reference': 'Psalm 46:1', 'text': 'God is our refuge and strength, an ever-present help in trouble.'},
-  {'reference': '2 Timothy 1:7', 'text': 'For God has not given us a spirit of fear, but of power and of love and of a sound mind.'},
-  {'reference': 'Hebrews 11:1', 'text': 'Now faith is confidence in what we hope for and assurance about what we do not see.'},
-  {'reference': 'Psalm 119:105', 'text': 'Your word is a lamp for my feet, a light on my path.'},
-  {'reference': 'Matthew 6:33', 'text': 'But seek first his kingdom and his righteousness, and all these things will be given to you as well.'},
-  {'reference': 'Galatians 5:22-23', 'text': 'But the fruit of the Spirit is love, joy, peace, forbearance, kindness, goodness, faithfulness, gentleness and self-control.'},
-  {'reference': '1 Corinthians 13:4-5', 'text': 'Love is patient, love is kind. It does not envy, it does not boast, it is not proud. It does not dishonor others, it is not self-seeking.'},
-  {'reference': 'Ephesians 2:8-9', 'text': 'For it is by grace you have been saved, through faith—and this is not from yourselves, it is the gift of God—not by works, so that no one can boast.'},
-  {'reference': 'Psalm 37:4', 'text': 'Take delight in the Lord, and he will give you the desires of your heart.'},
-  {'reference': 'Romans 5:8', 'text': 'But God demonstrates his own love for us in this: While we were still sinners, Christ died for us.'},
-  {'reference': '1 Peter 5:7', 'text': 'Cast all your anxiety on him because he cares for you.'},
-  {'reference': 'Isaiah 40:31', 'text': 'But those who hope in the Lord will renew their strength. They will soar on wings like eagles; they will run and not grow weary, they will walk and not be faint.'},
-  {'reference': 'Psalm 27:1', 'text': 'The Lord is my light and my salvation—whom shall I fear? The Lord is the stronghold of my life—of whom shall I be afraid?'},
-  {'reference': 'Matthew 28:20', 'text': 'And surely I am with you always, to the very end of the age.'},
-  {'reference': 'Colossians 3:23', 'text': 'Whatever you do, work at it with all your heart, as working for the Lord, not for human masters.'},
-  {'reference': 'James 1:5', 'text': 'If any of you lacks wisdom, you should ask God, who gives generously to all without finding fault, and it will be given to you.'},
-  {'reference': 'Psalm 34:8', 'text': 'Taste and see that the Lord is good; blessed is the one who takes refuge in him.'},
+  {
+    'reference': 'John 3:16',
+    'text':
+        'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.'
+  },
+  {
+    'reference': 'Jeremiah 29:11',
+    'text':
+        'For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you, plans to give you hope and a future.'
+  },
+  {
+    'reference': 'Philippians 4:13',
+    'text': 'I can do all this through him who gives me strength.'
+  },
+  {
+    'reference': 'Romans 8:28',
+    'text':
+        'And we know that in all things God works for the good of those who love him, who have been called according to his purpose.'
+  },
+  {
+    'reference': 'Proverbs 3:5-6',
+    'text':
+        'Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.'
+  },
+  {
+    'reference': 'Isaiah 41:10',
+    'text':
+        'So do not fear, for I am with you; do not be dismayed, for I am your God. I will strengthen you and help you; I will uphold you with my righteous right hand.'
+  },
+  {
+    'reference': 'Psalm 23:1',
+    'text': 'The Lord is my shepherd, I lack nothing.'
+  },
+  {
+    'reference': 'Matthew 11:28',
+    'text':
+        'Come to me, all you who are weary and burdened, and I will give you rest.'
+  },
+  {
+    'reference': 'Romans 12:2',
+    'text':
+        'Do not conform to the pattern of this world, but be transformed by the renewing of your mind.'
+  },
+  {
+    'reference': 'Joshua 1:9',
+    'text':
+        'Have I not commanded you? Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go.'
+  },
+  {
+    'reference': 'Psalm 46:1',
+    'text': 'God is our refuge and strength, an ever-present help in trouble.'
+  },
+  {
+    'reference': '2 Timothy 1:7',
+    'text':
+        'For God has not given us a spirit of fear, but of power and of love and of a sound mind.'
+  },
+  {
+    'reference': 'Hebrews 11:1',
+    'text':
+        'Now faith is confidence in what we hope for and assurance about what we do not see.'
+  },
+  {
+    'reference': 'Psalm 119:105',
+    'text': 'Your word is a lamp for my feet, a light on my path.'
+  },
+  {
+    'reference': 'Matthew 6:33',
+    'text':
+        'But seek first his kingdom and his righteousness, and all these things will be given to you as well.'
+  },
+  {
+    'reference': 'Galatians 5:22-23',
+    'text':
+        'But the fruit of the Spirit is love, joy, peace, forbearance, kindness, goodness, faithfulness, gentleness and self-control.'
+  },
+  {
+    'reference': '1 Corinthians 13:4-5',
+    'text':
+        'Love is patient, love is kind. It does not envy, it does not boast, it is not proud. It does not dishonor others, it is not self-seeking.'
+  },
+  {
+    'reference': 'Ephesians 2:8-9',
+    'text':
+        'For it is by grace you have been saved, through faith—and this is not from yourselves, it is the gift of God—not by works, so that no one can boast.'
+  },
+  {
+    'reference': 'Psalm 37:4',
+    'text':
+        'Take delight in the Lord, and he will give you the desires of your heart.'
+  },
+  {
+    'reference': 'Romans 5:8',
+    'text':
+        'But God demonstrates his own love for us in this: While we were still sinners, Christ died for us.'
+  },
+  {
+    'reference': '1 Peter 5:7',
+    'text': 'Cast all your anxiety on him because he cares for you.'
+  },
+  {
+    'reference': 'Isaiah 40:31',
+    'text':
+        'But those who hope in the Lord will renew their strength. They will soar on wings like eagles; they will run and not grow weary, they will walk and not be faint.'
+  },
+  {
+    'reference': 'Psalm 27:1',
+    'text':
+        'The Lord is my light and my salvation—whom shall I fear? The Lord is the stronghold of my life—of whom shall I be afraid?'
+  },
+  {
+    'reference': 'Matthew 28:20',
+    'text': 'And surely I am with you always, to the very end of the age.'
+  },
+  {
+    'reference': 'Colossians 3:23',
+    'text':
+        'Whatever you do, work at it with all your heart, as working for the Lord, not for human masters.'
+  },
+  {
+    'reference': 'James 1:5',
+    'text':
+        'If any of you lacks wisdom, you should ask God, who gives generously to all without finding fault, and it will be given to you.'
+  },
+  {
+    'reference': 'Psalm 34:8',
+    'text':
+        'Taste and see that the Lord is good; blessed is the one who takes refuge in him.'
+  },
   {'reference': '1 John 4:19', 'text': 'We love because he first loved us.'},
-  {'reference': 'Proverbs 16:3', 'text': 'Commit to the Lord whatever you do, and he will establish your plans.'},
-  {'reference': 'Matthew 5:14', 'text': 'You are the light of the world. A town built on a hill cannot be hidden.'},
+  {
+    'reference': 'Proverbs 16:3',
+    'text':
+        'Commit to the Lord whatever you do, and he will establish your plans.'
+  },
+  {
+    'reference': 'Matthew 5:14',
+    'text':
+        'You are the light of the world. A town built on a hill cannot be hidden.'
+  },
 ];
 
 /// Bible Reader section with two side-by-side square boxes
@@ -82,9 +191,9 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
       );
       return;
     }
-    
+
     DocumentAsset? selectedDoc;
-    
+
     // If multiple documents, show selector
     if (widget.documents.length > 1) {
       selectedDoc = await Navigator.push<DocumentAsset>(
@@ -98,7 +207,7 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
     } else {
       selectedDoc = widget.documents.first;
     }
-    
+
     if (selectedDoc != null && mounted) {
       Navigator.push(
         context,
@@ -160,7 +269,7 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
                 ],
               ),
               const SizedBox(height: AppSpacing.large),
-              
+
               // Quote content
               Container(
                 padding: const EdgeInsets.all(AppSpacing.large),
@@ -192,13 +301,14 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
                 ),
               ),
               const SizedBox(height: AppSpacing.large),
-              
+
               // New Quote button
               ElevatedButton.icon(
                 onPressed: () {
                   Navigator.pop(context);
                   // Show a new random verse
-                  final newVerse = _bibleVerses[_random.nextInt(_bibleVerses.length)];
+                  final newVerse =
+                      _bibleVerses[_random.nextInt(_bibleVerses.length)];
                   Future.delayed(const Duration(milliseconds: 200), () {
                     if (mounted) _showQuoteDialog(newVerse);
                   });
@@ -226,7 +336,6 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
 
   @override
   Widget build(BuildContext context) {
-    final hasContent = widget.documents.isNotEmpty || widget.stories.isNotEmpty;
     final isMobile = ResponsiveUtils.isMobile(context);
     final isTablet = ResponsiveUtils.isTablet(context);
 
@@ -258,7 +367,32 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
 
   Widget _buildBibleReaderBox({required bool isMobile}) {
     final hasContent = widget.documents.isNotEmpty || widget.stories.isNotEmpty;
-    
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Responsive padding: 4% for small screens (320px), 2% for large screens (1920px+)
+    final responsivePadding = screenWidth < 600
+        ? screenWidth * 0.04
+        : screenWidth < 1200
+            ? screenWidth * 0.03
+            : screenWidth * 0.02;
+    // Responsive spacing: 2% for small, 1.5% for medium, 1% for large
+    final responsiveSpacing = screenWidth < 600
+        ? screenWidth * 0.02
+        : screenWidth < 1200
+            ? screenWidth * 0.015
+            : screenWidth * 0.01;
+    // Responsive icon size: 9% for small, 6% for medium, 4% for large
+    final responsiveIconSize = screenWidth < 600
+        ? screenWidth * 0.09
+        : screenWidth < 1200
+            ? screenWidth * 0.06
+            : screenWidth * 0.04;
+    // Responsive icon padding: 2.5% for small, 1.5% for medium, 1% for large
+    final responsiveIconPadding = screenWidth < 600
+        ? screenWidth * 0.025
+        : screenWidth < 1200
+            ? screenWidth * 0.015
+            : screenWidth * 0.01;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -267,7 +401,7 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
           child: Container(
-            padding: EdgeInsets.all(isMobile ? AppSpacing.large : AppSpacing.extraLarge),
+            padding: EdgeInsets.all(responsivePadding.clamp(16.0, 32.0)),
             decoration: BoxDecoration(
               color: AppColors.warmBrown,
               borderRadius: BorderRadius.circular(20),
@@ -290,14 +424,17 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
                     children: [
                       Text(
                         'Read the Bible',
-                        style: (isMobile ? AppTypography.heading3 : AppTypography.heading2).copyWith(
+                        style: (isMobile
+                                ? AppTypography.heading3
+                                : AppTypography.heading2)
+                            .copyWith(
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.small),
                       Text(
-                        hasContent 
+                        hasContent
                             ? "Explore God's word through stories and documents."
                             : "Bible documents coming soon.",
                         style: AppTypography.body.copyWith(
@@ -308,10 +445,11 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
                     ],
                   ),
                 ),
-                SizedBox(width: isMobile ? AppSpacing.medium : AppSpacing.large),
+                SizedBox(width: responsiveSpacing.clamp(12.0, 24.0)),
                 // Icon
                 Container(
-                  padding: EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
+                  padding:
+                      EdgeInsets.all(responsiveIconPadding.clamp(12.0, 24.0)),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     shape: BoxShape.circle,
@@ -322,7 +460,7 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
                   ),
                   child: Icon(
                     Icons.menu_book,
-                    size: isMobile ? 36 : 48,
+                    size: responsiveIconSize.clamp(32.0, 56.0),
                     color: Colors.white,
                   ),
                 ),
@@ -335,6 +473,32 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
   }
 
   Widget _buildBibleQuoteBox({required bool isMobile}) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Responsive padding: 4% for small screens (320px), 2% for large screens (1920px+)
+    final responsivePadding = screenWidth < 600
+        ? screenWidth * 0.04
+        : screenWidth < 1200
+            ? screenWidth * 0.03
+            : screenWidth * 0.02;
+    // Responsive spacing: 2% for small, 1.5% for medium, 1% for large
+    final responsiveSpacing = screenWidth < 600
+        ? screenWidth * 0.02
+        : screenWidth < 1200
+            ? screenWidth * 0.015
+            : screenWidth * 0.01;
+    // Responsive icon size: 9% for small, 6% for medium, 4% for large
+    final responsiveIconSize = screenWidth < 600
+        ? screenWidth * 0.09
+        : screenWidth < 1200
+            ? screenWidth * 0.06
+            : screenWidth * 0.04;
+    // Responsive icon padding: 2.5% for small, 1.5% for medium, 1% for large
+    final responsiveIconPadding = screenWidth < 600
+        ? screenWidth * 0.025
+        : screenWidth < 1200
+            ? screenWidth * 0.015
+            : screenWidth * 0.01;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -343,7 +507,7 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
           child: Container(
-            padding: EdgeInsets.all(isMobile ? AppSpacing.large : AppSpacing.extraLarge),
+            padding: EdgeInsets.all(responsivePadding.clamp(16.0, 32.0)),
             decoration: BoxDecoration(
               color: AppColors.warmBrown,
               borderRadius: BorderRadius.circular(20),
@@ -366,7 +530,10 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
                     children: [
                       Text(
                         'Daily Bible Quote',
-                        style: (isMobile ? AppTypography.heading3 : AppTypography.heading2).copyWith(
+                        style: (isMobile
+                                ? AppTypography.heading3
+                                : AppTypography.heading2)
+                            .copyWith(
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
@@ -382,10 +549,11 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
                     ],
                   ),
                 ),
-                SizedBox(width: isMobile ? AppSpacing.medium : AppSpacing.large),
+                SizedBox(width: responsiveSpacing.clamp(12.0, 24.0)),
                 // Icon
                 Container(
-                  padding: EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
+                  padding:
+                      EdgeInsets.all(responsiveIconPadding.clamp(12.0, 24.0)),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     shape: BoxShape.circle,
@@ -396,7 +564,7 @@ class _BibleReaderSectionState extends State<BibleReaderSection> {
                   ),
                   child: Icon(
                     Icons.format_quote,
-                    size: isMobile ? 36 : 48,
+                    size: responsiveIconSize.clamp(32.0, 56.0),
                     color: Colors.white,
                   ),
                 ),

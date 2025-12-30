@@ -99,6 +99,7 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> with SingleTi
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
