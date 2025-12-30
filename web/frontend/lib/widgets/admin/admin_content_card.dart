@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../shared/image_helper.dart';
@@ -8,6 +9,8 @@ import '../../utils/responsive_utils.dart';
 import '../../services/api_service.dart';
 import '../../services/logger_service.dart';
 import '../../screens/video/video_player_full_screen.dart';
+import '../../providers/audio_player_provider.dart';
+import '../../models/content_item.dart';
 import 'admin_status_badge.dart';
 
 /// Content card for admin management pages
@@ -92,6 +95,51 @@ class AdminContentCard extends StatelessWidget {
     return apiService.getMediaUrl(path.toString());
   }
 
+  ContentItem _itemToContentItem() {
+    final id = item['id'];
+    final title = item['title'] as String? ?? 'Untitled';
+    final description = item['description'] as String?;
+    final audioUrl = item['audio_url'] as String?;
+    final coverImage = item['cover_image'] as String?;
+    final creatorName = item['creator_name'] as String? ?? 
+                       item['user']?['name'] as String? ?? 
+                       'Unknown';
+    final duration = item['duration'] as int?;
+    
+    // Get full media URL if audioUrl exists
+    String? fullAudioUrl;
+    if (audioUrl != null && audioUrl.toString().isNotEmpty) {
+      fullAudioUrl = _getMediaUrl(audioUrl);
+    }
+    
+    // Get full media URL for cover image if it exists
+    String? fullCoverImage;
+    if (coverImage != null && coverImage.toString().isNotEmpty) {
+      fullCoverImage = _getMediaUrl(coverImage);
+    }
+    
+    // Parse created_at with fallback to current time
+    DateTime createdAt;
+    if (item['created_at'] != null) {
+      final parsedDate = DateTime.tryParse(item['created_at'].toString());
+      createdAt = parsedDate ?? DateTime.now();
+    } else {
+      createdAt = DateTime.now();
+    }
+    
+    return ContentItem(
+      id: id?.toString() ?? '',
+      title: title,
+      description: description,
+      audioUrl: fullAudioUrl,
+      coverImage: fullCoverImage,
+      creator: creatorName,
+      category: item['type'] as String? ?? 'music',
+      createdAt: createdAt,
+      duration: duration != null ? Duration(seconds: duration) : null,
+    );
+  }
+
   void _handlePreview(BuildContext context) async {
     final contentType = _getContentType();
     if (contentType == null) return;
@@ -136,7 +184,23 @@ class AdminContentCard extends StatelessWidget {
       
       // Proceed with preview/playback
       if (contentType == 'audio') {
-        context.push('/player/audio/$contentId');
+        // Use audio player provider to play content
+        // This will automatically show the compact music player
+        try {
+          final contentItem = _itemToContentItem();
+          if (contentItem.audioUrl == null || contentItem.audioUrl!.isEmpty) {
+            _showError(context, 'Audio URL is not available for this content.');
+            return;
+          }
+          
+          // Play content using audio player provider
+          // This will show the compact player and start playback
+          Provider.of<AudioPlayerState>(context, listen: false)
+              .playContent(contentItem);
+        } catch (e) {
+          LoggerService.e('Error playing audio: $e');
+          _showError(context, 'Failed to play audio. Please try again.');
+        }
       } else if (contentType == 'video') {
         final videoType = item['type'] as String? ?? '';
         if (videoType == 'movie') {
