@@ -599,6 +599,12 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
           spacing: AppSpacing.medium,
           runSpacing: AppSpacing.medium,
           children: [
+            // Play button
+            _buildPrimaryButton(
+              icon: Icons.play_arrow,
+              label: 'Play Now',
+              onTap: _handlePlay,
+            ),
             // Add to List button
             _buildSecondaryButton(
               icon: Icons.add,
@@ -628,6 +634,41 @@ class _MovieDetailScreenWebState extends State<MovieDetailScreenWeb> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildPrimaryButton({required IconData icon, required String label, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.warmBrown,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.warmBrown.withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white, size: 24),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

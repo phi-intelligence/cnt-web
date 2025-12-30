@@ -331,9 +331,8 @@ class _VideoPodcastDetailScreenWebState
     final isDesktop = screenWidth >= 1024;
     final isTablet = screenWidth >= 768 && screenWidth < 1024;
 
-    // Responsive hero height
-    final heroHeight = isDesktop ? 0.8 : (isTablet ? 0.6 : 0.5);
-    final heroHeightValue = MediaQuery.of(context).size.height * heroHeight;
+    // Responsive hero height - matching movie page
+    final heroHeight = MediaQuery.of(context).size.height * (isDesktop ? 0.75 : 0.6);
 
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
@@ -341,46 +340,13 @@ class _VideoPodcastDetailScreenWebState
         slivers: [
           // Hero Section with Video Preview
           SliverToBoxAdapter(
-            child: Container(
-              height: heroHeightValue,
+            child: SizedBox(
+              height: heroHeight,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Background video preview or cover image
-                  if (_previewController != null &&
-                      _previewController!.value.isInitialized &&
-                      !_hasPreviewError)
-                    FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox(
-                        width: _previewController!.value.size.width,
-                        height: _previewController!.value.size.height,
-                        child: VideoPlayer(_previewController!),
-                      ),
-                    )
-                  else if (item.coverImage != null &&
-                      item.coverImage!.isNotEmpty)
-                    Image.network(
-                      _apiService.getMediaUrl(item.coverImage!),
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Colors.black,
-                          child: const Center(
-                            child: Icon(Icons.video_library,
-                                color: Colors.white70, size: 64),
-                          ),
-                        );
-                      },
-                    )
-                  else
-                    Container(
-                      color: Colors.black,
-                      child: const Center(
-                        child: Icon(Icons.video_library,
-                            color: Colors.white70, size: 64),
-                      ),
-                    ),
+                  // Background video/image
+                  _buildHeroBackground(item),
 
                   // Gradient overlay
                   Container(
@@ -389,11 +355,11 @@ class _VideoPodcastDetailScreenWebState
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.transparent,
                           Colors.black.withOpacity(0.3),
-                          Colors.black.withOpacity(0.8),
+                          Colors.black.withOpacity(0.5),
+                          Colors.black.withOpacity(0.9),
                         ],
-                        stops: const [0.0, 0.6, 1.0],
+                        stops: const [0.0, 0.5, 1.0],
                       ),
                     ),
                   ),
@@ -513,6 +479,12 @@ class _VideoPodcastDetailScreenWebState
           spacing: AppSpacing.medium,
           runSpacing: AppSpacing.medium,
           children: [
+            // Play button
+            _buildPrimaryButton(
+              icon: Icons.play_arrow,
+              label: 'Play Now',
+              onTap: _handlePlay,
+            ),
             // Add to List button
             _buildSecondaryButton(
               icon: Icons.add,
@@ -829,6 +801,42 @@ class _VideoPodcastDetailScreenWebState
     }
   }
 
+  Widget _buildHeroBackground(ContentItem item) {
+    if (_previewController != null && 
+        _previewController!.value.isInitialized && 
+        !_hasPreviewError) {
+      return ClipRect(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(
+            width: _previewController!.value.size.width,
+            height: _previewController!.value.size.height,
+            child: VideoPlayer(_previewController!),
+          ),
+        ),
+      );
+    } else if (item.coverImage != null && item.coverImage!.isNotEmpty) {
+      return Image.network(
+        _apiService.getMediaUrl(item.coverImage!),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildPlaceholderBackground();
+        },
+      );
+    }
+    return _buildPlaceholderBackground();
+  }
+
+  Widget _buildPlaceholderBackground() {
+    return Container(
+      color: AppColors.warmBrown.withOpacity(0.3),
+      child: const Center(
+        child: Icon(Icons.video_library, color: Colors.white24, size: 100),
+      ),
+    );
+  }
+
   String _formatDuration(Duration duration) {
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);
@@ -881,6 +889,41 @@ class _VideoPodcastDetailScreenWebState
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPrimaryButton({required IconData icon, required String label, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.warmBrown,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.warmBrown.withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white, size: 24),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -18,7 +18,6 @@ import '../../providers/search_provider.dart';
 import 'video_podcast_detail_screen_web.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
-import '../../widgets/web/styled_pill_button.dart';
 
 /// Web Podcasts Screen - Full implementation
 class PodcastsScreenWeb extends StatefulWidget {
@@ -696,16 +695,6 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
                      ),
                    ),
                  ],
-                 const SizedBox(height: AppSpacing.large),
-                 Material(
-                   color: Colors.transparent,
-                   child: StyledPillButton(
-                     label: 'Play Now',
-                     icon: Icons.play_arrow,
-                     onPressed: () => _handlePlay(item),
-                     width: 220,
-                   ),
-                 ),
               ],
             ),
           ),

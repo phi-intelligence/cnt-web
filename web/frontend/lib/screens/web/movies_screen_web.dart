@@ -15,7 +15,6 @@ import '../../services/api_service.dart';
 import '../../models/content_item.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
-import '../../widgets/web/styled_pill_button.dart';
 import '../../providers/search_provider.dart';
 import 'movie_detail_screen_web.dart';
 import '../../services/logger_service.dart';
@@ -765,16 +764,6 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
                      ),
                    ),
                  ],
-                 const SizedBox(height: AppSpacing.large),
-                 Material(
-                   color: Colors.transparent,
-                   child: StyledPillButton(
-                     label: 'Watch Now',
-                     icon: Icons.play_arrow,
-                     onPressed: () => _handleMovieTap(item),
-                     width: 220,
-                   ),
-                 ),
               ],
             ),
           ),
