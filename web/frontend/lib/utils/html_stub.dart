@@ -17,3 +17,47 @@ class HttpRequest {
   }
 }
 
+/// Stub Window class for mobile platform
+class Window {
+  final Storage localStorage = _StorageStub();
+  final Storage sessionStorage = _StorageStub();
+}
+
+/// Stub Storage class for mobile platform
+class _StorageStub implements Storage {
+  @override
+  String? operator [](String key) => null;
+  
+  @override
+  void operator []=(String key, String value) {
+    throw UnsupportedError('localStorage is not supported on mobile platform');
+  }
+  
+  @override
+  void clear() {
+    throw UnsupportedError('localStorage is not supported on mobile platform');
+  }
+  
+  @override
+  String? remove(String key) => null;
+  
+  @override
+  int get length => 0;
+  
+  @override
+  String? key(int index) => null;
+}
+
+/// Stub Storage interface for mobile platform
+abstract class Storage {
+  String? operator [](String key);
+  void operator []=(String key, String value);
+  void clear();
+  String? remove(String key);
+  int get length;
+  String? key(int index);
+}
+
+/// Global window instance (stub for mobile)
+final window = Window();
+

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../models/content_item.dart';
 import '../../services/api_service.dart';
 import '../../providers/artist_provider.dart';
+import '../../providers/playlist_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
@@ -87,7 +88,7 @@ class _VideoPodcastDetailScreenWebState
           setState(() {
             _creatorId = podcast.creatorId;
           });
-          
+
           await _fetchCreatorProfile();
         }
       } catch (e) {
@@ -100,7 +101,7 @@ class _VideoPodcastDetailScreenWebState
 
   Future<void> _fetchCreatorProfile() async {
     if (_creatorId == null) return;
-    
+
     setState(() {
       _isLoadingCreator = true;
     });
@@ -122,7 +123,6 @@ class _VideoPodcastDetailScreenWebState
       }
     }
   }
-
 
   Future<void> _initializePreview() async {
     if (widget.item.videoUrl == null || widget.item.videoUrl!.isEmpty) {
@@ -286,6 +286,36 @@ class _VideoPodcastDetailScreenWebState
   void _handleFavorite() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${widget.item.title} added to favorites')),
+    );
+  }
+
+  Future<void> _handleAddToList() async {
+    // Show playlist selection dialog
+    await showDialog(
+      context: context,
+      builder: (context) => _PlaylistSelectionDialog(
+        item: widget.item,
+        onPlaylistSelected: (playlistId) async {
+          final playlistProvider = context.read<PlaylistProvider>();
+          final success = await playlistProvider.addItemToPlaylist(
+            playlistId,
+            widget.item,
+          );
+
+          if (mounted) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  success ? 'Added to playlist' : 'Failed to add to playlist',
+                ),
+                backgroundColor:
+                    success ? AppColors.successMain : AppColors.errorMain,
+              ),
+            );
+          }
+        },
+      ),
     );
   }
 
@@ -491,6 +521,16 @@ class _VideoPodcastDetailScreenWebState
                                 icon: Icons.play_arrow,
                                 onPressed: _handlePlay,
                                 width: isDesktop ? 200 : 150,
+                              ),
+                              // Add to List button
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.add,
+                                  color: Colors.white,
+                                  size: 32,
+                                ),
+                                onPressed: _handleAddToList,
+                                tooltip: 'Add to List',
                               ),
                               // Donate button
                               if (_creatorInfo != null)
@@ -912,5 +952,301 @@ class _VideoPodcastDetailScreenWebState
     } else {
       return '${minutes}m';
     }
+  }
+}
+
+/// Playlist Selection Dialog - Reusable component
+class _PlaylistSelectionDialog extends StatefulWidget {
+  final ContentItem item;
+  final Function(int) onPlaylistSelected;
+
+  const _PlaylistSelectionDialog({
+    required this.item,
+    required this.onPlaylistSelected,
+  });
+
+  @override
+  State<_PlaylistSelectionDialog> createState() =>
+      _PlaylistSelectionDialogState();
+}
+
+class _PlaylistSelectionDialogState extends State<_PlaylistSelectionDialog> {
+  bool _isCreatingNew = false;
+  bool _isCreating = false;
+  final _newPlaylistController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch playlists when dialog opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PlaylistProvider>().fetchPlaylists();
+    });
+  }
+
+  @override
+  void dispose() {
+    _newPlaylistController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F0E8),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: EdgeInsets.all(AppSpacing.large),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: AppColors.warmBrown.withOpacity(0.1),
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.playlist_add, color: AppColors.warmBrown),
+                  SizedBox(width: AppSpacing.medium),
+                  Expanded(
+                    child: Text(
+                      'Add to List',
+                      style: AppTypography.heading3.copyWith(
+                        color: AppColors.primaryDark,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close, color: AppColors.textSecondary),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+
+            // Playlist list
+            Flexible(
+              child: Consumer<PlaylistProvider>(
+                builder: (context, provider, _) {
+                  if (provider.isLoading) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+
+                  final playlists = provider.playlists;
+
+                  return ListView(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.symmetric(vertical: AppSpacing.medium),
+                    children: [
+                      // Create new playlist option
+                      if (_isCreatingNew)
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.medium,
+                            vertical: AppSpacing.small,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _newPlaylistController,
+                                  autofocus: true,
+                                  decoration: InputDecoration(
+                                    hintText: 'New playlist name',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.medium,
+                                      vertical: AppSpacing.small,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: AppSpacing.small),
+                              _isCreating
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(8.0),
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    )
+                                  : IconButton(
+                                      icon: Icon(Icons.check,
+                                          color: AppColors.successMain),
+                                      onPressed: () async {
+                                        final name =
+                                            _newPlaylistController.text.trim();
+                                        if (name.isNotEmpty && !_isCreating) {
+                                          setState(() {
+                                            _isCreating = true;
+                                          });
+
+                                          try {
+                                            final playlist = await provider
+                                                .createPlaylist(name);
+
+                                            if (mounted) {
+                                              if (playlist != null) {
+                                                // Refresh playlists list
+                                                await provider.fetchPlaylists();
+                                                // Add item to the newly created playlist
+                                                widget.onPlaylistSelected(
+                                                    playlist.id);
+                                              } else {
+                                                setState(() {
+                                                  _isCreating = false;
+                                                });
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: const Text(
+                                                        'Failed to create playlist'),
+                                                    backgroundColor:
+                                                        AppColors.errorMain,
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          } catch (e) {
+                                            if (mounted) {
+                                              setState(() {
+                                                _isCreating = false;
+                                              });
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                      'Error: ${e.toString()}'),
+                                                  backgroundColor:
+                                                      AppColors.errorMain,
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        }
+                                      },
+                                    ),
+                              IconButton(
+                                icon: Icon(Icons.close,
+                                    color: AppColors.textSecondary),
+                                onPressed: () {
+                                  setState(() {
+                                    _isCreatingNew = false;
+                                    _newPlaylistController.clear();
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        ListTile(
+                          leading: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.warmBrown.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.add, color: AppColors.warmBrown),
+                          ),
+                          title: Text(
+                            'Create New Playlist',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.warmBrown,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          onTap: () {
+                            setState(() => _isCreatingNew = true);
+                          },
+                        ),
+
+                      Divider(color: AppColors.warmBrown.withOpacity(0.1)),
+
+                      // Existing playlists
+                      if (playlists.isEmpty)
+                        Padding(
+                          padding: EdgeInsets.all(AppSpacing.extraLarge),
+                          child: Center(
+                            child: Text(
+                              'No playlists yet',
+                              style: AppTypography.body.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        ...playlists.map((playlist) => ListTile(
+                              leading: Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: AppColors.warmBrown.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: playlist.thumbnailUrl != null
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          playlist.thumbnailUrl!,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => Icon(
+                                            Icons.playlist_play,
+                                            color: AppColors.warmBrown,
+                                          ),
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.playlist_play,
+                                        color: AppColors.warmBrown,
+                                      ),
+                              ),
+                              title: Text(
+                                playlist.name,
+                                style: AppTypography.bodyMedium.copyWith(
+                                  color: AppColors.primaryDark,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${playlist.itemCount} items',
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              onTap: () =>
+                                  widget.onPlaylistSelected(playlist.id),
+                            )),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

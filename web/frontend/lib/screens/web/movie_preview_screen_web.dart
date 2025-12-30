@@ -26,6 +26,8 @@ class MoviePreviewScreenWeb extends StatefulWidget {
   final String source; // 'camera' or 'gallery'
   final int duration;
   final int fileSize;
+  final String?
+      movieType; // 'movie' or 'kids_movie' (for pre-selecting category)
 
   const MoviePreviewScreenWeb({
     super.key,
@@ -33,6 +35,7 @@ class MoviePreviewScreenWeb extends StatefulWidget {
     required this.source,
     this.duration = 0,
     this.fileSize = 0,
+    this.movieType,
   });
 
   @override
@@ -47,17 +50,17 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
   bool _isLoading = false;
   double _uploadProgress = 0.0;
   bool _showUploadDialog = false;
-  
+
   // Controls visibility
   bool _showControls = true;
   Timer? _hideControlsTimer;
   bool _isMouseOverVideo = false;
-  
+
   // Seek/Scrubbing
   bool _isScrubbing = false;
   double _scrubValue = 0.0;
   bool _wasPlayingBeforeScrub = false;
-  
+
   // Form fields
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
@@ -69,7 +72,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
   double _rating = 0.0;
   int? _selectedCategoryId;
   bool _isFeatured = false;
-  
+
   // Categories
   List<Category> _categories = [];
   bool _loadingCategories = false;
@@ -80,24 +83,39 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
     _initializePlayer();
     _loadCategories();
   }
-  
+
   Future<void> _loadCategories() async {
     setState(() {
       _loadingCategories = true;
     });
-    
+
     try {
       final categories = await ApiService().getCategories();
       // Filter for movie categories only
-      final movieCategories = categories.where((c) => c.type == 'movie').toList();
+      final movieCategories =
+          categories.where((c) => c.type == 'movie').toList();
       if (mounted) {
         setState(() {
           _categories = movieCategories;
           _loadingCategories = false;
         });
+
+        // Pre-select "Animated Bible Stories" category if movieType is 'kids_movie'
+        if (widget.movieType == 'kids_movie') {
+          final animatedCategory = movieCategories.firstWhere(
+            (c) => c.name == 'Animated Bible Stories',
+            orElse: () => movieCategories
+                .first, // Fallback to first category if not found
+          );
+          if (animatedCategory.name == 'Animated Bible Stories') {
+            setState(() {
+              _selectedCategoryId = animatedCategory.id;
+            });
+          }
+        }
       }
     } catch (e) {
-      LoggerService.e('Error loading categories: $e');
+      print('Error loading categories: $e');
       if (mounted) {
         setState(() {
           _loadingCategories = false;
@@ -108,10 +126,10 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
 
   Future<void> _initializePlayer() async {
     try {
-      final isNetworkUrl = widget.videoUri.startsWith('http://') || 
-                          widget.videoUri.startsWith('https://');
+      final isNetworkUrl = widget.videoUri.startsWith('http://') ||
+          widget.videoUri.startsWith('https://');
       final isBlobUrl = widget.videoUri.startsWith('blob:');
-      
+
       if (kIsWeb || isNetworkUrl || isBlobUrl) {
         _controller = VideoPlayerController.networkUrl(
           Uri.parse(widget.videoUri),
@@ -129,7 +147,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
           ),
         );
       }
-      
+
       await _controller!.initialize();
       _controller!.addListener(_videoListener);
       setState(() {
@@ -137,7 +155,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
       });
       _startControlsTimer();
     } catch (e) {
-      LoggerService.e('Error initializing video player: $e');
+      print('Error initializing video player: $e');
       setState(() {
         _hasError = true;
         _errorMessage = 'Failed to load video: ${e.toString()}';
@@ -179,7 +197,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
     setState(() {
       _showControls = true;
     });
-    
+
     if (_controller?.value.isPlaying ?? false) {
       _startControlsTimer();
     }
@@ -189,7 +207,9 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
     _hideControlsTimer?.cancel();
     if (_controller?.value.isPlaying ?? false) {
       _hideControlsTimer = Timer(const Duration(seconds: 3), () {
-        if (mounted && (_controller?.value.isPlaying ?? false) && !_isScrubbing) {
+        if (mounted &&
+            (_controller?.value.isPlaying ?? false) &&
+            !_isScrubbing) {
           setState(() {
             _showControls = false;
           });
@@ -229,7 +249,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
 
   Future<void> _handlePlayPause() async {
     if (_controller == null || !_controller!.value.isInitialized) return;
-    
+
     setState(() {
       if (_controller!.value.isPlaying) {
         _controller!.pause();
@@ -237,20 +257,21 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
         _controller!.play();
       }
     });
-    
+
     _showControlsWithAutoHide();
   }
 
   void _handleEdit() async {
     String videoPathToUse = widget.videoUri;
     int? backendDuration;
-    
+
     if (kIsWeb && widget.videoUri.startsWith('blob:')) {
       try {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Preparing video for editing...')),
         );
-        final uploadResult = await ApiService().uploadTemporaryMedia(widget.videoUri, 'video');
+        final uploadResult =
+            await ApiService().uploadTemporaryMedia(widget.videoUri, 'video');
         if (uploadResult != null) {
           final backendUrl = uploadResult['url'] as String?;
           backendDuration = uploadResult['duration'] as int?;
@@ -259,20 +280,18 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
           }
         }
       } catch (e) {
-        LoggerService.w('⚠️ Failed to upload blob before editor: $e');
+        print('⚠️ Failed to upload blob before editor: $e');
       }
     }
-    
+
     final durationToUse = backendDuration ?? widget.duration;
-    
+
     final editedPath = await Navigator.push<String>(
       context,
       MaterialPageRoute(
         builder: (context) => VideoEditorScreenWeb(
           videoPath: videoPathToUse,
-          duration: durationToUse > 0 
-              ? Duration(seconds: durationToUse) 
-              : null,
+          duration: durationToUse > 0 ? Duration(seconds: durationToUse) : null,
         ),
       ),
     );
@@ -353,7 +372,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
       // Upload video file first
       String videoUrl;
       String? thumbnailUrl;
-      
+
       // Show upload progress dialog
       showDialog(
         context: context,
@@ -373,7 +392,8 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
                 LinearProgressIndicator(
                   value: _uploadProgress,
                   backgroundColor: AppColors.borderPrimary,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryMain),
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(AppColors.primaryMain),
                 ),
                 const SizedBox(height: AppSpacing.medium),
                 Text(
@@ -395,9 +415,29 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
           ),
         ),
       );
-      
-      final videoUploadResponse = await ApiService().uploadVideo(
-        widget.videoUri, 
+
+      // Determine movie type from selected category or passed parameter
+      String movieType = 'movie'; // Default to regular movie
+      if (widget.movieType != null) {
+        movieType = widget.movieType!;
+      } else if (_selectedCategoryId != null && _categories.isNotEmpty) {
+        // Check if selected category is "Animated Bible Stories"
+        try {
+          final selectedCategory = _categories.firstWhere(
+            (c) => c.id == _selectedCategoryId,
+          );
+          if (selectedCategory.name == 'Animated Bible Stories') {
+            movieType = 'kids_movie';
+          }
+        } catch (e) {
+          // Category not found, use default movie type
+          LoggerService.w('Category not found, using default movie type');
+        }
+      }
+
+      final videoUploadResponse = await ApiService().uploadMovie(
+        widget.videoUri,
+        movieType: movieType,
         generateThumbnail: true,
         onProgress: (sent, total) {
           if (mounted) {
@@ -409,7 +449,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
       );
       videoUrl = videoUploadResponse['url'] as String;
       thumbnailUrl = videoUploadResponse['thumbnail_url'] as String?;
-      
+
       // Close upload dialog
       if (mounted) {
         Navigator.of(context).pop(); // Close upload progress dialog
@@ -417,7 +457,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
           _showUploadDialog = false;
         });
       }
-      
+
       if (thumbnailUrl != null && _selectedThumbnail == null) {
         _selectedThumbnail = thumbnailUrl;
       }
@@ -434,21 +474,21 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
       // Check if user is admin - admins can set status to "approved" directly
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final isAdmin = authProvider.isAdmin;
-      
+
       // Create movie
       await ApiService().createMovie(
         title: _titleController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty 
-            ? null 
+        description: _descriptionController.text.trim().isEmpty
+            ? null
             : _descriptionController.text.trim(),
         videoUrl: videoUrl,
         coverImage: _selectedThumbnail,
         duration: actualDuration,
-        director: _directorController.text.trim().isEmpty 
-            ? null 
+        director: _directorController.text.trim().isEmpty
+            ? null
             : _directorController.text.trim(),
-        cast: _castController.text.trim().isEmpty 
-            ? null 
+        cast: _castController.text.trim().isEmpty
+            ? null
             : _castController.text.trim(),
         releaseDate: _releaseDate,
         rating: _rating > 0 ? _rating : null,
@@ -462,7 +502,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
       setState(() {
         _isLoading = false;
       });
-      
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -574,7 +614,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final useHorizontalLayout = constraints.maxWidth > 1024;
-                  
+
                   if (useHorizontalLayout) {
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -691,14 +731,14 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
                     child: GestureDetector(
                       onTap: _handlePlayPause,
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusLarge),
                         child: AspectRatio(
                           aspectRatio: _controller!.value.aspectRatio,
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
                               VideoPlayer(_controller!),
-                              
                               AnimatedOpacity(
                                 opacity: _showControls ? 1.0 : 0.0,
                                 duration: const Duration(milliseconds: 300),
@@ -717,7 +757,8 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
                                   ),
                                   child: Stack(
                                     children: [
-                                      if (!_controller!.value.isPlaying || _isMouseOverVideo)
+                                      if (!_controller!.value.isPlaying ||
+                                          _isMouseOverVideo)
                                         Center(
                                           child: MouseRegion(
                                             cursor: SystemMouseCursors.click,
@@ -727,13 +768,16 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
                                                 width: 80,
                                                 height: 80,
                                                 decoration: BoxDecoration(
-                                                  color: AppColors.primaryMain.withOpacity(0.9),
+                                                  color: AppColors.primaryMain
+                                                      .withOpacity(0.9),
                                                   shape: BoxShape.circle,
                                                   boxShadow: [
                                                     BoxShadow(
-                                                      color: Colors.black.withOpacity(0.3),
+                                                      color: Colors.black
+                                                          .withOpacity(0.3),
                                                       blurRadius: 12,
-                                                      offset: const Offset(0, 4),
+                                                      offset:
+                                                          const Offset(0, 4),
                                                     ),
                                                   ],
                                                 ),
@@ -748,13 +792,13 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
                                             ),
                                           ),
                                         ),
-                                      
                                       Positioned(
                                         bottom: 0,
                                         left: 0,
                                         right: 0,
                                         child: Container(
-                                          padding: EdgeInsets.all(AppSpacing.medium),
+                                          padding:
+                                              EdgeInsets.all(AppSpacing.medium),
                                           child: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
@@ -764,45 +808,80 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
                                                     width: 60,
                                                     child: Text(
                                                       _formatTime((_isScrubbing
-                                                              ? _scrubValue.toInt()
-                                                              : _controller!.value.position.inSeconds)),
-                                                      style: AppTypography.bodySmall.copyWith(
+                                                          ? _scrubValue.toInt()
+                                                          : _controller!
+                                                              .value
+                                                              .position
+                                                              .inSeconds)),
+                                                      style: AppTypography
+                                                          .bodySmall
+                                                          .copyWith(
                                                         color: Colors.white,
-                                                        fontWeight: FontWeight.w500,
+                                                        fontWeight:
+                                                            FontWeight.w500,
                                                       ),
                                                     ),
                                                   ),
                                                   Expanded(
                                                     child: Builder(
                                                       builder: (context) {
-                                                        final durationSeconds = _controller!.value.duration.inSeconds;
-                                                        final positionSeconds = _isScrubbing
-                                                            ? _scrubValue
-                                                            : _controller!.value.position.inSeconds.toDouble();
-                                                        
-                                                        final maxValue = durationSeconds > 0 
-                                                            ? durationSeconds.toDouble() 
-                                                            : 1.0;
-                                                        
-                                                        final clampedValue = positionSeconds.clamp(0.0, maxValue);
-                                                        
-                                                        if (maxValue <= 0 || maxValue.isNaN || maxValue.isInfinite) {
+                                                        final durationSeconds =
+                                                            _controller!
+                                                                .value
+                                                                .duration
+                                                                .inSeconds;
+                                                        final positionSeconds =
+                                                            _isScrubbing
+                                                                ? _scrubValue
+                                                                : _controller!
+                                                                    .value
+                                                                    .position
+                                                                    .inSeconds
+                                                                    .toDouble();
+
+                                                        final maxValue =
+                                                            durationSeconds > 0
+                                                                ? durationSeconds
+                                                                    .toDouble()
+                                                                : 1.0;
+
+                                                        final clampedValue =
+                                                            positionSeconds
+                                                                .clamp(0.0,
+                                                                    maxValue);
+
+                                                        if (maxValue <= 0 ||
+                                                            maxValue.isNaN ||
+                                                            maxValue
+                                                                .isInfinite) {
                                                           return Container(
                                                             height: 4,
-                                                            decoration: BoxDecoration(
-                                                              color: Colors.white.withOpacity(0.3),
-                                                              borderRadius: BorderRadius.circular(2),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: Colors
+                                                                  .white
+                                                                  .withOpacity(
+                                                                      0.3),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          2),
                                                             ),
                                                           );
                                                         }
-                                                        
+
                                                         return SliderTheme(
-                                                          data: SliderTheme.of(context).copyWith(
+                                                          data: SliderTheme.of(
+                                                                  context)
+                                                              .copyWith(
                                                             trackHeight: 4,
-                                                            thumbShape: const RoundSliderThumbShape(
-                                                              enabledThumbRadius: 8,
+                                                            thumbShape:
+                                                                const RoundSliderThumbShape(
+                                                              enabledThumbRadius:
+                                                                  8,
                                                             ),
-                                                            overlayShape: const RoundSliderOverlayShape(
+                                                            overlayShape:
+                                                                const RoundSliderOverlayShape(
                                                               overlayRadius: 16,
                                                             ),
                                                           ),
@@ -810,29 +889,46 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
                                                             value: clampedValue,
                                                             min: 0.0,
                                                             max: maxValue,
-                                                            activeColor: Colors.white,
-                                                            inactiveColor: Colors.white.withOpacity(0.3),
+                                                            activeColor:
+                                                                Colors.white,
+                                                            inactiveColor: Colors
+                                                                .white
+                                                                .withOpacity(
+                                                                    0.3),
                                                             onChanged: (value) {
                                                               setState(() {
-                                                                _isScrubbing = true;
-                                                                _scrubValue = value;
+                                                                _isScrubbing =
+                                                                    true;
+                                                                _scrubValue =
+                                                                    value;
                                                               });
                                                             },
-                                                            onChangeStart: (value) {
+                                                            onChangeStart:
+                                                                (value) {
                                                               setState(() {
-                                                                _wasPlayingBeforeScrub = _controller!.value.isPlaying;
+                                                                _wasPlayingBeforeScrub =
+                                                                    _controller!
+                                                                        .value
+                                                                        .isPlaying;
                                                                 if (_wasPlayingBeforeScrub) {
-                                                                  _controller!.pause();
+                                                                  _controller!
+                                                                      .pause();
                                                                 }
                                                               });
                                                             },
-                                                            onChangeEnd: (value) async {
-                                                              await _controller!.seekTo(Duration(seconds: value.toInt()));
+                                                            onChangeEnd:
+                                                                (value) async {
+                                                              await _controller!
+                                                                  .seekTo(Duration(
+                                                                      seconds: value
+                                                                          .toInt()));
                                                               setState(() {
-                                                                _isScrubbing = false;
+                                                                _isScrubbing =
+                                                                    false;
                                                               });
                                                               if (_wasPlayingBeforeScrub) {
-                                                                _controller!.play();
+                                                                _controller!
+                                                                    .play();
                                                               }
                                                             },
                                                           ),
@@ -843,12 +939,19 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
                                                   SizedBox(
                                                     width: 60,
                                                     child: Text(
-                                                      _formatTime(_controller!.value.duration.inSeconds),
-                                                      style: AppTypography.bodySmall.copyWith(
+                                                      _formatTime(_controller!
+                                                          .value
+                                                          .duration
+                                                          .inSeconds),
+                                                      style: AppTypography
+                                                          .bodySmall
+                                                          .copyWith(
                                                         color: Colors.white,
-                                                        fontWeight: FontWeight.w500,
+                                                        fontWeight:
+                                                            FontWeight.w500,
                                                       ),
-                                                      textAlign: TextAlign.right,
+                                                      textAlign:
+                                                          TextAlign.right,
                                                     ),
                                                   ),
                                                 ],
@@ -889,7 +992,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
             variant: StyledPillButtonVariant.outlined,
           ),
           const SizedBox(height: AppSpacing.large),
-          
+
           Text(
             'Movie Details',
             style: AppTypography.heading3.copyWith(
@@ -897,7 +1000,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
             ),
           ),
           const SizedBox(height: AppSpacing.large),
-          
+
           // Title (required)
           TextField(
             controller: _titleController,
@@ -926,7 +1029,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
             ),
           ),
           const SizedBox(height: AppSpacing.medium),
-          
+
           // Description
           TextField(
             controller: _descriptionController,
@@ -956,7 +1059,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
             ),
           ),
           const SizedBox(height: AppSpacing.medium),
-          
+
           // Director
           TextField(
             controller: _directorController,
@@ -985,7 +1088,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
             ),
           ),
           const SizedBox(height: AppSpacing.medium),
-          
+
           // Cast
           TextField(
             controller: _castController,
@@ -1014,7 +1117,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
             ),
           ),
           const SizedBox(height: AppSpacing.medium),
-          
+
           // Release Date
           InkWell(
             onTap: _selectReleaseDate,
@@ -1050,7 +1153,8 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
                   ),
                   if (_releaseDate != null)
                     IconButton(
-                      icon: Icon(Icons.clear, size: 18, color: AppColors.textSecondary),
+                      icon: Icon(Icons.clear,
+                          size: 18, color: AppColors.textSecondary),
                       onPressed: () {
                         setState(() {
                           _releaseDate = null;
@@ -1062,7 +1166,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
             ),
           ),
           const SizedBox(height: AppSpacing.medium),
-          
+
           // Category Dropdown
           Container(
             padding: EdgeInsets.symmetric(
@@ -1075,7 +1179,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
               border: Border.all(color: AppColors.borderPrimary),
             ),
             child: DropdownButtonFormField<int>(
-              value: _selectedCategoryId,
+              initialValue: _selectedCategoryId,
               decoration: InputDecoration(
                 labelText: 'Category (optional)',
                 labelStyle: TextStyle(color: AppColors.textSecondary),
@@ -1116,7 +1220,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
             ),
           ),
           const SizedBox(height: AppSpacing.medium),
-          
+
           // Rating Slider
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1143,7 +1247,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
             ],
           ),
           const SizedBox(height: AppSpacing.medium),
-          
+
           // Cover Image
           ThumbnailSelector(
             isVideo: true,
@@ -1156,7 +1260,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
             initialThumbnail: _selectedThumbnail,
           ),
           const SizedBox(height: AppSpacing.medium),
-          
+
           // Featured Toggle
           Row(
             children: [
@@ -1180,7 +1284,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
             ],
           ),
           const SizedBox(height: AppSpacing.large),
-          
+
           // Publish Button
           SizedBox(
             width: double.infinity,
@@ -1195,4 +1299,3 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
     );
   }
 }
-

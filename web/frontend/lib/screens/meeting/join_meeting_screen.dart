@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
-import '../../utils/responsive_grid_delegate.dart';
-import '../../widgets/web/styled_page_header.dart';
-import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
-import 'meeting_room_screen.dart';
 import '../../services/livekit_meeting_service.dart';
 import 'prejoin_screen.dart';
 
@@ -30,8 +27,24 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
     Navigator.pop(context);
   }
 
+  Future<void> _pasteToField(TextEditingController controller) async {
+    final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+    if (clipboardData?.text != null && mounted) {
+      setState(() {
+        controller.text = clipboardData!.text!;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pasted from clipboard'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+  }
+
   void _handleJoinMeeting() async {
-    if (_meetingIdController.text.trim().isEmpty && _meetingLinkController.text.trim().isEmpty) {
+    if (_meetingIdController.text.trim().isEmpty &&
+        _meetingLinkController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a meeting ID or link')),
       );
@@ -40,7 +53,7 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
     String meetingId = _meetingIdController.text.trim();
     String meetingLink = _meetingLinkController.text.trim();
     String? roomNameFromLink;
-    
+
     // Extract room name from link if link is provided (and ID is empty for clarity)
     if (meetingLink.isNotEmpty) {
       final uri = Uri.tryParse(meetingLink);
@@ -48,29 +61,35 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
         roomNameFromLink = uri.pathSegments.last;
       } else {
         // Try simple split as fallback
-      final urlParts = meetingLink.split('/');
-        roomNameFromLink = urlParts.isNotEmpty && urlParts.last.isNotEmpty ? urlParts.last : null;
+        final urlParts = meetingLink.split('/');
+        roomNameFromLink = urlParts.isNotEmpty && urlParts.last.isNotEmpty
+            ? urlParts.last
+            : null;
       }
     }
-    
-    setState(() { _joining = true; _joinError = null; });
+
+    setState(() {
+      _joining = true;
+      _joinError = null;
+    });
     try {
       final identity = 'guest-user-${DateTime.now().millisecondsSinceEpoch}';
       final userName = 'Guest User';
       final meetingSvc = LiveKitMeetingService();
-      
+
       // Determine join method:
       // 1. If link provided with valid room name, use room-based join
       // 2. If numeric ID provided (and no link), use ID-based join
       // 3. If non-numeric ID (room name), use room-based join
       final meetingIdInt = int.tryParse(meetingId);
-      final bool useRoomJoin = (roomNameFromLink != null && roomNameFromLink.isNotEmpty) || 
-                               (meetingId.isNotEmpty && meetingIdInt == null);
-      
+      final bool useRoomJoin =
+          (roomNameFromLink != null && roomNameFromLink.isNotEmpty) ||
+              (meetingId.isNotEmpty && meetingIdInt == null);
+
       if (!useRoomJoin && (meetingIdInt == null || meetingIdInt <= 0)) {
         throw Exception('Invalid meeting ID: $meetingId');
       }
-      
+
       final joinResp = useRoomJoin
           ? await meetingSvc.fetchTokenForMeetingByRoom(
               roomName: roomNameFromLink ?? meetingId,
@@ -84,7 +103,9 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
               userName: userName,
               isHost: false,
             );
-      setState(() { _joining = false; });
+      setState(() {
+        _joining = false;
+      });
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -101,37 +122,40 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
     } catch (e) {
       String errorMessage;
       bool isAuthError = false;
-      
+
       // Check if it's an authentication error
       final errorString = e.toString().toLowerCase();
-      if (errorString.contains('session has expired') || 
+      if (errorString.contains('session has expired') ||
           errorString.contains('authentication failed') ||
           errorString.contains('please log in again') ||
           errorString.contains('unauthorized')) {
-        errorMessage = 'Your session has expired. Please log in again to join the meeting.';
+        errorMessage =
+            'Your session has expired. Please log in again to join the meeting.';
         isAuthError = true;
       } else {
         errorMessage = e.toString().replaceAll('Exception: ', '');
       }
-      
-      setState(() { 
-        _joining = false; 
+
+      setState(() {
+        _joining = false;
         _joinError = errorMessage;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
             backgroundColor: isAuthError ? Colors.red : null,
             duration: Duration(seconds: isAuthError ? 5 : 3),
-            action: isAuthError ? SnackBarAction(
-              label: 'Go to Login',
-              textColor: Colors.white,
-              onPressed: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
-            ) : null,
+            action: isAuthError
+                ? SnackBarAction(
+                    label: 'Go to Login',
+                    textColor: Colors.white,
+                    onPressed: () {
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    },
+                  )
+                : null,
           ),
         );
       }
@@ -140,7 +164,8 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
 
   void _handleScanQR() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('QR code scanning will be implemented soon!')),
+      const SnackBar(
+          content: Text('QR code scanning will be implemented soon!')),
     );
   }
 
@@ -182,12 +207,13 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
                     image: DecorationImage(
                       image: const AssetImage('assets/images/jesus.png'),
                       fit: isMobile ? BoxFit.contain : BoxFit.cover,
-                      alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
+                      alignment:
+                          isMobile ? Alignment.topRight : Alignment.centerRight,
                     ),
                   ),
                 ),
               ),
-              
+
               // Gradient overlay from left
               Positioned.fill(
                 child: Container(
@@ -218,7 +244,7 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
                   ),
                 ),
               ),
-              
+
               // Content positioned centered/right-aligned
               Positioned(
                 left: isMobile ? 0 : (screenWidth * 0.15),
@@ -228,8 +254,12 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
                 child: SafeArea(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.only(
-                      left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
-                      right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                      left: isMobile
+                          ? AppSpacing.large
+                          : AppSpacing.extraLarge * 2,
+                      right: isMobile
+                          ? AppSpacing.large
+                          : AppSpacing.extraLarge * 3,
                       top: isMobile ? 20 : 40,
                       bottom: AppSpacing.extraLarge,
                     ),
@@ -240,16 +270,20 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
                         Row(
                           children: [
                             IconButton(
-                              icon: Icon(Icons.arrow_back, color: AppColors.primaryDark),
+                              icon: Icon(Icons.arrow_back,
+                                  color: AppColors.primaryDark),
                               onPressed: _handleBack,
                             ),
                             Expanded(
                               child: Text(
                                 'Join Meeting',
-                                style: AppTypography.getResponsiveHeroTitle(context).copyWith(
+                                style: AppTypography.getResponsiveHeroTitle(
+                                        context)
+                                    .copyWith(
                                   color: AppColors.primaryDark,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: isMobile ? 28 : (isTablet ? 36 : 42),
+                                  fontSize:
+                                      isMobile ? 28 : (isTablet ? 36 : 42),
                                   height: 1.1,
                                 ),
                               ),
@@ -259,7 +293,8 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
                         SizedBox(height: AppSpacing.small),
                         Text(
                           'Enter the meeting ID or paste the meeting link to join',
-                          style: AppTypography.getResponsiveBody(context).copyWith(
+                          style:
+                              AppTypography.getResponsiveBody(context).copyWith(
                             color: AppColors.primaryDark.withOpacity(0.7),
                             fontSize: isMobile ? 14 : 16,
                           ),
@@ -268,7 +303,8 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
 
                         // Meeting ID Input
                         Container(
-                          constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 450.0),
+                          constraints: BoxConstraints(
+                              maxWidth: isMobile ? double.infinity : 450.0),
                           child: _buildPillTextField(
                             controller: _meetingIdController,
                             hintText: 'Meeting ID',
@@ -280,18 +316,25 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
 
                         // Divider
                         Container(
-                          constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 450.0),
+                          constraints: BoxConstraints(
+                              maxWidth: isMobile ? double.infinity : 450.0),
                           child: Row(
                             children: [
-                              Expanded(child: Divider(color: AppColors.borderPrimary)),
+                              Expanded(
+                                  child:
+                                      Divider(color: AppColors.borderPrimary)),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.medium),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.medium),
                                 child: Text(
                                   'OR',
-                                  style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                                  style: AppTypography.body
+                                      .copyWith(color: AppColors.textSecondary),
                                 ),
                               ),
-                              Expanded(child: Divider(color: AppColors.borderPrimary)),
+                              Expanded(
+                                  child:
+                                      Divider(color: AppColors.borderPrimary)),
                             ],
                           ),
                         ),
@@ -299,7 +342,8 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
 
                         // Meeting Link Input
                         Container(
-                          constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 450.0),
+                          constraints: BoxConstraints(
+                              maxWidth: isMobile ? double.infinity : 450.0),
                           child: _buildPillTextField(
                             controller: _meetingLinkController,
                             hintText: 'Paste meeting link here',
@@ -312,7 +356,8 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
 
                         // Scan QR Code Button - outlined pill design
                         Container(
-                          constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 450.0),
+                          constraints: BoxConstraints(
+                              maxWidth: isMobile ? double.infinity : 450.0),
                           child: Container(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(30),
@@ -327,11 +372,13 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
                                 onTap: _handleScanQR,
                                 borderRadius: BorderRadius.circular(30),
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(vertical: AppSpacing.medium),
+                                  padding: EdgeInsets.symmetric(
+                                      vertical: AppSpacing.medium),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.qr_code_scanner, color: AppColors.warmBrown, size: 20),
+                                      Icon(Icons.qr_code_scanner,
+                                          color: AppColors.warmBrown, size: 20),
                                       const SizedBox(width: AppSpacing.small),
                                       Text(
                                         'Scan QR Code',
@@ -351,11 +398,14 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
 
                         // Join Meeting Button
                         Container(
-                          constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 450.0),
+                          constraints: BoxConstraints(
+                              maxWidth: isMobile ? double.infinity : 450.0),
                           child: StyledPillButton(
                             label: 'Join Meeting',
                             icon: Icons.login,
-                            onPressed: canJoin && !_joining ? _handleJoinMeeting : null,
+                            onPressed: canJoin && !_joining
+                                ? _handleJoinMeeting
+                                : null,
                             isLoading: _joining,
                             width: double.infinity,
                           ),
@@ -382,7 +432,8 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
           ),
           title: Text(
             'Join Meeting',
-            style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+            style:
+                AppTypography.heading3.copyWith(color: AppColors.textPrimary),
           ),
           centerTitle: true,
           actions: [
@@ -419,12 +470,14 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
 
                 Text(
                   'Enter Meeting Details',
-                  style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+                  style: AppTypography.heading4
+                      .copyWith(color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: AppSpacing.tiny),
                 Text(
                   'Enter the meeting ID or paste the meeting link to join',
-                  style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.body
+                      .copyWith(color: AppColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.extraLarge),
@@ -442,10 +495,12 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
                   children: [
                     Expanded(child: Divider(color: AppColors.borderPrimary)),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.medium),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.medium),
                       child: Text(
                         'OR',
-                        style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                        style: AppTypography.body
+                            .copyWith(color: AppColors.textSecondary),
                       ),
                     ),
                     Expanded(child: Divider(color: AppColors.borderPrimary)),
@@ -467,16 +522,18 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
                   onTap: _handleScanQR,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.medium),
-                  decoration: BoxDecoration(
-                    color: AppColors.backgroundSecondary,
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: AppColors.primaryMain),
-                  ),
-                  child: Row(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: AppSpacing.medium),
+                    decoration: BoxDecoration(
+                      color: AppColors.backgroundSecondary,
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: AppColors.primaryMain),
+                    ),
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.qr_code_scanner, color: AppColors.primaryMain),
+                        Icon(Icons.qr_code_scanner,
+                            color: AppColors.primaryMain),
                         const SizedBox(width: AppSpacing.small),
                         Text(
                           'Scan QR Code',
@@ -498,8 +555,10 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
                     onPressed: canJoin && !_joining ? _handleJoinMeeting : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryMain,
-                      disabledBackgroundColor: AppColors.textSecondary.withOpacity(0.6),
-                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.large),
+                      disabledBackgroundColor:
+                          AppColors.textSecondary.withOpacity(0.6),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.large),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
@@ -539,7 +598,7 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
     required bool isMobile,
   }) {
     final maxWidth = isMobile ? double.infinity : 450.0;
-    
+
     return Container(
       constraints: BoxConstraints(maxWidth: maxWidth),
       decoration: BoxDecoration(
@@ -572,7 +631,8 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
             fontSize: isMobile ? 14 : 15,
           ),
           prefixIcon: Padding(
-            padding: EdgeInsets.only(left: AppSpacing.large, right: AppSpacing.small),
+            padding: EdgeInsets.only(
+                left: AppSpacing.large, right: AppSpacing.small),
             child: Icon(
               icon,
               color: AppColors.warmBrown.withOpacity(0.7),
@@ -580,6 +640,12 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
             ),
           ),
           prefixIconConstraints: const BoxConstraints(minWidth: 48),
+          suffixIcon: IconButton(
+            icon: Icon(Icons.paste,
+                color: AppColors.warmBrown.withOpacity(0.7), size: 20),
+            onPressed: () => _pasteToField(controller),
+            tooltip: 'Paste from clipboard',
+          ),
           border: InputBorder.none,
           filled: false,
           contentPadding: EdgeInsets.symmetric(
@@ -614,7 +680,8 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
           style: AppTypography.body.copyWith(color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: AppTypography.body.copyWith(color: AppColors.textTertiary),
+            hintStyle:
+                AppTypography.body.copyWith(color: AppColors.textTertiary),
             filled: true,
             fillColor: AppColors.backgroundSecondary,
             border: OutlineInputBorder(
@@ -629,6 +696,11 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
               borderRadius: BorderRadius.circular(30),
               borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
             ),
+            suffixIcon: IconButton(
+              icon: Icon(Icons.paste, color: AppColors.warmBrown, size: 20),
+              onPressed: () => _pasteToField(controller),
+              tooltip: 'Paste from clipboard',
+            ),
             contentPadding: EdgeInsets.symmetric(
               horizontal: 20,
               vertical: maxLines > 1 ? 16 : 14,
@@ -640,4 +712,3 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
     );
   }
 }
-

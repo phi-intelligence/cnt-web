@@ -647,35 +647,6 @@ class _RegisterScreenWebState extends State<RegisterScreenWeb> {
                           ),
                         
                         SizedBox(height: AppSpacing.extraLarge),
-                        ExpansionTile(
-                          tilePadding: EdgeInsets.zero,
-                          title: Text(
-                            'Additional Information (Optional)',
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.primaryDark.withOpacity(0.8),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          iconColor: AppColors.warmBrown,
-                          collapsedIconColor: AppColors.warmBrown.withOpacity(0.6),
-                          children: [
-                            SizedBox(height: AppSpacing.small),
-                            // Date of Birth
-                            _buildPillDatePicker(isMobile: isMobile),
-                            SizedBox(height: AppSpacing.medium),
-                            // Bio
-                            _buildPillTextField(
-                              controller: _bioController,
-                              hintText: 'Tell us about yourself...',
-                              icon: Icons.description_outlined,
-                              maxLines: 3,
-                              isMobile: isMobile,
-                            ),
-                            SizedBox(height: AppSpacing.medium),
-                          ],
-                        ),
-                        
-                        SizedBox(height: AppSpacing.extraLarge),
                         
                         // Buttons Row
                         if (isMobile)

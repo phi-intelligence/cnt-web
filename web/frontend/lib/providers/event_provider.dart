@@ -8,6 +8,7 @@ class EventProvider with ChangeNotifier {
   List<EventModel> _events = [];
   List<EventModel> _myHostedEvents = [];
   List<EventModel> _myAttendingEvents = [];
+  List<EventModel> _pastEvents = [];
   EventModel? _selectedEvent;
   List<EventAttendee> _selectedEventAttendees = [];
   
@@ -19,6 +20,7 @@ class EventProvider with ChangeNotifier {
   List<EventModel> get events => _events;
   List<EventModel> get myHostedEvents => _myHostedEvents;
   List<EventModel> get myAttendingEvents => _myAttendingEvents;
+  List<EventModel> get pastEvents => _pastEvents;
   EventModel? get selectedEvent => _selectedEvent;
   List<EventAttendee> get selectedEventAttendees => _selectedEventAttendees;
   bool get isLoading => _isLoading;
@@ -27,9 +29,6 @@ class EventProvider with ChangeNotifier {
   
   List<EventModel> get upcomingEvents =>
       _events.where((e) => e.isUpcoming && e.status == 'published').toList();
-  
-  List<EventModel> get pastEvents =>
-      _events.where((e) => e.isPast).toList();
 
   Future<void> fetchEvents({
     int skip = 0,
@@ -115,6 +114,43 @@ class EventProvider with ChangeNotifier {
       _myAttendingEvents = result
           .map((e) => EventModel.fromJson(e as Map<String, dynamic>))
           .toList();
+    } catch (e) {
+      _error = e.toString().replaceAll('Exception: ', '');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchPastEvents({
+    int skip = 0,
+    int limit = 20,
+    bool refresh = false,
+  }) async {
+    if (refresh) {
+      _pastEvents = [];
+    }
+    
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    
+    try {
+      final result = await _api.getEvents(
+        skip: skip,
+        limit: limit,
+        pastOnly: true,
+      );
+      
+      final eventsList = (result['events'] as List<dynamic>)
+          .map((e) => EventModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+      
+      if (refresh || skip == 0) {
+        _pastEvents = eventsList;
+      } else {
+        _pastEvents.addAll(eventsList);
+      }
     } catch (e) {
       _error = e.toString().replaceAll('Exception: ', '');
     } finally {

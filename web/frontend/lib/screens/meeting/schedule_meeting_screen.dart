@@ -4,8 +4,6 @@ import 'package:intl/intl.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
-import '../../utils/responsive_grid_delegate.dart';
-import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../services/api_service.dart';
@@ -23,7 +21,8 @@ class ScheduleMeetingScreen extends StatefulWidget {
 class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _durationController = TextEditingController(text: '60');
+  final TextEditingController _durationController =
+      TextEditingController(text: '60');
 
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
@@ -94,7 +93,9 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
       return;
     }
 
-    setState(() { _isLoading = true; });
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       // Build scheduled start datetime
@@ -107,30 +108,40 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
       );
       final resp = await ApiService().createStream(
         title: _titleController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
         scheduledStart: scheduled,
       );
       final meetingId = (resp['id'] ?? '').toString();
       final roomName = resp['room_name'] as String;
       // Generate meeting link using LiveKit URL format (or app-specific format)
-      final liveKitUrl = ApiService().getLiveKitUrl().replaceAll('ws://', 'http://').replaceAll('wss://', 'https://');
+      final liveKitUrl = ApiService()
+          .getLiveKitUrl()
+          .replaceAll('ws://', 'http://')
+          .replaceAll('wss://', 'https://');
       final meetingLink = '$liveKitUrl/meeting/$roomName';
 
       if (!mounted) return;
-      setState(() { _isLoading = false; });
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MeetingCreatedScreen(
-              meetingId: meetingId,
-              meetingLink: meetingLink,
-              isInstant: false,
-            ),
+      setState(() {
+        _isLoading = false;
+      });
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MeetingCreatedScreen(
+            meetingId: meetingId,
+            meetingLink: meetingLink,
+            isInstant: false,
+            scheduledStart: scheduled,
           ),
-        );
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
-      setState(() { _isLoading = false; });
+      setState(() {
+        _isLoading = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to schedule meeting: $e')),
       );
@@ -266,7 +277,8 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
             children: [
               Text(
                 'Meeting Details',
-                style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+                style: AppTypography.heading4
+                    .copyWith(color: AppColors.textPrimary),
               ),
               const SizedBox(height: 20),
 
@@ -298,7 +310,8 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
             children: [
               Text(
                 'Date & Time',
-                style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+                style: AppTypography.heading4
+                    .copyWith(color: AppColors.textPrimary),
               ),
               const SizedBox(height: 20),
 
@@ -340,10 +353,10 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
             children: [
               Text(
                 'Meeting Options',
-                style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+                style: AppTypography.heading4
+                    .copyWith(color: AppColors.textPrimary),
               ),
               const SizedBox(height: 16),
-
               _buildOptionRow(Icons.videocam, 'Video enabled by default'),
               _buildOptionRow(Icons.mic, 'Microphone enabled by default'),
               _buildOptionRow(Icons.screen_share, 'Screen sharing allowed'),
@@ -422,7 +435,7 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
       final screenWidth = MediaQuery.of(context).size.width;
       final isMobile = screenWidth < 600;
       final isTablet = screenWidth >= 600 && screenWidth < 1024;
-      
+
       return Scaffold(
         backgroundColor: const Color(0xFFF5F0E8),
         body: SizedBox(
@@ -440,14 +453,16 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
                 child: Container(
                   decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: const AssetImage('assets/images/jesus-teaching.png'),
+                      image:
+                          const AssetImage('assets/images/jesus-teaching.png'),
                       fit: isMobile ? BoxFit.contain : BoxFit.cover,
-                      alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
+                      alignment:
+                          isMobile ? Alignment.topRight : Alignment.centerRight,
                     ),
                   ),
                 ),
               ),
-              
+
               // Gradient overlay from left
               Positioned.fill(
                 child: Container(
@@ -478,7 +493,7 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
                   ),
                 ),
               ),
-              
+
               // Content positioned centered/right-aligned
               Positioned(
                 left: isMobile ? 0 : (screenWidth * 0.15),
@@ -488,8 +503,12 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
                 child: SafeArea(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.only(
-                      left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
-                      right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                      left: isMobile
+                          ? AppSpacing.large
+                          : AppSpacing.extraLarge * 2,
+                      right: isMobile
+                          ? AppSpacing.large
+                          : AppSpacing.extraLarge * 3,
                       top: isMobile ? 20 : 40,
                       bottom: AppSpacing.extraLarge,
                     ),
@@ -500,16 +519,20 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
                         Row(
                           children: [
                             IconButton(
-                              icon: Icon(Icons.arrow_back, color: AppColors.primaryDark),
+                              icon: Icon(Icons.arrow_back,
+                                  color: AppColors.primaryDark),
                               onPressed: () => Navigator.pop(context),
                             ),
                             Expanded(
                               child: Text(
                                 'Schedule Meeting',
-                                style: AppTypography.getResponsiveHeroTitle(context).copyWith(
+                                style: AppTypography.getResponsiveHeroTitle(
+                                        context)
+                                    .copyWith(
                                   color: AppColors.primaryDark,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: isMobile ? 28 : (isTablet ? 36 : 42),
+                                  fontSize:
+                                      isMobile ? 28 : (isTablet ? 36 : 42),
                                   height: 1.1,
                                 ),
                               ),
@@ -519,13 +542,14 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
                         SizedBox(height: AppSpacing.small),
                         Text(
                           'Set up a meeting time and invite participants',
-                          style: AppTypography.getResponsiveBody(context).copyWith(
+                          style:
+                              AppTypography.getResponsiveBody(context).copyWith(
                             color: AppColors.primaryDark.withOpacity(0.7),
                             fontSize: isMobile ? 14 : 16,
                           ),
                         ),
                         SizedBox(height: AppSpacing.extraLarge * 1.5),
-                        
+
                         // Form content
                         _buildFormContentWeb(isMobile),
                       ],
@@ -550,7 +574,8 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
           ),
           title: Text(
             'Schedule Meeting',
-            style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+            style:
+                AppTypography.heading4.copyWith(color: AppColors.textPrimary),
           ),
           centerTitle: true,
           actions: [
@@ -568,7 +593,8 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
                     // Meeting Details Section
                     Text(
                       'Meeting Details',
-                      style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+                      style: AppTypography.heading4
+                          .copyWith(color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: AppSpacing.medium),
 
@@ -592,7 +618,8 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
                     // Date & Time Section
                     Text(
                       'Date & Time',
-                      style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+                      style: AppTypography.heading4
+                          .copyWith(color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: AppSpacing.medium),
 
@@ -626,13 +653,15 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
                     // Meeting Options
                     Text(
                       'Meeting Options',
-                      style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+                      style: AppTypography.heading4
+                          .copyWith(color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: AppSpacing.medium),
 
                     _buildOptionRow(Icons.videocam, 'Video enabled by default'),
                     _buildOptionRow(Icons.mic, 'Microphone enabled by default'),
-                    _buildOptionRow(Icons.screen_share, 'Screen sharing allowed'),
+                    _buildOptionRow(
+                        Icons.screen_share, 'Screen sharing allowed'),
                     _buildOptionRow(Icons.lock, 'Waiting room enabled'),
                   ],
                 ),
@@ -654,9 +683,11 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
                   onPressed: _isLoading ? null : _handleSchedule,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryMain,
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.large),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: AppSpacing.large),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                      borderRadius:
+                          BorderRadius.circular(AppSpacing.radiusLarge),
                     ),
                   ),
                   child: _isLoading
@@ -697,7 +728,7 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
           isMobile: isMobile,
         ),
         SizedBox(height: AppSpacing.medium),
-        
+
         // Description
         _buildPillTextField(
           controller: _descriptionController,
@@ -707,7 +738,7 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
           isMobile: isMobile,
         ),
         SizedBox(height: AppSpacing.medium),
-        
+
         // Date Picker
         _buildPillDateButton(
           icon: Icons.calendar_today,
@@ -717,7 +748,7 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
           isMobile: isMobile,
         ),
         SizedBox(height: AppSpacing.medium),
-        
+
         // Time Picker
         _buildPillDateButton(
           icon: Icons.access_time,
@@ -727,7 +758,7 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
           isMobile: isMobile,
         ),
         SizedBox(height: AppSpacing.medium),
-        
+
         // Duration
         _buildPillTextField(
           controller: _durationController,
@@ -737,10 +768,11 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
           isMobile: isMobile,
         ),
         SizedBox(height: AppSpacing.extraLarge * 1.5),
-        
+
         // Schedule Button
         Container(
-          constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 450.0),
+          constraints:
+              BoxConstraints(maxWidth: isMobile ? double.infinity : 450.0),
           child: StyledPillButton(
             label: 'Schedule Meeting',
             icon: Icons.schedule,
@@ -762,7 +794,7 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
     required bool isMobile,
   }) {
     final maxWidth = isMobile ? double.infinity : 450.0;
-    
+
     return Container(
       constraints: BoxConstraints(maxWidth: maxWidth),
       decoration: BoxDecoration(
@@ -795,7 +827,8 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
             fontSize: isMobile ? 14 : 15,
           ),
           prefixIcon: Padding(
-            padding: EdgeInsets.only(left: AppSpacing.large, right: AppSpacing.small),
+            padding: EdgeInsets.only(
+                left: AppSpacing.large, right: AppSpacing.small),
             child: Icon(
               icon,
               color: AppColors.warmBrown.withOpacity(0.7),
@@ -822,7 +855,7 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
     required bool isMobile,
   }) {
     final maxWidth = isMobile ? double.infinity : 450.0;
-    
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -996,7 +1029,8 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
                   color: AppColors.warmBrown.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(30),
                 ),
-                child: Icon(Icons.chevron_right, color: AppColors.warmBrown, size: 20),
+                child: Icon(Icons.chevron_right,
+                    color: AppColors.warmBrown, size: 20),
               ),
             ],
           ),
@@ -1043,4 +1077,3 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
     );
   }
 }
-

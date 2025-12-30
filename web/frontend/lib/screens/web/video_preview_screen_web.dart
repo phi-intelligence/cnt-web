@@ -12,10 +12,8 @@ import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../widgets/thumbnail_selector.dart';
 import '../../services/api_service.dart';
-import '../../services/logger_service.dart';
 import '../../utils/state_persistence.dart';
 import 'video_editor_screen_web.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:go_router/go_router.dart';
 
 /// Web Video Preview Screen
@@ -45,20 +43,22 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
   bool _hasError = false;
   String? _errorMessage;
   bool _isLoading = false;
-  
+
   // Controls visibility
   bool _showControls = true;
   Timer? _hideControlsTimer;
   bool _isMouseOverVideo = false;
-  
+
   // Seek/Scrubbing
   bool _isScrubbing = false;
   double _scrubValue = 0.0;
   bool _wasPlayingBeforeScrub = false;
-  
+
   // Form fields
-  final TextEditingController _titleController = TextEditingController(text: 'My Video Podcast');
-  final TextEditingController _descriptionController = TextEditingController(text: 'A wonderful video podcast about faith and spirituality');
+  final TextEditingController _titleController =
+      TextEditingController(text: 'My Video Podcast');
+  final TextEditingController _descriptionController = TextEditingController(
+      text: 'A wonderful video podcast about faith and spirituality');
   String? _selectedThumbnail;
   String? _videoUrl; // Will be set after upload
 
@@ -68,7 +68,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
     _loadSavedState();
     _initializePlayer();
   }
-  
+
   Future<void> _loadSavedState() async {
     try {
       final savedState = await StatePersistence.loadVideoPreviewState();
@@ -77,7 +77,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
         final savedTitle = savedState['title'] as String?;
         final savedDescription = savedState['description'] as String?;
         final savedThumbnail = savedState['thumbnailUrl'] as String?;
-        
+
         if (savedTitle != null && savedTitle.isNotEmpty) {
           _titleController.text = savedTitle;
         }
@@ -87,14 +87,14 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
         if (savedThumbnail != null && savedThumbnail.isNotEmpty) {
           _selectedThumbnail = savedThumbnail;
         }
-        
-        LoggerService.i('✅ Restored video preview state from saved state');
+
+        print('✅ Restored video preview state from saved state');
       }
     } catch (e) {
-      LoggerService.e('❌ Error loading video preview state: $e');
+      print('❌ Error loading video preview state: $e');
     }
   }
-  
+
   Future<void> _saveState() async {
     try {
       // Convert blob URL to backend URL before saving if needed
@@ -109,29 +109,32 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
           }
         }
       }
-      
+
       await StatePersistence.saveVideoPreviewState(
         videoUri: videoUriToSave,
         source: widget.source,
-        title: _titleController.text.trim().isNotEmpty ? _titleController.text.trim() : null,
-        description: _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : null,
+        title: _titleController.text.trim().isNotEmpty
+            ? _titleController.text.trim()
+            : null,
+        description: _descriptionController.text.trim().isNotEmpty
+            ? _descriptionController.text.trim()
+            : null,
         thumbnailUrl: _selectedThumbnail,
         duration: widget.duration > 0 ? widget.duration : null,
         fileSize: widget.fileSize > 0 ? widget.fileSize : null,
       );
     } catch (e) {
-      LoggerService.w('⚠️ Error saving video preview state: $e');
+      print('⚠️ Error saving video preview state: $e');
     }
   }
-
 
   Future<void> _initializePlayer() async {
     try {
       // Check if URI is a network URL or blob URL
-      final isNetworkUrl = widget.videoUri.startsWith('http://') || 
-                          widget.videoUri.startsWith('https://');
+      final isNetworkUrl = widget.videoUri.startsWith('http://') ||
+          widget.videoUri.startsWith('https://');
       final isBlobUrl = widget.videoUri.startsWith('blob:');
-      
+
       // On web, use networkUrl for both blob URLs and network URLs
       if (kIsWeb || isNetworkUrl || isBlobUrl) {
         _controller = VideoPlayerController.networkUrl(
@@ -151,7 +154,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
           ),
         );
       }
-      
+
       await _controller!.initialize();
       _controller!.addListener(_videoListener);
       setState(() {
@@ -159,7 +162,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
       });
       _startControlsTimer();
     } catch (e) {
-      LoggerService.e('Error initializing video player: $e');
+      print('Error initializing video player: $e');
       setState(() {
         _hasError = true;
         _errorMessage = 'Failed to load video: ${e.toString()}';
@@ -170,10 +173,10 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
 
   void _videoListener() {
     if (!mounted) return;
-    
+
     // Don't update position during scrubbing
     if (_isScrubbing) return;
-    
+
     setState(() {});
   }
 
@@ -205,7 +208,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
     setState(() {
       _showControls = true;
     });
-    
+
     if (_controller?.value.isPlaying ?? false) {
       _startControlsTimer();
     }
@@ -215,7 +218,9 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
     _hideControlsTimer?.cancel();
     if (_controller?.value.isPlaying ?? false) {
       _hideControlsTimer = Timer(const Duration(seconds: 3), () {
-        if (mounted && (_controller?.value.isPlaying ?? false) && !_isScrubbing) {
+        if (mounted &&
+            (_controller?.value.isPlaying ?? false) &&
+            !_isScrubbing) {
           setState(() {
             _showControls = false;
           });
@@ -252,7 +257,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
 
   Future<void> _handlePlayPause() async {
     if (_controller == null || !_controller!.value.isInitialized) return;
-    
+
     setState(() {
       if (_controller!.value.isPlaying) {
         _controller!.pause();
@@ -260,7 +265,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
         _controller!.play();
       }
     });
-    
+
     // Show controls and manage timer
     _showControlsWithAutoHide();
   }
@@ -268,48 +273,49 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
   void _handleEdit() async {
     // If blob URL, upload to backend first for persistence
     String videoPathToUse = widget.videoUri;
-    int? backendDuration; // Duration detected by backend (more reliable for WebM)
-    
+    int?
+        backendDuration; // Duration detected by backend (more reliable for WebM)
+
     if (kIsWeb && widget.videoUri.startsWith('blob:')) {
       try {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Preparing video for editing...')),
         );
-        final uploadResult = await ApiService().uploadTemporaryMedia(widget.videoUri, 'video');
+        final uploadResult =
+            await ApiService().uploadTemporaryMedia(widget.videoUri, 'video');
         if (uploadResult != null) {
           final backendUrl = uploadResult['url'] as String?;
           backendDuration = uploadResult['duration'] as int?;
-          LoggerService.i('📊 Backend detected duration: ${backendDuration}s');
+          print('📊 Backend detected duration: ${backendDuration}s');
           if (backendUrl != null) {
             videoPathToUse = backendUrl;
           }
         }
       } catch (e) {
-        LoggerService.w('⚠️ Failed to upload blob before editor: $e');
+        print('⚠️ Failed to upload blob before editor: $e');
         // Continue with blob URL - editor will handle it
       }
     }
-    
+
     // IMPORTANT: Clear any previous video editor state before starting fresh
     // This ensures old video data doesn't persist when editing a new video
     await StatePersistence.clearVideoEditorState();
-    
+
     // Save current preview state (not editor state)
     await _saveState();
-    
+
     // Use backend duration if available (more accurate for WebM), fallback to widget.duration
     final durationToUse = backendDuration ?? widget.duration;
-    LoggerService.i('🎬 Using duration for editor: ${durationToUse}s (backend: $backendDuration, widget: ${widget.duration})');
-    
+    print(
+        '🎬 Using duration for editor: ${durationToUse}s (backend: $backendDuration, widget: ${widget.duration})');
+
     // Navigate to VideoEditorScreenWeb with fresh state
     final editedPath = await Navigator.push<String>(
       context,
       MaterialPageRoute(
         builder: (context) => VideoEditorScreenWeb(
           videoPath: videoPathToUse,
-          duration: durationToUse > 0 
-              ? Duration(seconds: durationToUse) 
-              : null,
+          duration: durationToUse > 0 ? Duration(seconds: durationToUse) : null,
         ),
       ),
     );
@@ -403,27 +409,59 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
       // Upload video file first (supports file paths, blob URLs, and http URLs)
       String videoUrl;
       String? thumbnailUrl;
-      
+
       // Show upload progress
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Uploading video...'),
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text('Uploading video...'),
+            ],
+          ),
           backgroundColor: AppColors.infoMain,
           duration: const Duration(seconds: 60),
         ),
       );
-      
+
       // Upload video - ApiService.uploadVideo() handles blob URLs via _createMultipartFileFromSource()
       final videoUploadResponse = await ApiService().uploadVideo(
-        widget.videoUri, 
+        widget.videoUri,
         generateThumbnail: true,
       );
       videoUrl = videoUploadResponse['url'] as String;
       thumbnailUrl = videoUploadResponse['thumbnail_url'] as String?;
-      
-      // Hide upload progress snackbar
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      
+
+      // Hide upload progress snackbar immediately
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        // Show success message immediately after upload completes
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('Video uploaded successfully!'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+
       // If auto-generated thumbnail, use it as default
       if (thumbnailUrl != null && _selectedThumbnail == null) {
         _selectedThumbnail = thumbnailUrl;
@@ -432,8 +470,8 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
       // Create podcast with thumbnail
       await ApiService().createPodcast(
         title: _titleController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty 
-            ? null 
+        description: _descriptionController.text.trim().isEmpty
+            ? null
             : _descriptionController.text.trim(),
         videoUrl: videoUrl,
         coverImage: _selectedThumbnail,
@@ -447,16 +485,35 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
 
       // Clear saved state after successful publish
       await StatePersistence.clearVideoPreviewState();
-      
+
+      // Wait a moment before showing dialog to ensure SnackBar is visible
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      if (!mounted) return;
+
+      // Show success dialog
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (context) => AlertDialog(
           backgroundColor: AppColors.backgroundSecondary,
-          title: Text(
-            'Video Published',
-            style: AppTypography.heading3.copyWith(
-              color: AppColors.textPrimary,
-            ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Video Published',
+                  style: AppTypography.heading3.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
           content: Text(
             'Your video podcast has been published and shared with the community!',
@@ -467,13 +524,14 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
-                Navigator.of(context).popUntil((route) => route.isFirst);
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); // Go back to VideoPodcastCreateScreen
               },
               child: Text(
                 'OK',
                 style: AppTypography.button.copyWith(
                   color: AppColors.primaryMain,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -505,19 +563,19 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
   String _formatFileSize(int bytes) {
     if (bytes == 0) return '0 Bytes';
     if (bytes < 1024) return '$bytes Bytes';
-    
+
     final k = 1024;
     final sizes = ['Bytes', 'KB', 'MB', 'GB'];
     int i = 0;
     double size = bytes.toDouble();
-    
+
     while (size >= k && i < sizes.length - 1) {
       size /= k;
       i++;
     }
-    
+
     i = i.clamp(0, sizes.length - 1);
-    
+
     return '${size.toStringAsFixed(2)} ${sizes[i]}';
   }
 
@@ -557,7 +615,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
                 builder: (context, constraints) {
                   // On smaller screens, stack vertically; on larger screens, use horizontal layout
                   final useHorizontalLayout = constraints.maxWidth > 1024;
-                  
+
                   if (useHorizontalLayout) {
                     // Horizontal Layout: Video on left, controls on right
                     return Row(
@@ -678,7 +736,8 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
                     child: GestureDetector(
                       onTap: _handlePlayPause,
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusLarge),
                         child: AspectRatio(
                           aspectRatio: _controller!.value.aspectRatio,
                           child: Stack(
@@ -686,7 +745,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
                             children: [
                               // Video Player
                               VideoPlayer(_controller!),
-                              
+
                               // Controls Overlay
                               AnimatedOpacity(
                                 opacity: _showControls ? 1.0 : 0.0,
@@ -707,7 +766,8 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
                                   child: Stack(
                                     children: [
                                       // Center Play/Pause Button
-                                      if (!_controller!.value.isPlaying || _isMouseOverVideo)
+                                      if (!_controller!.value.isPlaying ||
+                                          _isMouseOverVideo)
                                         Center(
                                           child: MouseRegion(
                                             cursor: SystemMouseCursors.click,
@@ -717,13 +777,16 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
                                                 width: 80,
                                                 height: 80,
                                                 decoration: BoxDecoration(
-                                                  color: AppColors.primaryMain.withOpacity(0.9),
+                                                  color: AppColors.primaryMain
+                                                      .withOpacity(0.9),
                                                   shape: BoxShape.circle,
                                                   boxShadow: [
                                                     BoxShadow(
-                                                      color: Colors.black.withOpacity(0.3),
+                                                      color: Colors.black
+                                                          .withOpacity(0.3),
                                                       blurRadius: 12,
-                                                      offset: const Offset(0, 4),
+                                                      offset:
+                                                          const Offset(0, 4),
                                                     ),
                                                   ],
                                                 ),
@@ -738,14 +801,15 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
                                             ),
                                           ),
                                         ),
-                                      
+
                                       // Bottom Controls
                                       Positioned(
                                         bottom: 0,
                                         left: 0,
                                         right: 0,
                                         child: Container(
-                                          padding: EdgeInsets.all(AppSpacing.medium),
+                                          padding:
+                                              EdgeInsets.all(AppSpacing.medium),
                                           child: Column(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
@@ -756,11 +820,17 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
                                                     width: 60,
                                                     child: Text(
                                                       _formatTime((_isScrubbing
-                                                              ? _scrubValue.toInt()
-                                                              : _controller!.value.position.inSeconds)),
-                                                      style: AppTypography.bodySmall.copyWith(
+                                                          ? _scrubValue.toInt()
+                                                          : _controller!
+                                                              .value
+                                                              .position
+                                                              .inSeconds)),
+                                                      style: AppTypography
+                                                          .bodySmall
+                                                          .copyWith(
                                                         color: Colors.white,
-                                                        fontWeight: FontWeight.w500,
+                                                        fontWeight:
+                                                            FontWeight.w500,
                                                       ),
                                                     ),
                                                   ),
@@ -768,38 +838,67 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
                                                     child: Builder(
                                                       builder: (context) {
                                                         // Get duration and ensure it's valid
-                                                        final durationSeconds = _controller!.value.duration.inSeconds;
-                                                        final positionSeconds = _isScrubbing
-                                                            ? _scrubValue
-                                                            : _controller!.value.position.inSeconds.toDouble();
-                                                        
+                                                        final durationSeconds =
+                                                            _controller!
+                                                                .value
+                                                                .duration
+                                                                .inSeconds;
+                                                        final positionSeconds =
+                                                            _isScrubbing
+                                                                ? _scrubValue
+                                                                : _controller!
+                                                                    .value
+                                                                    .position
+                                                                    .inSeconds
+                                                                    .toDouble();
+
                                                         // Ensure max is always greater than min
                                                         // If duration is 0 or invalid, use a default of 1 second
-                                                        final maxValue = durationSeconds > 0 
-                                                            ? durationSeconds.toDouble() 
-                                                            : 1.0;
-                                                        
+                                                        final maxValue =
+                                                            durationSeconds > 0
+                                                                ? durationSeconds
+                                                                    .toDouble()
+                                                                : 1.0;
+
                                                         // Clamp position to valid range
-                                                        final clampedValue = positionSeconds.clamp(0.0, maxValue);
-                                                        
+                                                        final clampedValue =
+                                                            positionSeconds
+                                                                .clamp(0.0,
+                                                                    maxValue);
+
                                                         // Only show slider if duration is valid
-                                                        if (maxValue <= 0 || maxValue.isNaN || maxValue.isInfinite) {
+                                                        if (maxValue <= 0 ||
+                                                            maxValue.isNaN ||
+                                                            maxValue
+                                                                .isInfinite) {
                                                           return Container(
                                                             height: 4,
-                                                            decoration: BoxDecoration(
-                                                              color: Colors.white.withOpacity(0.3),
-                                                              borderRadius: BorderRadius.circular(2),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: Colors
+                                                                  .white
+                                                                  .withOpacity(
+                                                                      0.3),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          2),
                                                             ),
                                                           );
                                                         }
-                                                        
+
                                                         return SliderTheme(
-                                                          data: SliderTheme.of(context).copyWith(
+                                                          data: SliderTheme.of(
+                                                                  context)
+                                                              .copyWith(
                                                             trackHeight: 4,
-                                                            thumbShape: const RoundSliderThumbShape(
-                                                              enabledThumbRadius: 8,
+                                                            thumbShape:
+                                                                const RoundSliderThumbShape(
+                                                              enabledThumbRadius:
+                                                                  8,
                                                             ),
-                                                            overlayShape: const RoundSliderOverlayShape(
+                                                            overlayShape:
+                                                                const RoundSliderOverlayShape(
                                                               overlayRadius: 16,
                                                             ),
                                                           ),
@@ -807,35 +906,65 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
                                                             value: clampedValue,
                                                             min: 0.0,
                                                             max: maxValue,
-                                                            activeColor: AppColors.primaryMain,
-                                                            inactiveColor: Colors.white.withOpacity(0.3),
-                                                            thumbColor: AppColors.primaryMain,
-                                                            onChangeStart: (value) {
-                                                              if (maxValue > 0) {
+                                                            activeColor:
+                                                                AppColors
+                                                                    .primaryMain,
+                                                            inactiveColor: Colors
+                                                                .white
+                                                                .withOpacity(
+                                                                    0.3),
+                                                            thumbColor: AppColors
+                                                                .primaryMain,
+                                                            onChangeStart:
+                                                                (value) {
+                                                              if (maxValue >
+                                                                  0) {
                                                                 setState(() {
-                                                                  _isScrubbing = true;
-                                                                  _scrubValue = value.clamp(0.0, maxValue);
-                                                                  _wasPlayingBeforeScrub = _controller!.value.isPlaying;
+                                                                  _isScrubbing =
+                                                                      true;
+                                                                  _scrubValue =
+                                                                      value.clamp(
+                                                                          0.0,
+                                                                          maxValue);
+                                                                  _wasPlayingBeforeScrub =
+                                                                      _controller!
+                                                                          .value
+                                                                          .isPlaying;
                                                                 });
-                                                                _controller!.pause();
+                                                                _controller!
+                                                                    .pause();
                                                               }
                                                             },
                                                             onChanged: (value) {
-                                                              if (maxValue > 0) {
+                                                              if (maxValue >
+                                                                  0) {
                                                                 setState(() {
-                                                                  _scrubValue = value.clamp(0.0, maxValue);
+                                                                  _scrubValue =
+                                                                      value.clamp(
+                                                                          0.0,
+                                                                          maxValue);
                                                                 });
                                                               }
                                                             },
-                                                            onChangeEnd: (value) async {
-                                                              if (maxValue > 0) {
-                                                                final clampedEndValue = value.clamp(0.0, maxValue);
-                                                                await _controller!.seekTo(Duration(seconds: clampedEndValue.toInt()));
+                                                            onChangeEnd:
+                                                                (value) async {
+                                                              if (maxValue >
+                                                                  0) {
+                                                                final clampedEndValue =
+                                                                    value.clamp(
+                                                                        0.0,
+                                                                        maxValue);
+                                                                await _controller!
+                                                                    .seekTo(Duration(
+                                                                        seconds:
+                                                                            clampedEndValue.toInt()));
                                                                 setState(() {
-                                                                  _isScrubbing = false;
+                                                                  _isScrubbing =
+                                                                      false;
                                                                 });
                                                                 if (_wasPlayingBeforeScrub) {
-                                                                  _controller!.play();
+                                                                  _controller!
+                                                                      .play();
                                                                   _startControlsTimer();
                                                                 }
                                                               }
@@ -848,12 +977,19 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
                                                   SizedBox(
                                                     width: 60,
                                                     child: Text(
-                                                      _formatTime(_controller!.value.duration.inSeconds),
-                                                      style: AppTypography.bodySmall.copyWith(
+                                                      _formatTime(_controller!
+                                                          .value
+                                                          .duration
+                                                          .inSeconds),
+                                                      style: AppTypography
+                                                          .bodySmall
+                                                          .copyWith(
                                                         color: Colors.white,
-                                                        fontWeight: FontWeight.w500,
+                                                        fontWeight:
+                                                            FontWeight.w500,
                                                       ),
-                                                      textAlign: TextAlign.right,
+                                                      textAlign:
+                                                          TextAlign.right,
                                                     ),
                                                   ),
                                                 ],
@@ -896,7 +1032,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
             variant: StyledPillButtonVariant.outlined,
           ),
           const SizedBox(height: AppSpacing.large),
-          
+
           Text(
             'Podcast Details',
             style: AppTypography.heading3.copyWith(
@@ -904,7 +1040,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
             ),
           ),
           const SizedBox(height: AppSpacing.large),
-          
+
           // Title
           TextField(
             controller: _titleController,
@@ -934,7 +1070,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
             ),
           ),
           const SizedBox(height: AppSpacing.medium),
-          
+
           // Description
           TextField(
             controller: _descriptionController,
@@ -965,7 +1101,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
             ),
           ),
           const SizedBox(height: AppSpacing.medium),
-          
+
           // Thumbnail Selection
           ThumbnailSelector(
             isVideo: true,
@@ -979,7 +1115,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
             initialThumbnail: _selectedThumbnail,
           ),
           const SizedBox(height: AppSpacing.large),
-          
+
           // Publish Button
           SizedBox(
             width: double.infinity,
@@ -993,7 +1129,4 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
       ),
     );
   }
-
 }
-
-

@@ -292,7 +292,7 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (_totalPages > 0)
+                if (_totalPages > 0 && !isMobile)
                   Text(
                     'Page $_currentPage of $_totalPages',
                     style: AppTypography.bodySmall.copyWith(

@@ -5,13 +5,14 @@ import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
-import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
 import 'audio_preview_screen.dart';
 import '../../utils/web_audio_recorder.dart';
 // Conditional imports - mobile only
-import 'package:record/record.dart' if (dart.library.html) '../../utils/record_stub.dart' as record;
-import 'package:path_provider/path_provider.dart' if (dart.library.html) '../../utils/path_provider_stub.dart' as path;
+import 'package:record/record.dart'
+    if (dart.library.html) '../../utils/record_stub.dart' as record;
+import 'package:path_provider/path_provider.dart'
+    if (dart.library.html) '../../utils/path_provider_stub.dart' as path;
 import 'dart:io' if (dart.library.html) '../../utils/file_stub.dart' as io;
 
 /// Audio Recording Screen - Record audio podcasts
@@ -23,7 +24,8 @@ class AudioRecordingScreen extends StatefulWidget {
   State<AudioRecordingScreen> createState() => _AudioRecordingScreenState();
 }
 
-class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
+class _AudioRecordingScreenState extends State<AudioRecordingScreen>
+    with SingleTickerProviderStateMixin {
   dynamic _recorder; // WebAudioRecorder on web, AudioRecorder on mobile
   bool _isRecording = false;
   bool _isPaused = false;
@@ -32,9 +34,25 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
   String? _recordingPath;
   DateTime? _recordingStartTime;
 
+  // Animation for waveform
+  late AnimationController _waveController;
+  final List<double> _waveHeights = [];
+  final int _waveCount = 30;
+
   @override
   void initState() {
     super.initState();
+    // Initialize animation controller for waveform
+    _waveController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    )..addListener(_updateWaveform);
+
+    // Initialize wave heights
+    for (int i = 0; i < _waveCount; i++) {
+      _waveHeights.add(0.2);
+    }
+
     if (kIsWeb) {
       _recorder = WebAudioRecorder();
     } else {
@@ -44,6 +62,7 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
 
   @override
   void dispose() {
+    _waveController.dispose();
     _recorder?.dispose();
     super.dispose();
   }
@@ -70,6 +89,7 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
             _recordingPath = path;
             _recordingStartTime = DateTime.now();
           });
+          _waveController.repeat();
           _updateDuration();
         }
       } else {
@@ -78,7 +98,7 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
           final directory = await path.getApplicationDocumentsDirectory();
           final timestamp = DateTime.now().millisecondsSinceEpoch;
           final filePath = '${directory.path}/recording_$timestamp.m4a';
-          
+
           await _recorder.start(
             const record.RecordConfig(
               encoder: record.AudioEncoder.aacLc,
@@ -87,13 +107,14 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
             ),
             path: filePath,
           );
-          
+
           setState(() {
             _isRecording = true;
             _isPaused = false;
             _recordingPath = filePath;
             _recordingStartTime = DateTime.now();
           });
+          _waveController.repeat();
           _updateDuration();
         } else {
           if (mounted) {
@@ -115,6 +136,7 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
   Future<void> _pauseRecording() async {
     try {
       await _recorder.pause();
+      _waveController.stop();
       setState(() {
         _isPaused = true;
       });
@@ -130,6 +152,7 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
   Future<void> _resumeRecording() async {
     try {
       await _recorder.resume();
+      _waveController.repeat();
       setState(() {
         _isPaused = false;
       });
@@ -145,6 +168,7 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
 
   Future<void> _stopAndSave() async {
     try {
+      _waveController.stop();
       String? path;
       int fileSize = 0;
 
@@ -169,7 +193,7 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
         setState(() {
           _isRecording = false;
         });
-        
+
         // Navigate to audio preview screen
         Navigator.pushReplacement(
           context,
@@ -199,6 +223,7 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
   }
 
   void _discardRecording() {
+    _waveController.stop();
     setState(() {
       _isRecording = false;
       _recordingDuration = 0;
@@ -210,6 +235,20 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
       _recorder?.stop();
     }
     Navigator.pop(context);
+  }
+
+  void _updateWaveform() {
+    if (_isRecording && !_isPaused && mounted) {
+      setState(() {
+        // Shift waves to the left and add new wave on right
+        for (int i = 0; i < _waveCount - 1; i++) {
+          _waveHeights[i] = _waveHeights[i + 1];
+        }
+        // Generate new random wave height
+        _waveHeights[_waveCount - 1] =
+            0.2 + (DateTime.now().millisecond % 60) / 100.0;
+      });
+    }
   }
 
   void _updateDuration() {
@@ -232,18 +271,15 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
   }
 
   Widget _buildSoundbar({required bool isRecording, required bool isPaused}) {
-    // Create animated brown soundbar visualization
-    final barCount = 40;
-    final bars = List.generate(barCount, (index) {
-      // Random heights for animation effect when recording
-      final baseHeight = isRecording && !isPaused
-          ? (20.0 + (index % 5) * 8.0 + (DateTime.now().millisecond % 30))
-          : 20.0;
-      final height = baseHeight.clamp(8.0, 80.0);
-      
-      return Container(
+    // Create animated brown soundbar visualization with smooth animation
+    final bars = List.generate(_waveCount, (index) {
+      final height = _waveHeights[index] * 80;
+      final animatedHeight = height.clamp(8.0, 80.0);
+
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 50),
         width: 4,
-        height: height,
+        height: animatedHeight,
         margin: const EdgeInsets.symmetric(horizontal: 1.5),
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -264,7 +300,7 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
         ),
       );
     });
-    
+
     return Container(
       width: double.infinity,
       height: 120,
@@ -419,7 +455,8 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                             ],
                           ),
                         ),
-                      if (_isRecording) const SizedBox(height: AppSpacing.large),
+                      if (_isRecording)
+                        const SizedBox(height: AppSpacing.large),
 
                       // Timer display
                       Text(
@@ -445,8 +482,9 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                           final isMobile = ResponsiveUtils.isMobile(context);
                           final buttonSize = isMobile ? 40.0 : 48.0;
                           final largeButtonSize = isMobile ? 56.0 : 64.0;
-                          final spacing = isMobile ? AppSpacing.small : AppSpacing.large;
-                          
+                          final spacing =
+                              isMobile ? AppSpacing.small : AppSpacing.large;
+
                           return Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             mainAxisSize: MainAxisSize.min,
@@ -463,7 +501,8 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppColors.warmBrown.withOpacity(0.4),
+                                        color: AppColors.warmBrown
+                                            .withOpacity(0.4),
                                         blurRadius: 15,
                                         spreadRadius: 2,
                                       ),
@@ -471,7 +510,8 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                                   ),
                                   child: IconButton(
                                     iconSize: largeButtonSize,
-                                    icon: const Icon(Icons.mic, color: Colors.white),
+                                    icon: const Icon(Icons.mic,
+                                        color: Colors.white),
                                     onPressed: _startRecording,
                                   ),
                                 )
@@ -479,7 +519,9 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                                 // Pause/Resume button
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: _isPaused ? AppColors.warmBrown : AppColors.accentMain,
+                                    color: _isPaused
+                                        ? AppColors.warmBrown
+                                        : AppColors.accentMain,
                                     shape: BoxShape.circle,
                                     border: Border.all(
                                       color: Colors.white,
@@ -487,7 +529,10 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: (_isPaused ? AppColors.warmBrown : AppColors.accentMain).withOpacity(0.4),
+                                        color: (_isPaused
+                                                ? AppColors.warmBrown
+                                                : AppColors.accentMain)
+                                            .withOpacity(0.4),
                                         blurRadius: 12,
                                         spreadRadius: 2,
                                       ),
@@ -496,10 +541,14 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                                   child: IconButton(
                                     iconSize: buttonSize,
                                     icon: Icon(
-                                      _isPaused ? Icons.play_arrow : Icons.pause,
+                                      _isPaused
+                                          ? Icons.play_arrow
+                                          : Icons.pause,
                                       color: Colors.white,
                                     ),
-                                    onPressed: _isPaused ? _resumeRecording : _pauseRecording,
+                                    onPressed: _isPaused
+                                        ? _resumeRecording
+                                        : _pauseRecording,
                                   ),
                                 ),
                                 SizedBox(width: spacing),
@@ -515,7 +564,8 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppColors.warmBrown.withOpacity(0.4),
+                                        color: AppColors.warmBrown
+                                            .withOpacity(0.4),
                                         blurRadius: 15,
                                         spreadRadius: 2,
                                       ),
@@ -523,7 +573,8 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                                   ),
                                   child: IconButton(
                                     iconSize: largeButtonSize,
-                                    icon: const Icon(Icons.check, color: Colors.white),
+                                    icon: const Icon(Icons.check,
+                                        color: Colors.white),
                                     onPressed: _stopAndSave,
                                   ),
                                 ),
@@ -540,7 +591,8 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                                   ),
                                   child: IconButton(
                                     iconSize: buttonSize,
-                                    icon: const Icon(Icons.delete, color: AppColors.errorMain),
+                                    icon: const Icon(Icons.delete,
+                                        color: AppColors.errorMain),
                                     onPressed: _discardRecording,
                                   ),
                                 ),
@@ -634,13 +686,15 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                   if (_isPaused)
                     IconButton(
                       iconSize: 48,
-                      icon: const Icon(Icons.play_arrow, color: AppColors.primaryMain),
+                      icon: const Icon(Icons.play_arrow,
+                          color: AppColors.primaryMain),
                       onPressed: _resumeRecording,
                     )
                   else
                     IconButton(
                       iconSize: 48,
-                      icon: const Icon(Icons.pause, color: AppColors.primaryMain),
+                      icon:
+                          const Icon(Icons.pause, color: AppColors.primaryMain),
                       onPressed: _pauseRecording,
                     ),
                   const SizedBox(width: AppSpacing.medium),

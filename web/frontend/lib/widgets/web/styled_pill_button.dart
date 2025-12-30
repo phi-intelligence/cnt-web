@@ -58,7 +58,7 @@ class StyledPillButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
     final horizontalPadding = isSmallMobile ? AppSpacing.large : AppSpacing.extraLarge;
-    final verticalPadding = isSmallMobile ? AppSpacing.small : AppSpacing.medium;
+    final verticalPadding = isSmallMobile ? AppSpacing.medium : AppSpacing.medium + 4;
 
     if (variant == StyledPillButtonVariant.outlined || variant == StyledPillButtonVariant.outlinedLight) {
       Widget button = OutlinedButton(
@@ -132,9 +132,10 @@ class StyledPillButton extends StatelessWidget {
       label,
       style: AppTypography.button.copyWith(
         color: _foregroundColor,
-        fontSize: isSmallMobile ? 13 : null, // Scale down text size
+        fontSize: isSmallMobile ? 14 : 16, // Slightly larger for better visibility
       ),
-      overflow: TextOverflow.ellipsis,
+      overflow: TextOverflow.visible, // Allow text to be fully visible
+      softWrap: false,
     );
 
     if (icon == null) {

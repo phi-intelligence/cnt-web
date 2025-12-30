@@ -235,6 +235,7 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
 
   void _handlePlay(ContentItem item) {
     if (item.videoUrl != null && item.videoUrl!.isNotEmpty) {
+      // Navigate to video podcast detail page
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -244,6 +245,7 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
         ),
       );
     } else if (item.audioUrl != null && item.audioUrl!.isNotEmpty) {
+      // For audio podcasts, play directly
       context.read<AudioPlayerState>().playContent(item);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -695,11 +697,14 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
                    ),
                  ],
                  const SizedBox(height: AppSpacing.large),
-                 StyledPillButton(
-                   label: 'Play Now',
-                   icon: Icons.play_arrow,
-                   onPressed: () => _handlePlay(item),
-                   width: 180,
+                 Material(
+                   color: Colors.transparent,
+                   child: StyledPillButton(
+                     label: 'Play Now',
+                     icon: Icons.play_arrow,
+                     onPressed: () => _handlePlay(item),
+                     width: 220,
+                   ),
                  ),
               ],
             ),

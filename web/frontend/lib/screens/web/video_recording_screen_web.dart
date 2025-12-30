@@ -17,10 +17,12 @@ import 'movie_preview_screen_web.dart';
 /// Matches web app theme and avoids dart:io dependencies
 class VideoRecordingScreenWeb extends StatefulWidget {
   final String previewType; // 'podcast' or 'movie'
+  final String? movieType; // 'movie' or 'kids_movie' (only used when previewType is 'movie')
   
   const VideoRecordingScreenWeb({
     super.key,
     this.previewType = 'podcast', // Default to podcast for backward compatibility
+    this.movieType,
   });
 
   @override
@@ -255,6 +257,7 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
                 source: 'camera',
                 duration: _recordingDuration,
                 fileSize: fileSize,
+                movieType: widget.movieType ?? 'movie',
               ),
             ),
           );

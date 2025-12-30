@@ -13,7 +13,9 @@ import '../../utils/format_utils.dart';
 import '../../utils/responsive_grid_delegate.dart';
 
 import '../../providers/artist_provider.dart';
+import '../../providers/playlist_provider.dart';
 import 'landing_screen_web.dart';
+import 'library_screen_web.dart';
 import '../support/support_center_screen.dart';
 import '../admin/admin_support_page.dart';
 import '../edit_profile_screen.dart';
@@ -40,6 +42,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
       context.read<UserProvider>().fetchUser();
       context.read<SupportProvider>().fetchStats();
       context.read<ArtistProvider>().fetchMyArtist();
+      context.read<PlaylistProvider>().fetchPlaylists();
     });
   }
 
@@ -377,6 +380,9 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                         // Artist Section
                         _buildArtistSection(context, isMobile),
                         const SizedBox(height: AppSpacing.extraLarge),
+                        // Playlists Section
+                        _buildPlaylistsSection(context, isMobile),
+                        const SizedBox(height: AppSpacing.extraLarge),
                       ],
                     );
                   } else {
@@ -427,6 +433,9 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                               children: [
                                 // Artist Profile Section
                                 _buildArtistSection(context, isMobile),
+                                const SizedBox(height: AppSpacing.extraLarge),
+                                // Playlists Section
+                                _buildPlaylistsSection(context, isMobile),
                                 const SizedBox(height: AppSpacing.extraLarge),
                                 // Settings Section - below Artist Profile
                                 _buildSettingsSection(
@@ -764,6 +773,7 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
     required IconData icon,
     required String label,
     required String value,
+    bool isClickable = false,
   }) {
     return Row(
       children: [
@@ -1452,6 +1462,112 @@ class _ProfileScreenWebState extends State<ProfileScreenWeb> {
                           const SizedBox(height: AppSpacing.tiny),
                           Text(
                             supportSubtitle,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.warmBrown.withOpacity(0.8),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPlaylistsSection(BuildContext context, bool isMobile) {
+    return Consumer<PlaylistProvider>(
+      builder: (context, playlistProvider, _) {
+        final playlists = playlistProvider.playlists;
+        final playlistCount = playlists.length;
+        
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(isMobile ? AppSpacing.large : AppSpacing.extraLarge),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.warmBrown, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.warmBrown.withOpacity(0.1),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const LibraryScreenWeb(),
+                  ),
+                ).then((_) {
+                  playlistProvider.fetchPlaylists();
+                });
+              },
+              borderRadius: BorderRadius.circular(24),
+              child: Padding(
+                padding: EdgeInsets.all(AppSpacing.medium),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(
+                          Icons.playlist_play,
+                          color: AppColors.warmBrown,
+                          size: 28,
+                        ),
+                        if (playlistCount > 0)
+                          Positioned(
+                            top: -4,
+                            right: -4,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryMain,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: Text(
+                                playlistCount > 99 ? '99+' : playlistCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(width: AppSpacing.medium),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'My Playlists',
+                            style: AppTypography.heading3.copyWith(
+                              color: AppColors.warmBrown,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppSpacing.tiny),
+                          Text(
+                            'Manage your saved playlists',
                             style: AppTypography.bodySmall.copyWith(
                               color: AppColors.warmBrown.withOpacity(0.8),
                             ),

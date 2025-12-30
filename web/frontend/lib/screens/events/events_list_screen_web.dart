@@ -8,7 +8,6 @@ import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
-import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import 'event_create_screen_web.dart';
 import 'event_detail_screen_web.dart';
@@ -20,15 +19,16 @@ class EventsListScreenWeb extends StatefulWidget {
   State<EventsListScreenWeb> createState() => _EventsListScreenWebState();
 }
 
-class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTickerProviderStateMixin {
+class _EventsListScreenWebState extends State<EventsListScreenWeb>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final ApiService _apiService = ApiService();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    
+    _tabController = TabController(length: 4, vsync: this);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
@@ -39,6 +39,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
     await provider.fetchEvents(refresh: true, upcomingOnly: false);
     await provider.fetchMyHostedEvents();
     await provider.fetchMyAttendingEvents();
+    await provider.fetchPastEvents(refresh: true);
   }
 
   @override
@@ -80,6 +81,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                   Tab(text: 'All Events'),
                   Tab(text: 'My Events'),
                   Tab(text: 'Attending'),
+                  Tab(text: 'Past Events'),
                 ],
               ),
               backgroundColor: AppColors.backgroundPrimary,
@@ -92,13 +94,14 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
               if (provider.isLoading) {
                 return const SliverFillRemaining(
                   child: Center(
-                    child: CircularProgressIndicator(color: AppColors.warmBrown),
+                    child:
+                        CircularProgressIndicator(color: AppColors.warmBrown),
                   ),
                 );
               }
 
               final events = _getCurrentEvents(provider);
-              
+
               if (events.isEmpty) {
                 return SliverFillRemaining(
                   child: _buildEmptyState(
@@ -110,15 +113,18 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
 
               return SliverPadding(
                 padding: EdgeInsets.symmetric(
-                  horizontal: isMobile ? AppSpacing.medium : (isLargeScreen ? 64 : 32),
+                  horizontal:
+                      isMobile ? AppSpacing.medium : (isLargeScreen ? 64 : 32),
                   vertical: AppSpacing.large,
                 ),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.medium),
-                        child: _buildCompactEventCard(events[index], isLargeScreen),
+                        padding:
+                            const EdgeInsets.only(bottom: AppSpacing.medium),
+                        child: _buildCompactEventCard(
+                            events[index], isLargeScreen),
                       );
                     },
                     childCount: events.length,
@@ -147,6 +153,8 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
         return provider.myHostedEvents;
       case 2:
         return provider.myAttendingEvents;
+      case 3:
+        return provider.pastEvents;
       default:
         return provider.events;
     }
@@ -158,6 +166,8 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
         return 'No hosted events';
       case 2:
         return 'Not attending any events';
+      case 3:
+        return 'No past events';
       default:
         return 'No events found';
     }
@@ -169,6 +179,8 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
         return 'Create your first event and invite the community!';
       case 2:
         return 'Browse events and request to join!';
+      case 3:
+        return 'Past events will appear here once they\'ve concluded.';
       default:
         return 'Be the first to create a community event!';
     }
@@ -186,7 +198,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
 
   Widget _buildHeroSection(bool isMobile, bool isTablet) {
     return Container(
-      height: isMobile ? 300 : 400,
+      height: isMobile ? 250 : (isTablet ? 350 : 400),
       width: double.infinity,
       decoration: BoxDecoration(
         image: const DecorationImage(
@@ -204,7 +216,8 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  AppColors.backgroundPrimary.withOpacity(0.95), // More opaque start
+                  AppColors.backgroundPrimary
+                      .withOpacity(0.95), // More opaque start
                   AppColors.backgroundPrimary.withOpacity(0.8),
                   AppColors.backgroundPrimary.withOpacity(0.4),
                   AppColors.backgroundPrimary.withOpacity(0.1),
@@ -213,7 +226,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
               ),
             ),
           ),
-          
+
           // Content
           Padding(
             padding: EdgeInsets.symmetric(
@@ -236,9 +249,14 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                 ],
                 Text(
                   'Community Events',
-                  style: isMobile 
-                      ? AppTypography.heading2.copyWith(fontWeight: FontWeight.bold)
-                      : AppTypography.heroTitle.copyWith(fontWeight: FontWeight.bold, height: 1.1),
+                  style: isMobile
+                      ? AppTypography.heading2
+                          .copyWith(fontWeight: FontWeight.bold, fontSize: 24)
+                      : (isTablet
+                          ? AppTypography.heading1.copyWith(
+                              fontWeight: FontWeight.bold, fontSize: 32)
+                          : AppTypography.heroTitle.copyWith(
+                              fontWeight: FontWeight.bold, height: 1.1)),
                 ),
                 const SizedBox(height: AppSpacing.medium),
                 SizedBox(
@@ -261,7 +279,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
               ],
             ),
           ),
-          
+
           // Mobile Back Button
           if (isMobile)
             Positioned(
@@ -283,9 +301,10 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
   }
 
   Widget _buildCompactEventCard(EventModel event, bool isLargeScreen) {
-    final dateFormat = DateFormat('EEE, MMM d');
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
     final timeFormat = DateFormat('h:mm a');
-    
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -298,7 +317,8 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
           );
         },
         child: Container(
-          height: isLargeScreen ? 110 : 100, // Slightly taller
+          height:
+              isMobile ? 90 : (isLargeScreen ? 110 : 100), // Responsive height
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24), // Less drastic than 50
@@ -318,14 +338,17 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
             children: [
               // Date Indicator
               Container(
-                width: isLargeScreen ? 90 : 80,
+                width: isMobile ? 70 : (isLargeScreen ? 90 : 80),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: event.isPast 
+                    colors: event.isPast
                         ? [Colors.grey.shade300, Colors.grey.shade400]
-                        : [AppColors.warmBrown.withOpacity(0.1), AppColors.warmBrown.withOpacity(0.2)],
+                        : [
+                            AppColors.warmBrown.withOpacity(0.1),
+                            AppColors.warmBrown.withOpacity(0.2)
+                          ],
                   ),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(24),
@@ -348,7 +371,9 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                     Text(
                       event.eventDate.day.toString(),
                       style: TextStyle(
-                        color: event.isPast ? Colors.grey.shade600 : AppColors.primaryDark,
+                        color: event.isPast
+                            ? Colors.grey.shade600
+                            : AppColors.primaryDark,
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
                       ),
@@ -356,11 +381,12 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                   ],
                 ),
               ),
-              
+
               // Content
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -374,18 +400,23 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                             if (event.isAttending) ...[
                               if (event.isPast) const SizedBox(width: 8),
                               _buildStatusText(
-                                event.myAttendanceStatus == 'approved' ? 'Going' : 'Pending',
-                                event.myAttendanceStatus == 'approved' ? Colors.green : Colors.orange,
+                                event.myAttendanceStatus == 'approved'
+                                    ? 'Going'
+                                    : 'Pending',
+                                event.myAttendanceStatus == 'approved'
+                                    ? Colors.green
+                                    : Colors.orange,
                               ),
                             ],
                             const SizedBox(height: 6),
                           ],
                         ),
                       ],
-                      
+
                       Text(
                         event.title,
-                        style: AppTypography.heading4.copyWith( // Slightly bigger
+                        style: AppTypography.heading4.copyWith(
+                          // Slightly bigger
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
                         ),
@@ -396,7 +427,8 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                       // Time and location
                       Row(
                         children: [
-                          Icon(Icons.access_time_filled, size: 14, color: AppColors.textSecondary),
+                          Icon(Icons.access_time_filled,
+                              size: 14, color: AppColors.textSecondary),
                           const SizedBox(width: 6),
                           Text(
                             timeFormat.format(event.eventDate),
@@ -408,7 +440,8 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                           ),
                           if (event.location != null) ...[
                             const SizedBox(width: 16),
-                            Icon(Icons.location_on, size: 14, color: AppColors.textSecondary),
+                            Icon(Icons.location_on,
+                                size: 14, color: AppColors.textSecondary),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -429,21 +462,23 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb> with SingleTi
                   ),
                 ),
               ),
-              
+
               // Attendees & Arrow
               Padding(
                 padding: const EdgeInsets.only(right: 24),
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: AppColors.backgroundSecondary,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.people, size: 16, color: AppColors.textSecondary),
+                          Icon(Icons.people,
+                              size: 16, color: AppColors.textSecondary),
                           const SizedBox(width: 6),
                           Text(
                             '${event.attendeesCount}',
@@ -566,7 +601,8 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => _tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
       color: backgroundColor,
       child: Container(
@@ -588,4 +624,3 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
     return false;
   }
 }
-

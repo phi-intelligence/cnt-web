@@ -10,7 +10,6 @@ import '../../theme/app_typography.dart';
 import '../../utils/platform_helper.dart';
 import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/styled_pill_button.dart';
-import 'location_picker_screen_web.dart';
 
 /// Data class to hold location result
 class LocationResult {
@@ -42,9 +41,6 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _selectedTime = const TimeOfDay(hour: 18, minute: 0);
   bool _isSubmitting = false;
-  
-  // Location data
-  LocationResult? _selectedLocation;
 
   @override
   void dispose() {
@@ -53,24 +49,6 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
     _maxAttendeesController.dispose();
     _locationController.dispose();
     super.dispose();
-  }
-
-  Future<void> _selectLocation() async {
-    final result = await Navigator.push<LocationResult>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => LocationPickerScreenWeb(
-          initialLocation: _selectedLocation,
-        ),
-      ),
-    );
-    
-    if (result != null) {
-      setState(() {
-        _selectedLocation = result;
-        _locationController.text = result.address;
-      });
-    }
   }
 
   DateTime get _eventDateTime {
@@ -164,9 +142,9 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
             ? _descriptionController.text.trim()
             : null,
         eventDate: _eventDateTime,
-        location: _selectedLocation?.address ?? _locationController.text.trim(),
-        latitude: _selectedLocation?.latitude,
-        longitude: _selectedLocation?.longitude,
+        location: _locationController.text.trim(),
+        latitude: null,
+        longitude: null,
         maxAttendees: _maxAttendeesController.text.isNotEmpty
             ? int.tryParse(_maxAttendeesController.text)
             : 0,
@@ -347,17 +325,11 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
                               _buildFormSection(
                                 title: 'Location',
                                 children: [
-                                  _buildLocationPicker(),
-                                  if (_selectedLocation == null) ...[
-                                    const SizedBox(height: AppSpacing.medium),
-                                    const Text('Or enter address manually:', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                                    const SizedBox(height: 8),
-                                    _buildTextField(
-                                      controller: _locationController,
-                                      label: 'Address',
-                                      hint: 'Enter full address',
-                                    ),
-                                  ],
+                                  _buildTextField(
+                                    controller: _locationController,
+                                    label: 'Address',
+                                    hint: 'Enter full address',
+                                  ),
                                 ],
                               ),
 
@@ -517,6 +489,29 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
                     ),
                   ],
               ),
+              const SizedBox(height: AppSpacing.medium),
+              _buildFormSection(
+                title: 'Location',
+                children: [
+                  _buildTextField(
+                    controller: _locationController,
+                    label: 'Address',
+                    hint: 'Enter full address',
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.medium),
+              _buildFormSection(
+                title: 'Capacity',
+                children: [
+                  _buildTextField(
+                    controller: _maxAttendeesController,
+                    label: 'Max Attendees',
+                    hint: 'Leave empty for unlimited',
+                    keyboardType: TextInputType.number,
+                  ),
+                ],
+              ),
               const SizedBox(height: AppSpacing.large),
               StyledPillButton(
                 label: 'Create Event',
@@ -557,6 +552,7 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
       maxLines: maxLines,
       keyboardType: keyboardType,
       validator: validator,
+      style: AppTypography.body.copyWith(color: AppColors.textPrimary),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(color: AppColors.textPrimary),
@@ -584,36 +580,6 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
         ),
         filled: true,
         fillColor: Colors.white,
-      ),
-    );
-  }
-
-  Widget _buildLocationPicker() {
-    return InkWell(
-      onTap: _selectLocation,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.medium),
-        decoration: BoxDecoration(
-          color: AppColors.backgroundSecondary,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.borderPrimary),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.location_on, color: AppColors.warmBrown),
-            const SizedBox(width: AppSpacing.medium),
-            Expanded(
-              child: Text(
-                _selectedLocation?.address ?? 'Select Location on Map',
-                style: _selectedLocation != null 
-                    ? AppTypography.body 
-                    : AppTypography.body.copyWith(color: AppColors.textSecondary),
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-          ],
-        ),
       ),
     );
   }

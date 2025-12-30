@@ -766,11 +766,14 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
                    ),
                  ],
                  const SizedBox(height: AppSpacing.large),
-                 StyledPillButton(
-                   label: 'Watch Now',
-                   icon: Icons.play_arrow,
-                   onPressed: () => _handleMovieTap(item),
-                   width: 180,
+                 Material(
+                   color: Colors.transparent,
+                   child: StyledPillButton(
+                     label: 'Watch Now',
+                     icon: Icons.play_arrow,
+                     onPressed: () => _handleMovieTap(item),
+                     width: 220,
+                   ),
                  ),
               ],
             ),

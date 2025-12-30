@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:just_audio/just_audio.dart';
-import 'dart:io' if (dart.library.html) '../../utils/file_stub.dart' as io;
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -44,9 +43,12 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
 
-  final TextEditingController _titleController = TextEditingController(text: 'My Audio Podcast');
-  final TextEditingController _descriptionController = TextEditingController(text: 'A wonderful audio podcast about faith and spirituality');
-  final TextEditingController _tagsController = TextEditingController(text: 'podcast, faith, spirituality');
+  final TextEditingController _titleController =
+      TextEditingController(text: 'My Audio Podcast');
+  final TextEditingController _descriptionController = TextEditingController(
+      text: 'A wonderful audio podcast about faith and spirituality');
+  final TextEditingController _tagsController =
+      TextEditingController(text: 'podcast, faith, spirituality');
   String? _selectedThumbnail;
 
   @override
@@ -74,7 +76,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
       }
     });
   }
-  
+
   Future<void> _loadSavedState() async {
     try {
       final savedState = await StatePersistence.loadAudioPreviewState();
@@ -83,7 +85,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
         final savedTitle = savedState['title'] as String?;
         final savedDescription = savedState['description'] as String?;
         final savedThumbnail = savedState['thumbnailUrl'] as String?;
-        
+
         if (savedTitle != null && savedTitle.isNotEmpty) {
           _titleController.text = savedTitle;
         }
@@ -93,14 +95,14 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
         if (savedThumbnail != null && savedThumbnail.isNotEmpty) {
           _selectedThumbnail = savedThumbnail;
         }
-        
+
         print('✅ Restored audio preview state from saved state');
       }
     } catch (e) {
       print('❌ Error loading audio preview state: $e');
     }
   }
-  
+
   Future<void> _saveState() async {
     try {
       // Convert blob URL to backend URL before saving if needed
@@ -115,12 +117,16 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
           }
         }
       }
-      
+
       await StatePersistence.saveAudioPreviewState(
         audioUri: audioUriToSave,
         source: widget.source,
-        title: _titleController.text.trim().isNotEmpty ? _titleController.text.trim() : null,
-        description: _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : null,
+        title: _titleController.text.trim().isNotEmpty
+            ? _titleController.text.trim()
+            : null,
+        description: _descriptionController.text.trim().isNotEmpty
+            ? _descriptionController.text.trim()
+            : null,
         duration: widget.duration > 0 ? widget.duration : null,
         fileSize: widget.fileSize > 0 ? widget.fileSize : null,
       );
@@ -183,27 +189,30 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
     // If blob URL, upload to backend first for persistence
     String audioPathToUse = widget.audioUri;
     Duration? providedDuration;
-    
+
     if (kIsWeb && widget.audioUri.startsWith('blob:')) {
       try {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Preparing audio for editing...')),
         );
-        final uploadResult = await ApiService().uploadTemporaryMedia(widget.audioUri, 'audio');
+        final uploadResult =
+            await ApiService().uploadTemporaryMedia(widget.audioUri, 'audio');
         if (uploadResult != null) {
           // Extract URL and duration from upload response
           final backendUrl = uploadResult['url'] as String?;
           final durationSeconds = uploadResult['duration'] as int?;
-          
+
           if (backendUrl != null) {
             // Convert relative path to full URL using getMediaUrl
             audioPathToUse = ApiService().getMediaUrl(backendUrl);
-            print('✅ Converted temporary upload path to full URL: $audioPathToUse');
-            
+            print(
+                '✅ Converted temporary upload path to full URL: $audioPathToUse');
+
             // Extract duration if available (from FFprobe on backend)
             if (durationSeconds != null && durationSeconds > 0) {
               providedDuration = Duration(seconds: durationSeconds);
-              print('✅ Duration from upload response: ${providedDuration.inSeconds}s');
+              print(
+                  '✅ Duration from upload response: ${providedDuration.inSeconds}s');
             }
           }
         }
@@ -211,25 +220,28 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
         print('⚠️ Failed to upload blob before editor: $e');
         // Continue with blob URL - editor will handle it
       }
-    } else if (!widget.audioUri.startsWith('http://') && !widget.audioUri.startsWith('https://') && !widget.audioUri.startsWith('blob:')) {
+    } else if (!widget.audioUri.startsWith('http://') &&
+        !widget.audioUri.startsWith('https://') &&
+        !widget.audioUri.startsWith('blob:')) {
       // If it's a relative path (not already a full URL or blob), convert it
       audioPathToUse = ApiService().getMediaUrl(widget.audioUri);
     }
-    
+
     // IMPORTANT: Clear any previous audio editor state before starting fresh
     // This ensures old audio data doesn't persist when editing a new audio file
     await StatePersistence.clearAudioEditorState();
-    
+
     // Save state before navigating to editor
     await _saveState();
-    
+
     // Navigate to AudioEditorScreen with duration if available
     final editedPath = await Navigator.push<String>(
       context,
       MaterialPageRoute(
         builder: (context) => AudioEditorScreen(
           audioPath: audioPathToUse,
-          title: _titleController.text.isNotEmpty ? _titleController.text : null,
+          title:
+              _titleController.text.isNotEmpty ? _titleController.text : null,
           duration: providedDuration,
         ),
       ),
@@ -242,12 +254,6 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
       );
       // TODO: Update audio URI to edited path
     }
-  }
-
-  void _handleAddCaptions() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Add captions feature')),
-    );
   }
 
   Future<void> _handlePublish() async {
@@ -274,14 +280,15 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
 
     try {
       // Upload audio file first
-      final audioUploadResponse = await ApiService().uploadAudio(widget.audioUri);
+      final audioUploadResponse =
+          await ApiService().uploadAudio(widget.audioUri);
       final audioUrl = audioUploadResponse['url'] as String;
 
       // Create podcast with thumbnail
       await ApiService().createPodcast(
         title: _titleController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty 
-            ? null 
+        description: _descriptionController.text.trim().isEmpty
+            ? null
             : _descriptionController.text.trim(),
         audioUrl: audioUrl,
         coverImage: _selectedThumbnail,
@@ -293,7 +300,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
       setState(() {
         _isLoading = false;
       });
-      
+
       // Clear saved state after successful publish
       await StatePersistence.clearAudioPreviewState();
 
@@ -331,21 +338,21 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
   String _formatFileSize(int bytes) {
     if (bytes == 0) return '0 B';
     if (bytes < 1024) return '$bytes B';
-    
+
     final k = 1024;
     final sizes = ['B', 'KB', 'MB', 'GB'];
     int i = 0;
     double size = bytes.toDouble();
-    
+
     // Calculate the correct unit index
     while (size >= k && i < sizes.length - 1) {
       size /= k;
       i++;
     }
-    
+
     // Clamp index to valid range
     i = i.clamp(0, sizes.length - 1);
-    
+
     return '${size.toStringAsFixed(2)} ${sizes[i]}';
   }
 
@@ -378,7 +385,8 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                     onPressed: () {
                       // Delete functionality - can be implemented later
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Delete feature coming soon')),
+                        const SnackBar(
+                            content: Text('Delete feature coming soon')),
                       );
                     },
                   ),
@@ -392,7 +400,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                   builder: (context, constraints) {
                     // On smaller screens, stack vertically; on larger screens, use horizontal layout
                     final useHorizontalLayout = constraints.maxWidth > 1024;
-                    
+
                     if (useHorizontalLayout) {
                       // Horizontal Layout: Audio player on left, controls on right
                       return Row(
@@ -475,7 +483,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: AppSpacing.extraLarge),
-                    
+
                     // Action buttons at top
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -486,18 +494,13 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                           onPressed: _handleEdit,
                         ),
                         _buildActionButton(
-                          icon: Icons.closed_caption,
-                          label: 'Add Captions',
-                          onPressed: _handleAddCaptions,
-                        ),
-                        _buildActionButton(
                           icon: Icons.publish,
                           label: _isLoading ? 'Publishing...' : 'Publish',
                           onPressed: _isLoading ? null : _handlePublish,
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: AppSpacing.extraLarge),
 
                     // Audio Player Section
@@ -526,14 +529,16 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                           const SizedBox(height: AppSpacing.medium),
                           Text(
                             'Audio Podcast',
-                            style: AppTypography.heading3.copyWith(color: Colors.white),
+                            style: AppTypography.heading3
+                                .copyWith(color: Colors.white),
                           ),
                           const SizedBox(height: AppSpacing.tiny),
                           Text(
                             _duration != Duration.zero
                                 ? '${_formatTime(_duration.inSeconds)} • ${_formatFileSize(widget.fileSize)}'
                                 : '${_formatTime(widget.duration)} • ${_formatFileSize(widget.fileSize)}',
-                            style: AppTypography.body.copyWith(color: Colors.white.withOpacity(0.8)),
+                            style: AppTypography.body
+                                .copyWith(color: Colors.white.withOpacity(0.8)),
                           ),
                           const SizedBox(height: AppSpacing.large),
 
@@ -550,7 +555,8 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                                 const SizedBox(height: 8),
                                 Text(
                                   'Error loading audio',
-                                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                                  style: TextStyle(
+                                      color: Colors.white70, fontSize: 12),
                                 ),
                               ],
                             )
@@ -570,7 +576,9 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                                   builder: (context, snapshot) {
                                     final isPlaying = snapshot.data ?? false;
                                     return Icon(
-                                      isPlaying ? Icons.pause : Icons.play_arrow,
+                                      isPlaying
+                                          ? Icons.pause
+                                          : Icons.play_arrow,
                                       size: 32,
                                       color: Colors.white,
                                     );
@@ -584,41 +592,60 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                             StreamBuilder<Duration>(
                               stream: _audioPlayer.positionStream,
                               builder: (context, positionSnapshot) {
-                                final position = positionSnapshot.data ?? Duration.zero;
+                                final position =
+                                    positionSnapshot.data ?? Duration.zero;
                                 return StreamBuilder<Duration?>(
                                   stream: _audioPlayer.durationStream,
                                   builder: (context, durationSnapshot) {
-                                    final duration = durationSnapshot.data ?? _duration;
+                                    final duration =
+                                        durationSnapshot.data ?? _duration;
                                     return Row(
                                       children: [
                                         SizedBox(
                                           width: 50,
                                           child: Text(
                                             _formatTime(position.inSeconds),
-                                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12),
                                           ),
                                         ),
                                         Expanded(
                                           child: Slider(
                                             value: duration != Duration.zero
-                                                ? position.inSeconds.toDouble().clamp(0.0, duration.inSeconds.toDouble())
+                                                ? position.inSeconds
+                                                    .toDouble()
+                                                    .clamp(
+                                                        0.0,
+                                                        duration.inSeconds
+                                                            .toDouble())
                                                 : 0.0,
                                             min: 0,
                                             max: duration != Duration.zero
                                                 ? duration.inSeconds.toDouble()
                                                 : widget.duration.toDouble(),
                                             activeColor: Colors.white,
-                                            inactiveColor: Colors.white.withOpacity(0.3),
+                                            inactiveColor:
+                                                Colors.white.withOpacity(0.3),
                                             onChanged: (value) {
-                                              _audioPlayer.seek(Duration(seconds: value.toInt()));
+                                              _audioPlayer.seek(Duration(
+                                                  seconds: value.toInt()));
                                             },
                                           ),
                                         ),
                                         SizedBox(
                                           width: 50,
                                           child: Text(
-                                            _formatTime((duration != Duration.zero ? duration : Duration(seconds: widget.duration)).inSeconds),
-                                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                                            _formatTime((duration !=
+                                                        Duration.zero
+                                                    ? duration
+                                                    : Duration(
+                                                        seconds:
+                                                            widget.duration))
+                                                .inSeconds),
+                                            style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12),
                                             textAlign: TextAlign.right,
                                           ),
                                         ),
@@ -647,29 +674,32 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                         children: [
                           Text(
                             'Podcast Details',
-                            style: AppTypography.heading3.copyWith(color: Colors.white),
+                            style: AppTypography.heading3
+                                .copyWith(color: Colors.white),
                           ),
                           const SizedBox(height: AppSpacing.large),
-                          
+
                           // Title
                           _buildTextField(
                             label: 'Title',
                             controller: _titleController,
                             hint: 'Enter podcast title',
-                            onChanged: (_) => _saveState(), // Auto-save on change
+                            onChanged: (_) =>
+                                _saveState(), // Auto-save on change
                           ),
                           const SizedBox(height: AppSpacing.medium),
-                          
+
                           // Description
                           _buildTextField(
                             label: 'Description',
                             controller: _descriptionController,
                             hint: 'Enter podcast description',
                             maxLines: 3,
-                            onChanged: (_) => _saveState(), // Auto-save on change
+                            onChanged: (_) =>
+                                _saveState(), // Auto-save on change
                           ),
                           const SizedBox(height: AppSpacing.medium),
-                          
+
                           // Tags
                           _buildTextField(
                             label: 'Tags',
@@ -677,7 +707,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                             hint: 'Enter tags (comma separated)',
                           ),
                           const SizedBox(height: AppSpacing.medium),
-                          
+
                           // Thumbnail Selection
                           Container(
                             padding: const EdgeInsets.all(AppSpacing.medium),
@@ -882,7 +912,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                     final totalDuration = duration != Duration.zero
                         ? duration
                         : Duration(seconds: widget.duration);
-                    
+
                     return Column(
                       children: [
                         Row(
@@ -910,22 +940,26 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                         SliderTheme(
                           data: SliderTheme.of(context).copyWith(
                             trackHeight: 6,
-                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                            thumbShape: const RoundSliderThumbShape(
+                                enabledThumbRadius: 10),
+                            overlayShape: const RoundSliderOverlayShape(
+                                overlayRadius: 20),
                             activeTrackColor: AppColors.warmBrown,
                             inactiveTrackColor: AppColors.borderPrimary,
                             thumbColor: AppColors.warmBrown,
                           ),
                           child: Slider(
                             value: totalDuration != Duration.zero
-                                ? position.inSeconds.toDouble().clamp(0.0, totalDuration.inSeconds.toDouble())
+                                ? position.inSeconds.toDouble().clamp(
+                                    0.0, totalDuration.inSeconds.toDouble())
                                 : 0.0,
                             min: 0.0,
                             max: totalDuration.inSeconds.toDouble() > 0
                                 ? totalDuration.inSeconds.toDouble()
                                 : 1.0,
                             onChanged: (value) {
-                              _audioPlayer.seek(Duration(seconds: value.toInt()));
+                              _audioPlayer
+                                  .seek(Duration(seconds: value.toInt()));
                             },
                           ),
                         ),
@@ -957,14 +991,6 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                   onPressed: _handleEdit,
                 ),
               ),
-              const SizedBox(width: AppSpacing.small),
-              Expanded(
-                child: StyledPillButton(
-                  label: 'Add Captions',
-                  icon: Icons.closed_caption,
-                  onPressed: _handleAddCaptions,
-                ),
-              ),
             ],
           ),
           const SizedBox(height: AppSpacing.medium),
@@ -988,7 +1014,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.large),
-          
+
           // Title
           _buildTextField(
             label: 'Title',
@@ -997,7 +1023,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
             onChanged: (_) => _saveState(), // Auto-save on change
           ),
           const SizedBox(height: AppSpacing.medium),
-          
+
           // Description
           _buildTextField(
             label: 'Description',
@@ -1007,7 +1033,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
             onChanged: (_) => _saveState(), // Auto-save on change
           ),
           const SizedBox(height: AppSpacing.medium),
-          
+
           // Tags
           _buildTextField(
             label: 'Tags',
@@ -1015,7 +1041,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
             hint: 'Enter tags (comma separated)',
           ),
           const SizedBox(height: AppSpacing.medium),
-          
+
           // Thumbnail Selection
           Text(
             'Thumbnail',
@@ -1148,7 +1174,8 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
         children: [
           Text(
             label,
-            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+                color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: AppSpacing.tiny),
           TextField(

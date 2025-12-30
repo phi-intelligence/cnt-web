@@ -3,79 +3,225 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
-import '../../utils/platform_helper.dart';
 import '../../utils/responsive_utils.dart';
-import 'package:image_picker/image_picker.dart';
-import '../web/movie_preview_screen_web.dart';
-import '../web/video_recording_screen_web.dart';
-// Conditional import for dart:io (only on non-web platforms)
-import 'dart:io' if (dart.library.html) '../../utils/file_stub.dart' as io;
+import 'package:file_picker/file_picker.dart';
+// Conditional import for web platform
+import 'dart:html' if (dart.library.io) '../../utils/html_stub.dart' as html;
 import '../../services/logger_service.dart';
+import '../../services/api_service.dart';
+import '../../models/api_models.dart';
 
 /// Movie Create Screen
-/// Shows options to record video or choose from gallery
+/// Shows options to upload movies directly
 class MovieCreateScreen extends StatelessWidget {
   const MovieCreateScreen({super.key});
 
-  Future<void> _selectVideoFromGallery(BuildContext context) async {
+  /// Get category ID for "Animated Bible Stories" category
+  Future<int?> _getAnimatedBibleStoriesCategoryId() async {
     try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? video = await picker.pickVideo(
-        source: ImageSource.gallery,
+      final categories = await ApiService().getCategories();
+      final kidsCategory = categories.firstWhere(
+        (c) => c.name == 'Animated Bible Stories' && c.type == 'movie',
+        orElse: () => Category(id: -1, name: '', type: ''),
+      );
+      return kidsCategory.id != -1 ? kidsCategory.id : null;
+    } catch (e) {
+      LoggerService.e('Error fetching category: $e');
+      return null;
+    }
+  }
+
+  /// Extract title from filename (remove extension)
+  String _extractTitleFromFilename(String filename) {
+    try {
+      final nameWithoutExt = filename.split('.').first;
+      if (nameWithoutExt.isEmpty) {
+        return 'Untitled Movie';
+      }
+      // Replace underscores and hyphens with spaces, capitalize first letter
+      final cleaned = nameWithoutExt
+          .replaceAll('_', ' ')
+          .replaceAll('-', ' ')
+          .trim();
+      if (cleaned.isEmpty) {
+        return 'Untitled Movie';
+      }
+      return cleaned[0].toUpperCase() + cleaned.substring(1);
+    } catch (e) {
+      LoggerService.w('Error extracting title from filename: $e');
+      return 'Untitled Movie';
+    }
+  }
+
+  /// Get MIME type for video file based on extension
+  String _getVideoMimeType(String filename) {
+    final ext = filename.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'mp4':
+        return 'video/mp4';
+      case 'webm':
+        return 'video/webm';
+      case 'mov':
+        return 'video/quicktime';
+      case 'avi':
+        return 'video/x-msvideo';
+      case 'mkv':
+        return 'video/x-matroska';
+      default:
+        return 'video/mp4';
+    }
+  }
+
+  /// Select and upload movie file directly
+  Future<void> _selectAndUploadMovie(BuildContext context, String movieType) async {
+    try {
+      // Open file picker
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.video,
+        allowMultiple: false,
+        withData: kIsWeb, // Load bytes for web
       );
 
-      if (video != null && context.mounted) {
-        int fileSize = 0;
-        int estimatedDuration = 180; // Default estimate
-        
-        if (kIsWeb) {
-          // Web: Read bytes to get file size
+      if (result == null || result.files.isEmpty || !context.mounted) {
+        return;
+      }
+
+      final file = result.files.single;
+      String filePath;
+      String fileName = file.name;
+
+      // Handle web vs mobile file paths
+      if (kIsWeb && file.bytes != null) {
+        // Create blob URL for web
+        final mimeType = _getVideoMimeType(fileName);
+        final blob = html.Blob([file.bytes!], mimeType);
+        filePath = html.Url.createObjectUrlFromBlob(blob);
+        LoggerService.d('Created blob URL for video: $filePath');
+      } else {
+        filePath = file.path ?? '';
+        if (filePath.isEmpty) {
+          throw Exception('No file path available');
+        }
+      }
+
+      // Show upload progress dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: AppColors.backgroundSecondary,
+          title: Text(
+            'Uploading Movie',
+            style: AppTypography.heading3.copyWith(
+              color: AppColors.textPrimary,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryMain),
+              ),
+              const SizedBox(height: AppSpacing.medium),
+              Text(
+                'Please wait while your movie is being uploaded...',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      try {
+        // Upload file
+        final uploadResponse = await ApiService().uploadMovie(
+          filePath,
+          movieType: movieType,
+          generateThumbnail: true,
+          onProgress: (sent, total) {
+            // Progress tracking - dialog shows loading indicator
+            // Real-time progress updates would require StatefulWidget conversion
+            LoggerService.d('Upload progress: ${total > 0 ? (sent / total * 100).toStringAsFixed(1) : 0}%');
+          },
+        );
+
+        // Close upload dialog
+        if (context.mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+
+        // Get category ID if kids movie
+        int? categoryId;
+        if (movieType == 'kids_movie') {
+          categoryId = await _getAnimatedBibleStoriesCategoryId();
+        }
+
+        // Extract title from filename
+        final title = _extractTitleFromFilename(fileName);
+
+        // Create movie record
+        await ApiService().createMovie(
+          title: title,
+          videoUrl: uploadResponse['url'] as String,
+          coverImage: uploadResponse['thumbnail_url'] as String?,
+          duration: uploadResponse['duration'] as int?,
+          categoryId: categoryId,
+          status: 'pending', // Will be reviewed by admin
+        );
+
+        // Show success message
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Movie uploaded successfully! It will be reviewed by an admin before being published.',
+              ),
+              backgroundColor: AppColors.successMain,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+          // Navigate back
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        // Close upload dialog if still open
+        if (context.mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+        // Show error message
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error uploading movie: $e'),
+              backgroundColor: AppColors.errorMain,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+        LoggerService.e('Error uploading movie: $e');
+      } finally {
+        // Clean up blob URL on web
+        if (kIsWeb && filePath.startsWith('blob:')) {
           try {
-            final bytes = await video.readAsBytes();
-            fileSize = bytes.length;
+            html.Url.revokeObjectUrl(filePath);
           } catch (e) {
-            LoggerService.e('Error reading video bytes on web: $e');
-            // Continue with fileSize = 0
+            LoggerService.w('Error revoking blob URL: $e');
           }
-          
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MoviePreviewScreenWeb(
-                videoUri: video.path,
-                source: 'gallery',
-                duration: estimatedDuration,
-                fileSize: fileSize,
-              ),
-            ),
-          );
-        } else {
-          // Mobile: Use File operations
-          final file = io.File(video.path);
-          fileSize = await file.length();
-          
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MoviePreviewScreenWeb(
-                videoUri: video.path,
-                source: 'gallery',
-                duration: estimatedDuration,
-                fileSize: fileSize,
-              ),
-            ),
-          );
         }
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error selecting video: $e'),
+            content: Text('Error selecting file: $e'),
             backgroundColor: AppColors.errorMain,
           ),
         );
       }
+      LoggerService.e('Error in _selectAndUploadMovie: $e');
     }
   }
 
@@ -166,7 +312,7 @@ class MovieCreateScreen extends StatelessWidget {
                           ),
                           Expanded(
                             child: Text(
-                              'Create Movie',
+                              'Upload Movies',
                               style: AppTypography.getResponsiveHeroTitle(context).copyWith(
                                 color: AppColors.primaryDark,
                                 fontWeight: FontWeight.bold,
@@ -179,7 +325,7 @@ class MovieCreateScreen extends StatelessWidget {
                       ),
                       SizedBox(height: AppSpacing.small),
                       Text(
-                        'Upload and share movies with the community. Choose how you want to start.',
+                        'Upload and share movies with the community. Choose the type of movie you want to upload.',
                         style: AppTypography.getResponsiveBody(context).copyWith(
                           color: AppColors.primaryDark.withOpacity(0.7),
                           fontSize: isMobile ? 14 : 16,
@@ -203,30 +349,19 @@ class MovieCreateScreen extends StatelessWidget {
                             itemBuilder: (context, index) {
                               if (index == 0) {
                                 return _buildOptionCard(
-                                  title: 'Choose from Gallery',
-                                  icon: Icons.photo_library,
-                                  description: 'Select an existing video from your gallery',
+                                  title: 'Movies',
+                                  icon: Icons.movie,
+                                  description: 'Upload regular movies and films',
                                   hoverColors: [AppColors.accentMain, AppColors.accentDark],
-                                  onTap: () => _selectVideoFromGallery(context),
+                                  onTap: () => _selectAndUploadMovie(context, 'movie'),
                                 );
                               } else {
                                 return _buildOptionCard(
-                                  title: 'Record Video',
-                                  icon: Icons.videocam,
-                                  description: 'Use your camera to record a new movie',
+                                  title: 'Kids Movies',
+                                  icon: Icons.child_care,
+                                  description: 'Upload animated Bible stories for kids',
                                   hoverColors: [AppColors.warmBrown, AppColors.primaryMain],
-                                  onTap: () {
-                                    if (PlatformHelper.isWebPlatform()) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => const VideoRecordingScreenWeb(
-                                            previewType: 'movie',
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  },
+                                  onTap: () => _selectAndUploadMovie(context, 'kids_movie'),
                                 );
                               }
                             },

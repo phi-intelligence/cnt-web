@@ -1,14 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
-import '../../utils/responsive_grid_delegate.dart';
-import '../../widgets/web/styled_page_header.dart';
-import '../../widgets/web/section_container.dart';
-import '../../widgets/web/styled_pill_button.dart';
-import 'meeting_room_screen.dart';
 import '../../services/livekit_meeting_service.dart';
 import 'prejoin_screen.dart';
 
@@ -18,12 +14,14 @@ class MeetingCreatedScreen extends StatefulWidget {
   final String meetingId;
   final String meetingLink;
   final bool isInstant;
+  final DateTime? scheduledStart;
 
   const MeetingCreatedScreen({
     super.key,
     required this.meetingId,
     required this.meetingLink,
     this.isInstant = true,
+    this.scheduledStart,
   });
 
   @override
@@ -34,20 +32,89 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
   bool _isCopied = false;
   bool _joining = false;
   String? _joinError;
+  Timer? _countdownTimer;
+  Duration? _timeUntilMeeting;
+  bool _canJoin = true;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.isInstant && widget.scheduledStart != null) {
+      _updateCountdown();
+      _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        _updateCountdown();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  void _updateCountdown() {
+    if (widget.scheduledStart == null) return;
+
+    final now = DateTime.now();
+    final scheduled = widget.scheduledStart!;
+    final difference = scheduled.difference(now);
+
+    if (mounted) {
+      setState(() {
+        _timeUntilMeeting = difference;
+        _canJoin = difference.isNegative || difference.inSeconds <= 0;
+      });
+    }
+  }
+
+  String _formatCountdown(Duration duration) {
+    if (duration.isNegative) {
+      return 'Meeting started';
+    }
+
+    final days = duration.inDays;
+    final hours = duration.inHours % 24;
+    final minutes = duration.inMinutes % 60;
+    final seconds = duration.inSeconds % 60;
+
+    if (days > 0) {
+      return '$days day${days != 1 ? 's' : ''}, $hours hour${hours != 1 ? 's' : ''}';
+    } else if (hours > 0) {
+      return '$hours hour${hours != 1 ? 's' : ''}, $minutes minute${minutes != 1 ? 's' : ''}';
+    } else if (minutes > 0) {
+      return '$minutes minute${minutes != 1 ? 's' : ''}, $seconds second${seconds != 1 ? 's' : ''}';
+    } else {
+      return '$seconds second${seconds != 1 ? 's' : ''}';
+    }
+  }
+
+  String _formatScheduledTime(DateTime scheduled) {
+    return '${scheduled.month}/${scheduled.day}/${scheduled.year} at ${scheduled.hour.toString().padLeft(2, '0')}:${scheduled.minute.toString().padLeft(2, '0')}';
+  }
 
   void _handleBack() {
     Navigator.pop(context);
   }
 
   Future<void> _handleJoinMeeting() async {
-    setState(() { _joining = true; _joinError = null; });
+    if (!_canJoin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Meeting has not started yet')),
+      );
+      return;
+    }
+    setState(() {
+      _joining = true;
+      _joinError = null;
+    });
     try {
       // Validate meetingId is a valid numeric ID from backend
       final meetingIdInt = int.tryParse(widget.meetingId);
       if (meetingIdInt == null || meetingIdInt <= 0) {
         throw Exception('Invalid meeting ID: ${widget.meetingId}');
       }
-      
+
       final identity = 'host-user-${DateTime.now().millisecondsSinceEpoch}';
       final userName = 'Host';
       final meetingSvc = LiveKitMeetingService();
@@ -57,7 +124,9 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
         userName: userName,
         isHost: true,
       );
-      setState(() { _joining = false; });
+      setState(() {
+        _joining = false;
+      });
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -72,7 +141,10 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
         ),
       );
     } catch (e) {
-      setState(() { _joining = false; _joinError = e.toString(); });
+      setState(() {
+        _joining = false;
+        _joinError = e.toString();
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to join meeting: $e')),
@@ -110,7 +182,7 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
       final screenHeight = MediaQuery.of(context).size.height;
       final screenWidth = MediaQuery.of(context).size.width;
       final isMobile = screenWidth < 600;
-      
+
       // Web version with background image pattern
       return Scaffold(
         backgroundColor: const Color(0xFFF5F0E8),
@@ -131,7 +203,8 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                     image: DecorationImage(
                       image: const AssetImage('assets/images/thumbnail1.jpg'),
                       fit: isMobile ? BoxFit.contain : BoxFit.cover,
-                      alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
+                      alignment:
+                          isMobile ? Alignment.topRight : Alignment.centerRight,
                     ),
                   ),
                 ),
@@ -205,7 +278,8 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
           ),
           title: Text(
             'Meeting Created',
-            style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+            style:
+                AppTypography.heading3.copyWith(color: AppColors.textPrimary),
           ),
           centerTitle: true,
           actions: [
@@ -243,14 +317,43 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                 // Meeting Title
                 Text(
                   widget.isInstant ? 'Instant Meeting' : 'Scheduled Meeting',
-                  style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+                  style: AppTypography.heading4
+                      .copyWith(color: AppColors.textPrimary),
                 ),
+                // Add scheduled time display for mobile
+                if (!widget.isInstant && widget.scheduledStart != null) ...[
+                  const SizedBox(height: AppSpacing.tiny),
+                  Text(
+                    'Scheduled for: ${_formatScheduledTime(widget.scheduledStart!)}',
+                    style: AppTypography.bodySmall
+                        .copyWith(color: AppColors.textSecondary),
+                  ),
+                  if (_timeUntilMeeting != null && !_canJoin) ...[
+                    const SizedBox(height: AppSpacing.small),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.warmBrown.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Meeting starts in: ${_formatCountdown(_timeUntilMeeting!)}',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.warmBrown,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
                 const SizedBox(height: AppSpacing.tiny),
 
                 // Meeting ID
                 Text(
                   'Meeting ID: ${widget.meetingId}',
-                  style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.body
+                      .copyWith(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: AppSpacing.large),
 
@@ -259,7 +362,8 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                   padding: const EdgeInsets.all(AppSpacing.medium),
                   decoration: BoxDecoration(
                     color: AppColors.backgroundSecondary,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
+                    borderRadius:
+                        BorderRadius.circular(AppSpacing.radiusMedium),
                     border: Border.all(color: AppColors.borderPrimary),
                   ),
                   child: Column(
@@ -267,7 +371,8 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                     children: [
                       Text(
                         'Meeting Link:',
-                        style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                        style: AppTypography.bodySmall
+                            .copyWith(color: AppColors.textSecondary),
                       ),
                       const SizedBox(height: AppSpacing.tiny),
                       Row(
@@ -275,7 +380,8 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                           Expanded(
                             child: Text(
                               widget.meetingLink,
-                              style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
+                              style: AppTypography.bodySmall
+                                  .copyWith(color: AppColors.textPrimary),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -298,7 +404,8 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                 // Share Section
                 Text(
                   'Share Meeting',
-                  style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+                  style: AppTypography.heading4
+                      .copyWith(color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: AppSpacing.medium),
 
@@ -348,9 +455,11 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                     onPressed: _joining ? null : _handleJoinMeeting,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryMain,
-                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.large),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.large),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusLarge),
                       ),
                     ),
                     child: Row(
@@ -389,10 +498,12 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
           TextButton.icon(
             onPressed: () => Navigator.pop(context),
             icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-            label: Text('Back to Options', style: AppTypography.body.copyWith(color: AppColors.textPrimary)),
+            label: Text('Back to Options',
+                style:
+                    AppTypography.body.copyWith(color: AppColors.textPrimary)),
           ),
           const SizedBox(height: 32),
-          
+
           Center(child: _buildMeetingDetailsCard()),
         ],
       ),
@@ -503,7 +614,8 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.backgroundSecondary,
                   borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
+                  border:
+                      Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
@@ -512,7 +624,8 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                     Expanded(
                       child: Text(
                         widget.meetingLink,
-                        style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
+                        style: AppTypography.bodySmall
+                            .copyWith(color: AppColors.textPrimary),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -529,7 +642,8 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                           onTap: _handleCopyLink,
                           borderRadius: BorderRadius.circular(30),
                           child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -586,7 +700,7 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Share buttons in a row - compact pill style
               Wrap(
                 spacing: 12,
@@ -642,7 +756,7 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: _joining ? null : _handleJoinMeeting,
+              onTap: _canJoin && !_joining ? _handleJoinMeeting : null,
               borderRadius: BorderRadius.circular(30),
               child: Center(
                 child: _joining
@@ -651,7 +765,8 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                         height: 24,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
                     : Row(
@@ -660,7 +775,9 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                           Icon(Icons.video_call, color: Colors.white, size: 24),
                           const SizedBox(width: 12),
                           Text(
-                            'Join Meeting Now',
+                            _canJoin
+                                ? 'Join Meeting Now'
+                                : 'Waiting for meeting to start...',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 16,
@@ -801,4 +918,3 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
     }
   }
 }
-

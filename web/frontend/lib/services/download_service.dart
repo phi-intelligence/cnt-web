@@ -1,12 +1,14 @@
 import 'dart:io';
+import 'dart:convert' as convert;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:flutter/foundation.dart';
-import '../services/logger_service.dart';
 import '../models/content_item.dart';
-import 'api_service.dart';
+
+// Conditional import for web-specific code
+import 'dart:html' if (dart.library.io) '../utils/html_stub.dart' as html;
 
 class DownloadService {
   static final DownloadService _instance = DownloadService._internal();
@@ -23,7 +25,7 @@ class DownloadService {
 
   Future<Database> _initDatabase() async {
     try {
-      LoggerService.i('✅ DownloadService: Initializing database...');
+      print('✅ DownloadService: Initializing database...');
       final documentsDirectory = await getApplicationDocumentsDirectory();
       final path = join(documentsDirectory.path, 'downloads.db');
 
@@ -47,10 +49,10 @@ class DownloadService {
           ''');
         },
       );
-      LoggerService.i('✅ DownloadService: Database initialized successfully');
+      print('✅ DownloadService: Database initialized successfully');
       return db;
     } catch (e) {
-      LoggerService.e('❌ DownloadService: Error initializing database: $e');
+      print('❌ DownloadService: Error initializing database: $e');
       rethrow; // Re-throw to let caller handle
     }
   }
@@ -62,14 +64,14 @@ class DownloadService {
       }
 
       final db = await database;
-      
+
       // Check if already downloaded
       final existing = await db.query(
         'downloads',
         where: 'id = ?',
         whereArgs: [item.id],
       );
-      
+
       if (existing.isNotEmpty) {
         // Already downloaded
         return true;
@@ -88,7 +90,8 @@ class DownloadService {
         return false;
       }
 
-      final fileName = '${item.id}_${DateTime.now().millisecondsSinceEpoch}.mp3';
+      final fileName =
+          '${item.id}_${DateTime.now().millisecondsSinceEpoch}.mp3';
       final file = File('${downloadsDir.path}/$fileName');
       await file.writeAsBytes(response.bodyBytes);
 
@@ -108,7 +111,7 @@ class DownloadService {
 
       return true;
     } catch (e) {
-      LoggerService.e('Error downloading content: $e');
+      print('Error downloading content: $e');
       return false;
     }
   }
@@ -121,7 +124,7 @@ class DownloadService {
         orderBy: 'downloaded_at DESC',
       );
     } catch (e) {
-      LoggerService.e('Error getting downloads: $e');
+      print('Error getting downloads: $e');
       return [];
     }
   }
@@ -129,14 +132,14 @@ class DownloadService {
   Future<bool> deleteDownload(String id) async {
     try {
       final db = await database;
-      
+
       // Get local path
       final downloads = await db.query(
         'downloads',
         where: 'id = ?',
         whereArgs: [id],
       );
-      
+
       if (downloads.isNotEmpty) {
         final localPath = downloads.first['local_path'] as String;
         final file = File(localPath);
@@ -144,39 +147,66 @@ class DownloadService {
           await file.delete();
         }
       }
-      
+
       // Remove from database
       await db.delete(
         'downloads',
         where: 'id = ?',
         whereArgs: [id],
       );
-      
+
       return true;
     } catch (e) {
-      LoggerService.e('Error deleting download: $e');
+      print('Error deleting download: $e');
       return false;
+    }
+  }
+
+  /// Get downloads from localStorage (web only)
+  Future<List<Map<String, dynamic>>> _getDownloadsWeb() async {
+    if (!kIsWeb) return [];
+
+    try {
+      final downloadsJson = html.window.localStorage['cnt_downloads'] ?? '[]';
+      if (downloadsJson.isEmpty) return [];
+
+      final List<dynamic> downloadsList =
+          convert.jsonDecode(downloadsJson) as List;
+      return downloadsList.map((d) => d as Map<String, dynamic>).toList();
+    } catch (e) {
+      print('Error reading downloads from localStorage: $e');
+      return [];
     }
   }
 
   Future<String?> getLocalPath(String id) async {
     try {
-      final db = await database;
-      final downloads = await db.query(
-        'downloads',
-        where: 'id = ?',
-        whereArgs: [id],
-        columns: ['local_path'],
-      );
-      
-      if (downloads.isNotEmpty) {
-        final localPath = downloads.first['local_path'] as String;
-        final file = File(localPath);
-        if (await file.exists()) {
-          return localPath;
+      if (kIsWeb) {
+        // Web: return audio_url from localStorage
+        final downloads = await _getDownloadsWeb();
+        final download = downloads.firstWhere(
+          (d) => d['id'] == id,
+          orElse: () => <String, dynamic>{},
+        );
+        return download['audio_url'] as String?;
+      } else {
+        final db = await database;
+        final downloads = await db.query(
+          'downloads',
+          where: 'id = ?',
+          whereArgs: [id],
+          columns: ['local_path'],
+        );
+
+        if (downloads.isNotEmpty) {
+          final localPath = downloads.first['local_path'] as String;
+          final file = File(localPath);
+          if (await file.exists()) {
+            return localPath;
+          }
         }
+        return null;
       }
-      return null;
     } catch (e) {
       return null;
     }
@@ -184,16 +214,20 @@ class DownloadService {
 
   Future<bool> isDownloaded(String id) async {
     try {
-      final db = await database;
-      final downloads = await db.query(
-        'downloads',
-        where: 'id = ?',
-        whereArgs: [id],
-      );
-      return downloads.isNotEmpty;
+      if (kIsWeb) {
+        final downloads = await _getDownloadsWeb();
+        return downloads.any((d) => d['id'] == id);
+      } else {
+        final db = await database;
+        final downloads = await db.query(
+          'downloads',
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+        return downloads.isNotEmpty;
+      }
     } catch (e) {
       return false;
     }
   }
 }
-

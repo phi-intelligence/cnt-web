@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
 import '../services/api_service.dart';
 import '../config/app_config.dart';
@@ -30,6 +31,7 @@ class _ThumbnailSelectorState extends State<ThumbnailSelector> {
   String? _selectedThumbnail;
   bool _isLoadingDefaults = false;
   bool _isGenerating = false;
+  bool _isUploading = false;
   List<String> _defaultThumbnails = [];
   String? _errorMessage;
 
@@ -63,45 +65,105 @@ class _ThumbnailSelectorState extends State<ThumbnailSelector> {
   }
 
   Future<void> _uploadCustomThumbnail() async {
+    // Clear previous errors
+    setState(() {
+      _errorMessage = null;
+      _isUploading = true;
+    });
+
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
         allowMultiple: false,
       );
 
-      if (result != null) {
-        String? filePath;
-        List<int>? bytes;
-        
-        // Handle web vs mobile file paths
+      if (result == null || result.files.isEmpty) {
+        setState(() {
+          _isUploading = false;
+        });
+        return; // User cancelled file picker
+      }
+
+      String? filePath;
+      List<int>? bytes;
+      
+      // Handle web vs mobile file paths
+      if (kIsWeb) {
+        // On web, path is unavailable - use bytes instead
+        bytes = result.files.single.bytes;
+      } else {
+        // On mobile, use path if available, otherwise bytes
         if (result.files.single.path != null) {
           filePath = result.files.single.path!;
         } else if (result.files.single.bytes != null) {
           bytes = result.files.single.bytes;
         }
-        
-        if (filePath != null || bytes != null) {
-          String thumbnailUrl;
-          if (filePath != null) {
-            thumbnailUrl = await ApiService().uploadThumbnail(filePath);
-          } else if (bytes != null) {
-            // For web, use bytes with filename
-            final fileName = result.files.single.name;
-            thumbnailUrl = await ApiService().uploadThumbnail('', bytes: bytes, fileName: fileName);
-          } else {
-            throw Exception('No file data available');
-          }
-          
-          setState(() {
-            _selectedThumbnail = thumbnailUrl;
-          });
-          widget.onThumbnailSelected(thumbnailUrl);
-        }
+      }
+      
+      if (filePath == null && bytes == null) {
+        setState(() {
+          _errorMessage = 'No file data available. Please select a valid image file.';
+          _isUploading = false;
+        });
+        return;
+      }
+
+      String thumbnailUrl;
+      if (filePath != null) {
+        thumbnailUrl = await ApiService().uploadThumbnail(filePath);
+      } else if (bytes != null) {
+        // For web, use bytes with filename
+        final fileName = result.files.single.name;
+        thumbnailUrl = await ApiService().uploadThumbnail('', bytes: bytes, fileName: fileName);
+      } else {
+        throw Exception('No file data available');
+      }
+      
+      setState(() {
+        _selectedThumbnail = thumbnailUrl;
+        _isUploading = false;
+        _errorMessage = null;
+      });
+      
+      widget.onThumbnailSelected(thumbnailUrl);
+      
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Thumbnail uploaded successfully!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to upload thumbnail: $e';
+        _isUploading = false;
+        // Provide user-friendly error messages
+        if (e.toString().contains('401') || e.toString().contains('Unauthorized')) {
+          _errorMessage = 'Authentication required. Please log in and try again.';
+        } else if (e.toString().contains('413') || e.toString().contains('too large')) {
+          _errorMessage = 'File is too large. Please select an image smaller than 10MB.';
+        } else if (e.toString().contains('400') || e.toString().contains('invalid')) {
+          _errorMessage = 'Invalid image file. Please select a valid image (JPG, PNG, or GIF).';
+        } else if (e.toString().contains('network') || e.toString().contains('connection')) {
+          _errorMessage = 'Network error. Please check your connection and try again.';
+        } else {
+          _errorMessage = 'Failed to upload thumbnail: ${e.toString().replaceAll('Exception: ', '')}';
+        }
       });
+      
+      // Show error SnackBar for visibility
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_errorMessage ?? 'Failed to upload thumbnail'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     }
   }
 
@@ -285,7 +347,7 @@ class _ThumbnailSelectorState extends State<ThumbnailSelector> {
 
         // Upload custom thumbnail button
         ElevatedButton.icon(
-          onPressed: _uploadCustomThumbnail,
+          onPressed: _isUploading ? null : _uploadCustomThumbnail,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.warmBrown,
             foregroundColor: Colors.white,
@@ -297,10 +359,20 @@ class _ThumbnailSelectorState extends State<ThumbnailSelector> {
               borderRadius: BorderRadius.circular(30),
             ),
             elevation: 2,
+            disabledBackgroundColor: AppColors.warmBrown.withOpacity(0.6),
           ),
-          icon: const Icon(Icons.upload),
+          icon: _isUploading
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Icon(Icons.upload),
           label: Text(
-            'Upload Custom Thumbnail',
+            _isUploading ? 'Uploading...' : 'Upload Custom Thumbnail',
             style: AppTypography.button.copyWith(
               color: Colors.white,
             ),
@@ -309,11 +381,28 @@ class _ThumbnailSelectorState extends State<ThumbnailSelector> {
 
         // Error message
         if (_errorMessage != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              _errorMessage!,
-              style: const TextStyle(color: Colors.red),
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.red.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.red, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _errorMessage!,
+                    style: TextStyle(
+                      color: Colors.red[700],
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
       ],

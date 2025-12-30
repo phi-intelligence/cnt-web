@@ -1103,6 +1103,7 @@ class _PlaylistSelectionDialog extends StatefulWidget {
 
 class _PlaylistSelectionDialogState extends State<_PlaylistSelectionDialog> {
   bool _isCreatingNew = false;
+  bool _isCreating = false;
   final _newPlaylistController = TextEditingController();
   
   @override
@@ -1209,18 +1210,63 @@ class _PlaylistSelectionDialogState extends State<_PlaylistSelectionDialog> {
                                 ),
                               ),
                               SizedBox(width: AppSpacing.small),
-                              IconButton(
-                                icon: Icon(Icons.check, color: AppColors.successMain),
-                                onPressed: () async {
-                                  final name = _newPlaylistController.text.trim();
-                                  if (name.isNotEmpty) {
-                                    final playlist = await provider.createPlaylist(name);
-                                    if (playlist != null) {
-                                      widget.onPlaylistSelected(playlist.id);
-                                    }
-                                  }
-                                },
-                              ),
+                              _isCreating
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(8.0),
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    )
+                                  : IconButton(
+                                      icon: Icon(Icons.check, color: AppColors.successMain),
+                                      onPressed: () async {
+                                        final name = _newPlaylistController.text.trim();
+                                        if (name.isNotEmpty && !_isCreating) {
+                                          setState(() {
+                                            _isCreating = true;
+                                          });
+                                          
+                                          try {
+                                            final playlist = await provider.createPlaylist(name);
+                                            
+                                            if (mounted) {
+                                              if (playlist != null) {
+                                                // Refresh playlists list
+                                                await provider.fetchPlaylists();
+                                                // Add item to the newly created playlist
+                                                widget.onPlaylistSelected(playlist.id);
+                                              } else {
+                                                setState(() {
+                                                  _isCreating = false;
+                                                });
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: const Text('Failed to create playlist'),
+                                                    backgroundColor: AppColors.errorMain,
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          } catch (e) {
+                                            if (mounted) {
+                                              setState(() {
+                                                _isCreating = false;
+                                              });
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Error: ${e.toString()}'),
+                                                  backgroundColor: AppColors.errorMain,
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        }
+                                      },
+                                    ),
                               IconButton(
                                 icon: Icon(Icons.close, color: AppColors.textSecondary),
                                 onPressed: () {

@@ -5,11 +5,8 @@ import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/admin/admin_content_card.dart';
 import '../../widgets/shared/empty_state.dart';
-import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../widgets/web/styled_filter_chip.dart';
-import '../../utils/responsive_grid_delegate.dart';
-import '../../utils/responsive_utils.dart';
 
 /// Reject reason dialog
 class _RejectReasonDialog extends StatefulWidget {
@@ -55,7 +52,8 @@ class _RejectReasonDialogState extends State<_RejectReasonDialog> {
         const SizedBox(width: AppSpacing.small),
         StyledPillButton(
           label: 'Reject',
-          icon: Icons.check, // Or warning icon? Sticking to check for "Confirm Action" or keep close? Using 'check' as 'Confirm Rejection'.
+          icon: Icons
+              .check, // Or warning icon? Sticking to check for "Confirm Action" or keep close? Using 'check' as 'Confirm Rejection'.
           onPressed: () => Navigator.pop(context, _controller.text),
           variant: StyledPillButtonVariant.filled,
           width: 100,
@@ -69,7 +67,7 @@ class _RejectReasonDialogState extends State<_RejectReasonDialog> {
 /// Tabs: All, Podcasts, Movies, Posts
 class AdminPendingPage extends StatefulWidget {
   final int initialTabIndex;
-  
+
   const AdminPendingPage({
     super.key,
     this.initialTabIndex = 0,
@@ -79,24 +77,26 @@ class AdminPendingPage extends StatefulWidget {
   State<AdminPendingPage> createState() => _AdminPendingPageState();
 }
 
-class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerProviderStateMixin {
+class _AdminPendingPageState extends State<AdminPendingPage>
+    with SingleTickerProviderStateMixin {
   final ApiService _api = ApiService();
   late TabController _tabController;
-  
+
   // Content lists
   List<dynamic> _allContent = [];
   List<dynamic> _podcasts = [];
   List<dynamic> _movies = [];
   List<dynamic> _posts = [];
   List<dynamic> _music = [];
-  
+  List<dynamic> _events = [];
+
   // Loading states
   bool _isLoading = true;
   String? _error;
-  
+
   // Podcast filter (All, Audio, Video)
   String _podcastFilter = 'All';
-  
+
   // Search
   final TextEditingController _searchController = TextEditingController();
 
@@ -104,7 +104,7 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 5,
+      length: 6,
       vsync: this,
       initialIndex: widget.initialTabIndex,
     );
@@ -134,6 +134,7 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
         _api.getAllContent(contentType: 'movie', status: 'pending'),
         _api.getAllContent(contentType: 'community_post', status: 'pending'),
         _api.getAllContent(contentType: 'music', status: 'pending'),
+        _api.getAllContent(contentType: 'event', status: 'pending'),
       ]);
 
       if (mounted) {
@@ -142,7 +143,14 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
           _movies = results[1];
           _posts = results[2];
           _music = results[3];
-          _allContent = [..._podcasts, ..._movies, ..._posts, ..._music];
+          _events = results[4];
+          _allContent = [
+            ..._podcasts,
+            ..._movies,
+            ..._posts,
+            ..._music,
+            ..._events
+          ];
           _isLoading = false;
         });
       }
@@ -195,7 +203,8 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
     if (reason == null) return;
 
     try {
-      final success = await _api.rejectContent(contentType, contentId, reason: reason);
+      final success =
+          await _api.rejectContent(contentType, contentId, reason: reason);
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -220,17 +229,23 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
   List<dynamic> _getFilteredPodcasts() {
     if (_podcastFilter == 'All') return _podcasts;
     if (_podcastFilter == 'Audio') {
-      return _podcasts.where((p) => p['video_url'] == null || (p['video_url'] as String).isEmpty).toList();
+      return _podcasts
+          .where((p) =>
+              p['video_url'] == null || (p['video_url'] as String).isEmpty)
+          .toList();
     }
     if (_podcastFilter == 'Video') {
-      return _podcasts.where((p) => p['video_url'] != null && (p['video_url'] as String).isNotEmpty).toList();
+      return _podcasts
+          .where((p) =>
+              p['video_url'] != null && (p['video_url'] as String).isNotEmpty)
+          .toList();
     }
     return _podcasts;
   }
 
   List<dynamic> _getFilteredAllContent() {
     final filteredPodcasts = _getFilteredPodcasts();
-    return [...filteredPodcasts, ..._movies, ..._posts, ..._music];
+    return [...filteredPodcasts, ..._movies, ..._posts, ..._music, ..._events];
   }
 
   List<dynamic> _applySearch(List<dynamic> content) {
@@ -254,7 +269,7 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
         children: [
           // Header
           _buildHeader(isDesktop),
-          
+
           // Tab Bar
           Container(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
@@ -272,11 +287,13 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
                   _buildFilterChip('Posts', _tabController.index == 3, 3),
                   const SizedBox(width: 8),
                   _buildFilterChip('Music', _tabController.index == 4, 4),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Events', _tabController.index == 5, 5),
                 ],
               ),
             ),
           ),
-          
+
           const SizedBox(height: 16),
 
           // Tab Content
@@ -284,11 +301,13 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
             child: IndexedStack(
               index: _tabController.index,
               children: [
-                _buildContentList(_getFilteredAllContent(), 'All pending content', isDesktop),
+                _buildContentList(
+                    _getFilteredAllContent(), 'All pending content', isDesktop),
                 _buildPodcastsTab(isDesktop),
                 _buildContentList(_movies, 'movies', isDesktop),
                 _buildContentList(_posts, 'posts', isDesktop),
                 _buildContentList(_music, 'music', isDesktop),
+                _buildContentList(_events, 'events', isDesktop),
               ],
             ),
           ),
@@ -329,7 +348,7 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
                   const SizedBox(height: 4),
                   Text(
                     '${_allContent.length} pending items',
-                     style: AppTypography.caption.copyWith(
+                    style: AppTypography.caption.copyWith(
                       color: AppColors.textSecondary,
                     ),
                   ),
@@ -353,13 +372,15 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
               style: AppTypography.body.copyWith(color: AppColors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Search by title or creator...',
-                 hintStyle: AppTypography.body.copyWith(
+                hintStyle: AppTypography.body.copyWith(
                   color: AppColors.textSecondary.withValues(alpha: 0.6),
                 ),
-                prefixIcon: const Icon(Icons.search, color: AppColors.warmBrown),
+                prefixIcon:
+                    const Icon(Icons.search, color: AppColors.warmBrown),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, color: AppColors.textSecondary),
+                        icon: const Icon(Icons.clear,
+                            color: AppColors.textSecondary),
                         onPressed: () {
                           _searchController.clear();
                           setState(() {});
@@ -376,7 +397,8 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(999),
-                  borderSide: const BorderSide(color: AppColors.warmBrown, width: 2),
+                  borderSide:
+                      const BorderSide(color: AppColors.warmBrown, width: 2),
                 ),
                 filled: true,
                 fillColor: Colors.white,
@@ -395,7 +417,7 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
 
   Widget _buildPodcastsTab(bool isDesktop) {
     final filteredPodcasts = _getFilteredPodcasts();
-    
+
     return Column(
       children: [
         // Filter chips for Podcast Type
@@ -403,7 +425,9 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           child: Row(
             children: [
-              Text('Type:', style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary)),
+              Text('Type:',
+                  style: AppTypography.bodySmall
+                      .copyWith(color: AppColors.textSecondary)),
               const SizedBox(width: AppSpacing.small),
               _buildPodcastTypeChip('All', _podcastFilter == 'All'),
               const SizedBox(width: 8),
@@ -443,10 +467,10 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
     );
   }
 
-
-  Widget _buildContentList(List<dynamic> content, String contentType, bool isDesktop) {
+  Widget _buildContentList(
+      List<dynamic> content, String contentType, bool isDesktop) {
     final filtered = _applySearch(content);
-    
+
     if (_isLoading) {
       return Center(
         child: Column(
@@ -456,7 +480,8 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
             const SizedBox(height: 16),
             Text(
               'Loading content...',
-              style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+              style:
+                  AppTypography.body.copyWith(color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -470,11 +495,14 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.errorMain),
+              const Icon(Icons.error_outline,
+                  size: 48, color: AppColors.errorMain),
               const SizedBox(height: 16),
               Text('Error loading content', style: AppTypography.heading3),
               const SizedBox(height: 8),
-              Text(_error!, style: AppTypography.body.copyWith(color: AppColors.textSecondary)),
+              Text(_error!,
+                  style: AppTypography.body
+                      .copyWith(color: AppColors.textSecondary)),
               const SizedBox(height: 24),
               StyledPillButton(
                 label: 'Retry',
@@ -502,45 +530,44 @@ class _AdminPendingPageState extends State<AdminPendingPage> with SingleTickerPr
     return RefreshIndicator(
       onRefresh: _loadAllContent,
       color: AppColors.warmBrown,
-      child: isDesktop 
-      ? GridView.builder(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 600, // Wide cards
-            childAspectRatio: 2.5, // Similar ratio to User Management
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-          ),
-          itemCount: filtered.length,
-          itemBuilder: (context, index) {
-            final item = filtered[index];
-            return AdminContentCard(
-              item: item,
-              showApproveReject: true,
-              showDeleteArchive: false,
-              onApprove: () => _handleApprove(item),
-              onReject: () => _handleReject(item),
-            );
-          },
-        )
-      : ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-          itemCount: filtered.length,
-          itemBuilder: (context, index) {
-            final item = filtered[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: AdminContentCard(
-                item: item,
-                showApproveReject: true,
-                showDeleteArchive: false,
-                onApprove: () => _handleApprove(item),
-                onReject: () => _handleReject(item),
+      child: isDesktop
+          ? GridView.builder(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 600, // Wide cards
+                childAspectRatio: 2.5, // Similar ratio to User Management
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
               ),
-            );
-          },
-        ),
+              itemCount: filtered.length,
+              itemBuilder: (context, index) {
+                final item = filtered[index];
+                return AdminContentCard(
+                  item: item,
+                  showApproveReject: true,
+                  showDeleteArchive: false,
+                  onApprove: () => _handleApprove(item),
+                  onReject: () => _handleReject(item),
+                );
+              },
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              itemCount: filtered.length,
+              itemBuilder: (context, index) {
+                final item = filtered[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: AdminContentCard(
+                    item: item,
+                    showApproveReject: true,
+                    showDeleteArchive: false,
+                    onApprove: () => _handleApprove(item),
+                    onReject: () => _handleReject(item),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
-

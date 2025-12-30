@@ -13,10 +13,8 @@ import '../../providers/playlist_provider.dart';
 import '../../providers/favorites_provider.dart';
 import '../../providers/audio_player_provider.dart';
 import '../../services/download_service.dart';
-import '../../services/logger_service.dart';
 import '../../models/content_item.dart';
 import '../../utils/responsive_grid_delegate.dart';
-import '../../utils/dimension_utils.dart';
 
 /// Web Library Screen - Full implementation
 class LibraryScreenWeb extends StatefulWidget {
@@ -36,7 +34,7 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
   @override
   void initState() {
     super.initState();
-    LoggerService.d('✅ LibraryScreenWeb initState');
+    print('✅ LibraryScreenWeb initState');
     _loadDownloads();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -44,7 +42,7 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
         context.read<PlaylistProvider>().fetchPlaylists();
         context.read<FavoritesProvider>().fetchFavorites();
       } catch (e) {
-        LoggerService.e('❌ LibraryScreenWeb: Error fetching playlists/favorites: $e');
+        print('❌ LibraryScreenWeb: Error fetching playlists/favorites: $e');
       }
     });
   }
@@ -62,7 +60,7 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
         });
       }
     } catch (e) {
-      LoggerService.e('❌ LibraryScreenWeb: Error loading downloads: $e');
+      print('❌ LibraryScreenWeb: Error loading downloads: $e');
       if (mounted) {
         setState(() => _isLoadingDownloads = false);
       }
@@ -90,51 +88,69 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Back Button
+              Padding(
+                padding: EdgeInsets.only(bottom: AppSpacing.medium),
+                child: StyledPillButton(
+                  label: 'Back',
+                  icon: Icons.arrow_back,
+                  onPressed: () => Navigator.of(context).pop(),
+                  variant: StyledPillButtonVariant.outlined,
+                ),
+              ),
               // Header
               StyledPageHeader(
                 title: 'Library',
                 size: StyledPageHeaderSize.h1,
-                  ),
+              ),
               const SizedBox(height: AppSpacing.extraLarge),
-                  
-                  // Segmented Control
+
+              // Segmented Control
               SectionContainer(
                 padding: EdgeInsets.symmetric(
                   horizontal: AppSpacing.medium,
                   vertical: AppSpacing.small,
                 ),
                 child: Row(
-                    children: List.generate(_sections.length, (index) {
-                      final isSelected = index == _selectedIndex;
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedIndex = index;
-                            });
-                          },
-                          child: Container(
-                            padding: EdgeInsets.symmetric(vertical: AppSpacing.medium),
-                            decoration: BoxDecoration(
-                            color: isSelected ? AppColors.warmBrown : Colors.transparent,
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                            ),
-                            child: Text(
-                              _sections[index],
-                              textAlign: TextAlign.center,
+                  children: List.generate(_sections.length, (index) {
+                    final isSelected = index == _selectedIndex;
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedIndex = index;
+                          });
+                        },
+                        child: Container(
+                          padding:
+                              EdgeInsets.symmetric(vertical: AppSpacing.medium),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.warmBrown
+                                : Colors.transparent,
+                            borderRadius:
+                                BorderRadius.circular(AppSpacing.radiusMedium),
+                          ),
+                          child: Text(
+                            _sections[index],
+                            textAlign: TextAlign.center,
                             style: AppTypography.bodyMedium.copyWith(
-                                color: isSelected ? Colors.white : AppColors.textSecondary,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                              ),
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.textSecondary,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
                             ),
                           ),
                         ),
-                      );
-                    }),
-                  ),
+                      ),
+                    );
+                  }),
+                ),
               ),
               const SizedBox(height: AppSpacing.extraLarge),
-                  
+
               // Content
               Expanded(
                 child: _buildContent(),
@@ -381,7 +397,7 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
 
   void _showCreatePlaylistDialog(BuildContext context) {
     final nameController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -436,9 +452,10 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.trim().isNotEmpty) {
-                final success = await context.read<PlaylistProvider>().createPlaylist(
-                  nameController.text.trim(),
-                );
+                final success =
+                    await context.read<PlaylistProvider>().createPlaylist(
+                          nameController.text.trim(),
+                        );
                 if (context.mounted) {
                   Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -449,7 +466,7 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
                             : 'Failed to create playlist',
                       ),
                       backgroundColor: success != null
-                          ? AppColors.successMain 
+                          ? AppColors.successMain
                           : AppColors.errorMain,
                     ),
                   );
@@ -472,4 +489,3 @@ class _LibraryScreenWebState extends State<LibraryScreenWeb> {
     );
   }
 }
-

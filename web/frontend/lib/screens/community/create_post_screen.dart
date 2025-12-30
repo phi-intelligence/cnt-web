@@ -1,4 +1,3 @@
-import 'dart:io' show File;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -31,8 +30,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   String? _uploadedImageUrl;
   bool _isSubmitting = false;
   bool _isUploadingImage = false;
-  String _postType = 'image';  // 'image' or 'text'
-  
+  String _postType = 'image'; // 'image' or 'text'
+
   // Draft state
   int? _draftId;
   bool _isSavingDraft = false;
@@ -41,19 +40,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   /// Check if there are unsaved changes
   bool _hasUnsavedChanges() {
     return _captionController.text.trim().isNotEmpty ||
-           _selectedImage != null ||
-           _selectedImageBytes != null ||
-           _uploadedImageUrl != null;
+        _selectedImage != null ||
+        _selectedImageBytes != null ||
+        _uploadedImageUrl != null;
   }
 
   /// Save current state as a draft
   Future<bool> _saveDraft() async {
     if (_isSavingDraft) return false;
-    
+
     setState(() {
       _isSavingDraft = true;
     });
-    
+
     try {
       final draftData = {
         'draft_type': DraftType.communityPost.value,
@@ -62,24 +61,25 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         'category': _postType,
         'status': DraftStatus.editing.value,
       };
-      
+
       Map<String, dynamic> result;
-      
+
       if (_draftId != null) {
         result = await _draftApiService.updateDraft(_draftId!, draftData);
       } else {
         result = await _draftApiService.createDraft(draftData);
         _draftId = result['id'] as int?;
       }
-      
+
       if (!mounted) return false;
-      
+
       UnsavedChangesGuard.showDraftSavedToast(context);
       return true;
     } catch (e) {
       print('Error saving draft: $e');
       if (mounted) {
-        UnsavedChangesGuard.showDraftErrorToast(context, message: 'Failed to save draft: $e');
+        UnsavedChangesGuard.showDraftErrorToast(context,
+            message: 'Failed to save draft: $e');
       }
       return false;
     } finally {
@@ -96,9 +96,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     if (!_hasUnsavedChanges()) {
       return true;
     }
-    
+
     final result = await UnsavedChangesGuard.showUnsavedChangesDialog(context);
-    
+
     if (result == null) {
       return false;
     } else if (result) {
@@ -123,7 +123,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         maxHeight: 1920,
         imageQuality: 85,
       );
-      
+
       if (image != null) {
         if (kIsWeb) {
           // Web: Read bytes from XFile
@@ -164,13 +164,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   Future<String?> _uploadImage() async {
     if (_selectedImage == null && _selectedImageBytes == null) return null;
-    
+
     setState(() => _isUploadingImage = true);
     try {
       final apiService = ApiService();
       List<int> bytes;
       String fileName;
-      
+
       if (_selectedImageBytes != null && _selectedImageName != null) {
         // Web: Use bytes directly
         bytes = _selectedImageBytes!;
@@ -183,13 +183,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       } else {
         return null;
       }
-      
+
       // Upload image using the upload/image endpoint
       final response = await apiService.uploadImage(
         fileName: fileName,
         bytes: bytes,
       );
-      
+
       setState(() => _isUploadingImage = false);
       return response['file_path'] as String?;
     } catch (e) {
@@ -207,9 +207,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     // Validate based on post type
     if (_postType == 'image') {
       // For image posts, must have either image or caption
-      if (_selectedImage == null && _selectedImageBytes == null && _captionController.text.trim().isEmpty) {
+      if (_selectedImage == null &&
+          _selectedImageBytes == null &&
+          _captionController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please add a photo or write a caption')),
+          const SnackBar(
+              content: Text('Please add a photo or write a caption')),
         );
         return;
       }
@@ -224,14 +227,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
 
     setState(() => _isSubmitting = true);
-    
+
     try {
       String? imageUrl;
-      
+
       // Upload image only for image posts
       if (_postType == 'image') {
         imageUrl = _uploadedImageUrl;
-        if ((_selectedImage != null || _selectedImageBytes != null) && imageUrl == null) {
+        if ((_selectedImage != null || _selectedImageBytes != null) &&
+            imageUrl == null) {
           imageUrl = await _uploadImage();
           if (imageUrl == null) {
             setState(() => _isSubmitting = false);
@@ -242,24 +246,24 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
       // Create post
       await context.read<CommunityProvider>().createPost(
-        title: _captionController.text.trim().isEmpty 
-            ? (_postType == 'image' ? 'Photo' : 'Quote')
-            : _captionController.text.trim().split('\n').first,
-        content: _captionController.text.trim(),
-        category: 'General', // Default category
-        imageUrl: imageUrl,
-        postType: _postType,
-      );
-      
+            title: _captionController.text.trim().isEmpty
+                ? (_postType == 'image' ? 'Photo' : 'Quote')
+                : _captionController.text.trim().split('\n').first,
+            content: _captionController.text.trim(),
+            category: 'General', // Default category
+            imageUrl: imageUrl,
+            postType: _postType,
+          );
+
       if (!mounted) return;
-      
+
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final isAdmin = authProvider.isAdmin;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isAdmin 
-              ? 'Post published successfully!' 
+          content: Text(isAdmin
+              ? 'Post published successfully!'
               : 'Post submitted! It will be reviewed by an admin.'),
           duration: const Duration(seconds: 3),
         ),
@@ -315,7 +319,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         children: [
           // Post type selector
           Container(
-            padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium, vertical: AppSpacing.small),
+            padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.medium, vertical: AppSpacing.small),
             decoration: BoxDecoration(
               color: AppColors.backgroundSecondary,
               border: Border(
@@ -333,7 +338,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     child: Container(
                       padding: EdgeInsets.symmetric(vertical: AppSpacing.small),
                       decoration: BoxDecoration(
-                        color: _postType == 'image' ? AppColors.primaryMain : Colors.transparent,
+                        color: _postType == 'image'
+                            ? AppColors.primaryMain
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(30),
                       ),
                       child: Row(
@@ -341,15 +348,21 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         children: [
                           Icon(
                             Icons.image,
-                            color: _postType == 'image' ? Colors.white : AppColors.textSecondary,
+                            color: _postType == 'image'
+                                ? Colors.white
+                                : AppColors.textSecondary,
                             size: 20,
                           ),
                           const SizedBox(width: AppSpacing.small),
                           Text(
                             'Image Post',
                             style: AppTypography.body.copyWith(
-                              color: _postType == 'image' ? Colors.white : AppColors.textSecondary,
-                              fontWeight: _postType == 'image' ? FontWeight.w600 : FontWeight.normal,
+                              color: _postType == 'image'
+                                  ? Colors.white
+                                  : AppColors.textSecondary,
+                              fontWeight: _postType == 'image'
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
                             ),
                           ),
                         ],
@@ -361,18 +374,20 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
-                    setState(() {
-                      _postType = 'text';
-                      _selectedImage = null;
-                      _selectedImageBytes = null;
-                      _selectedImageName = null;
-                      _uploadedImageUrl = null;
-                    });
+                      setState(() {
+                        _postType = 'text';
+                        _selectedImage = null;
+                        _selectedImageBytes = null;
+                        _selectedImageName = null;
+                        _uploadedImageUrl = null;
+                      });
                     },
                     child: Container(
                       padding: EdgeInsets.symmetric(vertical: AppSpacing.small),
                       decoration: BoxDecoration(
-                        color: _postType == 'text' ? AppColors.primaryMain : Colors.transparent,
+                        color: _postType == 'text'
+                            ? AppColors.primaryMain
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(30),
                       ),
                       child: Row(
@@ -380,15 +395,21 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         children: [
                           Icon(
                             Icons.text_fields,
-                            color: _postType == 'text' ? Colors.white : AppColors.textSecondary,
+                            color: _postType == 'text'
+                                ? Colors.white
+                                : AppColors.textSecondary,
                             size: 20,
                           ),
                           const SizedBox(width: AppSpacing.small),
                           Text(
                             'Text Post (Quote)',
                             style: AppTypography.body.copyWith(
-                              color: _postType == 'text' ? Colors.white : AppColors.textSecondary,
-                              fontWeight: _postType == 'text' ? FontWeight.w600 : FontWeight.normal,
+                              color: _postType == 'text'
+                                  ? Colors.white
+                                  : AppColors.textSecondary,
+                              fontWeight: _postType == 'text'
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
                             ),
                           ),
                         ],
@@ -399,13 +420,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ],
             ),
           ),
-          
+
           // Content area - different for image vs text posts
           if (_postType == 'image') ...[
             // Image preview section
             Expanded(
               child: GestureDetector(
-                onTap: (_selectedImage == null && _selectedImageBytes == null) ? _pickImage : null,
+                onTap: (_selectedImage == null && _selectedImageBytes == null)
+                    ? _pickImage
+                    : null,
                 child: Container(
                   width: double.infinity,
                   color: AppColors.backgroundTertiary,
@@ -433,7 +456,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: IconButton(
-                                  icon: const Icon(Icons.close, color: Colors.white),
+                                  icon: const Icon(Icons.close,
+                                      color: Colors.white),
                                   onPressed: _removeImage,
                                 ),
                               ),
@@ -460,7 +484,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 ),
               ),
             ),
-            
+
             // Caption input section (Instagram-style)
             Container(
               padding: EdgeInsets.all(AppSpacing.medium),
@@ -489,19 +513,43 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     ),
                   ),
                   const SizedBox(width: AppSpacing.medium),
-                  // Caption input
+                  // Caption input - pill-shaped white container
                   Expanded(
-                    child: TextField(
-                      controller: _captionController,
-                      maxLines: null,
-                      textInputAction: TextInputAction.newline,
-                      decoration: InputDecoration(
-                        hintText: 'Write a caption...',
-                        hintStyle: TextStyle(color: AppColors.textTertiary),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryDark,
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(
+                          color: AppColors.warmBrown.withOpacity(0.3),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      style: AppTypography.body,
+                      child: TextField(
+                        controller: _captionController,
+                        maxLines: null,
+                        textInputAction: TextInputAction.newline,
+                        decoration: InputDecoration(
+                          hintText: 'Write a caption...',
+                          hintStyle: AppTypography.body.copyWith(
+                            color: Colors.white.withOpacity(0.7),
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
+                        style: AppTypography.body.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
                   // Add photo button (if no image selected)
@@ -519,7 +567,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             Expanded(
               child: Container(
                 padding: EdgeInsets.all(AppSpacing.large),
-                color: Colors.white,
+                color: AppColors.primaryDark,
                 child: TextField(
                   controller: _captionController,
                   maxLines: null,
@@ -529,7 +577,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   decoration: InputDecoration(
                     hintText: "What's on your mind?",
                     hintStyle: AppTypography.body.copyWith(
-                      color: AppColors.textTertiary,
+                      color: Colors.white.withOpacity(0.7),
                       fontSize: 18,
                     ),
                     border: InputBorder.none,
@@ -537,7 +585,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   ),
                   style: AppTypography.body.copyWith(
                     fontSize: 18,
-                    color: AppColors.textPrimary,
+                    color: Colors.white,
                   ),
                 ),
               ),

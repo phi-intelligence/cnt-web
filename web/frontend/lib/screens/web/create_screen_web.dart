@@ -195,30 +195,29 @@ class CreateScreenWeb extends StatelessWidget {
         hoverColors: brownHover,
         onTap: () => context.push('/my-drafts'),
       ),
+      // 8. Movie (orange) - Available to all authenticated users
+      _buildOptionCard(
+        context,
+        title: 'Movie',
+        description: 'Upload and manage movies',
+        icon: Icons.movie,
+        hoverColors: orangeHover,
+        onTap: () => _navigateToScreen(
+          context,
+          const MovieCreateScreen(),
+        ),
+      ),
     ];
     
-    // Add Movie and Bulk Upload cards for admins only
+    // Add Bulk Upload card for admins only
     if (authProvider.isAdmin) {
-      cards.add(
-        _buildOptionCard(
-          context,
-          title: 'Movie',
-          description: 'Upload and manage movies',
-          icon: Icons.movie,
-          hoverColors: brownHover, // 8 - brown (admin only)
-          onTap: () => _navigateToScreen(
-            context,
-            const MovieCreateScreen(),
-          ),
-        ),
-      );
       cards.add(
         _buildOptionCard(
           context,
           title: 'Bulk Upload',
           description: 'Upload multiple podcasts at once',
           icon: Icons.cloud_upload,
-          hoverColors: orangeHover, // 9 - orange (admin only)
+          hoverColors: brownHover, // 9 - brown (admin only)
           onTap: () => _navigateToScreen(
             context,
             const BulkUploadScreen(),

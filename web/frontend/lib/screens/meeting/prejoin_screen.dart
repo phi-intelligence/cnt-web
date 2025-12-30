@@ -17,7 +17,8 @@ import 'dart:html' if (dart.library.io) '../utils/html_stub.dart' as html;
 /// Allows user to toggle camera/mic before joining
 class PrejoinScreen extends StatefulWidget {
   final String meetingId;
-  final String jitsiUrl; // Keep name for compatibility, but will contain LiveKit URL
+  final String
+      jitsiUrl; // Keep name for compatibility, but will contain LiveKit URL
   final String jwtToken;
   final String roomName;
   final String userName;
@@ -46,7 +47,7 @@ class PrejoinScreen extends StatefulWidget {
 class _PrejoinScreenState extends State<PrejoinScreen> {
   late bool cameraEnabled;
   late bool micEnabled;
-  
+
   // Camera preview state
   WebVideoRecorder? _cameraRecorder;
   html.VideoElement? _videoElement;
@@ -60,14 +61,14 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
     super.initState();
     cameraEnabled = widget.initialCameraEnabled;
     micEnabled = widget.initialMicEnabled;
-    
+
     // Initialize camera if enabled on web
     if (kIsWeb && widget.initialCameraEnabled) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _initializeCamera();
       });
     }
-    
+
     // Request microphone permission if enabled on web
     if (kIsWeb && widget.initialMicEnabled) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -75,7 +76,7 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
       });
     }
   }
-  
+
   @override
   void dispose() {
     _disposeCamera();
@@ -99,7 +100,8 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
             jwtToken: widget.jwtToken,
             userName: widget.userName,
             isHost: widget.isHost,
-            wsUrl: widget.jitsiUrl, // Use jitsiUrl as wsUrl (it will be LiveKit URL from backend)
+            wsUrl: widget
+                .jitsiUrl, // Use jitsiUrl as wsUrl (it will be LiveKit URL from backend)
             initialCameraEnabled: cameraEnabled,
             initialMicEnabled: micEnabled,
             avatarUrl: avatarUrl,
@@ -109,40 +111,42 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
       );
     }
   }
-  
+
   Future<void> _initializeCamera() async {
     if (!kIsWeb) return;
-    
+
     setState(() {
       _isInitializingCamera = true;
       _cameraError = null;
     });
-    
+
     try {
       _cameraRecorder = WebVideoRecorder();
-      
+
       // Check permissions first
       final hasPermission = await _cameraRecorder!.hasPermission();
       if (!hasPermission) {
         setState(() {
-          _cameraError = 'Camera permission denied. Please allow camera access in your browser settings.';
+          _cameraError =
+              'Camera permission denied. Please allow camera access in your browser settings.';
           _isInitializingCamera = false;
           _actualCameraEnabled = false;
           cameraEnabled = false;
         });
         return;
       }
-      
+
       // Initialize camera
       _videoElement = await _cameraRecorder!.initializeCamera();
-      
+
       // Register video element for HtmlElementView
-      _videoElementViewId = 'prejoin-camera-${DateTime.now().millisecondsSinceEpoch}';
+      _videoElementViewId =
+          'prejoin-camera-${DateTime.now().millisecondsSinceEpoch}';
       platformViewRegistry.registerViewFactory(
         _videoElementViewId!,
         (int viewId) => _videoElement!,
       );
-      
+
       setState(() {
         _isInitializingCamera = false;
         _actualCameraEnabled = true;
@@ -153,16 +157,18 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
       if (errorMsg.contains('Exception: ')) {
         errorMsg = errorMsg.replaceFirst('Exception: ', '');
       }
-      
+
       setState(() {
-        _cameraError = errorMsg.isNotEmpty ? errorMsg : 'Failed to initialize camera. Please check your browser settings.';
+        _cameraError = errorMsg.isNotEmpty
+            ? errorMsg
+            : 'Failed to initialize camera. Please check your browser settings.';
         _isInitializingCamera = false;
         _actualCameraEnabled = false;
         cameraEnabled = false;
       });
     }
   }
-  
+
   Future<void> _disposeCamera() async {
     if (_cameraRecorder != null) {
       await _cameraRecorder!.dispose();
@@ -170,29 +176,29 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
       _videoElement = null;
       _videoElementViewId = null;
     }
-    
+
     if (mounted) {
       setState(() {
         _actualCameraEnabled = false;
       });
     }
   }
-  
+
   Future<void> _onCameraToggle(bool enabled) async {
     setState(() {
       cameraEnabled = enabled;
     });
-    
+
     if (enabled) {
       await _initializeCamera();
     } else {
       await _disposeCamera();
     }
   }
-  
+
   Future<void> _requestMicrophonePermission() async {
     if (!kIsWeb) return;
-    
+
     try {
       final mediaDevices = html.window.navigator.mediaDevices;
       if (mediaDevices != null) {
@@ -209,19 +215,20 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Microphone permission denied. Please allow microphone access in your browser settings.'),
+            content: Text(
+                'Microphone permission denied. Please allow microphone access in your browser settings.'),
             backgroundColor: AppColors.errorMain,
           ),
         );
       }
     }
   }
-  
+
   Future<void> _onMicrophoneToggle(bool enabled) async {
     setState(() {
       micEnabled = enabled;
     });
-    
+
     if (enabled && kIsWeb) {
       await _requestMicrophonePermission();
     }
@@ -244,24 +251,24 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
           child: Stack(
             children: [
               // Background image positioned to the right
-              // Background image positioned to the right (Hidden on mobile for better visibility)
-              if (!isMobile)
-                Positioned(
-                  top: 0,
-                  bottom: 0,
-                  right: -50,
-                  width: screenWidth * 0.65,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: const AssetImage('assets/images/jesus.png'),
-                        fit: BoxFit.cover,
-                        alignment: Alignment.centerRight,
-                      ),
+              Positioned(
+                top: isMobile ? -30 : 0,
+                bottom: isMobile ? null : 0,
+                right: isMobile ? -screenWidth * 0.4 : -50,
+                height: isMobile ? screenHeight * 0.6 : null,
+                width: isMobile ? screenWidth * 1.3 : screenWidth * 0.65,
+                child: Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: const AssetImage('assets/images/jesus.png'),
+                      fit: isMobile ? BoxFit.contain : BoxFit.cover,
+                      alignment:
+                          isMobile ? Alignment.topRight : Alignment.centerRight,
                     ),
                   ),
                 ),
-              
+              ),
+
               // Gradient overlay from left
               Positioned.fill(
                 child: Container(
@@ -292,7 +299,7 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                   ),
                 ),
               ),
-              
+
               // Content positioned centered/right-aligned
               Positioned(
                 left: isMobile ? 0 : (screenWidth * 0.15),
@@ -302,8 +309,12 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                 child: SafeArea(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.only(
-                      left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
-                      right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                      left: isMobile
+                          ? AppSpacing.large
+                          : AppSpacing.extraLarge * 2,
+                      right: isMobile
+                          ? AppSpacing.large
+                          : AppSpacing.extraLarge * 3,
                       top: isMobile ? 20 : 40,
                       bottom: AppSpacing.extraLarge,
                     ),
@@ -314,16 +325,20 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                         Row(
                           children: [
                             IconButton(
-                              icon: Icon(Icons.arrow_back, color: AppColors.primaryDark),
+                              icon: Icon(Icons.arrow_back,
+                                  color: AppColors.primaryDark),
                               onPressed: () => Navigator.pop(context),
                             ),
                             Expanded(
                               child: Text(
                                 'Check Your Setup',
-                                style: AppTypography.getResponsiveHeroTitle(context).copyWith(
+                                style: AppTypography.getResponsiveHeroTitle(
+                                        context)
+                                    .copyWith(
                                   color: AppColors.primaryDark,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: isMobile ? 28 : (isTablet ? 36 : 42),
+                                  fontSize:
+                                      isMobile ? 28 : (isTablet ? 36 : 42),
                                   height: 1.1,
                                 ),
                               ),
@@ -333,7 +348,8 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                         SizedBox(height: AppSpacing.small),
                         Text(
                           'Configure your camera and microphone before joining',
-                          style: AppTypography.getResponsiveBody(context).copyWith(
+                          style:
+                              AppTypography.getResponsiveBody(context).copyWith(
                             color: AppColors.primaryDark.withOpacity(0.7),
                             fontSize: isMobile ? 14 : 16,
                           ),
@@ -342,11 +358,14 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
 
                         // Preview Section - Pill-shaped container
                         Container(
-                          constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 500.0),
-                          padding: EdgeInsets.all(AppSpacing.large),
+                          constraints: BoxConstraints(
+                              maxWidth: isMobile ? double.infinity : 500.0),
+                          padding: EdgeInsets.all(
+                              isMobile ? AppSpacing.medium : AppSpacing.large),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(30),
+                            borderRadius:
+                                BorderRadius.circular(isMobile ? 20 : 30),
                             border: Border.all(
                               color: AppColors.warmBrown.withOpacity(0.2),
                               width: 1,
@@ -363,7 +382,7 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                             children: [
                               // Preview with actual camera feed or placeholder
                               Container(
-                                height: 300,
+                                height: isMobile ? 200 : 300,
                                 decoration: BoxDecoration(
                                   color: AppColors.backgroundSecondary,
                                   borderRadius: BorderRadius.circular(24),
@@ -373,10 +392,12 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(24),
-                                  child: _videoElementViewId != null && _actualCameraEnabled
+                                  child: _videoElementViewId != null &&
+                                          _actualCameraEnabled
                                       ? AspectRatio(
                                           aspectRatio: 16 / 9,
-                                          child: HtmlElementView(viewType: _videoElementViewId!),
+                                          child: HtmlElementView(
+                                              viewType: _videoElementViewId!),
                                         )
                                       : _isInitializingCamera
                                           ? Center(
@@ -388,21 +409,34 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                                               alignment: Alignment.center,
                                               child: _cameraError != null
                                                   ? Column(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
                                                       children: [
                                                         Icon(
                                                           Icons.error_outline,
                                                           size: 60,
-                                                          color: AppColors.errorMain,
+                                                          color: AppColors
+                                                              .errorMain,
                                                         ),
-                                                        SizedBox(height: AppSpacing.medium),
+                                                        SizedBox(
+                                                            height: AppSpacing
+                                                                .medium),
                                                         Padding(
-                                                          padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
+                                                          padding: EdgeInsets
+                                                              .symmetric(
+                                                                  horizontal:
+                                                                      AppSpacing
+                                                                          .large),
                                                           child: Text(
                                                             _cameraError!,
-                                                            textAlign: TextAlign.center,
-                                                            style: AppTypography.bodySmall.copyWith(
-                                                              color: AppColors.errorMain,
+                                                            textAlign: TextAlign
+                                                                .center,
+                                                            style: AppTypography
+                                                                .bodySmall
+                                                                .copyWith(
+                                                              color: AppColors
+                                                                  .errorMain,
                                                             ),
                                                           ),
                                                         ),
@@ -415,7 +449,8 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                                                       size: 80,
                                                       color: cameraEnabled
                                                           ? AppColors.warmBrown
-                                                          : AppColors.textSecondary,
+                                                          : AppColors
+                                                              .textSecondary,
                                                     ),
                                             ),
                                 ),
@@ -434,11 +469,14 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
 
                         // Device Settings Section
                         Container(
-                          constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 500.0),
-                          padding: EdgeInsets.all(AppSpacing.large),
+                          constraints: BoxConstraints(
+                              maxWidth: isMobile ? double.infinity : 500.0),
+                          padding: EdgeInsets.all(
+                              isMobile ? AppSpacing.medium : AppSpacing.large),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(30),
+                            borderRadius:
+                                BorderRadius.circular(isMobile ? 20 : 30),
                             border: Border.all(
                               color: AppColors.warmBrown.withOpacity(0.2),
                               width: 1,
@@ -459,33 +497,51 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                                 style: AppTypography.heading4.copyWith(
                                   color: AppColors.primaryDark,
                                   fontWeight: FontWeight.bold,
+                                  fontSize: isMobile ? 18 : null,
                                 ),
                               ),
-                              const SizedBox(height: AppSpacing.large),
+                              SizedBox(
+                                  height: isMobile
+                                      ? AppSpacing.medium
+                                      : AppSpacing.large),
                               // Device Controls Grid
                               LayoutBuilder(
                                 builder: (context, constraints) {
-                                  final screenWidth = MediaQuery.of(context).size.width;
+                                  final screenWidth =
+                                      MediaQuery.of(context).size.width;
                                   final isMobile = screenWidth < 768;
-                                  
+
                                   if (isMobile) {
-                                    // Mobile: Stack vertically
+                                    // Mobile: Stack vertically with full width
                                     return Column(
                                       children: [
-                                        _buildDeviceControlCard(
-                                          icon: cameraEnabled ? Icons.videocam : Icons.videocam_off,
-                                          title: 'Camera',
-                                          subtitle: cameraEnabled ? 'On' : 'Off',
-                                          enabled: cameraEnabled,
-                                          onChanged: _onCameraToggle,
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: _buildDeviceControlCard(
+                                            icon: cameraEnabled
+                                                ? Icons.videocam
+                                                : Icons.videocam_off,
+                                            title: 'Camera',
+                                            subtitle:
+                                                cameraEnabled ? 'On' : 'Off',
+                                            enabled: cameraEnabled,
+                                            onChanged: _onCameraToggle,
+                                            isMobile: true,
+                                          ),
                                         ),
-                                        const SizedBox(height: AppSpacing.medium),
-                                        _buildDeviceControlCard(
-                                          icon: micEnabled ? Icons.mic : Icons.mic_off,
-                                          title: 'Microphone',
-                                          subtitle: micEnabled ? 'On' : 'Off',
-                                          enabled: micEnabled,
-                                          onChanged: _onMicrophoneToggle,
+                                        SizedBox(height: AppSpacing.medium),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: _buildDeviceControlCard(
+                                            icon: micEnabled
+                                                ? Icons.mic
+                                                : Icons.mic_off,
+                                            title: 'Microphone',
+                                            subtitle: micEnabled ? 'On' : 'Off',
+                                            enabled: micEnabled,
+                                            onChanged: _onMicrophoneToggle,
+                                            isMobile: true,
+                                          ),
                                         ),
                                       ],
                                     );
@@ -495,21 +551,28 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                                       children: [
                                         Expanded(
                                           child: _buildDeviceControlCard(
-                                            icon: cameraEnabled ? Icons.videocam : Icons.videocam_off,
+                                            icon: cameraEnabled
+                                                ? Icons.videocam
+                                                : Icons.videocam_off,
                                             title: 'Camera',
-                                            subtitle: cameraEnabled ? 'On' : 'Off',
+                                            subtitle:
+                                                cameraEnabled ? 'On' : 'Off',
                                             enabled: cameraEnabled,
                                             onChanged: _onCameraToggle,
+                                            isMobile: false,
                                           ),
                                         ),
-                                        const SizedBox(width: AppSpacing.large),
+                                        SizedBox(width: AppSpacing.large),
                                         Expanded(
                                           child: _buildDeviceControlCard(
-                                            icon: micEnabled ? Icons.mic : Icons.mic_off,
+                                            icon: micEnabled
+                                                ? Icons.mic
+                                                : Icons.mic_off,
                                             title: 'Microphone',
                                             subtitle: micEnabled ? 'On' : 'Off',
                                             enabled: micEnabled,
                                             onChanged: _onMicrophoneToggle,
+                                            isMobile: false,
                                           ),
                                         ),
                                       ],
@@ -524,7 +587,8 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
 
                         // Join button
                         Container(
-                          constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 500.0),
+                          constraints: BoxConstraints(
+                              maxWidth: isMobile ? double.infinity : 500.0),
                           child: StyledPillButton(
                             label: 'Join Meeting',
                             icon: Icons.meeting_room,
@@ -555,7 +619,8 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
           ),
           title: Text(
             'Check Your Setup',
-            style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+            style:
+                AppTypography.heading3.copyWith(color: AppColors.textPrimary),
           ),
           centerTitle: true,
         ),
@@ -577,7 +642,8 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                   child: _videoElementViewId != null && _actualCameraEnabled
                       ? AspectRatio(
                           aspectRatio: 16 / 9,
-                          child: HtmlElementView(viewType: _videoElementViewId!),
+                          child:
+                              HtmlElementView(viewType: _videoElementViewId!),
                         )
                       : _isInitializingCamera
                           ? Center(
@@ -589,7 +655,8 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                               alignment: Alignment.center,
                               child: _cameraError != null
                                   ? Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Icon(
                                           Icons.error_outline,
@@ -598,11 +665,13 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                                         ),
                                         SizedBox(height: AppSpacing.medium),
                                         Padding(
-                                          padding: EdgeInsets.symmetric(horizontal: AppSpacing.large),
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: AppSpacing.large),
                                           child: Text(
                                             _cameraError!,
                                             textAlign: TextAlign.center,
-                                            style: AppTypography.bodySmall.copyWith(
+                                            style: AppTypography.bodySmall
+                                                .copyWith(
                                               color: AppColors.errorMain,
                                             ),
                                           ),
@@ -624,18 +693,22 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
               const SizedBox(height: AppSpacing.extraLarge),
               Text(
                 'Room: ${widget.roomName}',
-                style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                style:
+                    AppTypography.body.copyWith(color: AppColors.textSecondary),
               ),
               const SizedBox(height: AppSpacing.medium),
               // Camera toggle
               ListTile(
                 leading: Icon(
                   cameraEnabled ? Icons.videocam : Icons.videocam_off,
-                  color: cameraEnabled ? AppColors.primaryMain : AppColors.textSecondary,
+                  color: cameraEnabled
+                      ? AppColors.primaryMain
+                      : AppColors.textSecondary,
                 ),
                 title: Text(
                   cameraEnabled ? 'Camera On' : 'Camera Off',
-                  style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                  style:
+                      AppTypography.body.copyWith(color: AppColors.textPrimary),
                 ),
                 trailing: Switch(
                   value: cameraEnabled,
@@ -646,11 +719,14 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
               ListTile(
                 leading: Icon(
                   micEnabled ? Icons.mic : Icons.mic_off,
-                  color: micEnabled ? AppColors.primaryMain : AppColors.textSecondary,
+                  color: micEnabled
+                      ? AppColors.primaryMain
+                      : AppColors.textSecondary,
                 ),
                 title: Text(
                   micEnabled ? 'Microphone On' : 'Microphone Off',
-                  style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                  style:
+                      AppTypography.body.copyWith(color: AppColors.textPrimary),
                 ),
                 trailing: Switch(
                   value: micEnabled,
@@ -665,14 +741,19 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
                   icon: const Icon(Icons.meeting_room, color: Colors.white),
                   label: const Text(
                     'Join Meeting',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16),
                   ),
                   onPressed: _onJoin,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryMain,
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.large),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: AppSpacing.large),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                      borderRadius:
+                          BorderRadius.circular(AppSpacing.radiusLarge),
                     ),
                   ),
                 ),
@@ -691,9 +772,11 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
     required String subtitle,
     required bool enabled,
     required ValueChanged<bool> onChanged,
+    required bool isMobile,
   }) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.large),
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
       decoration: BoxDecoration(
         gradient: enabled
             ? LinearGradient(
@@ -706,7 +789,7 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
               )
             : null,
         color: enabled ? null : Colors.white,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(isMobile ? 20 : 30),
         border: Border.all(
           color: enabled
               ? AppColors.warmBrown.withOpacity(0.3)
@@ -721,59 +804,122 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
           ),
         ],
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: enabled
-                  ? AppColors.warmBrown.withOpacity(0.15)
-                  : AppColors.backgroundSecondary,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: enabled
-                    ? AppColors.warmBrown
-                    : AppColors.borderPrimary,
-                width: 2,
-              ),
+      child: isMobile
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: enabled
+                            ? AppColors.warmBrown.withOpacity(0.15)
+                            : AppColors.backgroundSecondary,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: enabled
+                              ? AppColors.warmBrown
+                              : AppColors.borderPrimary,
+                          width: 2,
+                        ),
+                      ),
+                      child: Icon(
+                        icon,
+                        color: enabled
+                            ? AppColors.warmBrown
+                            : AppColors.textSecondary,
+                        size: 24,
+                      ),
+                    ),
+                    SizedBox(width: AppSpacing.medium),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          style: AppTypography.heading4.copyWith(
+                            color: enabled
+                                ? AppColors.textPrimary
+                                : AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                        SizedBox(height: AppSpacing.tiny),
+                        Text(
+                          subtitle,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: enabled
+                                ? AppColors.warmBrown
+                                : AppColors.textTertiary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Switch(
+                  value: enabled,
+                  onChanged: onChanged,
+                  activeColor: AppColors.warmBrown,
+                ),
+              ],
+            )
+          : Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: enabled
+                        ? AppColors.warmBrown.withOpacity(0.15)
+                        : AppColors.backgroundSecondary,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: enabled
+                          ? AppColors.warmBrown
+                          : AppColors.borderPrimary,
+                      width: 2,
+                    ),
+                  ),
+                  child: Icon(
+                    icon,
+                    color:
+                        enabled ? AppColors.warmBrown : AppColors.textSecondary,
+                    size: 30,
+                  ),
+                ),
+                SizedBox(height: AppSpacing.medium),
+                Text(
+                  title,
+                  style: AppTypography.heading4.copyWith(
+                    color: enabled
+                        ? AppColors.textPrimary
+                        : AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: AppSpacing.small),
+                Text(
+                  subtitle,
+                  style: AppTypography.bodySmall.copyWith(
+                    color:
+                        enabled ? AppColors.warmBrown : AppColors.textTertiary,
+                  ),
+                ),
+                SizedBox(height: AppSpacing.medium),
+                Switch(
+                  value: enabled,
+                  onChanged: onChanged,
+                  activeColor: AppColors.warmBrown,
+                ),
+              ],
             ),
-            child: Icon(
-              icon,
-              color: enabled
-                  ? AppColors.warmBrown
-                  : AppColors.textSecondary,
-              size: 30,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.medium),
-          Text(
-            title,
-            style: AppTypography.heading4.copyWith(
-              color: enabled
-                  ? AppColors.textPrimary
-                  : AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.small),
-          Text(
-            subtitle,
-            style: AppTypography.bodySmall.copyWith(
-              color: enabled
-                  ? AppColors.warmBrown
-                  : AppColors.textTertiary,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.medium),
-          Switch(
-            value: enabled,
-            onChanged: onChanged,
-            activeColor: AppColors.warmBrown,
-          ),
-        ],
-      ),
     );
   }
 }

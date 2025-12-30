@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:html' as html;
+import 'dart:convert' as convert;
 import '../../providers/audio_player_provider.dart';
 import '../../providers/favorites_provider.dart';
 import '../../models/content_item.dart';
@@ -1005,9 +1006,7 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
       final url = track.audioUrl!;
       final filename = '${track.title.replaceAll(RegExp(r'[^\w\s-]'), '')}.mp3';
 
-      // Use JavaScript to trigger download
-      // ignore: avoid_web_libraries_in_flutter
-      // This import should be added at the top
+      // Show downloading message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -1028,6 +1027,9 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
         ),
       );
 
+      // Track download in localStorage for web
+      _trackDownloadInLocalStorage(track);
+
       // Trigger download via JavaScript
       _triggerWebDownload(url, filename);
     } catch (e) {
@@ -1039,6 +1041,56 @@ class _AudioPlayerFullScreenWebState extends State<AudioPlayerFullScreenWeb>
           ),
         );
       }
+    }
+  }
+
+  /// Track download in localStorage for web platform
+  void _trackDownloadInLocalStorage(ContentItem track) {
+    if (!kIsWeb) return;
+
+    try {
+      // Get existing downloads from localStorage
+      final existingDownloadsJson =
+          html.window.localStorage['cnt_downloads'] ?? '[]';
+      List<dynamic> downloads = [];
+
+      try {
+        downloads = (html.window.localStorage['cnt_downloads'] != null)
+            ? (html.window.localStorage['cnt_downloads']!.isNotEmpty
+                ? (convert.jsonDecode(
+                    html.window.localStorage['cnt_downloads']!) as List)
+                : [])
+            : [];
+      } catch (e) {
+        LoggerService.e('Error parsing existing downloads: $e');
+        downloads = [];
+      }
+
+      // Check if already downloaded
+      final alreadyDownloaded = downloads.any((d) => d['id'] == track.id);
+      if (alreadyDownloaded) {
+        return; // Already tracked
+      }
+
+      // Add new download entry
+      final downloadEntry = {
+        'id': track.id,
+        'title': track.title,
+        'creator': track.creator ?? '',
+        'cover_image': track.coverImage ?? '',
+        'audio_url': track.audioUrl ?? '',
+        'duration': track.duration?.inSeconds,
+        'category': track.category ?? '',
+        'downloaded_at': DateTime.now().millisecondsSinceEpoch,
+      };
+
+      downloads.add(downloadEntry);
+
+      // Save back to localStorage
+      html.window.localStorage['cnt_downloads'] = convert.jsonEncode(downloads);
+      LoggerService.i('✅ Download tracked in localStorage: ${track.title}');
+    } catch (e) {
+      LoggerService.e('Error tracking download in localStorage: $e');
     }
   }
 

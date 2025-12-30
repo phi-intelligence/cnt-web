@@ -322,7 +322,8 @@ class ApiService {
             }
             final cloudFrontUrl =
                 _cleanDoubleSlashes('$cleanBase/$relativePath');
-            LoggerService.d('🔄 getMediaUrl: Converted S3 to CloudFront: $cloudFrontUrl');
+            LoggerService.d(
+                '🔄 getMediaUrl: Converted S3 to CloudFront: $cloudFrontUrl');
             return cloudFrontUrl;
           }
         }
@@ -1496,7 +1497,7 @@ class ApiService {
       _validateBaseUrl();
       final response = await http
           .get(
-            Uri.parse('$baseUrl/playlists'),
+            Uri.parse('$baseUrl/playlists/'),
             headers: await _getHeaders(),
           )
           .timeout(const Duration(seconds: 10));
@@ -1510,7 +1511,7 @@ class ApiService {
         // Retry the request after refresh
         final retryResponse = await http
             .get(
-              Uri.parse('$baseUrl/playlists'),
+              Uri.parse('$baseUrl/playlists/'),
               headers: await _getHeaders(),
             )
             .timeout(const Duration(seconds: 10));
@@ -1537,10 +1538,11 @@ class ApiService {
     String? description,
   }) async {
     try {
+      _validateBaseUrl();
       final response = await http
           .post(
-            Uri.parse('$baseUrl/playlists'),
-            headers: {'Content-Type': 'application/json'},
+            Uri.parse('$baseUrl/playlists/'),
+            headers: await _getHeaders(),
             body: json.encode({
               'name': name,
               'description': description,
@@ -1550,9 +1552,33 @@ class ApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        // Handle 401 error (token expired or invalid)
+        await _handle401Error(response);
+        // Retry the request after refresh
+        final retryResponse = await http
+            .post(
+              Uri.parse('$baseUrl/playlists/'),
+              headers: await _getHeaders(),
+              body: json.encode({
+                'name': name,
+                'description': description,
+              }),
+            )
+            .timeout(const Duration(seconds: 10));
+        if (retryResponse.statusCode == 200 ||
+            retryResponse.statusCode == 201) {
+          return json.decode(retryResponse.body);
+        }
+        throw Exception('Authentication failed. Please log in again.');
       }
-      throw Exception('Failed to create playlist: ${response.statusCode}');
+      throw Exception(
+          'Failed to create playlist: ${response.statusCode} ${response.body}');
     } catch (e) {
+      if (e.toString().contains('API_BASE_URL') ||
+          e.toString().contains('not configured')) {
+        rethrow;
+      }
       throw Exception('Error creating playlist: $e');
     }
   }
@@ -1564,15 +1590,36 @@ class ApiService {
       final response = await http
           .post(
             Uri.parse('$baseUrl/playlists/$playlistId/items'),
-            headers: {'Content-Type': 'application/json'},
+            headers: await _getHeaders(),
             body: json.encode({
               'content_type': contentType,
               'content_id': contentId,
+              'position': 0, // Backend will calculate actual position
             }),
           )
           .timeout(const Duration(seconds: 10));
 
-      return response.statusCode == 200 || response.statusCode == 201;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      } else if (response.statusCode == 401) {
+        // Handle 401 error (token expired or invalid)
+        await _handle401Error(response);
+        // Retry the request after refresh
+        final retryResponse = await http
+            .post(
+              Uri.parse('$baseUrl/playlists/$playlistId/items'),
+              headers: await _getHeaders(),
+              body: json.encode({
+                'content_type': contentType,
+                'content_id': contentId,
+                'position': 0,
+              }),
+            )
+            .timeout(const Duration(seconds: 10));
+        return retryResponse.statusCode == 200 ||
+            retryResponse.statusCode == 201;
+      }
+      return false;
     } catch (e) {
       LoggerService.e('Error adding to playlist: $e');
       return false;
@@ -1817,7 +1864,8 @@ class ApiService {
         if (isS3OrCloudFront && !isDev) {
           // Production: Use backend proxy to access S3 files
           // The proxy handles S3 authentication via IAM credentials
-          LoggerService.d('🔄 Using backend proxy for S3/CloudFront URL in production');
+          LoggerService.d(
+              '🔄 Using backend proxy for S3/CloudFront URL in production');
           downloadUrl =
               '$baseUrl/media/proxy?url=${Uri.encodeComponent(source)}';
           headers = await _getHeaders();
@@ -2222,7 +2270,8 @@ class ApiService {
       final streamedResponse =
           await request.send().timeout(const Duration(minutes: 10));
 
-      LoggerService.d('🎵 Audio trim response status: ${streamedResponse.statusCode}');
+      LoggerService.d(
+          '🎵 Audio trim response status: ${streamedResponse.statusCode}');
 
       if (streamedResponse.statusCode == 200) {
         final response = await http.Response.fromStream(streamedResponse);
@@ -2644,7 +2693,8 @@ class ApiService {
     try {
       _validateBaseUrl();
       final headers = await _getHeaders();
-      LoggerService.d('🔐 Admin Dashboard Request Headers: ${headers.keys.toList()}');
+      LoggerService.d(
+          '🔐 Admin Dashboard Request Headers: ${headers.keys.toList()}');
       LoggerService.d(
           '🔐 Authorization header present: ${headers.containsKey('Authorization')}');
 
@@ -2655,7 +2705,8 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 10));
 
-      LoggerService.d('📡 Admin Dashboard Response Status: ${response.statusCode}');
+      LoggerService.d(
+          '📡 Admin Dashboard Response Status: ${response.statusCode}');
       if (response.statusCode != 200) {
         LoggerService.e('❌ Admin Dashboard Error Response: ${response.body}');
       }
@@ -2964,7 +3015,8 @@ class ApiService {
       _validateBaseUrl();
       final url = '$baseUrl/livekit/voice/room';
       LoggerService.i('🌐 Creating LiveKit room: POST $url');
-      LoggerService.i('🌐 Room name: $roomName, max participants: $maxParticipants');
+      LoggerService.i(
+          '🌐 Room name: $roomName, max participants: $maxParticipants');
 
       final response = await http
           .post(
@@ -3400,6 +3452,59 @@ class ApiService {
           'Failed to upload video: HTTP ${streamedResponse.statusCode}');
     } catch (e) {
       throw Exception('Error uploading video: $e');
+    }
+  }
+
+  /// Upload movie file to appropriate folder (movies/ or animated-bible-stories/)
+  Future<Map<String, dynamic>> uploadMovie(
+    String filePath, {
+    required String movieType, // 'movie' or 'kids_movie'
+    bool generateThumbnail = true,
+    Function(int sent, int total)? onProgress,
+  }) async {
+    try {
+      final file =
+          await _createMultipartFileFromSource(filePath, 'file', 'video.mp4');
+      final uri = Uri.parse(
+          '$baseUrl/upload/movie?movie_type=$movieType&generate_thumbnail=$generateThumbnail');
+      final request = http.MultipartRequest('POST', uri);
+      request.files.add(file);
+      final headers = await _getHeaders();
+      headers.remove('Content-Type'); // Let multipart set it
+      request.headers.addAll(headers);
+
+      // Get file size for progress tracking
+      int? totalBytes = file.length;
+
+      // Notify start of upload if callback provided
+      if (onProgress != null) {
+        onProgress(0, totalBytes);
+      }
+
+      // Increase timeout to 60 minutes for large movies
+      final streamedResponse =
+          await request.send().timeout(const Duration(minutes: 60));
+
+      // Note: Tracking actual upload progress requires wrapping the request body stream,
+      // which is complex. For now, we'll notify completion when response is received.
+      // The backend will handle the actual upload, and we'll report completion here.
+
+      if (streamedResponse.statusCode == 200 ||
+          streamedResponse.statusCode == 201) {
+        final response = await http.Response.fromStream(streamedResponse);
+        final data = json.decode(response.body) as Map<String, dynamic>;
+
+        // Notify completion if callback provided
+        if (onProgress != null) {
+          onProgress(totalBytes, totalBytes);
+        }
+
+        return data;
+      }
+      throw Exception(
+          'Failed to upload movie: HTTP ${streamedResponse.statusCode}');
+    } catch (e) {
+      throw Exception('Error uploading movie: $e');
     }
   }
 
@@ -3878,6 +3983,7 @@ class ApiService {
     int limit = 20,
     String? statusFilter,
     bool upcomingOnly = false,
+    bool pastOnly = false,
   }) async {
     try {
       final queryParams = <String, String>{
@@ -3886,6 +3992,7 @@ class ApiService {
       };
       if (statusFilter != null) queryParams['status_filter'] = statusFilter;
       if (upcomingOnly) queryParams['upcoming_only'] = 'true';
+      if (pastOnly) queryParams['past_only'] = 'true';
 
       final uri =
           Uri.parse('$baseUrl/events/').replace(queryParameters: queryParams);

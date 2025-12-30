@@ -6,9 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
-import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
-import '../../widgets/web/section_container.dart';
 import '../meeting/prejoin_screen.dart';
 
 /// Live Stream Setup Screen
@@ -41,7 +39,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
     try {
       final authProvider = context.read<AuthProvider>();
       final userName = authProvider.user?['name'] as String? ?? 'Host';
-      
+
       final apiService = ApiService();
       final streamResp = await apiService.createStream(
         title: _titleController.text.trim(),
@@ -91,7 +89,8 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
   }
 
   Future<void> _startInstant() async {
-    _titleController.text = 'Live Stream - ${DateTime.now().toString().substring(0, 16)}';
+    _titleController.text =
+        'Live Stream - ${DateTime.now().toString().substring(0, 16)}';
     await _startStreamNow();
   }
 
@@ -102,9 +101,9 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
     final isMobile = screenWidth < 800; // Mobile breakpoint
 
     if (isMobile) {
-       return _buildMobileLayout(context);
+      return _buildMobileLayout(context);
     } else {
-       return _buildDesktopSplitLayout(context);
+      return _buildDesktopSplitLayout(context);
     }
   }
 
@@ -122,42 +121,45 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   // Back Button
-                   SafeArea(
-                     child: Align(
-                       alignment: Alignment.topLeft,
-                       child: TextButton.icon(
-                         onPressed: () => Navigator.pop(context),
-                         icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                         label: Text('Back', style: AppTypography.body.copyWith(color: AppColors.textPrimary)),
-                         style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                       ),
-                     ),
-                   ),
-                   const Spacer(),
-                   
-                   // Title & Description
-                   Text(
-                     'Go Live',
-                     style: AppTypography.heading1.copyWith(
-                       color: AppColors.textPrimary,
-                       fontSize: 48,
-                       fontWeight: FontWeight.bold,
-                     ),
-                   ),
-                   const SizedBox(height: AppSpacing.medium),
-                   Text(
-                     'Share your message with the community',
-                     style: AppTypography.body.copyWith(
-                       color: AppColors.textSecondary,
-                       fontSize: 18,
-                     ),
-                   ),
-                   const SizedBox(height: 32),
+                  // Back Button
+                  SafeArea(
+                    child: Align(
+                      alignment: Alignment.topLeft,
+                      child: TextButton.icon(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.arrow_back,
+                            color: AppColors.textPrimary),
+                        label: Text('Back',
+                            style: AppTypography.body
+                                .copyWith(color: AppColors.textPrimary)),
+                        style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
 
-                   // Stream Form - directly embedded in the left column
-                   // Note: We don't use the card container here to keep it clean on the white background
-                   Form(
+                  // Title & Description
+                  Text(
+                    'Go Live',
+                    style: AppTypography.heading1.copyWith(
+                      color: AppColors.textPrimary,
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.medium),
+                  Text(
+                    'Share your message with the community',
+                    style: AppTypography.body.copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Stream Form - directly embedded in the left column
+                  // Note: We don't use the card container here to keep it clean on the white background
+                  Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -168,7 +170,10 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                             height: 80,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [AppColors.warmBrown, AppColors.accentMain],
+                                colors: [
+                                  AppColors.warmBrown,
+                                  AppColors.accentMain
+                                ],
                               ),
                               shape: BoxShape.circle,
                               boxShadow: [
@@ -179,11 +184,12 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                                 ),
                               ],
                             ),
-                            child: const Icon(Icons.live_tv, size: 40, color: Colors.white),
+                            child: const Icon(Icons.live_tv,
+                                size: 40, color: Colors.white),
                           ),
                         ),
                         const SizedBox(height: 20),
-                        
+
                         Center(
                           child: Text(
                             'Stream Details',
@@ -219,15 +225,18 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                           ),
                           child: TextFormField(
                             controller: _titleController,
-                            style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                            style: AppTypography.body
+                                .copyWith(color: AppColors.textPrimary),
                             decoration: InputDecoration(
                               hintText: 'Enter a title for your live stream',
-                              hintStyle: TextStyle(color: AppColors.textTertiary),
+                              hintStyle:
+                                  TextStyle(color: AppColors.textTertiary),
                               filled: false,
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 14),
                             ),
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
@@ -264,15 +273,18 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                           child: TextFormField(
                             controller: _descriptionController,
                             maxLines: 3,
-                            style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                            style: AppTypography.body
+                                .copyWith(color: AppColors.textPrimary),
                             decoration: InputDecoration(
                               hintText: 'Add a description for your stream',
-                              hintStyle: TextStyle(color: AppColors.textTertiary),
+                              hintStyle:
+                                  TextStyle(color: AppColors.textTertiary),
                               filled: false,
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 16),
                             ),
                           ),
                         ),
@@ -283,7 +295,10 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                           height: 56,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [AppColors.warmBrown, AppColors.accentMain],
+                              colors: [
+                                AppColors.warmBrown,
+                                AppColors.accentMain
+                              ],
                             ),
                             borderRadius: BorderRadius.circular(30),
                             boxShadow: [
@@ -302,12 +317,19 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                               child: Center(
                                 child: _isCreating
                                     ? SizedBox(
-                                        width: 24, height: 24,
-                                        child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Colors.white), strokeWidth: 2),
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                            valueColor: AlwaysStoppedAnimation(
+                                                Colors.white),
+                                            strokeWidth: 2),
                                       )
                                     : Text(
                                         'Start Live Stream',
-                                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600),
                                       ),
                               ),
                             ),
@@ -317,26 +339,31 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                         Center(
                           child: TextButton.icon(
                             onPressed: _isCreating ? null : _startInstant,
-                            icon: Icon(Icons.flash_on, color: AppColors.warmBrown, size: 20),
-                            label: Text('Quick Start', style: TextStyle(color: AppColors.warmBrown, fontWeight: FontWeight.w600)),
+                            icon: Icon(Icons.flash_on,
+                                color: AppColors.warmBrown, size: 20),
+                            label: Text('Quick Start',
+                                style: TextStyle(
+                                    color: AppColors.warmBrown,
+                                    fontWeight: FontWeight.w600)),
                           ),
                         ),
                         Center(
                           child: Text(
                             'Quick Start generates a default title automatically',
-                            style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                            style: AppTypography.caption
+                                .copyWith(color: AppColors.textSecondary),
                           ),
                         ),
                       ],
                     ),
-                   ),
+                  ),
 
-                   const Spacer(),
+                  const Spacer(),
                 ],
               ),
             ),
           ),
-          
+
           // Right Side: Image + Tips Overlay (60%)
           Expanded(
             flex: 6,
@@ -347,7 +374,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                 Container(
                   decoration: const BoxDecoration(
                     image: DecorationImage(
-                      image: AssetImage('assets/images/jesus-walking.png'),
+                      image: AssetImage('assets/images/jesus-teaching.png'),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -364,7 +391,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                     ),
                   ),
                 ),
-                
+
                 // Tips removed as per user request
               ],
             ),
@@ -376,7 +403,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
 
   Widget _buildMobileLayout(BuildContext context) {
     final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0E8),
       body: SizedBox(
@@ -384,38 +411,39 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
         height: MediaQuery.of(context).size.height,
         child: Stack(
           children: [
-             // Mobile Background logic...
-             Positioned(
+            // Mobile Background logic...
+            Positioned(
               top: -30,
-              right: isSmallMobile 
-                  ? -MediaQuery.of(context).size.width * 0.6 // Push further right on small screens
+              right: isSmallMobile
+                  ? -MediaQuery.of(context).size.width *
+                      0.6 // Push further right on small screens
                   : -MediaQuery.of(context).size.width * 0.4,
               height: MediaQuery.of(context).size.height * 0.6,
               width: MediaQuery.of(context).size.width * 1.3,
               child: Container(
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: const AssetImage('assets/images/thumb6.jpg'),
+                    image: const AssetImage('assets/images/jesus-teaching.png'),
                     fit: BoxFit.contain,
                     alignment: Alignment.topRight,
                   ),
                 ),
               ),
             ),
-             // Gradient
-             Positioned.fill(
+            // Gradient
+            Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
                     colors: [
-                            const Color(0xFFF5F0E8),
-                            const Color(0xFFF5F0E8).withOpacity(0.98),
-                            const Color(0xFFF5F0E8).withOpacity(0.85),
-                            const Color(0xFFF5F0E8).withOpacity(0.4),
-                            Colors.transparent,
-                          ],
+                      const Color(0xFFF5F0E8),
+                      const Color(0xFFF5F0E8).withOpacity(0.98),
+                      const Color(0xFFF5F0E8).withOpacity(0.85),
+                      const Color(0xFFF5F0E8).withOpacity(0.4),
+                      Colors.transparent,
+                    ],
                     stops: const [0.0, 0.2, 0.4, 0.6, 0.8],
                   ),
                 ),
@@ -434,10 +462,11 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                       Row(
+                      Row(
                         children: [
                           IconButton(
-                            icon: Icon(Icons.arrow_back, color: AppColors.primaryDark),
+                            icon: Icon(Icons.arrow_back,
+                                color: AppColors.primaryDark),
                             onPressed: () => Navigator.pop(context),
                           ),
                           Expanded(
@@ -460,7 +489,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                         ),
                       ),
                       SizedBox(height: 32),
-                      
+
                       _buildStreamFormCard(),
                       const SizedBox(height: 24),
                       // Tips removed as per user request
@@ -476,9 +505,9 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
   }
 
   // Helper method so I don't break existing reference
-  Widget _buildDesktopLayout() { 
+  Widget _buildDesktopLayout() {
     // This is now redundant with _buildDesktopSplitLayout but kept if something references it (unlikely)
-    return Container(); 
+    return Container();
   }
 
   Widget _buildStreamTipsCard() {
@@ -504,21 +533,30 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                 padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppColors.warmBrown.withOpacity(0.15), AppColors.accentMain.withOpacity(0.1)],
+                    colors: [
+                      AppColors.warmBrown.withOpacity(0.15),
+                      AppColors.accentMain.withOpacity(0.1)
+                    ],
                   ),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.tips_and_updates, color: AppColors.warmBrown),
               ),
               const SizedBox(width: 12),
-              Text('Tips for a Great Stream', style: AppTypography.heading4.copyWith(fontWeight: FontWeight.bold)),
+              Text('Tips for a Great Stream',
+                  style: AppTypography.heading4
+                      .copyWith(fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 20),
-          _buildTipItem(Icons.lightbulb_outline, 'Good Lighting', 'Position yourself facing a light source for clear visibility.'),
-          _buildTipItem(Icons.mic_outlined, 'Clear Audio', 'Use a quiet environment and speak clearly.'),
-          _buildTipItem(Icons.wifi, 'Stable Internet', 'A strong connection ensures smooth streaming.'),
-          _buildTipItem(Icons.camera_alt_outlined, 'Frame Yourself', 'Keep your face centered and well-framed.'),
+          _buildTipItem(Icons.lightbulb_outline, 'Good Lighting',
+              'Position yourself facing a light source for clear visibility.'),
+          _buildTipItem(Icons.mic_outlined, 'Clear Audio',
+              'Use a quiet environment and speak clearly.'),
+          _buildTipItem(Icons.wifi, 'Stable Internet',
+              'A strong connection ensures smooth streaming.'),
+          _buildTipItem(Icons.camera_alt_outlined, 'Frame Yourself',
+              'Keep your face centered and well-framed.'),
         ],
       ),
     );
@@ -543,8 +581,12 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.bold)),
-                Text(description, style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                Text(title,
+                    style: AppTypography.bodySmall
+                        .copyWith(fontWeight: FontWeight.bold)),
+                Text(description,
+                    style: AppTypography.caption
+                        .copyWith(color: AppColors.textSecondary)),
               ],
             ),
           ),
@@ -555,7 +597,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
 
   Widget _buildStreamFormCard() {
     final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
-    
+
     return Container(
       padding: EdgeInsets.all(isSmallMobile ? AppSpacing.medium : 24),
       decoration: BoxDecoration(
@@ -596,7 +638,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            
+
             Center(
               child: Text(
                 'Stream Details',
@@ -635,7 +677,8 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
               ),
               child: TextFormField(
                 controller: _titleController,
-                style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                style:
+                    AppTypography.body.copyWith(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Enter a title for your live stream',
                   hintStyle: TextStyle(color: AppColors.textTertiary),
@@ -643,7 +686,8 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -683,7 +727,8 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
               child: TextFormField(
                 controller: _descriptionController,
                 maxLines: 3,
-                style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                style:
+                    AppTypography.body.copyWith(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Add a description for your stream',
                   hintStyle: TextStyle(color: AppColors.textTertiary),
@@ -691,7 +736,8 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 ),
               ),
             ),
@@ -725,13 +771,15 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                             height: 24,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.videocam, color: Colors.white, size: 24),
+                              Icon(Icons.videocam,
+                                  color: Colors.white, size: 24),
                               const SizedBox(width: 12),
                               Text(
                                 'Start Live Stream',
@@ -765,7 +813,8 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.flash_on, color: AppColors.warmBrown, size: 24),
+                        Icon(Icons.flash_on,
+                            color: AppColors.warmBrown, size: 24),
                         const SizedBox(width: 12),
                         Text(
                           'Quick Start',

@@ -6,6 +6,7 @@ import '../../models/event.dart';
 import '../../providers/event_provider.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
@@ -152,7 +153,7 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
                 backgroundColor: AppColors.warmBrown,
                 elevation: 0,
                 pinned: true,
-                expandedHeight: 280,
+                expandedHeight: isMediumScreen ? 280 : 200,
                 leading: Container(
                   margin: EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -244,60 +245,161 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Event header with title and date
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Date card
-                              Container(
-                                padding: EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(24),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.08),
-                                      blurRadius: 12,
-                                      offset: Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      DateFormat('MMM').format(event.eventDate).toUpperCase(),
-                                      style: TextStyle(
-                                        color: AppColors.warmBrown,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    Text(
-                                      event.eventDate.day.toString(),
-                                      style: TextStyle(
-                                        color: AppColors.textPrimary,
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      DateFormat('yyyy').format(event.eventDate),
-                                      style: TextStyle(
-                                        color: AppColors.textSecondary,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(width: 20),
-                              // Title and host info
-                              Expanded(
-                                child: Column(
+                          isMediumScreen
+                              ? Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    // Date card
+                                    Container(
+                                      padding: EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(24),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.08),
+                                            blurRadius: 12,
+                                            offset: Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            DateFormat('MMM').format(event.eventDate).toUpperCase(),
+                                            style: TextStyle(
+                                              color: AppColors.warmBrown,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          Text(
+                                            event.eventDate.day.toString(),
+                                            style: TextStyle(
+                                              color: AppColors.textPrimary,
+                                              fontSize: 32,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            DateFormat('yyyy').format(event.eventDate),
+                                            style: TextStyle(
+                                              color: AppColors.textSecondary,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(width: 20),
+                                    // Title and host info
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            event.title,
+                                            style: AppTypography.heading2.copyWith(
+                                              color: AppColors.textPrimary,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          SizedBox(height: 12),
+                                          Row(
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 18,
+                                                backgroundColor: AppColors.warmBrown.withOpacity(0.2),
+                                                backgroundImage: event.host?.avatar != null && event.host!.avatar!.isNotEmpty
+                                                    ? NetworkImage(_apiService.getMediaUrl(event.host!.avatar!))
+                                                    : null,
+                                                child: event.host?.avatar == null || event.host!.avatar!.isEmpty
+                                                    ? Icon(Icons.person, size: 18, color: AppColors.warmBrown)
+                                                    : null,
+                                              ),
+                                              SizedBox(width: 10),
+                                              Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'Hosted by',
+                                                    style: TextStyle(
+                                                      color: AppColors.textSecondary,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    event.host?.name ?? 'Unknown',
+                                                    style: TextStyle(
+                                                      color: AppColors.textPrimary,
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Date card
+                                    Container(
+                                      padding: EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.08),
+                                            blurRadius: 12,
+                                            offset: Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Column(
+                                            children: [
+                                              Text(
+                                                DateFormat('MMM').format(event.eventDate).toUpperCase(),
+                                                style: TextStyle(
+                                                  color: AppColors.warmBrown,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              Text(
+                                                event.eventDate.day.toString(),
+                                                style: TextStyle(
+                                                  color: AppColors.textPrimary,
+                                                  fontSize: 28,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              Text(
+                                                DateFormat('yyyy').format(event.eventDate),
+                                                style: TextStyle(
+                                                  color: AppColors.textSecondary,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(height: 16),
+                                    // Title and host info
                                     Text(
                                       event.title,
-                                      style: AppTypography.heading2.copyWith(
+                                      style: AppTypography.heading3.copyWith(
                                         color: AppColors.textPrimary,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -306,13 +408,13 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
                                     Row(
                                       children: [
                                         CircleAvatar(
-                                          radius: 18,
+                                          radius: 16,
                                           backgroundColor: AppColors.warmBrown.withOpacity(0.2),
                                           backgroundImage: event.host?.avatar != null && event.host!.avatar!.isNotEmpty
                                               ? NetworkImage(_apiService.getMediaUrl(event.host!.avatar!))
                                               : null,
                                           child: event.host?.avatar == null || event.host!.avatar!.isEmpty
-                                              ? Icon(Icons.person, size: 18, color: AppColors.warmBrown)
+                                              ? Icon(Icons.person, size: 16, color: AppColors.warmBrown)
                                               : null,
                                         ),
                                         SizedBox(width: 10),
@@ -323,14 +425,14 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
                                               'Hosted by',
                                               style: TextStyle(
                                                 color: AppColors.textSecondary,
-                                                fontSize: 12,
+                                                fontSize: 11,
                                               ),
                                             ),
                                             Text(
                                               event.host?.name ?? 'Unknown',
                                               style: TextStyle(
                                                 color: AppColors.textPrimary,
-                                                fontSize: 14,
+                                                fontSize: 13,
                                                 fontWeight: FontWeight.w600,
                                               ),
                                             ),
@@ -340,9 +442,6 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
                           
                           SizedBox(height: 32),
                           
@@ -420,45 +519,50 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
   }
 
   Widget _buildInfoSection(EventModel event) {
+    final isMediumScreen = MediaQuery.of(context).size.width > 768;
+    
     return SectionContainer(
       showShadow: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Event Details',
-            style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
-          ),
-          SizedBox(height: 20),
-          
-          // Time
-          _buildInfoRow(
-            icon: Icons.access_time,
-            title: 'Time',
-            value: DateFormat('EEEE, MMMM d, yyyy • h:mm a').format(event.eventDate),
-          ),
-          
-          SizedBox(height: 16),
-          
-          // Location
-          if (event.location != null && event.location!.isNotEmpty) ...[
-            _buildInfoRow(
-              icon: Icons.location_on,
-              title: 'Location',
-              value: event.location!,
+      child: Padding(
+        padding: EdgeInsets.all(isMediumScreen ? AppSpacing.large : AppSpacing.medium),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Event Details',
+              style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
             ),
+            SizedBox(height: 20),
+            
+            // Time
+            _buildInfoRow(
+              icon: Icons.access_time,
+              title: 'Time',
+              value: DateFormat('EEEE, MMMM d, yyyy • h:mm a').format(event.eventDate),
+            ),
+            
             SizedBox(height: 16),
+            
+            // Location
+            if (event.location != null && event.location!.isNotEmpty) ...[
+              _buildInfoRow(
+                icon: Icons.location_on,
+                title: 'Location',
+                value: event.location!,
+              ),
+              SizedBox(height: 16),
+            ],
+            
+            // Capacity
+            _buildInfoRow(
+              icon: Icons.people,
+              title: 'Capacity',
+              value: event.maxAttendees > 0
+                  ? '${event.attendeesCount} / ${event.maxAttendees} attendees'
+                  : '${event.attendeesCount} attendees',
+            ),
           ],
-          
-          // Capacity
-          _buildInfoRow(
-            icon: Icons.people,
-            title: 'Capacity',
-            value: event.maxAttendees > 0
-                ? '${event.attendeesCount} / ${event.maxAttendees} attendees'
-                : '${event.attendeesCount} attendees',
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -468,16 +572,18 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
     required String title,
     required String value,
   }) {
+    final isMediumScreen = MediaQuery.of(context).size.width > 768;
+    
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: EdgeInsets.all(10),
+          padding: EdgeInsets.all(isMediumScreen ? 10 : 8),
           decoration: BoxDecoration(
             color: AppColors.warmBrown.withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: AppColors.warmBrown, size: 20),
+          child: Icon(icon, color: AppColors.warmBrown, size: isMediumScreen ? 20 : 18),
         ),
         SizedBox(width: 14),
         Expanded(

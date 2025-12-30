@@ -239,7 +239,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     final totalPending = (stats['pending_podcasts'] ?? 0) +
         (stats['pending_movies'] ?? 0) +
         (stats['pending_music'] ?? 0) +
-        (stats['pending_posts'] ?? 0);
+        (stats['pending_posts'] ?? 0) +
+        (stats['pending_events'] ?? 0);
 
     return SectionContainer(
       showShadow: true,
@@ -282,7 +283,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               crossAxisSpacing: AppSpacing.medium,
               mainAxisSpacing: AppSpacing.medium,
             ),
-            itemCount: 4,
+            itemCount: 5,
             itemBuilder: (context, index) {
               switch (index) {
                 case 0:
@@ -323,6 +324,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     backgroundColor: AppColors.warmBrown,
                     onTap: () {
                       widget.onNavigateToPage?.call(1, tabIndex: 3); // Posts tab
+                    },
+                  );
+                case 4:
+                  return AdminDashboardCard(
+                    title: 'Pending Events',
+                    value: (stats['pending_events'] ?? 0).toString(),
+                    icon: Icons.event,
+                    backgroundColor: AppColors.warmBrown,
+                    onTap: () {
+                      widget.onNavigateToPage?.call(1, tabIndex: 5); // Events tab
                     },
                   );
                 default:
