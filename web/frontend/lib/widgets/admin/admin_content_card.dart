@@ -230,8 +230,33 @@ class AdminContentCard extends StatelessWidget {
             );
           }
         } else {
-          // Podcast video
-          context.push('/player/video/$contentId');
+          // Podcast video - Show in full screen player (same as movies)
+          final videoUrl = item['video_url'] as String?;
+          if (videoUrl != null && videoUrl.toString().isNotEmpty) {
+            final fullVideoUrl = _getMediaUrl(videoUrl);
+            final title = item['title'] as String? ?? 'Podcast';
+            final creator = item['creator_name'] as String? ?? 
+                           item['user']?['name'] as String? ?? 
+                           'Unknown';
+            final duration = (item['duration'] as int?) ?? 0;
+            
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => VideoPlayerFullScreen(
+                  videoId: contentId.toString(),
+                  title: title,
+                  author: creator,
+                  duration: duration,
+                  gradientColors: const [AppColors.backgroundPrimary, AppColors.backgroundSecondary],
+                  videoUrl: fullVideoUrl,
+                  onBack: () => Navigator.of(context).pop(),
+                ),
+              ),
+            );
+          } else {
+             _showError(context, 'Video URL is missing for this content.');
+          }
         }
       } else if (contentType == 'image') {
         final imageUrl = item['image_url'] as String?;

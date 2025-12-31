@@ -18,8 +18,8 @@ import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
+import 'package:go_router/go_router.dart';
 import 'video_preview_screen_web.dart';
-import '../../services/logger_service.dart';
 
 /// Web Video Editor Screen - Professional Video Editing UI for Web
 /// Features: Multi-track timeline, text overlays, trimming, filters, audio tracks
@@ -43,17 +43,18 @@ class VideoEditorScreenWeb extends StatefulWidget {
   State<VideoEditorScreenWeb> createState() => _VideoEditorScreenWebState();
 }
 
-class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with SingleTickerProviderStateMixin {
+class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb>
+    with SingleTickerProviderStateMixin {
   VideoPlayerController? _controller;
   final VideoEditingService _editingService = VideoEditingService();
   final ApiService _apiService = ApiService();
   late TabController _tabController;
-  
+
   bool _isInitializing = true;
   bool _isEditing = false;
   bool _hasError = false;
   String? _errorMessage;
-  
+
   // Video metadata
   String? _projectTitle;
   String _resolution = '1440p';
@@ -62,32 +63,33 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   Duration _currentPosition = Duration.zero;
   bool _isPlaying = false;
   Duration? _providedDuration;
-  
+
   // Editing state
   Duration _trimStart = Duration.zero;
   Duration _trimEnd = Duration.zero;
   bool _audioRemoved = false;
   String? _audioFilePath;
-  
+
   // Rotation state (0, 90, 180, 270 degrees)
   int _rotation = 0;
-  
+
   // Front camera flip state
   bool _isFrontCamera = false;
-  
+
   // Timeline state
   double _playheadPosition = 0.0; // 0.0 to 1.0
   bool _isDraggingPlayhead = false;
-  
+
   // Controls visibility for video preview
   bool _showVideoControls = true;
   Timer? _hideVideoControlsTimer;
   bool _isMouseOverVideo = false;
-  
+
   String? _editedVideoPath;
-  String? _persistedVideoPath; // Track the persisted path (backend URL if blob was uploaded)
+  String?
+      _persistedVideoPath; // Track the persisted path (backend URL if blob was uploaded)
   final _uuid = const Uuid();
-  
+
   // Draft state
   int? _draftId;
   bool _isSavingDraft = false;
@@ -95,41 +97,43 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this); // 3 tabs: Trim, Music, Rotate
+    _tabController =
+        TabController(length: 3, vsync: this); // 3 tabs: Trim, Music, Rotate
     _isFrontCamera = widget.isFrontCamera;
     _providedDuration = widget.duration;
-    
+
     if (kIsWeb) {
       // Add beforeunload warning for unsaved changes
       html.window.onBeforeUnload.listen((event) {
         if (_editedVideoPath != null || _hasUnsavedChanges()) {
           final beforeUnloadEvent = event as html.BeforeUnloadEvent;
-          beforeUnloadEvent.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+          beforeUnloadEvent.returnValue =
+              'You have unsaved changes. Are you sure you want to leave?';
         }
       });
     }
-    
+
     _initializeFromSavedState();
   }
 
   /// Check if there are unsaved changes
   bool _hasUnsavedChanges() {
-    return _trimStart != Duration.zero || 
-           (_trimEnd != Duration.zero && _trimEnd != _videoDuration) ||
-           _audioRemoved ||
-           _audioFilePath != null ||
-           _rotation != 0 ||
-           _isFrontCamera;
+    return _trimStart != Duration.zero ||
+        (_trimEnd != Duration.zero && _trimEnd != _videoDuration) ||
+        _audioRemoved ||
+        _audioFilePath != null ||
+        _rotation != 0 ||
+        _isFrontCamera;
   }
 
   /// Save current editing state as a draft
   Future<bool> _saveDraft() async {
     if (_isSavingDraft) return false;
-    
+
     setState(() {
       _isSavingDraft = true;
     });
-    
+
     try {
       // Prepare editing state
       final editingState = <String, dynamic>{
@@ -142,7 +146,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         'resolution': _resolution,
         'fps': _fps,
       };
-      
+
       final draftData = {
         'draft_type': DraftType.videoPodcast.value,
         'title': _projectTitle ?? widget.title ?? 'Video Draft',
@@ -152,9 +156,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         'duration': _videoDuration.inSeconds,
         'status': DraftStatus.editing.value,
       };
-      
+
       Map<String, dynamic> result;
-      
+
       if (_draftId != null) {
         // Update existing draft
         result = await _apiService.updateDraft(_draftId!, draftData);
@@ -163,15 +167,16 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         result = await _apiService.createDraft(draftData);
         _draftId = result['id'] as int?;
       }
-      
+
       if (!mounted) return false;
-      
+
       UnsavedChangesGuard.showDraftSavedToast(context);
       return true;
     } catch (e) {
-      LoggerService.e('Error saving draft: $e');
+      print('Error saving draft: $e');
       if (mounted) {
-        UnsavedChangesGuard.showDraftErrorToast(context, message: 'Failed to save draft: $e');
+        UnsavedChangesGuard.showDraftErrorToast(context,
+            message: 'Failed to save draft: $e');
       }
       return false;
     } finally {
@@ -188,9 +193,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     if (!_hasUnsavedChanges() && _editedVideoPath == null) {
       return true; // Allow navigation
     }
-    
+
     final result = await UnsavedChangesGuard.showUnsavedChangesDialog(context);
-    
+
     if (result == null) {
       // User cancelled - stay on page
       return false;
@@ -205,18 +210,18 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   }
 
   /// Initialize editor from saved state or widget parameters
-  /// 
+  ///
   /// This method handles:
   /// 1. Loading saved state from localStorage (if available and not expired)
   /// 2. Validating saved state is compatible with current environment
   /// 3. Uploading blob URLs to backend for persistence
   /// 4. Converting relative paths to full URLs based on environment
   /// 5. Restoring all editor settings (trim, rotation, flip, audio changes)
-  /// 
+  ///
   /// Environment Handling:
   /// - Clears stale localhost URLs when running in production
   /// - Preserves state when environment matches
-  /// 
+  ///
   /// Blob URL Handling:
   /// - Detects blob URLs from MediaRecorder
   /// - Uploads to backend via uploadTemporaryMedia()
@@ -237,45 +242,47 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         if (savedVideoPath != null) {
           // Validate saved path is compatible with current environment
           // Clear stale localhost URLs when in production
-          final isProduction = !_apiService.getMediaUrl('test').contains('localhost');
+          final isProduction =
+              !_apiService.getMediaUrl('test').contains('localhost');
           final isLocalhostUrl = savedVideoPath.contains('localhost');
-          
+
           if (isProduction && isLocalhostUrl) {
-            LoggerService.w('⚠️ Clearing stale localhost URL from saved state (production environment)');
+            print(
+                '⚠️ Clearing stale localhost URL from saved state (production environment)');
             await StatePersistence.clearVideoEditorState();
             // Don't use stale saved state
           } else {
             // Use saved path (which should be backend URL if blob was uploaded)
             _persistedVideoPath = savedVideoPath;
-          
-          // Restore trim values
-          if (trimStartMs != null) {
-            _trimStart = Duration(milliseconds: trimStartMs);
-          }
-          if (trimEndMs != null) {
-            _trimEnd = Duration(milliseconds: trimEndMs);
-          }
 
-          // Restore other state
-          if (audioRemoved != null) {
-            _audioRemoved = audioRemoved;
-          }
-          if (audioFilePath != null) {
-            _audioFilePath = audioFilePath;
-          }
-          if (rotation != null) {
-            _rotation = rotation;
-          }
-          if (isFrontCamera != null) {
-            _isFrontCamera = isFrontCamera;
-          }
+            // Restore trim values
+            if (trimStartMs != null) {
+              _trimStart = Duration(milliseconds: trimStartMs);
+            }
+            if (trimEndMs != null) {
+              _trimEnd = Duration(milliseconds: trimEndMs);
+            }
 
-          // Restore edited path if exists
-          if (savedEditedPath != null) {
-            _editedVideoPath = savedEditedPath;
-          }
+            // Restore other state
+            if (audioRemoved != null) {
+              _audioRemoved = audioRemoved;
+            }
+            if (audioFilePath != null) {
+              _audioFilePath = audioFilePath;
+            }
+            if (rotation != null) {
+              _rotation = rotation;
+            }
+            if (isFrontCamera != null) {
+              _isFrontCamera = isFrontCamera;
+            }
 
-          LoggerService.i('✅ Restored video editor state from saved state');
+            // Restore edited path if exists
+            if (savedEditedPath != null) {
+              _editedVideoPath = savedEditedPath;
+            }
+
+            print('✅ Restored video editor state from saved state');
           }
         }
       }
@@ -284,8 +291,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       String videoPathToUse = widget.videoPath;
       if (kIsWeb && widget.videoPath.startsWith('blob:')) {
         try {
-          LoggerService.i('📤 Uploading blob URL to backend for persistence...');
-          final uploadResult = await _apiService.uploadTemporaryMedia(widget.videoPath, 'video');
+          print('📤 Uploading blob URL to backend for persistence...');
+          final uploadResult =
+              await _apiService.uploadTemporaryMedia(widget.videoPath, 'video');
           if (uploadResult != null) {
             final backendUrl = uploadResult['url'] as String?;
             if (backendUrl != null) {
@@ -293,8 +301,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               final fullUrl = _apiService.getMediaUrl(backendUrl);
               videoPathToUse = fullUrl;
               _persistedVideoPath = fullUrl;
-              LoggerService.i('✅ Blob URL uploaded to backend: $backendUrl');
-              LoggerService.d('✅ Full media URL: $fullUrl');
+              print('✅ Blob URL uploaded to backend: $backendUrl');
+              print('✅ Full media URL: $fullUrl');
               // Save state with full URL
               await StatePersistence.saveVideoEditorState(
                 videoPath: fullUrl,
@@ -309,24 +317,26 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             }
           }
         } catch (e) {
-          LoggerService.w('⚠️ Failed to upload blob URL, using original: $e');
+          print('⚠️ Failed to upload blob URL, using original: $e');
         }
       } else if (_persistedVideoPath == null) {
         // If not a blob URL, ensure it's a full URL
-        if (!widget.videoPath.startsWith('http://') && !widget.videoPath.startsWith('https://') && !widget.videoPath.startsWith('blob:')) {
+        if (!widget.videoPath.startsWith('http://') &&
+            !widget.videoPath.startsWith('https://') &&
+            !widget.videoPath.startsWith('blob:')) {
           // It's a relative path from backend, convert to full URL
           videoPathToUse = _apiService.getMediaUrl(widget.videoPath);
-          LoggerService.d('🔗 Converted relative path to full URL: $videoPathToUse');
+          print('🔗 Converted relative path to full URL: $videoPathToUse');
         }
         _persistedVideoPath = videoPathToUse;
       }
 
       // Use persisted path or widget path
       final finalPath = _persistedVideoPath ?? videoPathToUse;
-      LoggerService.i('🎬 Initializing video player with: $finalPath');
+      print('🎬 Initializing video player with: $finalPath');
       await _initializePlayer(finalPath);
     } catch (e) {
-      LoggerService.e('❌ Error initializing from saved state: $e');
+      print('❌ Error initializing from saved state: $e');
       await _initializePlayer(widget.videoPath);
     }
   }
@@ -335,47 +345,47 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   /// This is a workaround for WebM videos that don't expose duration immediately
   Future<Duration?> _getDurationFromBlobUrl(String blobUrl) async {
     if (!kIsWeb) return null;
-    
+
     try {
       final videoElement = html.VideoElement()
         ..src = blobUrl
         ..preload = 'metadata';
-      
+
       // Wait for metadata to load
       final completer = Completer<Duration?>();
-      
+
       void checkDuration() {
         if (videoElement.readyState >= html.MediaElement.HAVE_METADATA) {
           final durationSeconds = videoElement.duration;
-          if (durationSeconds != null && 
-              !durationSeconds.isNaN && 
+          if (!durationSeconds.isNaN &&
               durationSeconds.isFinite &&
               durationSeconds > 0) {
-            completer.complete(Duration(milliseconds: (durationSeconds * 1000).round()));
+            completer.complete(
+                Duration(milliseconds: (durationSeconds * 1000).round()));
             return;
           }
         }
       }
-      
+
       videoElement.onLoadedMetadata.listen((_) {
         checkDuration();
         if (!completer.isCompleted) {
           completer.complete(null);
         }
       });
-      
+
       videoElement.onError.listen((_) {
         if (!completer.isCompleted) {
           completer.complete(null);
         }
       });
-      
+
       // Load the video
       videoElement.load();
-      
+
       // Check immediately in case metadata is already loaded
       checkDuration();
-      
+
       // Wait for metadata with timeout
       return await completer.future.timeout(
         const Duration(seconds: 5),
@@ -383,8 +393,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           // Try one more time
           checkDuration();
           final durationSeconds = videoElement.duration;
-          if (durationSeconds != null && 
-              !durationSeconds.isNaN && 
+          if (!durationSeconds.isNaN &&
               durationSeconds.isFinite &&
               durationSeconds > 0) {
             return Duration(milliseconds: (durationSeconds * 1000).round());
@@ -393,7 +402,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         },
       );
     } catch (e) {
-      LoggerService.w('⚠️ Error getting duration from blob URL: $e');
+      print('⚠️ Error getting duration from blob URL: $e');
       return null;
     }
   }
@@ -423,10 +432,10 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   Future<void> _initializePlayer(String videoPath) async {
     try {
       // On web, all paths should be URLs (blob URLs or network URLs)
-      final isNetworkUrl = videoPath.startsWith('http://') || 
-                          videoPath.startsWith('https://');
+      final isNetworkUrl =
+          videoPath.startsWith('http://') || videoPath.startsWith('https://');
       final isBlobUrl = videoPath.startsWith('blob:');
-      
+
       // Use networkUrl for both blob URLs and network URLs
       if (isNetworkUrl || isBlobUrl) {
         _controller = VideoPlayerController.networkUrl(
@@ -446,20 +455,20 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           ),
         );
       }
-      
+
       await _controller!.initialize();
-      
+
       // Wait for video to be ready and duration to be available
       if (!_controller!.value.isInitialized) {
         throw Exception('Video failed to initialize');
       }
-      
+
       // For WebM videos from MediaRecorder, duration may not be immediately available
       // Try to trigger metadata loading by seeking or playing briefly
       Duration? duration = _controller!.value.duration;
-      
+
       // If duration is not available, try to load metadata by seeking
-      if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
+      if (duration == Duration.zero || duration.inMilliseconds <= 0) {
         try {
           // Try to seek to a large position to trigger metadata loading
           await _controller!.seekTo(const Duration(seconds: 999999));
@@ -477,76 +486,87 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             await Future.delayed(const Duration(milliseconds: 200));
             duration = _controller!.value.duration;
           } catch (e2) {
-            LoggerService.w('⚠️ Could not trigger metadata load: $e2');
+            print('⚠️ Could not trigger metadata load: $e2');
           }
         }
       }
-      
+
       // Wait with multiple attempts for duration to become available
       int attempts = 0;
-      while ((duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) && attempts < 30) {
+      while ((duration == null ||
+              duration == Duration.zero ||
+              duration.inMilliseconds <= 0) &&
+          attempts < 30) {
         await Future.delayed(const Duration(milliseconds: 200));
         duration = _controller!.value.duration;
         attempts++;
       }
-      
+
       // Final check - if still no duration, try one more time after a longer wait
-      if ((duration == null || duration == Duration.zero || duration.inMilliseconds <= 0)) {
+      if ((duration == null ||
+          duration == Duration.zero ||
+          duration.inMilliseconds <= 0)) {
         await Future.delayed(const Duration(seconds: 1));
         duration = _controller!.value.duration;
       }
-      
+
       // Check if provided duration is available (from backend - more reliable for WebM)
       // WebM files from MediaRecorder often have wrong/missing duration metadata
       // The backend uses FFprobe re-encoding to get accurate duration
       if (_providedDuration != null && _providedDuration!.inMilliseconds > 0) {
         // If controller duration is missing, invalid, or suspiciously different from provided,
         // prefer the backend-provided duration
-        final bool controllerDurationInvalid = duration == null || 
-            duration == Duration.zero || 
-            duration.inMilliseconds <= 0;
-        final bool controllerDurationSuspicious = duration != null && 
-            duration.inMilliseconds > 0 &&
+        final bool controllerDurationInvalid =
+            duration == Duration.zero || duration.inMilliseconds <= 0;
+        final bool controllerDurationSuspicious = duration.inMilliseconds > 0 &&
             (_providedDuration!.inMilliseconds / duration.inMilliseconds > 2 ||
-             duration.inMilliseconds / _providedDuration!.inMilliseconds > 2);
-        
+                duration.inMilliseconds / _providedDuration!.inMilliseconds >
+                    2);
 
-        
         if (controllerDurationInvalid || controllerDurationSuspicious) {
-          LoggerService.w('🔄 Controller duration: ${duration?.inSeconds}s, Provided: ${_providedDuration!.inSeconds}s');
-          LoggerService.i('✅ Using backend-provided duration: ${_providedDuration!.inSeconds}s (more reliable for WebM)');
+          print(
+              '🔄 Controller duration: ${duration.inSeconds}s, Provided: ${_providedDuration!.inSeconds}s');
+          print(
+              '✅ Using backend-provided duration: ${_providedDuration!.inSeconds}s (more reliable for WebM)');
           duration = _providedDuration;
         }
-      } else if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
+      } else if (duration == Duration.zero || duration.inMilliseconds <= 0) {
         // No provided duration - try fallback methods for blob URLs
         if (widget.videoPath.startsWith('blob:')) {
           try {
             // Use a workaround: create a temporary video element to get duration
-            final durationFromElement = await _getDurationFromBlobUrl(widget.videoPath);
-            if (durationFromElement != null && durationFromElement.inMilliseconds > 0) {
+            final durationFromElement =
+                await _getDurationFromBlobUrl(widget.videoPath);
+            if (durationFromElement != null &&
+                durationFromElement.inMilliseconds > 0) {
               duration = durationFromElement;
             }
           } catch (e) {
-            LoggerService.w('⚠️ Could not get duration from blob URL: $e');
+            print('⚠️ Could not get duration from blob URL: $e');
           }
         }
-        
-        if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
-          throw Exception('Video duration is not available. The video may be corrupted or in an unsupported format. Please try recording again.');
+
+        if (duration == null ||
+            duration == Duration.zero ||
+            duration.inMilliseconds <= 0) {
+          throw Exception(
+              'Video duration is not available. The video may be corrupted or in an unsupported format. Please try recording again.');
         }
       }
-      
+
       _controller!.addListener(_videoListener);
-      
+
       // Extract project title from filename
       final fileName = _extractFileName(widget.videoPath);
       _projectTitle = widget.title ?? fileName;
-      
+
       // Extract video metadata
       final size = _controller!.value.size;
       _resolution = _getResolutionFromSize(size);
-      _fps = _controller!.value.size.height > 720 ? 30.0 : 29.97; // Estimate, video_player doesn't expose FPS directly
-      
+      _fps = _controller!.value.size.height > 720
+          ? 30.0
+          : 29.97; // Estimate, video_player doesn't expose FPS directly
+
       setState(() {
         _isInitializing = false;
         _videoDuration = duration!;
@@ -571,7 +591,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         errorStr.contains('Format error') ||
         errorStr.contains('format not supported')) {
       return 'This video format is not supported by your browser.\n\n'
-             'Tip: Try converting your video to MP4 format (H.264 codec) for best compatibility.';
+          'Tip: Try converting your video to MP4 format (H.264 codec) for best compatibility.';
     }
 
     // Network/loading errors
@@ -584,7 +604,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     // Decode errors
     if (errorStr.contains('MEDIA_ERR_DECODE') || errorStr.contains('decode')) {
       return 'This video file appears to be corrupted or uses an unsupported codec.\n\n'
-             'Tip: Try re-encoding the video or use a different file.';
+          'Tip: Try re-encoding the video or use a different file.';
     }
 
     // Timeout errors
@@ -617,7 +637,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         _currentPosition = _controller!.value.position;
         _isPlaying = _controller!.value.isPlaying;
         if (!_isDraggingPlayhead) {
-          _playheadPosition = _currentPosition.inMilliseconds / _videoDuration.inMilliseconds;
+          _playheadPosition =
+              _currentPosition.inMilliseconds / _videoDuration.inMilliseconds;
           _playheadPosition = _playheadPosition.clamp(0.0, 1.0);
         }
       });
@@ -626,7 +647,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
   Future<void> _togglePlayPause() async {
     if (_controller == null) return;
-    
+
     setState(() {
       if (_controller!.value.isPlaying) {
         _controller!.pause();
@@ -634,14 +655,14 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         _controller!.play();
       }
     });
-    
+
     // Show controls and manage timer
     _showVideoControlsWithAutoHide();
   }
 
   Future<void> _seekToPosition(double position) async {
     if (_controller == null || _videoDuration == Duration.zero) return;
-    
+
     final targetPosition = Duration(
       milliseconds: (position * _videoDuration.inMilliseconds).toInt(),
     );
@@ -678,7 +699,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       _isDraggingPlayhead = false;
     });
   }
-  
+
   void _onVideoMouseEnter() {
     setState(() {
       _isMouseOverVideo = true;
@@ -706,7 +727,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     setState(() {
       _showVideoControls = true;
     });
-    
+
     if (_controller?.value.isPlaying ?? false) {
       _startVideoControlsTimer();
     }
@@ -741,9 +762,10 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       );
       return;
     }
-    
-    final inputPath = _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
-    
+
+    final inputPath =
+        _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
+
     setState(() {
       _isEditing = true;
       _hasError = false;
@@ -754,7 +776,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         inputPath,
         _rotation,
         onProgress: (progress) {
-          LoggerService.d('Rotate progress: $progress%');
+          print('Rotate progress: $progress%');
         },
         onError: (error) {
           throw Exception(error);
@@ -767,9 +789,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           _rotation = 0; // Reset rotation after applying
           _isEditing = false;
         });
-        
+
         await _reloadPlayer(outputPath);
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✓ Video rotated successfully'),
@@ -785,7 +807,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         _hasError = true;
         _errorMessage = e.toString();
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1065,8 +1087,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           runSpacing: AppSpacing.small,
           children: [
             ...predefinedColors.map((color) {
-              final isSelected = currentColor != null &&
-                  currentColor.value == color.value;
+              final isSelected =
+                  currentColor != null && currentColor.value == color.value;
               return GestureDetector(
                 onTap: () => onChanged(color),
                 child: Container(
@@ -1216,17 +1238,13 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               : AppColors.backgroundSecondary,
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
-            color: isSelected
-                ? AppColors.warmBrown
-                : AppColors.borderPrimary,
+            color: isSelected ? AppColors.warmBrown : AppColors.borderPrimary,
             width: isSelected ? 2 : 1,
           ),
         ),
         child: Icon(
           icon,
-          color: isSelected
-              ? AppColors.warmBrown
-              : AppColors.textSecondary,
+          color: isSelected ? AppColors.warmBrown : AppColors.textSecondary,
           size: 24,
         ),
       ),
@@ -1238,7 +1256,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     if (_videoDuration == Duration.zero || _videoDuration.inSeconds <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Video duration is not available. Please wait for video to load.'),
+          content: const Text(
+              'Video duration is not available. Please wait for video to load.'),
           backgroundColor: AppColors.errorMain,
         ),
       );
@@ -1274,7 +1293,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
     try {
       // Use _persistedVideoPath (full URL) or _editedVideoPath, not widget.videoPath (may be relative)
-      final inputPath = _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
+      final inputPath =
+          _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
       print('🎬 Trimming video with path: $inputPath');
       final outputPath = await _editingService.trimVideo(
         inputPath,
@@ -1303,7 +1323,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           _editedVideoPath = outputPath;
           _isEditing = false;
         });
-        
+
         // Save state after successful trim
         await StatePersistence.saveVideoEditorState(
           videoPath: _persistedVideoPath ?? widget.videoPath,
@@ -1315,7 +1335,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           rotation: _rotation,
           isFrontCamera: _isFrontCamera,
         );
-        
+
         await _reloadPlayer(outputPath);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1359,9 +1379,10 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
   Future<void> _removeAudio() async {
     // Use _persistedVideoPath (full URL) or _editedVideoPath, not widget.videoPath (may be relative)
-    final inputPath = _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
+    final inputPath =
+        _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
     print('🎬 Removing audio from video with path: $inputPath');
-    
+
     setState(() {
       _isEditing = true;
       _hasError = false;
@@ -1385,7 +1406,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         _audioRemoved = true;
         _isEditing = false;
       });
-      
+
       // Save state after successful audio removal
       await StatePersistence.saveVideoEditorState(
         videoPath: _persistedVideoPath ?? widget.videoPath,
@@ -1395,7 +1416,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         audioRemoved: _audioRemoved,
         audioFilePath: _audioFilePath,
       );
-      
+
       await _reloadPlayer(outputPath);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1418,7 +1439,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       }
 
       final file = result.files.single;
-      
+
       if (file.bytes != null) {
         // On web, FilePicker returns bytes instead of path
         // Upload the audio file to backend to get URL
@@ -1428,10 +1449,10 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
         try {
           // Get filename from file name or use default
-          final fileName = file.name.isNotEmpty 
-              ? file.name 
+          final fileName = file.name.isNotEmpty
+              ? file.name
               : 'audio_${DateTime.now().millisecondsSinceEpoch}.mp3';
-          
+
           // Upload audio file
           final uploadResult = await _apiService.uploadAudioFromBytes(
             file.bytes!,
@@ -1439,8 +1460,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           );
 
           // Get the URL from upload response
-          final audioUrl = uploadResult['url'] ?? uploadResult['file_path'] ?? '';
-          
+          final audioUrl =
+              uploadResult['url'] ?? uploadResult['file_path'] ?? '';
+
           if (audioUrl.isEmpty) {
             throw Exception('No URL returned from audio upload');
           }
@@ -1468,7 +1490,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Unable to read audio file. Please try again.'),
+              content:
+                  const Text('Unable to read audio file. Please try again.'),
               backgroundColor: AppColors.errorMain,
             ),
           );
@@ -1491,9 +1514,10 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
   Future<void> _addAudioTrack(String audioPath) async {
     // Use _persistedVideoPath (full URL) or _editedVideoPath, not widget.videoPath (may be relative)
-    final inputPath = _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
+    final inputPath =
+        _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
     print('🎬 Adding audio to video with path: $inputPath');
-    
+
     setState(() {
       _isEditing = true;
       _hasError = false;
@@ -1531,11 +1555,12 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
   Future<void> _reloadPlayer(String path) async {
     await _controller?.dispose();
-    
+
     // On web, path should be a URL (blob URL or network URL)
-    final isNetworkUrl = path.startsWith('http://') || path.startsWith('https://');
+    final isNetworkUrl =
+        path.startsWith('http://') || path.startsWith('https://');
     final isBlobUrl = path.startsWith('blob:');
-    
+
     if (isNetworkUrl || isBlobUrl) {
       _controller = VideoPlayerController.networkUrl(
         Uri.parse(path),
@@ -1554,30 +1579,36 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         ),
       );
     }
-    
+
     await _controller!.initialize();
-    
+
     // Wait for video to be ready and duration to be available
     if (!_controller!.value.isInitialized) {
       print('⚠️ Video failed to initialize after reload');
       return;
     }
-    
+
     // Wait a bit for duration to be available
     Duration? duration = _controller!.value.duration;
     int attempts = 0;
-    while ((duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) && attempts < 10) {
+    while ((duration == null ||
+            duration == Duration.zero ||
+            duration.inMilliseconds <= 0) &&
+        attempts < 10) {
       await Future.delayed(const Duration(milliseconds: 100));
       duration = _controller!.value.duration;
       attempts++;
     }
-    
+
     // Calculate expected duration from trim values (before reset)
     final expectedDuration = _trimEnd - _trimStart;
-    print('🔄 Reloading video: controller duration=${duration?.inSeconds}s, expected=${expectedDuration.inSeconds}s');
-    
+    print(
+        '🔄 Reloading video: controller duration=${duration?.inSeconds}s, expected=${expectedDuration.inSeconds}s');
+
     // If controller duration is missing or suspiciously different, use expected duration
-    if (duration == null || duration == Duration.zero || duration.inMilliseconds <= 0) {
+    if (duration == null ||
+        duration == Duration.zero ||
+        duration.inMilliseconds <= 0) {
       if (expectedDuration.inMilliseconds > 0) {
         duration = expectedDuration;
         print('✅ Using expected duration from trim: ${duration.inSeconds}s');
@@ -1589,13 +1620,14 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       // Check if controller duration is suspiciously different (more than 50% difference)
       final ratio = duration.inMilliseconds / expectedDuration.inMilliseconds;
       if (ratio < 0.5 || ratio > 2.0) {
-        print('⚠️ Controller duration ${duration.inSeconds}s differs significantly from expected ${expectedDuration.inSeconds}s, using expected');
+        print(
+            '⚠️ Controller duration ${duration.inSeconds}s differs significantly from expected ${expectedDuration.inSeconds}s, using expected');
         duration = expectedDuration;
       }
     }
-    
+
     _controller!.addListener(_videoListener);
-    
+
     setState(() {
       _videoDuration = duration!;
       _trimEnd = _videoDuration;
@@ -1613,7 +1645,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
     try {
       // Get the starting video path (edited or original) - use full URL
-      String currentVideoPath = _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
+      String currentVideoPath =
+          _editedVideoPath ?? _persistedVideoPath ?? widget.videoPath;
       print('🎬 Saving video starting with path: $currentVideoPath');
 
       // Step 0: Apply rotation if needed (must be done first)
@@ -1624,7 +1657,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             duration: const Duration(seconds: 1),
           ),
         );
-        
+
         final rotatedPath = await _editingService.rotateVideo(
           currentVideoPath,
           _rotation,
@@ -1638,7 +1671,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             throw Exception(error);
           },
         );
-        
+
         if (rotatedPath != null) {
           currentVideoPath = rotatedPath;
           setState(() {
@@ -1658,7 +1691,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             duration: Duration(seconds: 1),
           ),
         );
-        
+
         final trimmedPath = await _editingService.trimVideo(
           currentVideoPath,
           _trimStart,
@@ -1673,7 +1706,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             throw Exception(error);
           },
         );
-        
+
         if (trimmedPath != null) {
           currentVideoPath = trimmedPath;
         } else {
@@ -1690,7 +1723,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             duration: Duration(seconds: 1),
           ),
         );
-        
+
         final noAudioPath = await _editingService.removeAudioTrack(
           currentVideoPath,
           onProgress: (progress) {},
@@ -1703,7 +1736,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             throw Exception(error);
           },
         );
-        
+
         if (noAudioPath != null) {
           currentVideoPath = noAudioPath;
         } else {
@@ -1717,7 +1750,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             duration: Duration(seconds: 1),
           ),
         );
-        
+
         final withAudioPath = await _editingService.addAudioTrack(
           currentVideoPath,
           _audioFilePath!,
@@ -1731,7 +1764,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             throw Exception(error);
           },
         );
-        
+
         if (withAudioPath != null) {
           currentVideoPath = withAudioPath;
         } else {
@@ -1756,7 +1789,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             duration: Duration(seconds: 2),
           ),
         );
-        
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -1788,7 +1821,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
   String _formatTime(Duration duration) {
     // Handle invalid durations
-    if (duration == Duration.zero || duration.isNegative || duration.inSeconds < 0) {
+    if (duration == Duration.zero ||
+        duration.isNegative ||
+        duration.inSeconds < 0) {
       return '00:00';
     }
     final totalSeconds = duration.inSeconds;
@@ -1813,8 +1848,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   Widget build(BuildContext context) {
     if (_isInitializing) {
       return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      resizeToAvoidBottomInset: false,
+        backgroundColor: AppColors.backgroundPrimary,
         body: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),
           child: Center(
@@ -1847,7 +1881,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                 children: [
                   IconButton(
                     icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => GoRouter.of(context).pop(),
                   ),
                   Expanded(
                     child: StyledPageHeader(
@@ -1906,19 +1940,20 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         if (didPop) return;
         final shouldPop = await _handleBackPressed();
         if (shouldPop && mounted) {
-          Navigator.of(context).pop();
+          GoRouter.of(context).pop();
         }
       },
       child: Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
         body: Container(
-          padding: EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
+          padding:
+              EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
           child: Column(
             children: [
               // Header - Fixed at top
               _buildHeader(),
               const SizedBox(height: AppSpacing.large),
-              
+
               // Main Content Area
               Expanded(
                 child: isMobile
@@ -1958,7 +1993,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
   Widget _buildHeader() {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 768;
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.medium),
       decoration: BoxDecoration(
@@ -1973,7 +2008,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             onPressed: () async {
               final shouldPop = await _handleBackPressed();
               if (shouldPop && mounted) {
-                Navigator.of(context).pop();
+                GoRouter.of(context).pop();
               }
             },
             tooltip: 'Back',
@@ -2045,7 +2080,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                       padding: const EdgeInsets.only(right: AppSpacing.small),
                       child: IntrinsicWidth(
                         child: OutlinedButton.icon(
-                          onPressed: (_isSavingDraft || _isEditing) ? null : _saveDraft,
+                          onPressed: (_isSavingDraft || _isEditing)
+                              ? null
+                              : _saveDraft,
                           icon: _isSavingDraft
                               ? SizedBox(
                                   width: 16,
@@ -2056,14 +2093,16 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                                   ),
                                 )
                               : Icon(Icons.bookmark_border, size: 18),
-                          label: Text(_isSavingDraft ? 'Saving...' : 'Save Draft'),
+                          label:
+                              Text(_isSavingDraft ? 'Saving...' : 'Save Draft'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.warmBrown,
                             side: BorderSide(color: AppColors.warmBrown),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                           ),
                         ),
                       ),
@@ -2072,7 +2111,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                       padding: const EdgeInsets.only(right: AppSpacing.small),
                       child: IntrinsicWidth(
                         child: StyledPillButton(
-                          label: _isEditing ? 'Processing...' : 'Save & Continue',
+                          label:
+                              _isEditing ? 'Processing...' : 'Save & Continue',
                           icon: Icons.save,
                           onPressed: _isEditing ? null : _handleSave,
                           isLoading: _isEditing,
@@ -2122,7 +2162,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                   padding: const EdgeInsets.only(right: AppSpacing.small),
                   child: IntrinsicWidth(
                     child: OutlinedButton.icon(
-                      onPressed: (_isSavingDraft || _isEditing) ? null : _saveDraft,
+                      onPressed:
+                          (_isSavingDraft || _isEditing) ? null : _saveDraft,
                       icon: _isSavingDraft
                           ? SizedBox(
                               width: 16,
@@ -2140,7 +2181,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       ),
                     ),
                   ),
@@ -2225,7 +2267,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
     // Increased estimate to account for actual controls bar height (~100-120px on mobile)
     final controlsBarHeight = 120.0;
     final videoHeight = (maxHeight - controlsBarHeight).clamp(200.0, maxHeight);
-    
+
     return Container(
       height: maxHeight,
       decoration: BoxDecoration(
@@ -2246,7 +2288,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           SizedBox(
             height: videoHeight,
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
               child: MouseRegion(
                 onEnter: (_) => _onVideoMouseEnter(),
                 onExit: (_) => _onVideoMouseExit(),
@@ -2257,18 +2300,22 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                     fit: StackFit.expand,
                     children: [
                       // Video player with rotation and flip transforms (UI-only preview)
-                      if (_controller != null && _controller!.value.isInitialized)
+                      if (_controller != null &&
+                          _controller!.value.isInitialized)
                         Center(
                           child: AspectRatio(
                             aspectRatio: (_rotation == 90 || _rotation == 270)
                                 ? 1 / _controller!.value.aspectRatio
                                 : _controller!.value.aspectRatio,
                             child: Transform.rotate(
-                              angle: _rotation * 3.14159265 / 180, // degrees -> radians
+                              angle: _rotation *
+                                  3.14159265 /
+                                  180, // degrees -> radians
                               child: Transform(
                                 alignment: Alignment.center,
                                 transform: _isFrontCamera
-                                    ? Matrix4.rotationY(3.14159265359) // horizontal flip
+                                    ? Matrix4.rotationY(
+                                        3.14159265359) // horizontal flip
                                     : Matrix4.identity(),
                                 child: VideoPlayer(_controller!),
                               ),
@@ -2281,14 +2328,15 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                             color: AppColors.warmBrown,
                           ),
                         ),
-                      
+
                       // Rotation indicator (UI-only preview)
                       if (_rotation != 0)
                         Positioned(
                           top: 16,
                           right: 16,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
                               color: AppColors.warmBrown.withOpacity(0.9),
                               borderRadius: BorderRadius.circular(20),
@@ -2296,7 +2344,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.rotate_right, color: Colors.white, size: 16),
+                                const Icon(Icons.rotate_right,
+                                    color: Colors.white, size: 16),
                                 const SizedBox(width: 4),
                                 Text(
                                   '${_rotation}°',
@@ -2310,9 +2359,10 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                             ),
                           ),
                         ),
-                      
+
                       // Controls Overlay
-                      if (_controller != null && _controller!.value.isInitialized)
+                      if (_controller != null &&
+                          _controller!.value.isInitialized)
                         AnimatedOpacity(
                           opacity: _showVideoControls ? 1.0 : 0.0,
                           duration: const Duration(milliseconds: 300),
@@ -2332,7 +2382,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                             child: Stack(
                               children: [
                                 // Center Play/Pause Button
-                                if (!_controller!.value.isPlaying || _isMouseOverVideo)
+                                if (!_controller!.value.isPlaying ||
+                                    _isMouseOverVideo)
                                   Center(
                                     child: MouseRegion(
                                       cursor: SystemMouseCursors.click,
@@ -2351,7 +2402,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                                             shape: BoxShape.circle,
                                             boxShadow: [
                                               BoxShadow(
-                                                color: AppColors.warmBrown.withOpacity(0.4),
+                                                color: AppColors.warmBrown
+                                                    .withOpacity(0.4),
                                                 blurRadius: 16,
                                                 offset: const Offset(0, 4),
                                                 spreadRadius: 2,
@@ -2379,7 +2431,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               ),
             ),
           ),
-          
+
           // Playback Controls Bar
           _buildPlaybackControlsBar(),
         ],
@@ -2389,7 +2441,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
 
   Widget _buildPlaybackControlsBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.medium, vertical: AppSpacing.small),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.medium, vertical: AppSpacing.small),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
@@ -2424,7 +2477,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                 onChangeEnd: (_) => _onPlayheadDragEnd(),
               ),
             ),
-          
+
           // Time and Controls
           Row(
             children: [
@@ -2499,7 +2552,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         children: [
           // Compact Tab Bar with header integrated
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.medium, vertical: AppSpacing.small),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.medium, vertical: AppSpacing.small),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -2525,7 +2579,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               ],
             ),
           ),
-          
+
           // Compact Tab Bar
           Container(
             decoration: BoxDecoration(
@@ -2550,11 +2604,12 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               ],
             ),
           ),
-          
+
           // Tab Content - Use explicit height for mobile, Expanded for desktop
           isMobile
               ? SizedBox(
-                  height: 400, // Fixed height for mobile to avoid unbounded constraints
+                  height:
+                      400, // Fixed height for mobile to avoid unbounded constraints
                   child: TabBarView(
                     controller: _tabController,
                     children: [
@@ -2617,7 +2672,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Container(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium, vertical: AppSpacing.small),
+              padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.medium, vertical: AppSpacing.small),
               decoration: BoxDecoration(
                 color: AppColors.warmBrown.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(30),
@@ -2631,7 +2687,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               ),
             ),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium, vertical: AppSpacing.small),
+              padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.medium, vertical: AppSpacing.small),
               decoration: BoxDecoration(
                 color: AppColors.backgroundSecondary,
                 borderRadius: BorderRadius.circular(30),
@@ -2659,10 +2716,14 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
           ),
           child: Slider(
             value: _videoDuration.inMilliseconds > 0
-                ? (_currentPosition.inMilliseconds / _videoDuration.inMilliseconds).clamp(0.0, 1.0)
+                ? (_currentPosition.inMilliseconds /
+                        _videoDuration.inMilliseconds)
+                    .clamp(0.0, 1.0)
                 : 0.0,
             onChanged: (value) {
-              final newPosition = Duration(milliseconds: (value * _videoDuration.inMilliseconds).round());
+              final newPosition = Duration(
+                  milliseconds:
+                      (value * _videoDuration.inMilliseconds).round());
               _controller?.seekTo(newPosition);
               setState(() {
                 _currentPosition = newPosition;
@@ -2693,7 +2754,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         _buildControlPill(
           icon: Icons.content_cut,
           label: 'Trim End',
-          value: _formatTime(_trimEnd != Duration.zero ? _trimEnd : _videoDuration),
+          value: _formatTime(
+              _trimEnd != Duration.zero ? _trimEnd : _videoDuration),
           onTap: () => _showTrimEndPicker(),
         ),
         // Audio Toggle
@@ -2707,10 +2769,13 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             });
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(_audioRemoved ? 'Audio removed from video' : 'Audio restored'),
+                content: Text(_audioRemoved
+                    ? 'Audio removed from video'
+                    : 'Audio restored'),
                 backgroundColor: AppColors.warmBrown,
                 behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
               ),
             );
           },
@@ -2736,7 +2801,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       onTap: onTap,
       borderRadius: BorderRadius.circular(30),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium, vertical: AppSpacing.small),
+        padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.medium, vertical: AppSpacing.small),
         decoration: BoxDecoration(
           color: AppColors.backgroundSecondary,
           borderRadius: BorderRadius.circular(30),
@@ -2782,9 +2848,12 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       onTap: onTap,
       borderRadius: BorderRadius.circular(30),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium, vertical: AppSpacing.small),
+        padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.medium, vertical: AppSpacing.small),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.warmBrown.withOpacity(0.1) : AppColors.errorMain.withOpacity(0.1),
+          color: isActive
+              ? AppColors.warmBrown.withOpacity(0.1)
+              : AppColors.errorMain.withOpacity(0.1),
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
             color: isActive ? AppColors.warmBrown : AppColors.errorMain,
@@ -2822,7 +2891,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       onTap: onTap,
       borderRadius: BorderRadius.circular(30),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: AppSpacing.large, vertical: AppSpacing.small + 4),
+        padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.large, vertical: AppSpacing.small + 4),
         decoration: BoxDecoration(
           gradient: isPrimary
               ? LinearGradient(
@@ -2929,7 +2999,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                     isExpanded: true,
                     items: List.generate(
                       (maxTime?.inMinutes ?? 60) + 1,
-                      (i) => DropdownMenuItem(value: i, child: Center(child: Text('$i'))),
+                      (i) => DropdownMenuItem(
+                          value: i, child: Center(child: Text('$i'))),
                     ),
                     onChanged: (v) {
                       if (v != null) selectedMinutes = v;
@@ -2959,7 +3030,10 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                     isExpanded: true,
                     items: List.generate(
                       60,
-                      (i) => DropdownMenuItem(value: i, child: Center(child: Text('${i.toString().padLeft(2, '0')}'))),
+                      (i) => DropdownMenuItem(
+                          value: i,
+                          child: Center(
+                              child: Text('${i.toString().padLeft(2, '0')}'))),
                     ),
                     onChanged: (v) {
                       if (v != null) selectedSeconds = v;
@@ -2973,17 +3047,20 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text('Cancel',
+                style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () {
-              final time = Duration(minutes: selectedMinutes, seconds: selectedSeconds);
+              final time =
+                  Duration(minutes: selectedMinutes, seconds: selectedSeconds);
               onTimeSelected(time);
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.warmBrown,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30)),
             ),
             child: const Text('Apply', style: TextStyle(color: Colors.white)),
           ),
@@ -3055,10 +3132,11 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                   ),
                 ),
               ),
-              
+
               // Playhead
               Positioned(
-                left: (_playheadPosition * constraints.maxWidth).clamp(0.0, constraints.maxWidth - 2),
+                left: (_playheadPosition * constraints.maxWidth)
+                    .clamp(0.0, constraints.maxWidth - 2),
                 top: 0,
                 bottom: 0,
                 child: GestureDetector(
@@ -3184,7 +3262,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.play_circle_outline, color: AppColors.warmBrown, size: 20),
+                    Icon(Icons.play_circle_outline,
+                        color: AppColors.warmBrown, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       'Main Video Track',
@@ -3292,7 +3371,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                         color: _audioFilePath != null
                             ? AppColors.textPrimary
                             : AppColors.textSecondary,
-                        fontWeight: _audioFilePath != null ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: _audioFilePath != null
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                     ),
                   ],
@@ -3304,7 +3385,6 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       ),
     );
   }
-
 
   Widget _buildEditPanel() {
     return SingleChildScrollView(
@@ -3327,10 +3407,10 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             ],
           ),
           const SizedBox(height: AppSpacing.small),
-          
+
           // Trim Controls - Only show if video duration is valid
-          if (_videoDuration == Duration.zero || 
-              _videoDuration.inSeconds <= 0 || 
+          if (_videoDuration == Duration.zero ||
+              _videoDuration.inSeconds <= 0 ||
               _videoDuration.inMilliseconds <= 0 ||
               _videoDuration.inSeconds.isNaN ||
               _videoDuration.inSeconds.isInfinite)
@@ -3345,7 +3425,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.error_outline, size: 48, color: AppColors.errorMain),
+                    Icon(Icons.error_outline,
+                        size: 48, color: AppColors.errorMain),
                     const SizedBox(height: AppSpacing.medium),
                     Text(
                       'Video duration is not available',
@@ -3375,188 +3456,210 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               ),
               child: Column(
                 children: [
-                // Start Time - Compact
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Start',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.small,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.warmBrown.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Text(
-                            _formatTime(_trimStart),
+                  // Start Time - Compact
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Start',
                             style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.warmBrown,
-                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Builder(
-                      builder: (context) {
-                        // Get duration and ensure it's valid
-                        final durationSeconds = _videoDuration.inSeconds;
-                        final maxValue = durationSeconds > 0 
-                            ? durationSeconds.toDouble() 
-                            : 1.0;
-                        final trimStartValue = _trimStart.inSeconds.toDouble().clamp(0.0, maxValue);
-                        
-                        // Only show slider if duration is valid
-                        if (maxValue <= 0 || maxValue.isNaN || maxValue.isInfinite) {
-                          return Container(
-                            height: 6,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.small,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: AppColors.borderPrimary,
-                              borderRadius: BorderRadius.circular(3),
+                              color: AppColors.warmBrown.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Text(
+                              _formatTime(_trimStart),
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.warmBrown,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Builder(
+                        builder: (context) {
+                          // Get duration and ensure it's valid
+                          final durationSeconds = _videoDuration.inSeconds;
+                          final maxValue = durationSeconds > 0
+                              ? durationSeconds.toDouble()
+                              : 1.0;
+                          final trimStartValue = _trimStart.inSeconds
+                              .toDouble()
+                              .clamp(0.0, maxValue);
+
+                          // Only show slider if duration is valid
+                          if (maxValue <= 0 ||
+                              maxValue.isNaN ||
+                              maxValue.isInfinite) {
+                            return Container(
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: AppColors.borderPrimary,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            );
+                          }
+
+                          return SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              trackHeight: 6,
+                              thumbShape: const RoundSliderThumbShape(
+                                  enabledThumbRadius: 10),
+                              overlayShape: const RoundSliderOverlayShape(
+                                  overlayRadius: 20),
+                              activeTrackColor: AppColors.warmBrown,
+                              inactiveTrackColor: AppColors.borderPrimary,
+                              thumbColor: AppColors.warmBrown,
+                            ),
+                            child: Slider(
+                              value: trimStartValue,
+                              min: 0.0,
+                              max: maxValue,
+                              onChanged: (value) {
+                                if (maxValue > 0 && durationSeconds > 0) {
+                                  final clampedValue =
+                                      value.clamp(0.0, maxValue);
+                                  setState(() {
+                                    _trimStart =
+                                        Duration(seconds: clampedValue.toInt());
+                                    if (_trimStart >= _trimEnd) {
+                                      final newEndSeconds =
+                                          (clampedValue + 1).toInt();
+                                      _trimEnd = Duration(
+                                          seconds: newEndSeconds.clamp(
+                                              0, durationSeconds));
+                                    }
+                                  });
+                                }
+                              },
                             ),
                           );
-                        }
-                        
-                        return SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            trackHeight: 6,
-                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
-                            activeTrackColor: AppColors.warmBrown,
-                            inactiveTrackColor: AppColors.borderPrimary,
-                            thumbColor: AppColors.warmBrown,
-                          ),
-                          child: Slider(
-                            value: trimStartValue,
-                            min: 0.0,
-                            max: maxValue,
-                            onChanged: (value) {
-                              if (maxValue > 0 && durationSeconds > 0) {
-                                final clampedValue = value.clamp(0.0, maxValue);
-                                setState(() {
-                                  _trimStart = Duration(seconds: clampedValue.toInt());
-                                  if (_trimStart >= _trimEnd) {
-                                    final newEndSeconds = (clampedValue + 1).toInt();
-                                    _trimEnd = Duration(seconds: newEndSeconds.clamp(0, durationSeconds));
-                                  }
-                                });
-                              }
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: AppSpacing.medium),
-                
-                // End Time - Compact
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'End',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.small,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.warmBrown.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Text(
-                            _formatTime(_trimEnd),
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: AppSpacing.medium),
+
+                  // End Time - Compact
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'End',
                             style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.warmBrown,
-                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Builder(
-                      builder: (context) {
-                        // Get duration and ensure it's valid
-                        final durationSeconds = _videoDuration.inSeconds;
-                        final maxValue = durationSeconds > 0 
-                            ? durationSeconds.toDouble() 
-                            : 1.0;
-                        final trimEndValue = _trimEnd.inSeconds.toDouble().clamp(0.0, maxValue);
-                        
-                        // Only show slider if duration is valid
-                        if (maxValue <= 0 || maxValue.isNaN || maxValue.isInfinite) {
-                          return Container(
-                            height: 6,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.small,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: AppColors.borderPrimary,
-                              borderRadius: BorderRadius.circular(3),
+                              color: AppColors.warmBrown.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Text(
+                              _formatTime(_trimEnd),
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.warmBrown,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Builder(
+                        builder: (context) {
+                          // Get duration and ensure it's valid
+                          final durationSeconds = _videoDuration.inSeconds;
+                          final maxValue = durationSeconds > 0
+                              ? durationSeconds.toDouble()
+                              : 1.0;
+                          final trimEndValue = _trimEnd.inSeconds
+                              .toDouble()
+                              .clamp(0.0, maxValue);
+
+                          // Only show slider if duration is valid
+                          if (maxValue <= 0 ||
+                              maxValue.isNaN ||
+                              maxValue.isInfinite) {
+                            return Container(
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: AppColors.borderPrimary,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            );
+                          }
+
+                          return SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              trackHeight: 6,
+                              thumbShape: const RoundSliderThumbShape(
+                                  enabledThumbRadius: 10),
+                              overlayShape: const RoundSliderOverlayShape(
+                                  overlayRadius: 20),
+                              activeTrackColor: AppColors.warmBrown,
+                              inactiveTrackColor: AppColors.borderPrimary,
+                              thumbColor: AppColors.warmBrown,
+                            ),
+                            child: Slider(
+                              value: trimEndValue,
+                              min: 0.0,
+                              max: maxValue,
+                              onChanged: (value) {
+                                if (maxValue > 0 && durationSeconds > 0) {
+                                  final clampedValue =
+                                      value.clamp(0.0, maxValue);
+                                  setState(() {
+                                    _trimEnd =
+                                        Duration(seconds: clampedValue.toInt());
+                                    if (_trimEnd <= _trimStart) {
+                                      final newStartSeconds =
+                                          (clampedValue - 1).toInt();
+                                      _trimStart = Duration(
+                                          seconds: newStartSeconds.clamp(
+                                              0, durationSeconds));
+                                    }
+                                  });
+                                }
+                              },
                             ),
                           );
-                        }
-                        
-                        return SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            trackHeight: 6,
-                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
-                            activeTrackColor: AppColors.warmBrown,
-                            inactiveTrackColor: AppColors.borderPrimary,
-                            thumbColor: AppColors.warmBrown,
-                          ),
-                          child: Slider(
-                            value: trimEndValue,
-                            min: 0.0,
-                            max: maxValue,
-                            onChanged: (value) {
-                              if (maxValue > 0 && durationSeconds > 0) {
-                                final clampedValue = value.clamp(0.0, maxValue);
-                                setState(() {
-                                  _trimEnd = Duration(seconds: clampedValue.toInt());
-                                  if (_trimEnd <= _trimStart) {
-                                    final newStartSeconds = (clampedValue - 1).toInt();
-                                    _trimStart = Duration(seconds: newStartSeconds.clamp(0, durationSeconds));
-                                  }
-                                });
-                              }
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ],
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          
+
           const SizedBox(height: AppSpacing.medium),
-          
+
           // Apply Button - Compact
-          if (_videoDuration != Duration.zero && 
-              _videoDuration.inSeconds > 0 && 
+          if (_videoDuration != Duration.zero &&
+              _videoDuration.inSeconds > 0 &&
               _videoDuration.inMilliseconds > 0 &&
               !_videoDuration.inSeconds.isNaN &&
               !_videoDuration.inSeconds.isInfinite)
@@ -3623,7 +3726,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             ],
           ),
           const SizedBox(height: AppSpacing.medium),
-          
+
           // Audio Status Card
           Container(
             padding: const EdgeInsets.all(AppSpacing.large),
@@ -3691,9 +3794,9 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               ],
             ),
           ),
-          
+
           const SizedBox(height: AppSpacing.large),
-          
+
           // Action Buttons
           Row(
             children: [
@@ -3792,7 +3895,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
             ],
           ),
           const SizedBox(height: AppSpacing.large),
-          
+
           // Rotation Options Grid
           Row(
             children: [
@@ -3805,15 +3908,17 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
               Expanded(child: _buildRotationButton(270, '90° CCW')),
             ],
           ),
-          
+
           const SizedBox(height: AppSpacing.large),
-          
+
           // Apply Rotation Button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _rotation != 0 && !_isEditing ? _applyRotation : null,
-              icon: Icon(_isEditing ? Icons.hourglass_empty : Icons.check_circle, size: 18),
+              icon: Icon(
+                  _isEditing ? Icons.hourglass_empty : Icons.check_circle,
+                  size: 18),
               label: Text(_isEditing ? 'Processing...' : 'Apply Rotation'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.warmBrown,
@@ -3841,19 +3946,22 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.medium),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.warmBrown : AppColors.backgroundSecondary,
+          color:
+              isSelected ? AppColors.warmBrown : AppColors.backgroundSecondary,
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
             color: isSelected ? AppColors.warmBrown : AppColors.borderPrimary,
             width: isSelected ? 2 : 1,
           ),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: AppColors.warmBrown.withOpacity(0.3),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ] : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.warmBrown.withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -3877,7 +3985,6 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb> with Single
       ),
     );
   }
-
 }
 
 /// Simple Color Picker Dialog
@@ -4050,4 +4157,3 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> {
     );
   }
 }
-

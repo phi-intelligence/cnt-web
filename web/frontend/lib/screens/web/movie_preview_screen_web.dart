@@ -240,10 +240,11 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
   }
 
   void _handleBack() {
+    // Use GoRouter for consistent navigation
     if (GoRouter.of(context).canPop()) {
       GoRouter.of(context).pop();
     } else {
-      Navigator.pop(context);
+      GoRouter.of(context).go('/home');
     }
   }
 
@@ -581,7 +582,15 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (context.mounted) {
+          _handleBack();
+        }
+      },
+      child: Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
       resizeToAvoidBottomInset: false,
       body: Container(
@@ -663,6 +672,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
           ],
         ),
       ),
+    ),
     );
   }
 

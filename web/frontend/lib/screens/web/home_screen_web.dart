@@ -748,8 +748,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(24),
                                 image: const DecorationImage(
-                                  image: AssetImage(
-                                      'assets/images/jesus-teaching.png'),
+                                  image: AssetImage('assets/images/jesus2.png'),
                                   fit: BoxFit.cover,
                                   alignment: Alignment.topCenter,
                                   opacity: 0.65,

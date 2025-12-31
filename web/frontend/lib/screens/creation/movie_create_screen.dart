@@ -10,6 +10,7 @@ import 'dart:html' if (dart.library.io) '../../utils/html_stub.dart' as html;
 import '../../services/logger_service.dart';
 import '../../services/api_service.dart';
 import '../../models/api_models.dart';
+import 'package:go_router/go_router.dart';
 
 /// Movie Create Screen
 /// Shows options to upload movies directly
@@ -184,7 +185,7 @@ class MovieCreateScreen extends StatelessWidget {
             ),
           );
           // Navigate back
-          Navigator.pop(context);
+          GoRouter.of(context).pop();
         }
       } catch (e) {
         // Close upload dialog if still open
@@ -232,7 +233,15 @@ class MovieCreateScreen extends StatelessWidget {
     final isMobile = screenWidth < 600;
     final isTablet = screenWidth >= 600 && screenWidth < 1024;
 
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (context.mounted) {
+          GoRouter.of(context).pop();
+        }
+      },
+      child: Scaffold(
       backgroundColor: const Color(0xFFF5F0E8),
       resizeToAvoidBottomInset: false,
       body: SizedBox(
@@ -250,7 +259,7 @@ class MovieCreateScreen extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: const AssetImage('assets/images/jesus-teaching.png'),
+                    image: const AssetImage('assets/images/cross.png'),
                     fit: isMobile ? BoxFit.contain : BoxFit.cover,
                     alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
                   ),
@@ -377,6 +386,7 @@ class MovieCreateScreen extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 

@@ -4,28 +4,17 @@ import 'package:go_router/go_router.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
-import '../creation/video_podcast_create_screen.dart';
-import '../creation/audio_podcast_create_screen.dart';
-import '../creation/quote_create_screen_web.dart';
-import 'meeting_options_screen_web.dart';
-import '../live/live_stream_start_screen.dart';
+
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
 import '../../providers/auth_provider.dart';
-import '../admin/bulk_upload_screen.dart';
-import '../events/events_list_screen_web.dart';
-import '../creation/movie_create_screen.dart';
+
 
 /// Web Create Screen - Full implementation
 class CreateScreenWeb extends StatelessWidget {
   const CreateScreenWeb({super.key});
 
-  void _navigateToScreen(BuildContext context, Widget screen) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => screen),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -88,26 +77,15 @@ class CreateScreenWeb extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Create Content',
-                    style: AppTypography.heading2.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.large),
+                child: Text(
+                  'Create Content',
+                  style: AppTypography.heading2.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () {
-                      if (Navigator.canPop(context)) {
-                        Navigator.pop(context);
-                      }
-                    },
-                    color: AppColors.textSecondary,
-                  ),
-                ],
+                ),
               ),
               
               const SizedBox(height: AppSpacing.large),
@@ -147,10 +125,7 @@ class CreateScreenWeb extends StatelessWidget {
         description: 'Record and share audio content',
         icon: Icons.mic,
         hoverColors: brownHover,
-        onTap: () => _navigateToScreen(
-          context,
-          const AudioPodcastCreateScreen(),
-        ),
+        onTap: () => context.push('/create/audio'),
       ),
       // 2. Video Podcast (orange)
       _buildOptionCard(
@@ -159,10 +134,7 @@ class CreateScreenWeb extends StatelessWidget {
         description: 'Create and upload video content',
         icon: Icons.videocam,
         hoverColors: orangeHover,
-        onTap: () => _navigateToScreen(
-          context,
-          const VideoPodcastCreateScreen(),
-        ),
+        onTap: () => context.push('/create/video'),
       ),
       // 3. Meetings (brown)
       _buildOptionCard(
@@ -171,14 +143,7 @@ class CreateScreenWeb extends StatelessWidget {
         description: 'Schedule or start a meeting',
         icon: Icons.group,
         hoverColors: brownHover,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MeetingOptionsScreenWeb(),
-            ),
-          );
-        },
+        onTap: () => context.push('/meetings'),
       ),
       // 4. Quote (orange)
       _buildOptionCard(
@@ -187,10 +152,7 @@ class CreateScreenWeb extends StatelessWidget {
         description: 'Share inspirational quotes',
         icon: Icons.format_quote,
         hoverColors: orangeHover,
-        onTap: () => _navigateToScreen(
-          context,
-          const QuoteCreateScreenWeb(),
-        ),
+        onTap: () => context.push('/quote'),
       ),
       // 5. Events (brown)
       _buildOptionCard(
@@ -199,10 +161,7 @@ class CreateScreenWeb extends StatelessWidget {
         description: 'Host or join community events',
         icon: Icons.event,
         hoverColors: brownHover,
-        onTap: () => _navigateToScreen(
-          context,
-          const EventsListScreenWeb(),
-        ),
+        onTap: () => context.push('/events'),
       ),
       // 6. Live Stream (orange)
       _buildOptionCard(
@@ -211,10 +170,7 @@ class CreateScreenWeb extends StatelessWidget {
         description: 'Start a live streaming session',
         icon: Icons.live_tv,
         hoverColors: orangeHover,
-        onTap: () => _navigateToScreen(
-          context,
-          const LiveStreamStartScreen(),
-        ),
+        onTap: () => context.push('/live-stream/start'),
       ),
       // 7. My Drafts (brown)
       _buildOptionCard(
@@ -232,10 +188,7 @@ class CreateScreenWeb extends StatelessWidget {
         description: 'Upload and manage movies',
         icon: Icons.movie,
         hoverColors: orangeHover,
-        onTap: () => _navigateToScreen(
-          context,
-          const MovieCreateScreen(),
-        ),
+        onTap: () => context.push('/create/movie'),
       ),
     ];
     
@@ -248,10 +201,7 @@ class CreateScreenWeb extends StatelessWidget {
           description: 'Upload multiple podcasts at once',
           icon: Icons.cloud_upload,
           hoverColors: brownHover, // 9 - brown (admin only)
-          onTap: () => _navigateToScreen(
-            context,
-            const BulkUploadScreen(),
-          ),
+          onTap: () => context.push('/bulk-upload'),
         ),
       );
     }
@@ -266,64 +216,42 @@ class CreateScreenWeb extends StatelessWidget {
         context,
         title: 'Audio',
         icon: Icons.mic,
-        onTap: () => _navigateToScreen(
-          context,
-          const AudioPodcastCreateScreen(),
-        ),
+        onTap: () => context.push('/create/audio'),
       ),
       // 2. Video Podcast
       _buildMobileOptionCard(
         context,
         title: 'Video',
         icon: Icons.videocam,
-        onTap: () => _navigateToScreen(
-          context,
-          const VideoPodcastCreateScreen(),
-        ),
+        onTap: () => context.push('/create/video'),
       ),
       // 3. Meeting
       _buildMobileOptionCard(
         context,
         title: 'Meeting',
         icon: Icons.group,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MeetingOptionsScreenWeb(),
-            ),
-          );
-        },
+        onTap: () => context.push('/meetings'),
       ),
       // 4. Live Stream
       _buildMobileOptionCard(
         context,
         title: 'Live Stream',
         icon: Icons.live_tv,
-        onTap: () => _navigateToScreen(
-          context,
-          const LiveStreamStartScreen(),
-        ),
+        onTap: () => context.push('/live-stream/start'),
       ),
       // 5. Quote
       _buildMobileOptionCard(
         context,
         title: 'Quote',
         icon: Icons.format_quote,
-        onTap: () => _navigateToScreen(
-          context,
-          const QuoteCreateScreenWeb(),
-        ),
+        onTap: () => context.push('/quote'),
       ),
       // 6. Events
       _buildMobileOptionCard(
         context,
         title: 'Events',
         icon: Icons.event,
-        onTap: () => _navigateToScreen(
-          context,
-          const EventsListScreenWeb(),
-        ),
+        onTap: () => context.push('/events'),
       ),
       // 7. My Drafts
       _buildMobileOptionCard(
@@ -337,10 +265,7 @@ class CreateScreenWeb extends StatelessWidget {
         context,
         title: 'Movie',
         icon: Icons.movie,
-        onTap: () => _navigateToScreen(
-          context,
-          const MovieCreateScreen(),
-        ),
+        onTap: () => context.push('/create/movie'),
       ),
     ];
     
@@ -352,10 +277,7 @@ class CreateScreenWeb extends StatelessWidget {
           title: 'Bulk Upload',
           icon: Icons.cloud_upload,
           isAdminFeature: true,
-          onTap: () => _navigateToScreen(
-            context,
-            const BulkUploadScreen(),
-          ),
+          onTap: () => context.push('/bulk-upload'),
         ),
       );
     }

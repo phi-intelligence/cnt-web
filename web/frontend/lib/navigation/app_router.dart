@@ -14,10 +14,12 @@ import '../providers/notification_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/artist_provider.dart';
 import '../providers/event_provider.dart';
+import '../providers/navigation_history_provider.dart';
 import '../services/websocket_service.dart';
 import '../theme/app_theme.dart';
 import '../config/app_config.dart';
 import 'app_routes.dart';
+import '../widgets/navigation/back_button_handler.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
 class AppRouter extends StatefulWidget {
@@ -78,6 +80,7 @@ class _AppRouterState extends State<AppRouter> {
     // Always use web navigation - no platform detection needed
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => NavigationHistoryProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => AppState()),
         ChangeNotifierProvider(create: (_) => MusicProvider()),
@@ -93,11 +96,11 @@ class _AppRouterState extends State<AppRouter> {
         ChangeNotifierProvider(create: (_) => ArtistProvider()),
         ChangeNotifierProvider(create: (_) => EventProvider()),
       ],
-      child: Consumer<AuthProvider>(
-        builder: (context, authProvider, _) {
-          // Create GoRouter instance
-          final router = createAppRouter(authProvider);
-          
+      child: Consumer2<AuthProvider, NavigationHistoryProvider>(
+        builder: (context, authProvider, navHistoryProvider, _) {
+          // Create GoRouter instance with navigation history provider
+          final router = createAppRouter(authProvider, navHistoryProvider);
+
           return MaterialApp.router(
             title: 'CNT Media Platform',
             debugShowCheckedModeBanner: false,
@@ -105,6 +108,10 @@ class _AppRouterState extends State<AppRouter> {
             darkTheme: AppTheme.darkTheme,
             themeMode: ThemeMode.system,
             routerConfig: router,
+            // Wrap entire app with back button handler
+            builder: (context, child) {
+              return BackButtonHandler(child: child ?? const SizedBox());
+            },
           );
         },
       ),

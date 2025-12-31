@@ -60,10 +60,12 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
       // Check permissions first
       final hasPermission = await _recorder!.hasPermission();
       if (!hasPermission) {
-        setState(() {
-          _errorMessage = 'Camera permission denied. Please allow camera access in your browser settings.';
-          _isInitializing = false;
-        });
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'Camera permission denied. Please allow camera access in your browser settings.';
+            _isInitializing = false;
+          });
+        }
         return;
       }
 
@@ -77,9 +79,11 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
         (int viewId) => _videoElement!,
       );
 
-      setState(() {
-        _isInitializing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isInitializing = false;
+        });
+      }
     } catch (e) {
       LoggerService.e('❌ Error initializing camera: $e');
       // Extract user-friendly error message
@@ -88,10 +92,12 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
         errorMsg = errorMsg.replaceFirst('Exception: ', '');
       }
       
-      setState(() {
-        _errorMessage = errorMsg.isNotEmpty ? errorMsg : 'Failed to initialize camera. Please check your browser settings and try again.';
-        _isInitializing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = errorMsg.isNotEmpty ? errorMsg : 'Failed to initialize camera. Please check your browser settings and try again.';
+          _isInitializing = false;
+        });
+      }
     }
   }
 
@@ -110,10 +116,12 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
 
     try {
       await _recorder!.startRecording();
-      setState(() {
-        _isRecording = true;
-        _isPaused = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isRecording = true;
+          _isPaused = false;
+        });
+      }
       _updateDuration();
     } catch (e) {
       if (mounted) {
@@ -134,9 +142,11 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
 
     try {
       await _recorder!.pauseRecording();
-      setState(() {
-        _isPaused = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isPaused = true;
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -156,9 +166,11 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
 
     try {
       await _recorder!.resumeRecording();
-      setState(() {
-        _isPaused = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isPaused = false;
+        });
+      }
       _updateDuration();
     } catch (e) {
       if (mounted) {
@@ -239,9 +251,11 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
             ),
           );
         }
-        setState(() {
-          _isRecording = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isRecording = false;
+          });
+        }
         return;
       }
 
@@ -310,10 +324,12 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
             ),
           ),
         );
-        setState(() {
-          _isRecording = false;
-          _isPaused = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isRecording = false;
+            _isPaused = false;
+          });
+        }
       }
     }
   }
@@ -334,7 +350,9 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
       // Update video element view
       if (_videoElementViewId != null && _recorder!.videoElement != null) {
         _videoElement = _recorder!.videoElement;
-        setState(() {});
+        if (mounted) {
+          setState(() {});
+        }
       }
     } catch (e) {
       if (mounted) {

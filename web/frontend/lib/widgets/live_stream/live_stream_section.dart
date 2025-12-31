@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
-import '../../screens/live/live_stream_start_screen.dart';
+import 'package:go_router/go_router.dart';
 import '../../utils/responsive_utils.dart';
 
 /// Live Stream section styled like the Bible Reader section
@@ -11,12 +11,7 @@ class LiveStreamSection extends StatelessWidget {
   const LiveStreamSection({super.key});
 
   void _handleLiveStreamTap(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const LiveStreamStartScreen(),
-      ),
-    );
+    context.push('/live-stream/start');
   }
 
   @override

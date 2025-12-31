@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:async';
 import 'package:video_player/video_player.dart';
 import '../../theme/app_colors.dart';
@@ -299,15 +300,8 @@ class _MoviesScreenWebState extends State<MoviesScreenWeb> {
 
   void _handleMovieTap(ContentItem item) {
     // Navigate to movie detail screen (web version)
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MovieDetailScreenWeb(
-          item: item,
-          movieId: int.tryParse(item.id),
-        ),
-      ),
-    );
+    // Navigate to movie detail screen (web version)
+    context.push('/movie/${item.id}', extra: item);
   }
 
   // Responsive aspect ratio for movie cards

@@ -218,7 +218,7 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
                       onPressed: () {
                         Navigator.of(dialogContext).pop();
                         // Go back to create page using proper routing
-                        Navigator.of(context).pop();
+                        context.pop();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.warmBrown,
@@ -372,7 +372,7 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
         if (didPop) return;
         final shouldPop = await _handleWillPop();
         if (shouldPop && context.mounted) {
-          Navigator.of(context).pop();
+          GoRouter.of(context).pop();
         }
       },
       child: Scaffold(
@@ -416,10 +416,10 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
                                 if (_hasUnsavedChanges) {
                                   final shouldPop = await _handleWillPop();
                                   if (shouldPop && context.mounted) {
-                                    Navigator.of(context).pop();
+                                    context.pop();
                                   }
                                 } else {
-                                  Navigator.of(context).pop();
+                                  context.pop();
                                 }
                               },
                             ),

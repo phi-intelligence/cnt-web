@@ -593,6 +593,12 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
       setState(() => _isBuffering = isControllerBuffering);
     }
 
+    // Don't update position during active buffering to prevent position jumps
+    // This helps maintain stable seeking behavior
+    if (isControllerBuffering) {
+      return;
+    }
+
     // Detect when video starts playing (to clear autoplay blocked flag)
     if (_autoplayBlocked && _controller!.value.isPlaying) {
       debugPrint(
@@ -724,8 +730,8 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
     // Retry logic for temporary uninitialization during buffering
     // On web, the video_player package can temporarily lose initialization state during network buffering
     int retryAttempts = 0;
-    const maxRetryAttempts = 5;
-    const retryDelay = Duration(milliseconds: 200);
+    const maxRetryAttempts = 10; // Increased from 5
+    const retryDelay = Duration(milliseconds: 500); // Increased from 200ms
 
     while (
         !_controller!.value.isInitialized && retryAttempts < maxRetryAttempts) {
@@ -750,21 +756,56 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
       return;
     }
 
+    // NEW: Wait for buffering to complete before seeking
+    if (_controller!.value.isBuffering) {
+      debugPrint('VideoPlayer: Video is buffering, waiting for buffering to complete...');
+      int bufferingWaitAttempts = 0;
+      const maxBufferingWaitAttempts = 20; // 10 seconds max wait
+      while (_controller!.value.isBuffering && bufferingWaitAttempts < maxBufferingWaitAttempts) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        bufferingWaitAttempts++;
+        // Re-check initialization in case it was lost during buffering
+        if (!_controller!.value.isInitialized) {
+          debugPrint('VideoPlayer: Controller lost initialization during buffering wait');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Video is not ready for seeking'),
+                duration: Duration(seconds: 2),
+                backgroundColor: AppColors.errorMain,
+              ),
+            );
+          }
+          return;
+        }
+      }
+      if (_controller!.value.isBuffering) {
+        debugPrint('VideoPlayer: Buffering took too long, but proceeding with seek');
+      }
+    }
+
     // Get duration specifically for seeking (prioritizes controller duration)
     Duration? durationToUse = _getDurationForSeeking();
 
+    // NEW: Wait for duration if not available (similar to audio player)
     if (durationToUse == null) {
-      debugPrint('VideoPlayer: Cannot seek - no valid duration available');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Seeking is not available for this video'),
-            duration: Duration(seconds: 2),
-            backgroundColor: AppColors.errorMain,
-          ),
-        );
+      debugPrint('VideoPlayer: Duration not available, waiting...');
+      await Future.delayed(const Duration(milliseconds: 500));
+      durationToUse = _getDurationForSeeking();
+      
+      if (durationToUse == null) {
+        debugPrint('VideoPlayer: Cannot seek - no valid duration available');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Seeking is not available for this video'),
+              duration: Duration(seconds: 2),
+              backgroundColor: AppColors.errorMain,
+            ),
+          );
+        }
+        return;
       }
-      return;
     }
 
     // Set seeking flag synchronously to prevent listener from interfering
@@ -786,7 +827,28 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
       await _controller!.seekTo(Duration(seconds: clamped));
 
       // Wait for seek to complete (increased delay for better reliability)
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future.delayed(const Duration(milliseconds: 500)); // Increased from 200ms
+
+      // Re-check initialization after seek (controller may lose initialization during seek)
+      if (!_controller!.value.isInitialized) {
+        debugPrint('VideoPlayer: Controller lost initialization after seek, waiting for re-initialization...');
+        int reinitAttempts = 0;
+        const maxReinitAttempts = 10;
+        while (!_controller!.value.isInitialized && reinitAttempts < maxReinitAttempts) {
+          await Future.delayed(const Duration(milliseconds: 500));
+          reinitAttempts++;
+        }
+        if (!_controller!.value.isInitialized) {
+          debugPrint('VideoPlayer: Controller did not re-initialize after seek');
+          if (mounted) {
+            setState(() {
+              _currentTime = positionBeforeSeek;
+              _isSeeking = false;
+            });
+          }
+          return;
+        }
+      }
 
       // Get the actual position after seek
       final actualPosition = _controller!.value.position.inSeconds;
@@ -794,9 +856,9 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
           'VideoPlayer: Seek completed - actual position: ${actualPosition}s (requested: ${clamped}s)');
 
       // Validate seek result: if we requested a position > 0 but got 0, the seek failed
-      // Also check if the actual position is significantly different from requested (more than 5 seconds)
+      // Also check if the actual position is significantly different from requested (reduced threshold from 5 to 3 seconds)
       final seekFailed = (clamped > 0 && actualPosition == 0) ||
-          (clamped > 5 && (actualPosition - clamped).abs() > 5);
+          (clamped > 3 && (actualPosition - clamped).abs() > 3); // Changed from 5 seconds to 3 seconds
 
       if (seekFailed) {
         debugPrint(
@@ -807,7 +869,20 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
         final recoveryPosition = (clamped - 1).clamp(0, maxSeconds);
         if (recoveryPosition > 0 && recoveryPosition < maxSeconds) {
           await _controller!.seekTo(Duration(seconds: recoveryPosition));
-          await Future.delayed(const Duration(milliseconds: 200));
+          await Future.delayed(const Duration(milliseconds: 500)); // Increased from 200ms
+          
+          // Re-check initialization after recovery seek
+          if (!_controller!.value.isInitialized) {
+            debugPrint('VideoPlayer: Controller lost initialization after recovery seek');
+            if (mounted) {
+              setState(() {
+                _currentTime = positionBeforeSeek;
+                _isSeeking = false;
+              });
+            }
+            return;
+          }
+          
           final recoveredPosition = _controller!.value.position.inSeconds;
           debugPrint(
               'VideoPlayer: Recovery seek to ${recoveryPosition}s resulted in ${recoveredPosition}s');
@@ -825,7 +900,7 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
         debugPrint(
             'VideoPlayer: Recovery failed, restoring to position before seek: ${positionBeforeSeek}s');
         await _controller!.seekTo(Duration(seconds: positionBeforeSeek));
-        await Future.delayed(const Duration(milliseconds: 200));
+        await Future.delayed(const Duration(milliseconds: 500)); // Increased from 200ms
 
         if (mounted) {
           setState(() {

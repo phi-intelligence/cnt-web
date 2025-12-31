@@ -464,157 +464,121 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
     final isMobile = MediaQuery.of(context).size.width < 800;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0E8),
+      backgroundColor: AppColors.backgroundPrimary,
       body: SafeArea(
-        child: SizedBox(
-          width: double.infinity,
-          height: MediaQuery.of(context).size.height,
-          child: Stack(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.large),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Background Image
-              Positioned(
-                top: -30,
-                right: -MediaQuery.of(context).size.width * 0.4,
-                height: MediaQuery.of(context).size.height * 0.6,
-                width: MediaQuery.of(context).size.width * 1.3,
-                child: Opacity(
-                  opacity:
-                      0.6, // Reduce opacity to ensure text/content stands out
-                  child: Container(
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: const AssetImage(
-                            'assets/images/jesus-teaching.png'),
-                        fit: BoxFit.contain,
-                        alignment: Alignment.topRight,
+              // Header
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  Expanded(
+                    child: Text(
+                      'Meeting Options',
+                      style: AppTypography.heading2.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
+                ],
+              ),
+
+              const SizedBox(height: AppSpacing.large),
+
+              Text(
+                'Choose how you want to connect with others',
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textSecondary,
+                  fontSize: 16,
                 ),
               ),
-              // Gradient Overlay for readability
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [
-                        const Color(0xFFF5F0E8),
-                        const Color(0xFFF5F0E8).withOpacity(0.95),
-                        const Color(0xFFF5F0E8).withOpacity(0.8),
-                        const Color(0xFFF5F0E8).withOpacity(0.4),
-                        Colors.transparent,
-                      ],
-                      stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
-                    ),
-                  ),
+              const SizedBox(height: AppSpacing.extraLarge),
+
+              // Options Grid
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 1,
+                  crossAxisSpacing: AppSpacing.medium,
+                  mainAxisSpacing: AppSpacing.medium,
+                  childAspectRatio: 2.5,
                 ),
+                itemCount: options.length,
+                itemBuilder: (context, index) {
+                  final option = options[index];
+                  return _buildMobileOptionCard(
+                    context,
+                    title: option['title'] as String,
+                    icon: option['icon'] as IconData,
+                    onTap: option['onTap'] as VoidCallback,
+                  );
+                },
               ),
-              // Content
-              Positioned.fill(
-                child: SafeArea(
-                  child: Column(
-                    children: [
-                      // Header
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.large, vertical: 20),
-                        child: Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.arrow_back,
-                                  color: AppColors.textPrimary),
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                            Expanded(
-                              child: Text(
-                                'Meeting Options',
-                                style: AppTypography.heading2
-                                    .copyWith(color: AppColors.textPrimary),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
 
-                      // Main Content in Scrollable Area
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: EdgeInsets.only(
-                            left: AppSpacing.large,
-                            right: AppSpacing.large,
-                            bottom: AppSpacing.extraLarge * 2,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Choose how you want to connect with others',
-                                style: AppTypography.body.copyWith(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              SizedBox(height: AppSpacing.extraLarge),
-
-                              // Cards Container - High Contrast
-                              SectionContainer(
-                                showShadow: true,
-                                child: Padding(
-                                  padding: EdgeInsets.all(isMobile
-                                      ? AppSpacing.small
-                                      : AppSpacing.medium),
-                                  child: GridView.builder(
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    gridDelegate:
-                                        SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount:
-                                          1, // Full width cards on mobile
-                                      crossAxisSpacing: AppSpacing.medium,
-                                      mainAxisSpacing: AppSpacing.medium,
-                                      childAspectRatio: isMobile
-                                          ? 2.2
-                                          : 2.5, // Increased slightly for mobile to prevent overflow
-                                    ),
-                                    itemCount: options.length,
-                                    itemBuilder: (context, index) {
-                                      final option = options[index];
-                                      // Ensure consistent colors
-                                      final hoverColors = [
-                                        AppColors.accentMain,
-                                        AppColors.accentDark
-                                      ];
-
-                                      return _buildOptionCard(
-                                        title: option['title'] as String,
-                                        icon: option['icon'] as IconData,
-                                        hoverColors: hoverColors,
-                                        onTap: option['onTap'] as VoidCallback,
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: AppSpacing.extraLarge),
-
-                              // Scheduled Meetings Section
-                              if (_scheduledMeetings.isNotEmpty) ...[
-                                SizedBox(height: AppSpacing.extraLarge),
-                                _buildScheduledMeetingsSection(),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              // Scheduled Meetings Section
+              if (_scheduledMeetings.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.extraLarge * 2),
+                _buildScheduledMeetingsSection(),
+              ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileOptionCard(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.large),
+        decoration: BoxDecoration(
+          color: AppColors.warmBrown,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.warmBrown.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: Colors.white, size: 28),
+            ),
+            const SizedBox(width: AppSpacing.medium),
+            Expanded(
+              child: Text(
+                title,
+                style: AppTypography.heading3.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: Colors.white.withOpacity(0.7), size: 16),
+          ],
         ),
       ),
     );

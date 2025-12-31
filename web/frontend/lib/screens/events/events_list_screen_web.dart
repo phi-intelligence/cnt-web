@@ -9,6 +9,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/web/styled_pill_button.dart';
+import 'package:go_router/go_router.dart';
 import 'event_create_screen_web.dart';
 import 'event_detail_screen_web.dart';
 
@@ -55,7 +56,15 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb>
     final isTablet = screenWidth >= 600 && screenWidth < 1024;
     final isLargeScreen = screenWidth > 1200;
 
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (context.mounted) {
+          GoRouter.of(context).pop();
+        }
+      },
+      child: Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
       resizeToAvoidBottomInset: false,
       body: CustomScrollView(
@@ -143,6 +152,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb>
               child: const Icon(Icons.add, color: Colors.white),
             )
           : null,
+    ),
     );
   }
 
@@ -203,9 +213,9 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb>
       width: double.infinity,
       decoration: BoxDecoration(
         image: const DecorationImage(
-          image: AssetImage('assets/images/Jesus-crowd.png'),
+          image: AssetImage('assets/images/jesus-new.png'),
           fit: BoxFit.cover,
-          alignment: Alignment.center, // Better alignment
+          alignment: Alignment.topCenter, // Ensure top section is not cut off
         ),
       ),
       child: Stack(
@@ -241,7 +251,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb>
                 if (!isMobile) ...[
                   IconButton(
                     icon: const Icon(Icons.arrow_back),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => GoRouter.of(context).pop(),
                     color: AppColors.primaryDark,
                     padding: EdgeInsets.zero,
                     alignment: Alignment.centerLeft,
@@ -291,7 +301,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb>
                   backgroundColor: AppColors.backgroundPrimary.withOpacity(0.8),
                   child: IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.black),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => GoRouter.of(context).pop(),
                   ),
                 ),
               ),

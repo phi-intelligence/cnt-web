@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:async';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
@@ -235,14 +236,8 @@ class _PodcastsScreenWebState extends State<PodcastsScreenWeb> {
   void _handlePlay(ContentItem item) {
     if (item.videoUrl != null && item.videoUrl!.isNotEmpty) {
       // Navigate to video podcast detail page
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => VideoPodcastDetailScreenWeb(
-            item: item,
-          ),
-        ),
-      );
+      // Navigate to video podcast detail page
+      context.push('/podcast/${item.id}', extra: item);
     } else if (item.audioUrl != null && item.audioUrl!.isNotEmpty) {
       // For audio podcasts, play directly
       context.read<AudioPlayerState>().playContent(item);

@@ -7,6 +7,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/responsive_utils.dart';
+import 'package:go_router/go_router.dart';
 import '../meeting/prejoin_screen.dart';
 
 /// Live Stream Setup Screen
@@ -108,7 +109,15 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
   }
 
   Widget _buildDesktopSplitLayout(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (context.mounted) {
+          GoRouter.of(context).pop();
+        }
+      },
+      child: Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
       resizeToAvoidBottomInset: false,
       body: Row(
@@ -127,7 +136,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                     child: Align(
                       alignment: Alignment.topLeft,
                       child: TextButton.icon(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => GoRouter.of(context).pop(),
                         icon: Icon(Icons.arrow_back,
                             color: AppColors.textPrimary),
                         label: Text('Back',
@@ -375,8 +384,9 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                 Container(
                   decoration: const BoxDecoration(
                     image: DecorationImage(
-                      image: AssetImage('assets/images/jesus-teaching.png'),
+                      image: AssetImage('assets/images/jone.png'),
                       fit: BoxFit.cover,
+                      alignment: Alignment.topCenter,
                     ),
                   ),
                   child: Container(
@@ -399,13 +409,22 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 
   Widget _buildMobileLayout(BuildContext context) {
     final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
 
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (context.mounted) {
+          GoRouter.of(context).pop();
+        }
+      },
+      child: Scaffold(
       backgroundColor: const Color(0xFFF5F0E8),
       body: SizedBox(
         width: double.infinity,
@@ -424,7 +443,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
               child: Container(
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: const AssetImage('assets/images/jesus-teaching.png'),
+                    image: const AssetImage('assets/images/jone.png'),
                     fit: BoxFit.contain,
                     alignment: Alignment.topRight,
                   ),
@@ -468,7 +487,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
                           IconButton(
                             icon: Icon(Icons.arrow_back,
                                 color: AppColors.primaryDark),
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () => GoRouter.of(context).pop(),
                           ),
                           Expanded(
                             child: Text(
@@ -502,6 +521,7 @@ class _LiveStreamSetupScreenState extends State<LiveStreamSetupScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 

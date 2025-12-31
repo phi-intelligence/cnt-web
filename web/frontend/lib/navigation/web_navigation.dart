@@ -8,7 +8,7 @@ import '../providers/auth_provider.dart';
 import '../providers/support_provider.dart';
 import '../widgets/notifications/stream_notification_banner.dart';
 import '../widgets/media/global_audio_player.dart';
-import '../screens/live/live_stream_start_screen.dart';
+
 import '../utils/responsive_utils.dart';
 import '../widgets/shared/responsive_drawer.dart' as drawer;
 import '../widgets/shared/responsive_app_bar.dart';
@@ -333,12 +333,7 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
                                   icon: Icon(Icons.videocam, size: 18),
                                   label: Text('Start Live Stream'),
                                   onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const LiveStreamStartScreen(),
-                                      ),
-                                    );
+                                    context.push('/live-stream/start');
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.warmBrown,

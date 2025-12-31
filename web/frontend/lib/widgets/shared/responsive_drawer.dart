@@ -6,7 +6,7 @@ import '../../theme/app_typography.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/support_provider.dart';
 import '../../utils/responsive_utils.dart';
-import '../../screens/live/live_stream_start_screen.dart';
+import 'package:go_router/go_router.dart';
 
 /// Responsive drawer for mobile and tablet navigation
 class ResponsiveDrawer extends StatelessWidget {
@@ -203,12 +203,7 @@ class ResponsiveDrawer extends StatelessWidget {
                           if (Navigator.of(context).canPop()) {
                             Navigator.of(context).pop(); // Close drawer first
                           }
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LiveStreamStartScreen(),
-                            ),
-                          );
+                          context.push('/live-stream/start');
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.warmBrown,

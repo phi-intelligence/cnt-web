@@ -4,12 +4,14 @@ import 'package:intl/intl.dart';
 
 import '../../models/event.dart';
 import '../../providers/event_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/platform_helper.dart';
 import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/styled_pill_button.dart';
+import '../../widgets/events/event_approval_dialog.dart';
 
 /// Data class to hold location result
 class LocationResult {
@@ -156,15 +158,21 @@ class _EventCreateScreenWebState extends State<EventCreateScreenWeb> {
       if (!mounted) return;
       
       if (event != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Event created successfully!'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+        // Check if user is admin
+        final authProvider = context.read<AuthProvider>();
+        final isAdmin = authProvider.isAdmin;
+        
+        // Show approval dialog instead of snackbar
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => EventApprovalDialog(isAdmin: isAdmin),
         );
-        Navigator.pop(context, event);
+        
+        // Navigate back after dialog is dismissed
+        if (mounted) {
+          Navigator.pop(context, event);
+        }
       } else if (provider.error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

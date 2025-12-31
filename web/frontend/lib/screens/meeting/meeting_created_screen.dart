@@ -6,6 +6,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../services/livekit_meeting_service.dart';
+import 'package:go_router/go_router.dart';
 import 'prejoin_screen.dart';
 
 /// Meeting Created Screen
@@ -178,13 +179,22 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Widget content;
     if (kIsWeb) {
       final screenHeight = MediaQuery.of(context).size.height;
       final screenWidth = MediaQuery.of(context).size.width;
       final isMobile = screenWidth < 600;
 
       // Web version with background image pattern
-      return Scaffold(
+      content = PopScope(
+        canPop: true,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          if (context.mounted) {
+            GoRouter.of(context).pop();
+          }
+        },
+        child: Scaffold(
       backgroundColor: const Color(0xFFF5F0E8),
       resizeToAvoidBottomInset: false,
         body: SizedBox(
@@ -202,7 +212,7 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
                 child: Container(
                   decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: const AssetImage('assets/images/thumbnail1.jpg'),
+                      image: const AssetImage('assets/images/christgpt.png'),
                       fit: isMobile ? BoxFit.contain : BoxFit.cover,
                       alignment:
                           isMobile ? Alignment.topRight : Alignment.centerRight,
@@ -265,10 +275,19 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
             ],
           ),
         ),
+      ),
       );
     } else {
       // Mobile version (original design)
-      return Scaffold(
+      content = PopScope(
+        canPop: true,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          if (context.mounted) {
+            GoRouter.of(context).pop();
+          }
+        },
+        child: Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
         appBar: AppBar(
           backgroundColor: AppColors.backgroundPrimary,
@@ -484,8 +503,11 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
             ),
           ),
         ),
+      ),
       );
     }
+    
+    return content;
   }
 
   // Centered desktop layout - removes sidebar tips
@@ -497,7 +519,7 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
         children: [
           // Back button
           TextButton.icon(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => GoRouter.of(context).pop(),
             icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
             label: Text('Back to Options',
                 style:

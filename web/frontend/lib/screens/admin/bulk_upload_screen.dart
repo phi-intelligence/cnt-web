@@ -10,6 +10,7 @@ import '../../services/api_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/responsive_utils.dart';
 import '../../widgets/web/styled_pill_button.dart';
+import 'package:go_router/go_router.dart';
 
 /// Model for a file to be uploaded
 class BulkUploadFile {
@@ -299,10 +300,11 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
 
+    Widget content;
     if (!authProvider.isAdmin) {
-      return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      resizeToAvoidBottomInset: false,
+      content = Scaffold(
+        backgroundColor: AppColors.backgroundPrimary,
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           title: const Text('Access Denied'),
           backgroundColor: AppColors.backgroundSecondary,
@@ -311,13 +313,12 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
           child: Text('This feature is only available for administrators.'),
         ),
       );
-    }
+    } else {
+      final screenHeight = MediaQuery.of(context).size.height;
+      final screenWidth = MediaQuery.of(context).size.width;
+      final isMobile = ResponsiveUtils.isMobile(context);
 
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = ResponsiveUtils.isMobile(context);
-
-    return Scaffold(
+      content = Scaffold(
       backgroundColor: const Color(0xFFF5F0E8),
       body: SizedBox(
         width: double.infinity,
@@ -334,7 +335,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
               child: Container(
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: const AssetImage('assets/images/jesus-teaching.png'),
+                    image: const AssetImage('assets/images/christgpt.png'),
                     fit: isMobile ? BoxFit.contain : BoxFit.cover,
                     alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
                   ),
@@ -399,7 +400,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                         children: [
                           IconButton(
                             icon: Icon(Icons.arrow_back, color: AppColors.primaryDark),
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () => GoRouter.of(context).pop(),
                           ),
                           Expanded(
                             child: Text(
@@ -450,6 +451,8 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
         ),
       ),
     );
+    }
+    return content;
   }
 
   Widget _buildStepperIndicator() {
@@ -1165,7 +1168,7 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
               const SizedBox(width: AppSpacing.medium),
               StyledPillButton(
                 label: 'Done',
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => GoRouter.of(context).pop(),
                 variant: StyledPillButtonVariant.filled,
               ),
             ],
@@ -1277,6 +1280,8 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
         ],
       ),
     );
-  }
+    }
+    
+
 }
 

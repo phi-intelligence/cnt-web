@@ -15,12 +15,15 @@ import '../screens/web/video_preview_screen_web.dart';
 import '../screens/creation/audio_preview_screen.dart';
 import '../screens/web/video_podcast_detail_screen_web.dart';
 import '../screens/web/movie_detail_screen_web.dart';
-import '../screens/live/live_stream_start_screen.dart';
+import '../screens/live/live_stream_setup_screen.dart';
 import '../screens/web/live_screen_web.dart';
 import '../screens/web/landing_screen_web.dart';
 import '../screens/artist/artist_profile_screen.dart';
 import '../screens/artist/artist_profile_manage_screen.dart';
 import '../screens/creation/quote_create_screen_web.dart';
+import '../screens/creation/audio_podcast_create_screen.dart';
+import '../screens/creation/video_podcast_create_screen.dart';
+import '../screens/creation/movie_create_screen.dart';
 import '../screens/admin/bulk_upload_screen.dart';
 import '../screens/events/events_list_screen_web.dart';
 import '../screens/events/event_create_screen_web.dart';
@@ -31,9 +34,11 @@ import '../screens/web/bank_details_screen_web.dart';
 import '../screens/admin/admin_commission_settings_page.dart';
 import '../screens/web/notifications_screen_web.dart';
 import '../providers/auth_provider.dart';
+import '../providers/navigation_history_provider.dart';
 import '../services/api_service.dart';
 import 'web_navigation.dart';
 import 'package:flutter/material.dart';
+import '../models/content_item.dart';
 
 /// Helper function to create a page with no transition animation
 Page<void> _buildPageWithoutTransition(BuildContext context, GoRouterState state, Widget child) {
@@ -45,35 +50,41 @@ Page<void> _buildPageWithoutTransition(BuildContext context, GoRouterState state
 
 /// Route configuration for the application
 /// Uses go_router for URL-based routing and state persistence
-GoRouter createAppRouter(AuthProvider authProvider) {
+GoRouter createAppRouter(
+  AuthProvider authProvider,
+  NavigationHistoryProvider navHistoryProvider,
+) {
   return GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
+      // Initialize navigation history with current route
+      navHistoryProvider.initializeWithRoute(state.matchedLocation);
+
       final isAuthenticated = authProvider.isAuthenticated;
       final isAdmin = authProvider.isAdmin;
-      final isAuthRoute = state.matchedLocation == '/' || 
+      final isAuthRoute = state.matchedLocation == '/' ||
                          state.matchedLocation.startsWith('/login') ||
                          state.matchedLocation.startsWith('/register');
-      
+
       // Define admin-only routes
       final isAdminRoute = state.matchedLocation.startsWith('/admin') ||
                            state.matchedLocation.startsWith('/bulk-upload');
-      
+
       // Redirect to login if not authenticated and trying to access protected route
       if (!isAuthenticated && !isAuthRoute) {
         return '/';
       }
-      
+
       // Redirect non-admins trying to access admin routes
       if (isAuthenticated && isAdminRoute && !isAdmin) {
         return '/home';
       }
-      
+
       // Redirect to home if authenticated and on landing page
       if (isAuthenticated && state.matchedLocation == '/') {
         return '/home';
       }
-      
+
       return null; // No redirect needed
     },
     routes: [
@@ -98,6 +109,30 @@ GoRouter createAppRouter(AuthProvider authProvider) {
           context,
           state,
           const WebNavigationLayout(child: CreateScreenWeb()),
+        ),
+      ),
+      GoRoute(
+        path: '/create/audio',
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: AudioPodcastCreateScreen()),
+        ),
+      ),
+      GoRoute(
+        path: '/create/video',
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: VideoPodcastCreateScreen()),
+        ),
+      ),
+      GoRoute(
+        path: '/create/movie',
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: MovieCreateScreen()),
         ),
       ),
       GoRoute(
@@ -235,7 +270,7 @@ GoRouter createAppRouter(AuthProvider authProvider) {
       ),
       GoRoute(
         path: '/live-stream/start',
-        builder: (context, state) => const LiveStreamStartScreen(),
+        builder: (context, state) => const LiveStreamSetupScreen(),
       ),
       GoRoute(
         path: '/live-streams',
@@ -330,6 +365,18 @@ GoRouter createAppRouter(AuthProvider authProvider) {
             );
           }
           
+          final extraItem = state.extra as ContentItem?;
+          
+          if (extraItem != null) {
+             return _buildPageWithoutTransition(
+              context,
+              state,
+              WebNavigationLayout(
+                child: VideoPodcastDetailScreenWeb(item: extraItem),
+              ),
+            );
+          }
+          
           // Create a wrapper widget that loads the podcast
           return _buildPageWithoutTransition(
             context,
@@ -351,11 +398,17 @@ GoRouter createAppRouter(AuthProvider authProvider) {
               const Scaffold(body: Center(child: Text('Movie ID is required'))),
             );
           }
+          
+          final extraItem = state.extra as ContentItem?;
+          
           return _buildPageWithoutTransition(
             context,
             state,
             WebNavigationLayout(
-              child: MovieDetailScreenWeb(movieId: int.parse(id)),
+              child: MovieDetailScreenWeb(
+                movieId: int.parse(id),
+                item: extraItem,
+              ),
             ),
           );
         },
@@ -412,6 +465,12 @@ GoRouter createAppRouter(AuthProvider authProvider) {
           if (podcastId == null) {
             return const Scaffold(body: Center(child: Text('Podcast ID is required')));
           }
+          
+          final extraItem = state.extra as ContentItem?;
+          if (extraItem != null) {
+             return VideoPodcastDetailScreenWeb(item: extraItem);
+          }
+
           return _PodcastPlayerLoader(
             podcastId: int.parse(podcastId),
             isVideo: true,

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
-import '../../screens/live/live_stream_start_screen.dart';
+import 'package:go_router/go_router.dart';
 import '../../screens/web/live_screen_web.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../widgets/web/styled_page_header.dart';
@@ -26,12 +26,7 @@ class _LiveStreamOptionsScreenWebState extends State<LiveStreamOptionsScreenWeb>
         'icon': Icons.videocam,
         'description': 'Start broadcasting immediately',
         'onTap': () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const LiveStreamStartScreen(),
-            ),
-          );
+          context.push('/live-stream/start');
         },
       },
       {
@@ -39,12 +34,7 @@ class _LiveStreamOptionsScreenWebState extends State<LiveStreamOptionsScreenWeb>
         'icon': Icons.live_tv,
         'description': 'Browse and join active streams',
         'onTap': () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const LiveScreenWeb(),
-            ),
-          );
+          context.push('/live-streams');
         },
       },
       {

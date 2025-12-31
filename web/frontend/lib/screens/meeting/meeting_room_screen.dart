@@ -8,6 +8,7 @@ import '../../widgets/meeting/minimized_meeting_tile.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/state_persistence.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
+import 'package:go_router/go_router.dart';
 
 /// Meeting Room Screen - LiveKit meeting UI
 /// Custom UI built on top of LiveKit SDK
@@ -620,7 +621,7 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => GoRouter.of(context).pop(),
                   child: const Text('Go Back'),
                 ),
               ],

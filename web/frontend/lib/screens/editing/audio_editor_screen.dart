@@ -21,6 +21,7 @@ import 'package:just_audio/just_audio.dart';
 import 'dart:html' if (dart.library.io) '../../utils/file_stub.dart' as html;
 import 'dart:async';
 import 'package:http/http.dart' as http;
+import 'package:go_router/go_router.dart';
 
 /// Audio Editor Screen
 /// Allows users to edit audio: trim, merge
@@ -404,32 +405,30 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
           final durationSeconds = audioElement.duration;
           
           // Check for Infinity or invalid duration values
-          if (durationSeconds != null) {
-            if (durationSeconds.isInfinite) {
-              print('⚠️ HTML5 AudioElement reports Infinity duration - WebM file may not have duration metadata');
-              // Don't complete with Infinity - return null to trigger fallback
-              return;
-            }
-            if (durationSeconds.isNaN) {
-              print('⚠️ HTML5 AudioElement reports NaN duration');
-              return;
-            }
-            if (!durationSeconds.isFinite) {
-              print('⚠️ HTML5 AudioElement reports non-finite duration: $durationSeconds');
-              return;
-            }
-            if (durationSeconds <= 0) {
-              print('⚠️ HTML5 AudioElement reports invalid duration: $durationSeconds');
-              return;
-            }
-            
-            // Valid duration
-            final duration = Duration(milliseconds: (durationSeconds * 1000).round());
-            print('✅ HTML5 AudioElement duration detected: ${duration.inSeconds}s');
-            completer.complete(duration);
+          if (durationSeconds.isInfinite) {
+            print('⚠️ HTML5 AudioElement reports Infinity duration - WebM file may not have duration metadata');
+            // Don't complete with Infinity - return null to trigger fallback
             return;
           }
-        }
+          if (durationSeconds.isNaN) {
+            print('⚠️ HTML5 AudioElement reports NaN duration');
+            return;
+          }
+          if (!durationSeconds.isFinite) {
+            print('⚠️ HTML5 AudioElement reports non-finite duration: $durationSeconds');
+            return;
+          }
+          if (durationSeconds <= 0) {
+            print('⚠️ HTML5 AudioElement reports invalid duration: $durationSeconds');
+            return;
+          }
+          
+          // Valid duration
+          final duration = Duration(milliseconds: (durationSeconds * 1000).round());
+          print('✅ HTML5 AudioElement duration detected: ${duration.inSeconds}s');
+          completer.complete(duration);
+          return;
+                }
       }
       
       audioElement.onLoadedMetadata.listen((_) {
@@ -477,22 +476,20 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
           print('⏱️ HTML5 AudioElement timeout check - duration: $durationSeconds, readyState: ${audioElement.readyState}, networkState: ${audioElement.networkState}');
           
           // Check for Infinity or invalid duration
-          if (durationSeconds != null) {
-            if (durationSeconds.isInfinite) {
-              print('⚠️ HTML5 AudioElement reports Infinity duration (timeout) - WebM file lacks duration metadata');
-              return null; // Trigger backend fallback
-            }
-            if (durationSeconds.isNaN || !durationSeconds.isFinite || durationSeconds <= 0) {
-              print('⚠️ HTML5 AudioElement reports invalid duration: $durationSeconds');
-              return null;
-            }
-            
-            // Valid duration
-            final duration = Duration(milliseconds: (durationSeconds * 1000).round());
-            print('✅ HTML5 AudioElement duration detected (timeout): ${duration.inSeconds}s');
-            return duration;
+          if (durationSeconds.isInfinite) {
+            print('⚠️ HTML5 AudioElement reports Infinity duration (timeout) - WebM file lacks duration metadata');
+            return null; // Trigger backend fallback
+          }
+          if (durationSeconds.isNaN || !durationSeconds.isFinite || durationSeconds <= 0) {
+            print('⚠️ HTML5 AudioElement reports invalid duration: $durationSeconds');
+            return null;
           }
           
+          // Valid duration
+          final duration = Duration(milliseconds: (durationSeconds * 1000).round());
+          print('✅ HTML5 AudioElement duration detected (timeout): ${duration.inSeconds}s');
+          return duration;
+                  
           print('⚠️ HTML5 AudioElement duration not available after timeout');
           print('⚠️ Final state - readyState: ${audioElement.readyState}, networkState: ${audioElement.networkState}, error: ${audioElement.error?.message ?? "none"}');
           return null;
@@ -1013,12 +1010,11 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
           if (didPop) return;
           final shouldPop = await _handleBackPressed();
           if (shouldPop && mounted) {
-            Navigator.of(context).pop();
+            GoRouter.of(context).pop();
           }
         },
         child: Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      resizeToAvoidBottomInset: false,
+        backgroundColor: AppColors.backgroundPrimary,
         body: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),
           child: SingleChildScrollView(
@@ -1037,7 +1033,7 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
                         onPressed: () async {
                           final shouldPop = await _handleBackPressed();
                           if (shouldPop && mounted) {
-                            Navigator.of(context).pop();
+                            GoRouter.of(context).pop();
                           }
                         },
                         tooltip: 'Back',
