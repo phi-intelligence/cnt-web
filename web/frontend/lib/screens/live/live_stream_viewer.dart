@@ -185,6 +185,28 @@ class _LiveStreamViewerState extends State<LiveStreamViewer> {
     }
   }
 
+  Future<bool> _showLeaveConfirmation() async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Leave Stream?'),
+        content: const Text('Are you sure you want to leave this stream?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Stay'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Leave'),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
   @override
   void dispose() {
     _meetingService.leaveMeeting();
@@ -283,9 +305,18 @@ class _LiveStreamViewerState extends State<LiveStreamViewer> {
       }
     }
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: kIsWeb
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldLeave = await _showLeaveConfirmation();
+        if (shouldLeave && mounted) {
+          await _leaveStream();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: kIsWeb
           ? Column(
               children: [
                 // Header with title and viewer count (web version)
@@ -470,6 +501,7 @@ class _LiveStreamViewerState extends State<LiveStreamViewer> {
                 ],
               ),
             ),
+      ),
     );
   }
 }

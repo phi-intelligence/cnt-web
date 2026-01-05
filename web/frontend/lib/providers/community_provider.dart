@@ -56,6 +56,14 @@ class CommunityProvider extends ChangeNotifier {
     fetchPosts(category: category, refresh: true);
   }
   
+  /// Clear cache and refresh posts (useful after admin actions)
+  Future<void> clearAndRefresh() async {
+    _posts = [];
+    _comments = {}; // Also clear comments cache
+    notifyListeners();
+    await fetchPosts(category: _selectedCategory, refresh: true);
+  }
+  
   Future<void> likePost(int postId) async {
     try {
       final result = await _api.likePost(postId);

@@ -30,12 +30,14 @@ class _CarouselItem {
   final String imageUrl;
   final String? title;
   final int postId; // For navigation
+  final String postType; // 'image' or 'text' (quote)
 
   _CarouselItem({
     required this.id,
     required this.imageUrl,
     this.title,
     required this.postId,
+    required this.postType,
   });
 }
 
@@ -126,8 +128,24 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
         // Backend already filters by image_url, but double-check for safety
         // This includes both: post_type='image' posts AND post_type='text' posts converted to quote images
         if (imageUrl != null && imageUrl.isNotEmpty) {
-          // Get full media URL (handles both regular images and generated quote images)
-          final fullImageUrl = apiService.getMediaUrl(imageUrl);
+          String fullImageUrl;
+          
+          // For text posts (quotes), fetch landscape carousel version
+          if (postType == 'text') {
+            LoggerService.d('🖼️ Hero Carousel: Fetching landscape carousel image for quote post $postId');
+            final carouselImageUrl = await apiService.getCarouselImage(postId);
+            if (carouselImageUrl != null && carouselImageUrl.isNotEmpty) {
+              fullImageUrl = carouselImageUrl;
+              LoggerService.d('   ✅ Got landscape carousel image: $fullImageUrl');
+            } else {
+              // Fallback to regular image if carousel image fails
+              fullImageUrl = apiService.getMediaUrl(imageUrl);
+              LoggerService.w('   ⚠️ Carousel image not available, using regular image');
+            }
+          } else {
+            // For image posts, use regular image URL
+            fullImageUrl = apiService.getMediaUrl(imageUrl);
+          }
           
           // Log detailed information for debugging
           LoggerService.d('🖼️ Hero Carousel: Post $postId');
@@ -159,6 +177,7 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
             imageUrl: fullImageUrl,
             title: post['title'] as String?,
             postId: postId,
+            postType: postType,
           ));
           
           // Limit to 10-12 items for carousel
@@ -396,11 +415,14 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
     // This fixes CORS issues by using NetworkImage which handles CORS correctly
     // Use BoxFit.cover for both mobile and desktop to fill width (no blank spaces)
     final imageFit = BoxFit.cover;
-    // Use center alignment for mobile, slightly adjusted for desktop (moved up a bit)
+    // Adjust alignment based on post type
+    // Quote posts (text) should be centered, image posts can use top-aligned
     // Alignment y-axis: -1.0 = top, 0.0 = center, 1.0 = bottom
-    // Using -0.7 instead of -1.0 (topCenter) to show slightly more of the image content
     final isMobile = ResponsiveUtils.isMobile(context);
-    final imageAlignment = isMobile ? Alignment.center : const Alignment(0, -0.7);
+    final isQuotePost = item.postType == 'text';
+    final imageAlignment = isMobile 
+        ? Alignment.center 
+        : (isQuotePost ? Alignment.center : const Alignment(0, -0.7));
     
     Widget content = ClipRect(
       child: Image(

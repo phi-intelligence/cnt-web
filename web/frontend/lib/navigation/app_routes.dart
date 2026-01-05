@@ -313,6 +313,44 @@ GoRouter createAppRouter(
         },
       ),
       
+      // Draft editor routes (for My Drafts navigation)
+      GoRoute(
+        path: '/video-editor',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final videoUrl = extra?['videoUrl'] as String?;
+          final draftId = extra?['draftId'] as String?;
+          
+          if (videoUrl == null || videoUrl.isEmpty) {
+            return const Scaffold(
+              body: Center(child: Text('Video URL is required')),
+            );
+          }
+          return VideoEditorScreenWeb(
+            videoPath: videoUrl,
+            title: draftId != null ? 'Draft $draftId' : null,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/audio-editor',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final audioUrl = extra?['audioUrl'] as String?;
+          final draftId = extra?['draftId'] as String?;
+          
+          if (audioUrl == null || audioUrl.isEmpty) {
+            return const Scaffold(
+              body: Center(child: Text('Audio URL is required')),
+            );
+          }
+          return AudioEditorScreen(
+            audioPath: audioUrl,
+            title: draftId != null ? 'Draft $draftId' : null,
+          );
+        },
+      ),
+      
       // Preview routes
       GoRoute(
         path: '/preview/video',

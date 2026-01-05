@@ -118,6 +118,28 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
     }
   }
 
+  Future<bool> _showLeaveConfirmation() async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Leave Stream?'),
+        content: const Text('Are you sure you want to leave this stream?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Stay'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Leave'),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
   Future<void> _toggleMute() async {
     try {
       await _meetingService.toggleMicrophone();
@@ -197,10 +219,19 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
   Widget build(BuildContext context) {
     final room = _meetingService.currentRoom;
 
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      Colors.black,
-      body: Stack(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldLeave = await _showLeaveConfirmation();
+        if (shouldLeave && mounted) {
+          await _stopStreaming();
+        }
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        backgroundColor: Colors.black,
+        body: Stack(
         children: [
           // Video preview
           if (_localVideoTrack != null && _isCameraOn)
@@ -386,6 +417,7 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -356,7 +356,7 @@ class _NotificationsScreenWebState extends State<NotificationsScreenWeb> {
       } else if (notification.type == 'live_stream') {
         final streamId = data['stream_id'];
         if (streamId != null) {
-          context.push('/live-streams');
+          context.push('/live-streams?refresh=true');
         }
       }
     }

@@ -666,6 +666,31 @@ class ApiService {
     }
   }
 
+  /// Get carousel image URL for a text post (landscape version)
+  Future<String?> getCarouselImage(int postId) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/community/posts/$postId/carousel-image'),
+            headers: await _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final imageUrl = data['image_url'] as String?;
+        return imageUrl != null ? getMediaUrl(imageUrl) : null;
+      } else {
+        LoggerService.w(
+            '⚠️ Failed to get carousel image for post $postId: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      LoggerService.w('⚠️ Error fetching carousel image for post $postId: $e');
+      return null;
+    }
+  }
+
   /// Create a new community post
   Future<Map<String, dynamic>> createPost({
     required String title,
@@ -1640,11 +1665,11 @@ class ApiService {
       if (contentType != null) {
         uri = uri.replace(queryParameters: {'content_type': contentType});
       }
-      
+
       final response = await http
           .get(uri, headers: await _getHeaders())
           .timeout(const Duration(seconds: 10));
-      
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data;
@@ -1678,17 +1703,18 @@ class ApiService {
         'content_type': contentType,
         'content_id': contentId,
       });
-      
+
       final response = await http
           .post(uri, headers: await _getHeaders(), body: body)
           .timeout(const Duration(seconds: 10));
-      
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
       } else if (response.statusCode == 400) {
         // Already favorited - not an error, return true
         final body = json.decode(response.body);
-        if (body['detail']?.toString().contains('already in favorites') == true) {
+        if (body['detail']?.toString().contains('already in favorites') ==
+            true) {
           return true;
         }
         LoggerService.w('Failed to add favorite: ${body['detail']}');
@@ -1700,7 +1726,8 @@ class ApiService {
           final retryResponse = await http
               .post(uri, headers: await _getHeaders(), body: body)
               .timeout(const Duration(seconds: 10));
-          return retryResponse.statusCode == 200 || retryResponse.statusCode == 201;
+          return retryResponse.statusCode == 200 ||
+              retryResponse.statusCode == 201;
         }
         return false;
       }
@@ -1717,11 +1744,11 @@ class ApiService {
     _validateBaseUrl();
     try {
       final uri = Uri.parse('$baseUrl/favorites/$contentType/$contentId');
-      
+
       final response = await http
           .delete(uri, headers: await _getHeaders())
           .timeout(const Duration(seconds: 10));
-      
+
       if (response.statusCode == 200 || response.statusCode == 204) {
         return true;
       } else if (response.statusCode == 404) {
@@ -1734,9 +1761,9 @@ class ApiService {
           final retryResponse = await http
               .delete(uri, headers: await _getHeaders())
               .timeout(const Duration(seconds: 10));
-          return retryResponse.statusCode == 200 || 
-                 retryResponse.statusCode == 204 || 
-                 retryResponse.statusCode == 404;
+          return retryResponse.statusCode == 200 ||
+              retryResponse.statusCode == 204 ||
+              retryResponse.statusCode == 404;
         }
         return false;
       }
@@ -1753,11 +1780,11 @@ class ApiService {
     _validateBaseUrl();
     try {
       final uri = Uri.parse('$baseUrl/favorites/check/$contentType/$contentId');
-      
+
       final response = await http
           .get(uri, headers: await _getHeaders())
           .timeout(const Duration(seconds: 10));
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         return data['is_favorited'] as bool? ?? false;
@@ -1769,7 +1796,8 @@ class ApiService {
               .get(uri, headers: await _getHeaders())
               .timeout(const Duration(seconds: 10));
           if (retryResponse.statusCode == 200) {
-            final data = json.decode(retryResponse.body) as Map<String, dynamic>;
+            final data =
+                json.decode(retryResponse.body) as Map<String, dynamic>;
             return data['is_favorited'] as bool? ?? false;
           }
         }
@@ -2100,28 +2128,29 @@ class ApiService {
       if (!kIsWeb) {
         throw Exception('Data URIs are only supported on web platform');
       }
-      
+
       try {
         // Parse data URI: data:[<mediatype>][;base64],<data>
         final uri = Uri.parse(source);
         final dataPart = uri.data;
-        
+
         if (dataPart == null) {
           throw Exception('Invalid data URI format');
         }
-        
+
         // Get bytes from data URI
         final bytes = dataPart.contentAsBytes();
-        
+
         // Detect content type
-        http.MediaType? contentType = _detectContentTypeFromFilename(defaultFilename);
-        if (contentType == null && dataPart.mimeType != null) {
+        http.MediaType? contentType =
+            _detectContentTypeFromFilename(defaultFilename);
+        if (contentType == null) {
           final mimeParts = dataPart.mimeType.split('/');
           if (mimeParts.length == 2) {
             contentType = http.MediaType(mimeParts[0], mimeParts[1]);
           }
         }
-        
+
         return http.MultipartFile.fromBytes(
           fieldName,
           bytes,
@@ -3013,12 +3042,6 @@ class ApiService {
       if (response.statusCode == 200) {
         try {
           final List<dynamic> data = json.decode(response.body);
-          // Validate response structure
-          if (data is! List) {
-            LoggerService.e('getAllContent: Expected List but got ${data.runtimeType}');
-            LoggerService.d('Response body: ${response.body}');
-            throw Exception('Invalid response format from server: expected List');
-          }
           return data;
         } catch (e) {
           LoggerService.e('Error parsing getAllContent response: $e');
@@ -3030,7 +3053,8 @@ class ApiService {
       } else if (response.statusCode == 403) {
         throw Exception('Access denied. Admin privileges required.');
       } else {
-        LoggerService.e('getAllContent failed: ${response.statusCode} ${response.body}');
+        LoggerService.e(
+            'getAllContent failed: ${response.statusCode} ${response.body}');
         throw Exception('Failed to get content: HTTP ${response.statusCode}');
       }
     } catch (e) {
@@ -4647,12 +4671,13 @@ class ApiService {
         'offset': offset.toString(),
         if (unreadOnly) 'unread_only': 'true',
       };
-      
-      final uri = Uri.parse('$baseUrl/notifications').replace(queryParameters: queryParams);
+
+      final uri = Uri.parse('$baseUrl/notifications')
+          .replace(queryParameters: queryParams);
       final response = await http
           .get(uri, headers: await _getHeaders())
           .timeout(const Duration(seconds: 10));
-      
+
       if (response.statusCode == 200) {
         return json.decode(response.body) as Map<String, dynamic>;
       } else if (response.statusCode == 401) {
@@ -4668,7 +4693,8 @@ class ApiService {
         }
         throw Exception('Authentication failed. Please log in again.');
       }
-      throw Exception('Failed to fetch notifications: HTTP ${response.statusCode}');
+      throw Exception(
+          'Failed to fetch notifications: HTTP ${response.statusCode}');
     } catch (e) {
       throw Exception('Error fetching notifications: $e');
     }
@@ -4682,7 +4708,7 @@ class ApiService {
       final response = await http
           .get(uri, headers: await _getHeaders())
           .timeout(const Duration(seconds: 10));
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         return data['unread_count'] as int? ?? 0;
@@ -4693,7 +4719,8 @@ class ApiService {
               .get(uri, headers: await _getHeaders())
               .timeout(const Duration(seconds: 10));
           if (retryResponse.statusCode == 200) {
-            final data = json.decode(retryResponse.body) as Map<String, dynamic>;
+            final data =
+                json.decode(retryResponse.body) as Map<String, dynamic>;
             return data['unread_count'] as int? ?? 0;
           }
         }
@@ -4718,7 +4745,7 @@ class ApiService {
             body: json.encode({'notification_ids': notificationIds}),
           )
           .timeout(const Duration(seconds: 10));
-      
+
       if (response.statusCode == 200) {
         return true;
       } else if (response.statusCode == 401) {
@@ -4750,7 +4777,7 @@ class ApiService {
       final response = await http
           .post(uri, headers: await _getHeaders())
           .timeout(const Duration(seconds: 10));
-      
+
       if (response.statusCode == 200) {
         return true;
       } else if (response.statusCode == 401) {
@@ -4778,7 +4805,7 @@ class ApiService {
       final response = await http
           .delete(uri, headers: await _getHeaders())
           .timeout(const Duration(seconds: 10));
-      
+
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
       LoggerService.e('Error deleting notification: $e');

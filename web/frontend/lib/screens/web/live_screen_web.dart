@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -32,6 +33,17 @@ class _LiveScreenWebState extends State<LiveScreenWeb>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _fetchStreams();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh streams when screen becomes visible (e.g., navigating from notifications)
+    final router = GoRouter.of(context);
+    final uri = router.routerDelegate.currentConfiguration.uri;
+    if (uri.queryParameters['refresh'] == 'true') {
+      _fetchStreams();
+    }
   }
 
   @override

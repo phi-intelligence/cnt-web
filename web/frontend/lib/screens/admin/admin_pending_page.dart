@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../services/logger_service.dart';
 import '../../theme/app_colors.dart';
@@ -8,6 +9,7 @@ import '../../widgets/admin/admin_content_card.dart';
 import '../../widgets/shared/empty_state.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../widgets/web/styled_filter_chip.dart';
+import '../../providers/community_provider.dart';
 
 /// Reject reason dialog
 class _RejectReasonDialog extends StatefulWidget {
@@ -45,21 +47,25 @@ class _RejectReasonDialogState extends State<_RejectReasonDialog> {
         maxLines: 3,
       ),
       actions: [
-        StyledPillButton(
-          label: 'Cancel',
-          icon: Icons.close,
-          onPressed: () => Navigator.pop(context),
-          variant: StyledPillButtonVariant.outlined,
-          width: 100,
-        ),
-        const SizedBox(width: AppSpacing.small),
-        StyledPillButton(
-          label: 'Reject',
-          icon: Icons
-              .check, // Or warning icon? Sticking to check for "Confirm Action" or keep close? Using 'check' as 'Confirm Rejection'.
-          onPressed: () => Navigator.pop(context, _controller.text),
-          variant: StyledPillButtonVariant.filled,
-          width: 100,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            StyledPillButton(
+              label: 'Cancel',
+              icon: Icons.close,
+              onPressed: () => Navigator.pop(context),
+              variant: StyledPillButtonVariant.outlined,
+              width: 100,
+            ),
+            const SizedBox(width: AppSpacing.small),
+            StyledPillButton(
+              label: 'Reject',
+              icon: Icons.check,
+              onPressed: () => Navigator.pop(context, _controller.text),
+              variant: StyledPillButtonVariant.filled,
+              width: 100,
+            ),
+          ],
         ),
       ],
     );
@@ -241,6 +247,16 @@ class _AdminPendingPageState extends State<AdminPendingPage>
           ),
         );
         _loadAllContent();
+        // Refresh community feed if a post was rejected
+        if (contentType == 'community_post') {
+          try {
+            final communityProvider = context.read<CommunityProvider>();
+            await communityProvider.clearAndRefresh();
+          } catch (e) {
+            // Silently fail - community refresh is not critical
+            print('Failed to refresh community: $e');
+          }
+        }
       }
     } catch (e) {
       if (mounted) {

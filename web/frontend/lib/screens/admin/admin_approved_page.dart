@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -7,6 +8,7 @@ import '../../widgets/admin/admin_content_card.dart';
 import '../../widgets/shared/empty_state.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../widgets/web/styled_filter_chip.dart';
+import '../../providers/community_provider.dart';
 
 /// Admin Approved Page - Shows all approved content with tabs
 /// Tabs: All, Podcasts, Movies, Posts
@@ -134,21 +136,25 @@ class _AdminApprovedPageState extends State<AdminApprovedPage>
           borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
         ),
         actions: [
-          StyledPillButton(
-            label: 'Cancel',
-            icon: Icons.close,
-            onPressed: () => Navigator.pop(context, false),
-            variant: StyledPillButtonVariant.outlined,
-            width: 100,
-          ),
-          const SizedBox(width: AppSpacing.small),
-          StyledPillButton(
-            label: 'Delete',
-            icon: Icons.delete_outline,
-            onPressed: () => Navigator.pop(context, true),
-            variant: StyledPillButtonVariant
-                .outlined, // Outlined Brown for Negative actions per plan
-            width: 100,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              StyledPillButton(
+                label: 'Cancel',
+                icon: Icons.close,
+                onPressed: () => Navigator.pop(context, false),
+                variant: StyledPillButtonVariant.outlined,
+                width: 100,
+              ),
+              const SizedBox(width: AppSpacing.small),
+              StyledPillButton(
+                label: 'Delete',
+                icon: Icons.delete_outline,
+                onPressed: () => Navigator.pop(context, true),
+                variant: StyledPillButtonVariant.outlined,
+                width: 100,
+              ),
+            ],
           ),
         ],
       ),
@@ -166,6 +172,16 @@ class _AdminApprovedPageState extends State<AdminApprovedPage>
           ),
         );
         _loadAllContent();
+        // Refresh community feed if a post was deleted
+        if (contentType == 'community_post') {
+          try {
+            final communityProvider = context.read<CommunityProvider>();
+            await communityProvider.clearAndRefresh();
+          } catch (e) {
+            // Silently fail - community refresh is not critical
+            print('Failed to refresh community: $e');
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
