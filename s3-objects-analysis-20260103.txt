@@ -1,0 +1,20 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|                                                                             ListObjectsV2                                                                            |
++--------------------------------------------------------------------------------------------------------------+-------------+----------------------------+------------+
+|  animated-bible-stories/.gitkeep                                                                             |  1          |  2025-12-03T18:56:52+00:00 |  STANDARD  |
+|  animated-bible-stories/Old Testament 5.mp4                                                                  |  82389730   |  2025-12-03T18:58:22+00:00 |  STANDARD  |
+|  animated-bible-stories/Old Testament 6.mp4                                                                  |  140470401  |  2025-12-03T18:58:41+00:00 |  STANDARD  |
+|  animated-bible-stories/Solomon's Kingdom.mp4                                                                |  185147981  |  2025-12-03T18:59:13+00:00 |  STANDARD  |
+|  animated-bible-stories/Stories From The Bible - David.mp4                                                   |  177960352  |  2025-12-03T18:59:55+00:00 |  STANDARD  |
+|  animated-bible-stories/Stories From The Bible - Jonah.mp4                                                   |  181370221  |  2025-12-03T19:00:36+00:00 |  STANDARD  |
+|  animated-bible-stories/Telugu Christian.mp4                                                                 |  84685097   |  2025-12-03T19:01:17+00:00 |  STANDARD  |
+|  animated-bible-stories/The Demise of Solomon.mp4                                                            |  131923098  |  2025-12-03T19:01:37+00:00 |  STANDARD  |
+|  animated-bible-stories/The King and Bathsheba.mp4                                                           |  146602090  |  2025-12-03T19:02:08+00:00 |  STANDARD  |
+|  animated-bible-stories/The Nile Turns to Blood.mp4                                                          |  151184410  |  2025-12-03T19:02:41+00:00 |  STANDARD  |
+|  animated-bible-stories/The Prophet 2.mp4                                                                    |  181397594  |  2025-12-03T19:03:16+00:00 |  STANDARD  |
+|  animated-bible-stories/The Prophet.mp4                                                                      |  180869939  |  2025-12-03T19:03:57+00:00 |  STANDARD  |
+|  animated-bible-stories/The Shattered Calf.mp4                                                               |  145562620  |  2025-12-03T19:04:38+00:00 |  STANDARD  |
+|  animated-bible-stories/The Son of Terah.mp4                                                                 |  169121106  |  2025-12-03T19:05:12+00:00 |  STANDARD  |
+|  animated-bible-stories/The Sons of Jacob.mp4                                                                |  134048986  |  2025-12-03T19:05:50+00:00 |  STANDARD  |
+|  animated-bible-stories/The Sons of Noah.mp4                                                                 |  148236008  |  2025-12-03T19:06:21+00:00 |  STANDARD  |
+|  animated-bible-stories/The Tower of Babel.mp4                                                               |  179766683  |  2025-12-03T19:06:55+00:00 |  STANDARD  |

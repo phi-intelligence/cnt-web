@@ -5,6 +5,7 @@ import '../theme/app_typography.dart';
 import '../utils/platform_helper.dart';
 import '../utils/responsive_utils.dart';
 import '../widgets/shared/image_helper.dart';
+import '../services/logger_service.dart';
 
 /// Hero Carousel Widget - Image carousel with latest community posts
 /// Auto-scrolling carousel displaying images from community posts
@@ -97,7 +98,7 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
 
   Future<void> _loadItems() async {
     try {
-      print('🖼️ Hero Carousel: Fetching approved community posts with images...');
+      LoggerService.i('🖼️ Hero Carousel: Fetching approved community posts with images...');
       final apiService = ApiService();
       
       // Clear previous loaded images cache to prevent stale references
@@ -111,7 +112,7 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
         limit: 20,
         approvedOnly: true,  // Only show approved posts
       );
-      print('🖼️ Hero Carousel: Fetched ${posts.length} approved community posts');
+      LoggerService.d('🖼️ Hero Carousel: Fetched ${posts.length} approved community posts');
       
       // Convert posts to carousel items
       // Backend already filters to only return posts with image_url (both image posts and text posts converted to quote images)
@@ -129,15 +130,15 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
           final fullImageUrl = apiService.getMediaUrl(imageUrl);
           
           // Log detailed information for debugging
-          print('🖼️ Hero Carousel: Post $postId');
-          print('   - Type: $postType');
-          print('   - Approved: $isApproved');
-          print('   - Original URL: $imageUrl');
-          print('   - Full URL: $fullImageUrl');
+          LoggerService.d('🖼️ Hero Carousel: Post $postId');
+          LoggerService.d('   - Type: $postType');
+          LoggerService.d('   - Approved: $isApproved');
+          LoggerService.d('   - Original URL: $imageUrl');
+          LoggerService.d('   - Full URL: $fullImageUrl');
           
           // Validate URL before adding
           if (fullImageUrl.isEmpty) {
-            print('   ⚠️ Warning: Empty URL after processing, skipping post $postId');
+            LoggerService.w('   ⚠️ Warning: Empty URL after processing, skipping post $postId');
             continue;
           }
           
@@ -145,11 +146,11 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
           try {
             final uri = Uri.parse(fullImageUrl);
             if (!uri.hasScheme || (!uri.scheme.startsWith('http'))) {
-              print('   ⚠️ Warning: Invalid URL scheme, skipping post $postId');
+              LoggerService.w('   ⚠️ Warning: Invalid URL scheme, skipping post $postId');
               continue;
             }
           } catch (e) {
-            print('   ⚠️ Warning: Invalid URL format ($fullImageUrl), skipping post $postId: $e');
+            LoggerService.w('   ⚠️ Warning: Invalid URL format ($fullImageUrl), skipping post $postId: $e');
             continue;
           }
           
@@ -163,11 +164,11 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
           // Limit to 10-12 items for carousel
           if (items.length >= 12) break;
         } else {
-          print('⚠️ Hero Carousel: Post $postId has null or empty image_url, skipping');
+          LoggerService.w('⚠️ Hero Carousel: Post $postId has null or empty image_url, skipping');
         }
       }
       
-      print('🖼️ Hero Carousel: Found ${items.length} approved posts with images');
+      LoggerService.d('🖼️ Hero Carousel: Found ${items.length} approved posts with images');
       
       if (mounted) {
         setState(() {
@@ -185,13 +186,13 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
         }
       }
     } catch (e, stackTrace) {
-      print('❌ Hero Carousel: Error loading items: $e');
-      print('❌ Hero Carousel: Stack trace: $stackTrace');
+      LoggerService.e('❌ Hero Carousel: Error loading items', e);
+      LoggerService.e('❌ Hero Carousel: Stack trace: $stackTrace');
       if (e.toString().contains('TimeoutException')) {
-        print('⚠️  Connection timeout! Make sure:');
-        print('   1. Backend is running on port 8002');
-        print('   2. For physical devices, use: --dart-define=API_BASE=http://192.168.0.14:8002/api/v1');
-        print('   3. Device and computer are on the same network');
+        LoggerService.w('⚠️  Connection timeout! Make sure:');
+        LoggerService.w('   1. Backend is running on port 8002');
+        LoggerService.w('   2. For physical devices, use: --dart-define=API_BASE=http://192.168.0.14:8002/api/v1');
+        LoggerService.w('   3. Device and computer are on the same network');
       }
       if (mounted) {
         setState(() {
@@ -411,7 +412,7 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
         errorBuilder: (context, error, stackTrace) {
           // Only log error once per image URL
           if (!_loadedImages.contains('error:${item.imageUrl}')) {
-            print('❌ Hero Carousel: Error loading image ${item.imageUrl}: $error');
+            LoggerService.e('❌ Hero Carousel: Error loading image ${item.imageUrl}', error);
             _loadedImages.add('error:${item.imageUrl}');
           }
           return Container(
@@ -478,7 +479,7 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
               color: Colors.transparent,
               child: InkWell(
                 onTap: () {
-                  print('🖼️ Hero Carousel: Tapped on post ${item.postId}');
+                  LoggerService.d('🖼️ Hero Carousel: Tapped on post ${item.postId}');
                   widget.onItemTap!(item.postId);
                 },
                 splashColor: Colors.white.withOpacity(0.1),

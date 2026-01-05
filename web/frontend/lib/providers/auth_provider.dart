@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
 import '../services/google_auth_service.dart';
 import '../services/web_storage_service.dart';
+import '../services/logger_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -38,7 +39,7 @@ class AuthProvider extends ChangeNotifier {
   void _migrateStorageOnStartup() {
     // Call migrateStorage asynchronously to not block constructor
     WebStorageService.migrateStorage().catchError((e) {
-      print('Error migrating storage on startup: $e');
+      LoggerService.e('Error migrating storage on startup', e);
     });
   }
 
@@ -47,7 +48,7 @@ class AuthProvider extends ChangeNotifier {
     if (kIsWeb) {
       html.document.addEventListener('visibilitychange', (event) {
         if (html.document.visibilityState == 'visible') {
-          print('🔍 App became visible, checking token...');
+          LoggerService.d('🔍 App became visible, checking token...');
           _checkTokenExpiration();
         }
       });
@@ -110,38 +111,38 @@ class AuthProvider extends ChangeNotifier {
 
       // Check if access token expires within 5 minutes
       if (_shouldRefreshToken(token)) {
-        print('🔄 Access token expires soon, refreshing...');
+        LoggerService.d('🔄 Access token expires soon, refreshing...');
         _isRefreshing = true;
         final refreshed = await _authService.refreshAccessToken();
         _isRefreshing = false;
 
         if (!refreshed) {
           // Refresh failed - might be network issue, try again later
-          print('⚠️ Token refresh failed, will retry');
+          LoggerService.w('⚠️ Token refresh failed, will retry');
           // Don't logout immediately - might be temporary
         } else {
-          print('✅ Token proactively refreshed');
+          LoggerService.i('✅ Token proactively refreshed');
         }
       } else if (AuthService.isTokenExpired(token)) {
         // Token already expired - try refresh
-        print('🔄 Access token expired, refreshing...');
+        LoggerService.d('🔄 Access token expired, refreshing...');
         _isRefreshing = true;
         final refreshed = await _authService.refreshAccessToken();
         _isRefreshing = false;
 
         if (!refreshed) {
           // Refresh token also expired/revoked - logout
-          print('⚠️ Refresh token expired/revoked, logging out');
+          LoggerService.w('⚠️ Refresh token expired/revoked, logging out');
           await logout();
           _error = 'Your session has expired. Please log in again.';
           notifyListeners();
         } else {
-          print('✅ Expired token successfully refreshed');
+          LoggerService.i('✅ Expired token successfully refreshed');
         }
       }
     } catch (e) {
       _isRefreshing = false;
-      print('Error checking token expiration: $e');
+      LoggerService.e('Error checking token expiration', e);
     }
   }
 
@@ -179,7 +180,7 @@ class AuthProvider extends ChangeNotifier {
 
       // Access token expired or missing - try refresh token if available
       if (refreshToken != null && refreshToken.isNotEmpty) {
-        print('🔄 Access token expired or missing, attempting refresh...');
+        LoggerService.d('🔄 Access token expired or missing, attempting refresh...');
         _isLoading = true;
         notifyListeners();
 
@@ -191,11 +192,11 @@ class AuthProvider extends ChangeNotifier {
               onTimeout: () => null);
           _isAuthenticated = _user != null;
           _startTokenExpirationCheck();
-          print('✅ Auto-login successful via refresh token');
+          LoggerService.i('✅ Auto-login successful via refresh token');
           _error = null;
         } else {
           // Refresh failed - user needs to log in
-          print('⚠️ Auto-login failed - refresh token expired/revoked');
+          LoggerService.w('⚠️ Auto-login failed - refresh token expired/revoked');
           _user = null;
           _isAuthenticated = false;
           await _authService.logout(); // Clear invalid tokens
@@ -207,7 +208,7 @@ class AuthProvider extends ChangeNotifier {
       }
       _error = null;
     } catch (e) {
-      print('Auth check error: $e');
+      LoggerService.e('Auth check error', e);
       _error = 'Failed to check auth status: $e';
       _isAuthenticated = false;
       _user = null;

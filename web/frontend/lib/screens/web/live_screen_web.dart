@@ -264,6 +264,9 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
     required VoidCallback onAction,
     required String actionLabel,
   }) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    
     return Container(
       margin: EdgeInsets.only(bottom: AppSpacing.large),
       decoration: BoxDecoration(
@@ -319,101 +322,232 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
                 ),
               ],
             ),
-            child: Row(
-              children: [
-                // Icon section
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        statusColor,
-                        statusColor.withOpacity(0.8),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: statusColor.withOpacity(0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+            child: isMobile
+                ? _buildMobileCardContent(
+                    stream: stream,
+                    status: status,
+                    statusColor: statusColor,
+                    statusIcon: statusIcon,
+                    onAction: onAction,
+                    actionLabel: actionLabel,
+                  )
+                : _buildDesktopCardContent(
+                    stream: stream,
+                    status: status,
+                    statusColor: statusColor,
+                    statusIcon: statusIcon,
+                    onAction: onAction,
+                    actionLabel: actionLabel,
                   ),
-                  child: Icon(
-                    statusIcon,
-                    color: Colors.white,
-                    size: 48,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.large),
-                // Content section
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: AppSpacing.medium,
-                              vertical: AppSpacing.tiny,
-                            ),
-                            decoration: BoxDecoration(
-                              color: statusColor,
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Text(
-                              status,
-                              style: AppTypography.bodySmall.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.small),
-                      Text(
-                        stream['title'] ?? 'Untitled Stream',
-                        style: AppTypography.heading4.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.tiny),
-                      Text(
-                        stream['host_name'] ?? 'Host',
-                        style: AppTypography.body.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      if (stream['scheduled_start'] != null) ...[
-                        const SizedBox(height: AppSpacing.tiny),
-                        Text(
-                          'Scheduled: ${stream['scheduled_start']}',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textTertiary,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.medium),
-                // Action button
-                StyledPillButton(
-                  label: actionLabel,
-                  icon: Icons.play_arrow,
-                  onPressed: onAction,
-                ),
-              ],
-            ),
           ),
         ],
       ),
+    );
+  }
+
+  // Mobile layout (Column)
+  Widget _buildMobileCardContent({
+    required Map<String, dynamic> stream,
+    required String status,
+    required Color statusColor,
+    required IconData statusIcon,
+    required VoidCallback onAction,
+    required String actionLabel,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Status badge and icon row
+        Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    statusColor,
+                    statusColor.withOpacity(0.8),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: statusColor.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(
+                statusIcon,
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.medium),
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.medium,
+                vertical: AppSpacing.tiny,
+              ),
+              decoration: BoxDecoration(
+                color: statusColor,
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Text(
+                status,
+                style: AppTypography.bodySmall.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.medium),
+        // Title
+        Text(
+          stream['title'] ?? 'Untitled Stream',
+          style: AppTypography.heading4.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: AppSpacing.tiny),
+        // Host
+        Text(
+          stream['host_name'] ?? 'Host',
+          style: AppTypography.body.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        if (stream['scheduled_start'] != null) ...[
+          const SizedBox(height: AppSpacing.tiny),
+          Text(
+            'Scheduled: ${stream['scheduled_start']}',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.medium),
+        // Full-width button
+        SizedBox(
+          width: double.infinity,
+          child: StyledPillButton(
+            label: actionLabel,
+            icon: Icons.play_arrow,
+            onPressed: onAction,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Desktop layout (Row) - existing layout
+  Widget _buildDesktopCardContent({
+    required Map<String, dynamic> stream,
+    required String status,
+    required Color statusColor,
+    required IconData statusIcon,
+    required VoidCallback onAction,
+    required String actionLabel,
+  }) {
+    return Row(
+      children: [
+        // Icon section
+        Container(
+          width: 100,
+          height: 100,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                statusColor,
+                statusColor.withOpacity(0.8),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: statusColor.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Icon(
+            statusIcon,
+            color: Colors.white,
+            size: 48,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.large),
+        // Content section
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppSpacing.medium,
+                      vertical: AppSpacing.tiny,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Text(
+                      status,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.small),
+              Text(
+                stream['title'] ?? 'Untitled Stream',
+                style: AppTypography.heading4.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.tiny),
+              Text(
+                stream['host_name'] ?? 'Host',
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              if (stream['scheduled_start'] != null) ...[
+                const SizedBox(height: AppSpacing.tiny),
+                Text(
+                  'Scheduled: ${stream['scheduled_start']}',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(width: AppSpacing.medium),
+        // Action button
+        StyledPillButton(
+          label: actionLabel,
+          icon: Icons.play_arrow,
+          onPressed: onAction,
+        ),
+      ],
     );
   }
 
