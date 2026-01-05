@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/content_item.dart';
-import '../models/api_models.dart';
 
 class MusicProvider extends ChangeNotifier {
   final ApiService _api = ApiService();

@@ -13,6 +13,7 @@ import '../../widgets/thumbnail_selector.dart';
 import '../../services/api_service.dart';
 import '../../utils/state_persistence.dart';
 import '../editing/audio_editor_screen.dart';
+import '../../utils/unsaved_changes_guard.dart';
 
 /// Audio Preview Screen
 /// Shows recorded/uploaded audio with playback and metadata form
@@ -165,8 +166,19 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
     super.dispose();
   }
 
-  void _handleBack() {
-    Navigator.pop(context);
+  Future<bool> _confirmDiscard() async {
+    return await UnsavedChangesGuard.showDiscardConfirmation(
+      context,
+      title: 'Discard Audio?',
+      message: 'Are you sure you want to discard this audio? This action cannot be undone.',
+    );
+  }
+
+  void _handleBack() async {
+    final shouldDiscard = await _confirmDiscard();
+    if (shouldDiscard && mounted) {
+      Navigator.pop(context);
+    }
   }
 
   Future<void> _handlePlayPause() async {
@@ -360,97 +372,106 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
   Widget build(BuildContext context) {
     if (kIsWeb) {
       // Web version with horizontal layout matching VideoPreviewScreenWeb
-      return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      resizeToAvoidBottomInset: false,
-        body: Container(
-          padding: ResponsiveGridDelegate.getResponsivePadding(context),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                    onPressed: _handleBack,
-                  ),
-                  Expanded(
-                    child: StyledPageHeader(
-                      title: 'Preview Audio Podcast',
-                      size: StyledPageHeaderSize.h2,
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          final shouldDiscard = await _confirmDiscard();
+          if (shouldDiscard && mounted) {
+            Navigator.pop(context);
+          }
+        },
+        child: Scaffold(
+          backgroundColor: AppColors.backgroundPrimary,
+          resizeToAvoidBottomInset: false,
+          body: Container(
+            padding: ResponsiveGridDelegate.getResponsivePadding(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                      onPressed: _handleBack,
                     ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.delete, color: AppColors.errorMain),
-                    onPressed: () {
-                      // Delete functionality - can be implemented later
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Delete feature coming soon')),
-                      );
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.extraLarge),
-
-              // Main Content: Horizontal Layout
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    // On smaller screens, stack vertically; on larger screens, use horizontal layout
-                    final useHorizontalLayout = constraints.maxWidth > 1024;
-
-                    if (useHorizontalLayout) {
-                      // Horizontal Layout: Audio player on left, controls on right
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Audio Player Section (Left - 60-70%)
-                          Expanded(
-                            flex: 3,
-                            child: SectionContainer(
-                              showShadow: true,
-                              padding: EdgeInsets.zero,
-                              child: _buildAudioPlayer(),
-                            ),
-                          ),
-                          SizedBox(width: AppSpacing.large),
-                          // Controls & Form Section (Right - 30-40%)
-                          Expanded(
-                            flex: 2,
-                            child: SectionContainer(
-                              showShadow: true,
-                              child: _buildControlsAndForm(),
-                            ),
-                          ),
-                        ],
-                      );
-                    } else {
-                      // Vertical Layout for smaller screens
-                      return SingleChildScrollView(
-                        child: Column(
+                    Expanded(
+                      child: StyledPageHeader(
+                        title: 'Preview Audio Podcast',
+                        size: StyledPageHeaderSize.h2,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete, color: AppColors.errorMain),
+                      onPressed: () async {
+                         final shouldDiscard = await _confirmDiscard();
+                         if (shouldDiscard && mounted) {
+                           Navigator.pop(context);
+                         }
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.extraLarge),
+  
+                // Main Content: Horizontal Layout
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      // On smaller screens, stack vertically; on larger screens, use horizontal layout
+                      final useHorizontalLayout = constraints.maxWidth > 1024;
+  
+                      if (useHorizontalLayout) {
+                        // Horizontal Layout: Audio player on left, controls on right
+                        return Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SectionContainer(
-                              showShadow: true,
-                              padding: EdgeInsets.zero,
-                              child: _buildAudioPlayer(),
+                            // Audio Player Section (Left - 60-70%)
+                            Expanded(
+                              flex: 3,
+                              child: SectionContainer(
+                                showShadow: true,
+                                padding: EdgeInsets.zero,
+                                child: _buildAudioPlayer(),
+                              ),
                             ),
-                            const SizedBox(height: AppSpacing.large),
-                            SectionContainer(
-                              showShadow: true,
-                              child: _buildControlsAndForm(),
+                            SizedBox(width: AppSpacing.large),
+                            // Controls & Form Section (Right - 30-40%)
+                            Expanded(
+                              flex: 2,
+                              child: SectionContainer(
+                                showShadow: true,
+                                child: _buildControlsAndForm(),
+                              ),
                             ),
                           ],
-                        ),
-                      );
-                    }
-                  },
+                        );
+                      } else {
+                        // Vertical Layout for smaller screens
+                        return SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SectionContainer(
+                                showShadow: true,
+                                padding: EdgeInsets.zero,
+                                child: _buildAudioPlayer(),
+                              ),
+                              const SizedBox(height: AppSpacing.large),
+                              SectionContainer(
+                                showShadow: true,
+                                child: _buildControlsAndForm(),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );

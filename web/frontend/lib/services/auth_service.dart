@@ -1,11 +1,9 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../utils/platform_helper.dart';
 import 'web_storage_service.dart';
-import 'logger_service.dart';
 
 class AuthService {
   static const _secureStorage = FlutterSecureStorage();
@@ -61,8 +59,8 @@ class AuthService {
   /// Login with username or email and password
   Future<Map<String, dynamic>> login(String usernameOrEmail, String password) async {
     try {
-      LoggerService.i('🔐 Attempting login to: $baseUrl/auth/login');
-      LoggerService.d('👤 Username/Email: $usernameOrEmail');
+      print('🔐 Attempting login to: $baseUrl/auth/login');
+      print('👤 Username/Email: $usernameOrEmail');
       
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
@@ -78,11 +76,16 @@ class AuthService {
         },
       );
       
-      LoggerService.d('📡 Login response status: ${response.statusCode}');
-      LoggerService.d('📄 Login response body: ${response.body}');
+      print('📡 Login response status: ${response.statusCode}');
+      print('📄 Login response body: ${response.body}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        
+        // Enable remember me by default for email/password login (matches user expectations)
+        if (kIsWeb) {
+          setRememberMe(true);
+        }
         
         // Store token, refresh token, and user data
         await _write(key: _tokenKey, value: data['access_token']);
@@ -97,11 +100,11 @@ class AuthService {
           'is_admin': data['is_admin'],
         }));
         
-        LoggerService.i('✅ Token, refresh token, and user data stored successfully');
+        print('✅ Token, refresh token, and user data stored successfully');
         return data;
       } else {
         final errorBody = response.body;
-        LoggerService.e('❌ Login failed with status ${response.statusCode}: $errorBody');
+        print('❌ Login failed with status ${response.statusCode}: $errorBody');
         try {
           final error = jsonDecode(errorBody);
           throw Exception(error['detail'] ?? 'Login failed');
@@ -110,7 +113,7 @@ class AuthService {
         }
       }
     } catch (e) {
-      LoggerService.e('💥 Login exception: $e');
+      print('💥 Login exception: $e');
       if (e.toString().contains('timeout')) {
         throw e; // Re-throw timeout as-is
       }
@@ -168,12 +171,12 @@ class AuthService {
       final isExpired = DateTime.now().isAfter(expirationDate);
       
       if (isExpired) {
-        LoggerService.w('⚠️ Token expired. Expiration: ${expirationDate.toIso8601String()}, Now: ${DateTime.now().toIso8601String()}');
+        print('⚠️ Token expired. Expiration: ${expirationDate.toIso8601String()}, Now: ${DateTime.now().toIso8601String()}');
       }
       
       return isExpired;
     } catch (e) {
-      LoggerService.e('⚠️ Error checking token expiration: $e');
+      print('⚠️ Error checking token expiration: $e');
       return true; // If we can't decode, assume expired
     }
   }
@@ -213,7 +216,7 @@ class AuthService {
           ).timeout(const Duration(seconds: 5));
         } catch (e) {
           // Continue even if logout request fails
-          LoggerService.w('Logout request failed: $e');
+          print('Logout request failed: $e');
         }
       }
       
@@ -227,9 +230,9 @@ class AuthService {
         await WebStorageService.clearAuthData();
       }
       
-      LoggerService.i('✅ Logged out successfully');
+      print('✅ Logged out successfully');
     } catch (e) {
-      LoggerService.e('Logout error: $e');
+      print('Logout error: $e');
       // Still clear local storage even if backend call fails
       await _delete(key: _tokenKey);
       await _delete(key: _refreshTokenKey);
@@ -247,7 +250,7 @@ class AuthService {
     String? bio,
   }) async {
     try {
-      LoggerService.i('📝 Attempting registration to: $baseUrl/auth/register');
+      print('📝 Attempting registration to: $baseUrl/auth/register');
       
       final response = await http.post(
         Uri.parse('$baseUrl/auth/register'),
@@ -267,11 +270,16 @@ class AuthService {
         },
       );
       
-      LoggerService.d('📡 Registration response status: ${response.statusCode}');
-      LoggerService.d('📄 Registration response body: ${response.body}');
+      print('📡 Registration response status: ${response.statusCode}');
+      print('📄 Registration response body: ${response.body}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        
+        // Enable remember me by default for registration (matches user expectations)
+        if (kIsWeb) {
+          setRememberMe(true);
+        }
         
         // Store token, refresh token, and user data
         await _write(key: _tokenKey, value: data['access_token']);
@@ -286,11 +294,11 @@ class AuthService {
           'is_admin': data['is_admin'],
         }));
         
-        LoggerService.i('✅ Registration successful and tokens stored');
+        print('✅ Registration successful and tokens stored');
         return data;
       } else {
         final errorBody = response.body;
-        LoggerService.e('❌ Registration failed with status ${response.statusCode}: $errorBody');
+        print('❌ Registration failed with status ${response.statusCode}: $errorBody');
         try {
           final error = jsonDecode(errorBody);
           throw Exception(error['detail'] ?? 'Registration failed');
@@ -299,7 +307,7 @@ class AuthService {
         }
       }
     } catch (e) {
-      LoggerService.e('💥 Registration exception: $e');
+      print('💥 Registration exception: $e');
       throw Exception('Registration error: $e');
     }
   }
@@ -314,8 +322,8 @@ class AuthService {
     String? photoUrl,
   }) async {
     try {
-      LoggerService.i('🔐 Attempting Google login to: $baseUrl/auth/google-login');
-      LoggerService.d('🔑 Token type: ${tokenType ?? 'id_token'}');
+      print('🔐 Attempting Google login to: $baseUrl/auth/google-login');
+      print('🔑 Token type: ${tokenType ?? 'id_token'}');
       
       // Build request body based on token type
       final Map<String, dynamic> body = {};
@@ -343,8 +351,8 @@ class AuthService {
         },
       );
       
-      LoggerService.d('📡 Google login response status: ${response.statusCode}');
-      LoggerService.d('📄 Google login response body: ${response.body}');
+      print('📡 Google login response status: ${response.statusCode}');
+      print('📄 Google login response body: ${response.body}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -367,11 +375,11 @@ class AuthService {
           'is_admin': data['is_admin'],
         }));
         
-        LoggerService.i('✅ Google login successful and tokens stored');
+        print('✅ Google login successful and tokens stored');
         return data;
       } else {
         final errorBody = response.body;
-        LoggerService.e('❌ Google login failed with status ${response.statusCode}: $errorBody');
+        print('❌ Google login failed with status ${response.statusCode}: $errorBody');
         try {
           final error = jsonDecode(errorBody);
           throw Exception(error['detail'] ?? 'Google login failed');
@@ -380,7 +388,7 @@ class AuthService {
         }
       }
     } catch (e) {
-      LoggerService.e('💥 Google login exception: $e');
+      print('💥 Google login exception: $e');
       throw Exception('Google login error: $e');
     }
   }
@@ -402,7 +410,7 @@ class AuthService {
         throw Exception('Failed to check username availability');
       }
     } catch (e) {
-      LoggerService.e('💥 Username check exception: $e');
+      print('💥 Username check exception: $e');
       throw Exception('Username check error: $e');
     }
   }
@@ -410,7 +418,7 @@ class AuthService {
   /// Send OTP to email for verification
   Future<Map<String, dynamic>> sendOTP(String email) async {
     try {
-      LoggerService.i('📧 Sending OTP to: $email');
+      print('📧 Sending OTP to: $email');
       
       final response = await http.post(
         Uri.parse('$baseUrl/auth/send-otp'),
@@ -425,15 +433,15 @@ class AuthService {
         },
       );
       
-      LoggerService.d('📡 Send OTP response status: ${response.statusCode}');
+      print('📡 Send OTP response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        LoggerService.i('✅ OTP sent successfully');
+        print('✅ OTP sent successfully');
         return data;
       } else {
         final errorBody = response.body;
-        LoggerService.e('❌ Send OTP failed: $errorBody');
+        print('❌ Send OTP failed: $errorBody');
         try {
           final error = jsonDecode(errorBody);
           throw Exception(error['detail'] ?? 'Failed to send verification code');
@@ -442,7 +450,7 @@ class AuthService {
         }
       }
     } catch (e) {
-      LoggerService.e('💥 Send OTP exception: $e');
+      print('💥 Send OTP exception: $e');
       rethrow;
     }
   }
@@ -450,7 +458,7 @@ class AuthService {
   /// Verify OTP code
   Future<Map<String, dynamic>> verifyOTP(String email, String otpCode) async {
     try {
-      LoggerService.i('🔐 Verifying OTP for: $email');
+      print('🔐 Verifying OTP for: $email');
       
       final response = await http.post(
         Uri.parse('$baseUrl/auth/verify-otp'),
@@ -461,15 +469,15 @@ class AuthService {
         }),
       ).timeout(const Duration(seconds: 15));
       
-      LoggerService.d('📡 Verify OTP response status: ${response.statusCode}');
+      print('📡 Verify OTP response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        LoggerService.i('✅ OTP verification result: ${data['success']}');
+        print('✅ OTP verification result: ${data['success']}');
         return data;
       } else {
         final errorBody = response.body;
-        LoggerService.e('❌ Verify OTP failed: $errorBody');
+        print('❌ Verify OTP failed: $errorBody');
         try {
           final error = jsonDecode(errorBody);
           throw Exception(error['detail'] ?? 'Verification failed');
@@ -478,7 +486,7 @@ class AuthService {
         }
       }
     } catch (e) {
-      LoggerService.e('💥 Verify OTP exception: $e');
+      print('💥 Verify OTP exception: $e');
       rethrow;
     }
   }
@@ -494,7 +502,7 @@ class AuthService {
     String? bio,
   }) async {
     try {
-      LoggerService.i('📝 Registering with OTP to: $baseUrl/auth/register-with-otp');
+      print('📝 Registering with OTP to: $baseUrl/auth/register-with-otp');
       
       final response = await http.post(
         Uri.parse('$baseUrl/auth/register-with-otp'),
@@ -515,10 +523,15 @@ class AuthService {
         },
       );
       
-      LoggerService.d('📡 Register with OTP response status: ${response.statusCode}');
+      print('📡 Register with OTP response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        
+        // Enable remember me by default for registration (matches user expectations)
+        if (kIsWeb) {
+          setRememberMe(true);
+        }
         
         // Store token, refresh token, and user data
         await _write(key: _tokenKey, value: data['access_token']);
@@ -533,11 +546,11 @@ class AuthService {
           'is_admin': data['is_admin'],
         }));
         
-        LoggerService.i('✅ Registration with OTP successful and tokens stored');
+        print('✅ Registration with OTP successful and tokens stored');
         return data;
       } else {
         final errorBody = response.body;
-        LoggerService.e('❌ Register with OTP failed: $errorBody');
+        print('❌ Register with OTP failed: $errorBody');
         try {
           final error = jsonDecode(errorBody);
           throw Exception(error['detail'] ?? 'Registration failed');
@@ -546,7 +559,7 @@ class AuthService {
         }
       }
     } catch (e) {
-      LoggerService.e('💥 Register with OTP exception: $e');
+      print('💥 Register with OTP exception: $e');
       rethrow;
     }
   }
@@ -556,7 +569,7 @@ class AuthService {
   Future<bool> refreshAccessToken({int maxRetries = 3}) async {
     final refreshToken = await getRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
-      LoggerService.w('⚠️ No refresh token available');
+      print('⚠️ No refresh token available');
       return false;
     }
     
@@ -565,7 +578,7 @@ class AuthService {
     
     while (retryCount < maxRetries) {
       try {
-        LoggerService.d('🔄 Token refresh attempt ${retryCount + 1}/$maxRetries');
+        print('🔄 Token refresh attempt ${retryCount + 1}/$maxRetries');
         
         final response = await http.post(
           Uri.parse('$baseUrl/auth/refresh'),
@@ -579,15 +592,15 @@ class AuthService {
           if (data['refresh_token'] != null) {
             await _write(key: _refreshTokenKey, value: data['refresh_token']);
           }
-          LoggerService.i('✅ Access token refreshed successfully');
+          print('✅ Access token refreshed successfully');
           return true;
         } else if (response.statusCode == 401) {
           // Refresh token is invalid/expired - don't retry
-          LoggerService.w('❌ Refresh token invalid or expired');
+          print('❌ Refresh token invalid or expired');
           return false;
         } else {
           // Server error - might be temporary, retry
-          LoggerService.w('⚠️ Token refresh failed with status ${response.statusCode}, will retry');
+          print('⚠️ Token refresh failed with status ${response.statusCode}, will retry');
           retryCount++;
           if (retryCount < maxRetries) {
             await Future.delayed(Duration(milliseconds: delayMs));
@@ -595,7 +608,7 @@ class AuthService {
           }
         }
       } catch (e) {
-        LoggerService.e('💥 Token refresh error (attempt ${retryCount + 1}): $e');
+        print('💥 Token refresh error (attempt ${retryCount + 1}): $e');
         retryCount++;
         if (retryCount < maxRetries) {
           await Future.delayed(Duration(milliseconds: delayMs));
@@ -604,7 +617,7 @@ class AuthService {
       }
     }
     
-    LoggerService.e('❌ Token refresh failed after $maxRetries attempts');
+    print('❌ Token refresh failed after $maxRetries attempts');
     return false;
   }
   
@@ -639,32 +652,32 @@ class AuthService {
     
     // If no token, return empty
     if (token == null || token.isEmpty) {
-      LoggerService.w('⚠️ No auth token found');
+      print('⚠️ No auth token found');
       return {};
     }
     
     // Check if token is expired
     if (isTokenExpired(token)) {
-      LoggerService.w('⚠️ Token is expired, attempting refresh...');
-      // Attempt to refresh token before logging out
+      print('⚠️ Token is expired, attempting refresh...');
+      // Attempt to refresh token
       final refreshed = await refreshAccessToken();
       
       if (refreshed) {
         // Get new token after refresh
         token = await getToken();
         if (token != null && !isTokenExpired(token)) {
-          LoggerService.i('✅ Token refreshed successfully');
+          print('✅ Token refreshed successfully');
           return {'Authorization': 'Bearer $token'};
         }
       }
       
-      // Refresh failed - clear expired token
-      LoggerService.w('⚠️ Token refresh failed, clearing stored token');
-      await logout();
+      // Refresh failed - return empty headers to let API call fail
+      // Don't logout here - let the API error handler or AuthProvider handle logout
+      print('⚠️ Token refresh failed, returning empty headers (logout will be handled by error handler)');
       return {};
     }
     
-    LoggerService.d('🔑 Auth token retrieved: ${token.substring(0, 20)}...');
+    print('🔑 Auth token retrieved: ${token.substring(0, 20)}...');
     return {'Authorization': 'Bearer $token'};
   }
 

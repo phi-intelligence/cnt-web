@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../models/content_item.dart';
 import '../shared/image_helper.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../utils/responsive_utils.dart';
 

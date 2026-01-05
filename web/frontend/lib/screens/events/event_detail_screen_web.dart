@@ -8,6 +8,7 @@ import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
+import '../../utils/responsive_utils.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 
@@ -251,46 +252,50 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     // Date card
-                                    Container(
-                                      padding: EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(24),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.08),
-                                            blurRadius: 12,
-                                            offset: Offset(0, 4),
+                                    Builder(
+                                      builder: (context) {
+                                        final fontSizeScale = ResponsiveUtils.getFontSizeScale(context);
+                                        return Container(
+                                          padding: EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(24),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.08),
+                                                blurRadius: 12,
+                                                offset: Offset(0, 4),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          Text(
-                                            DateFormat('MMM').format(event.eventDate).toUpperCase(),
-                                            style: TextStyle(
-                                              color: AppColors.warmBrown,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                            ),
+                                          child: Column(
+                                            children: [
+                                              Text(
+                                                DateFormat('MMM').format(event.eventDate).toUpperCase(),
+                                                style: TextStyle(
+                                                  color: AppColors.warmBrown,
+                                                  fontSize: 14 * fontSizeScale,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              Text(
+                                                event.eventDate.day.toString(),
+                                                style: TextStyle(
+                                                  color: AppColors.textPrimary,
+                                                  fontSize: 32 * fontSizeScale,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              Text(
+                                                DateFormat('yyyy').format(event.eventDate),
+                                                style: AppTypography.getResponsiveCaption(context).copyWith(
+                                                  color: AppColors.textSecondary,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          Text(
-                                            event.eventDate.day.toString(),
-                                            style: TextStyle(
-                                              color: AppColors.textPrimary,
-                                              fontSize: 32,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Text(
-                                            DateFormat('yyyy').format(event.eventDate),
-                                            style: TextStyle(
-                                              color: AppColors.textSecondary,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                        );
+                                      },
                                     ),
                                     SizedBox(width: 20),
                                     // Title and host info
@@ -324,16 +329,14 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
                                                 children: [
                                                   Text(
                                                     'Hosted by',
-                                                    style: TextStyle(
+                                                    style: AppTypography.getResponsiveCaption(context).copyWith(
                                                       color: AppColors.textSecondary,
-                                                      fontSize: 12,
                                                     ),
                                                   ),
                                                   Text(
                                                     event.host?.name ?? 'Unknown',
-                                                    style: TextStyle(
+                                                    style: AppTypography.getResponsiveBodySmall(context).copyWith(
                                                       color: AppColors.textPrimary,
-                                                      fontSize: 14,
                                                       fontWeight: FontWeight.w600,
                                                     ),
                                                   ),
@@ -350,51 +353,55 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     // Date card
-                                    Container(
-                                      padding: EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(20),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.08),
-                                            blurRadius: 12,
-                                            offset: Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Column(
-                                            children: [
-                                              Text(
-                                                DateFormat('MMM').format(event.eventDate).toUpperCase(),
-                                                style: TextStyle(
-                                                  color: AppColors.warmBrown,
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                              Text(
-                                                event.eventDate.day.toString(),
-                                                style: TextStyle(
-                                                  color: AppColors.textPrimary,
-                                                  fontSize: 28,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              Text(
-                                                DateFormat('yyyy').format(event.eventDate),
-                                                style: TextStyle(
-                                                  color: AppColors.textSecondary,
-                                                  fontSize: 11,
-                                                ),
+                                    Builder(
+                                      builder: (context) {
+                                        final fontSizeScale = ResponsiveUtils.getFontSizeScale(context);
+                                        return Container(
+                                          padding: EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(20),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.08),
+                                                blurRadius: 12,
+                                                offset: Offset(0, 4),
                                               ),
                                             ],
                                           ),
-                                        ],
-                                      ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Column(
+                                                children: [
+                                                  Text(
+                                                    DateFormat('MMM').format(event.eventDate).toUpperCase(),
+                                                    style: TextStyle(
+                                                      color: AppColors.warmBrown,
+                                                      fontSize: 12 * fontSizeScale,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    event.eventDate.day.toString(),
+                                                    style: TextStyle(
+                                                      color: AppColors.textPrimary,
+                                                      fontSize: 28 * fontSizeScale,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    DateFormat('yyyy').format(event.eventDate),
+                                                    style: AppTypography.getResponsiveCaption(context).copyWith(
+                                                      color: AppColors.textSecondary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
                                     ),
                                     SizedBox(height: 16),
                                     // Title and host info
@@ -424,16 +431,14 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
                                           children: [
                                             Text(
                                               'Hosted by',
-                                              style: TextStyle(
+                                              style: AppTypography.getResponsiveCaption(context).copyWith(
                                                 color: AppColors.textSecondary,
-                                                fontSize: 11,
                                               ),
                                             ),
                                             Text(
                                               event.host?.name ?? 'Unknown',
-                                              style: TextStyle(
+                                              style: AppTypography.getResponsiveBodySmall(context).copyWith(
                                                 color: AppColors.textPrimary,
-                                                fontSize: 13,
                                                 fontWeight: FontWeight.w600,
                                               ),
                                             ),
@@ -531,7 +536,9 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
           children: [
             Text(
               'Event Details',
-              style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+              style: AppTypography.getResponsiveHeading4(context).copyWith(
+                color: AppColors.textPrimary,
+              ),
             ),
             SizedBox(height: 20),
             
@@ -593,17 +600,15 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
             children: [
               Text(
                 title,
-                style: TextStyle(
+                style: AppTypography.getResponsiveCaption(context).copyWith(
                   color: AppColors.textSecondary,
-                  fontSize: 12,
                 ),
               ),
               SizedBox(height: 2),
               Text(
                 value,
-                style: TextStyle(
+                style: AppTypography.getResponsiveBodySmall(context).copyWith(
                   color: AppColors.textPrimary,
-                  fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -626,14 +631,15 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
         children: [
           Text(
             'About this Event',
-            style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+            style: AppTypography.getResponsiveHeading4(context).copyWith(
+              color: AppColors.textPrimary,
+            ),
           ),
           SizedBox(height: 16),
           Text(
             event.description!,
-            style: TextStyle(
+            style: AppTypography.getResponsiveBodySmall(context).copyWith(
               color: AppColors.textSecondary,
-              fontSize: 14,
               height: 1.6,
             ),
           ),
@@ -656,18 +662,16 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
                 event.maxAttendees > 0
                     ? '${event.attendeesCount} / ${event.maxAttendees}'
                     : '${event.attendeesCount}',
-                style: TextStyle(
+                style: AppTypography.getResponsiveHeading3(context).copyWith(
                   color: AppColors.textPrimary,
-                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               SizedBox(width: 8),
               Text(
                 'attendees',
-                style: TextStyle(
+                style: AppTypography.getResponsiveBodySmall(context).copyWith(
                   color: AppColors.textSecondary,
-                  fontSize: 14,
                 ),
               ),
             ],
@@ -684,9 +688,8 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
                 ),
                 child: Text(
                   'Event is full',
-                  style: TextStyle(
+                  style: AppTypography.getResponsiveCaption(context).copyWith(
                     color: Colors.red,
-                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -728,7 +731,9 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
         children: [
           Text(
             'Attendees',
-            style: AppTypography.heading4.copyWith(color: AppColors.textPrimary),
+            style: AppTypography.getResponsiveHeading4(context).copyWith(
+              color: AppColors.textPrimary,
+            ),
           ),
           SizedBox(height: 16),
           
@@ -746,9 +751,8 @@ class _EventDetailScreenWebState extends State<EventDetailScreenWeb> {
                     SizedBox(height: 12),
                     Text(
                       'No attendees yet',
-                      style: TextStyle(
+                      style: AppTypography.getResponsiveBodySmall(context).copyWith(
                         color: AppColors.textSecondary,
-                        fontSize: 14,
                       ),
                     ),
                   ],

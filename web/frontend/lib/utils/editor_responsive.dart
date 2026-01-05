@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_spacing.dart';
 
 /// Responsive utilities for editor screens (video/audio)
 class EditorResponsive {

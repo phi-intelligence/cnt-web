@@ -8,10 +8,8 @@ import '../../theme/app_typography.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
-import '../../models/api_models.dart';
 import '../../models/content_item.dart';
 import 'register_screen_web.dart';
-import '../../services/logger_service.dart';
 
 /// Modern landing page following Living Scriptures design structure
 /// Sections: Hero, Content Carousels, Features, Testimonials, Devices, Footer
@@ -26,12 +24,12 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   final _loginFormKey = GlobalKey<FormState>();
   final _usernameOrEmailController = TextEditingController();
   final _passwordController = TextEditingController();
-  
+
   bool _obscurePassword = true;
   bool _isLoading = false;
   bool _isLoadingContent = true;
   bool _rememberMe = false; // Netflix-style: default to session-only login
-  
+
   List<ContentItem> _featuredMovies = [];
   List<ContentItem> _featuredPodcasts = [];
 
@@ -51,7 +49,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   Future<void> _fetchFeaturedContent() async {
     try {
       final apiService = ApiService();
-      
+
       // Fetch featured movies
       final movies = await apiService.getFeaturedMovies(limit: 6);
       // Fetch approved podcasts
@@ -63,13 +61,15 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
 
       if (mounted) {
         setState(() {
-          _featuredMovies = movies.map((m) => apiService.movieToContentItem(m)).toList();
-          _featuredPodcasts = podcasts.map((p) => apiService.podcastToContentItem(p)).toList();
+          _featuredMovies =
+              movies.map((m) => apiService.movieToContentItem(m)).toList();
+          _featuredPodcasts =
+              podcasts.map((p) => apiService.podcastToContentItem(p)).toList();
           _isLoadingContent = false;
         });
       }
     } catch (e) {
-      LoggerService.e('Error fetching featured content: $e');
+      print('Error fetching featured content: $e');
       if (mounted) {
         setState(() {
           _isLoadingContent = false;
@@ -97,7 +97,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
     }
 
     setState(() => _isLoading = true);
-    
+
     // Set remember me preference before login (affects where tokens are stored)
     AuthService.setRememberMe(_rememberMe);
 
@@ -126,7 +126,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
 
   Future<void> _handleGoogleLogin(BuildContext dialogContext) async {
     setState(() => _isLoading = true);
-    
+
     // Auto-enable "Remember Me" for Google OAuth logins
     // Google users expect to stay logged in across browser sessions
     AuthService.setRememberMe(true);
@@ -143,7 +143,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
             Navigator.of(dialogContext).pop();
           }
         } catch (e) {
-          LoggerService.w('⚠️ Dialog already dismissed: $e');
+          print('⚠️ Dialog already dismissed: $e');
         }
         if (authProvider.isAdmin) {
           context.go('/admin');
@@ -165,7 +165,6 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
-      resizeToAvoidBottomInset: false,
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -184,12 +183,12 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   Widget _buildHeroSection() {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     // Use ResponsiveUtils for breakpoints
     final isSmallMobile = screenWidth < 375;
     final isMobile = screenWidth < 640;
     final isTablet = screenWidth >= 640 && screenWidth < 1024;
-    
+
     return Container(
       width: double.infinity,
       height: screenHeight, // Full screen height
@@ -197,22 +196,24 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
         children: [
           // Background: Full image - responsive, positioned more to the right
           Positioned(
-            top: isMobile ? (isSmallMobile ? -30 : -50) : 0, 
+            top: isMobile ? (isSmallMobile ? -30 : -50) : 0,
             bottom: isMobile ? null : 0,
             // Adjust position for small screens to ensure face isn't covered
-            right: isMobile 
-                ? (isSmallMobile ? -screenWidth * 0.45 : -screenWidth * 0.3) 
-                : -100, 
-            height: isMobile ? screenHeight * (isSmallMobile ? 0.6 : 0.7) : null,
-            width: isMobile 
-                ? (isSmallMobile ? screenWidth * 1.5 : screenWidth * 1.2) 
+            right: isMobile
+                ? (isSmallMobile ? -screenWidth * 0.45 : -screenWidth * 0.3)
+                : -100,
+            height:
+                isMobile ? screenHeight * (isSmallMobile ? 0.6 : 0.7) : null,
+            width: isMobile
+                ? (isSmallMobile ? screenWidth * 1.5 : screenWidth * 1.2)
                 : screenWidth * 0.75,
             child: Container(
               decoration: BoxDecoration(
                 image: DecorationImage(
                   image: const AssetImage('assets/images/landing.png'),
                   fit: isMobile ? BoxFit.contain : BoxFit.cover,
-                  alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
+                  alignment:
+                      isMobile ? Alignment.topRight : Alignment.centerRight,
                 ),
               ),
             ),
@@ -228,7 +229,8 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                       ? [
                           const Color(0xFFF5F0E8),
                           const Color(0xFFF5F0E8).withOpacity(0.95),
-                          const Color(0xFFF5F0E8).withOpacity(0.7), // Increased opacity for readability
+                          const Color(0xFFF5F0E8).withOpacity(
+                              0.7), // Increased opacity for readability
                           Colors.transparent,
                         ]
                       : [
@@ -239,7 +241,12 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                           Colors.transparent,
                         ],
                   stops: isMobile
-                      ? const [0.0, 0.4, 0.7, 1.0] // Pushed stops further to cover text area
+                      ? const [
+                          0.0,
+                          0.4,
+                          0.7,
+                          1.0
+                        ] // Pushed stops further to cover text area
                       : const [0.0, 0.25, 0.4, 0.5, 0.65],
                 ),
               ),
@@ -261,11 +268,11 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
             child: Center(
               child: Container(
                 padding: EdgeInsets.only(
-                  left: isMobile 
-                      ? (isSmallMobile ? AppSpacing.medium : AppSpacing.large) 
+                  left: isMobile
+                      ? (isSmallMobile ? AppSpacing.medium : AppSpacing.large)
                       : AppSpacing.extraLarge * 3,
-                  right: isMobile 
-                      ? (isSmallMobile ? AppSpacing.medium : AppSpacing.large) 
+                  right: isMobile
+                      ? (isSmallMobile ? AppSpacing.medium : AppSpacing.large)
                       : AppSpacing.extraLarge,
                 ),
                 child: Column(
@@ -275,18 +282,22 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                     // Main headline
                     Text(
                       'Christ New Tabernacle',
-                      style: AppTypography.getResponsiveHeroTitle(context).copyWith(
+                      style: AppTypography.getResponsiveHeroTitle(context)
+                          .copyWith(
                         color: AppColors.primaryDark,
                         fontWeight: FontWeight.bold,
                         // Dynamic font size scaling
-                        fontSize: isSmallMobile 
-                            ? 28 
+                        fontSize: isSmallMobile
+                            ? 28
                             : (isMobile ? 36 : (isTablet ? 48 : 56)),
                         height: 1.1,
                       ),
                     ),
-                    SizedBox(height: isSmallMobile ? AppSpacing.medium : AppSpacing.extraLarge),
-                    
+                    SizedBox(
+                        height: isSmallMobile
+                            ? AppSpacing.medium
+                            : AppSpacing.extraLarge),
+
                     // Subtitle
                     Text(
                       'Uplifting movies, podcasts, and sermons.\nAlways ad free.',
@@ -296,7 +307,10 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                         height: 1.5,
                       ),
                     ),
-                    SizedBox(height: isSmallMobile ? AppSpacing.small : AppSpacing.medium),
+                    SizedBox(
+                        height: isSmallMobile
+                            ? AppSpacing.small
+                            : AppSpacing.medium),
                     Text(
                       'Watch Anywhere. Cancel Anytime.',
                       style: AppTypography.bodyMedium.copyWith(
@@ -304,8 +318,11 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                         fontSize: isSmallMobile ? 12 : (isMobile ? 14 : 15),
                       ),
                     ),
-                    SizedBox(height: isSmallMobile ? AppSpacing.large : AppSpacing.extraLarge * 1.5),
-                    
+                    SizedBox(
+                        height: isSmallMobile
+                            ? AppSpacing.large
+                            : AppSpacing.extraLarge * 1.5),
+
                     // Email signup
                     _buildEmailSignup(isMobile, isTablet, isSmallMobile),
                   ],
@@ -323,8 +340,8 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
-          left: isMobile 
-              ? (isSmallMobile ? AppSpacing.medium : AppSpacing.large) 
+          left: isMobile
+              ? (isSmallMobile ? AppSpacing.medium : AppSpacing.large)
               : AppSpacing.extraLarge * 3,
           right: AppSpacing.extraLarge,
           top: isSmallMobile ? AppSpacing.medium : AppSpacing.large,
@@ -368,73 +385,83 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Buttons row
-          isSmallMobile 
-          ? Column(
-              children: [
-                // LOG IN button - outlined pill
-                Container(
-                  width: double.infinity,
-                  child: _buildPillButton(
-                    label: 'LOG IN',
-                    onPressed: _handleSignIn,
-                    isOutlined: true,
-                    isSmallMobile: true,
-                  ),
+          isSmallMobile
+              ? Column(
+                  children: [
+                    // LOG IN button - outlined pill
+                    Container(
+                      width: double.infinity,
+                      child: _buildPillButton(
+                        label: 'LOG IN',
+                        onPressed: _handleSignIn,
+                        isOutlined: true,
+                        isSmallMobile: true,
+                      ),
+                    ),
+                    SizedBox(height: AppSpacing.medium),
+                    // Get Started button - filled pill
+                    Container(
+                      width: double.infinity,
+                      child: _buildPillButton(
+                        label: 'Get Started',
+                        onPressed: _handleGetStarted,
+                        isOutlined: false,
+                        isSmallMobile: true,
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    // LOG IN button - outlined pill
+                    Expanded(
+                      child: _buildPillButton(
+                        label: 'LOG IN',
+                        onPressed: _handleSignIn,
+                        isOutlined: true,
+                      ),
+                    ),
+                    SizedBox(width: AppSpacing.medium),
+                    // Get Started button - filled pill
+                    Expanded(
+                      child: _buildPillButton(
+                        label: 'Get Started',
+                        onPressed: _handleGetStarted,
+                        isOutlined: false,
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(height: AppSpacing.medium),
-                // Get Started button - filled pill
-                Container(
-                  width: double.infinity,
-                  child: _buildPillButton(
-                    label: 'Get Started',
-                    onPressed: _handleGetStarted,
-                    isOutlined: false,
-                    isSmallMobile: true,
-                  ),
-                ),
-              ],
-            )
-          : Row(
-            children: [
-              // LOG IN button - outlined pill
-              Expanded(
-                child: _buildPillButton(
-                  label: 'LOG IN',
-                  onPressed: _handleSignIn,
-                  isOutlined: true,
-                ),
-              ),
-              SizedBox(width: AppSpacing.medium),
-              // Get Started button - filled pill
-              Expanded(
-                child: _buildPillButton(
-                  label: 'Get Started',
-                  onPressed: _handleGetStarted,
-                  isOutlined: false,
-                ),
-              ),
-            ],
-          ),
           // Feature circles row
           SizedBox(height: AppSpacing.extraLarge),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildFeatureCircle(Icons.chat_bubble_outline, 'Community', isMobile: true, isSmallMobile: isSmallMobile),
-                SizedBox(width: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
-                _buildFeatureCircle(Icons.graphic_eq, 'Voice', isMobile: true, isSmallMobile: isSmallMobile),
-                SizedBox(width: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
-                _buildFeatureCircle(Icons.videocam_outlined, 'Live', isMobile: true, isSmallMobile: isSmallMobile),
-                SizedBox(width: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
-                _buildFeatureCircle(Icons.music_note, 'Music', isMobile: true, isSmallMobile: isSmallMobile),
+                _buildFeatureCircle(Icons.chat_bubble_outline, 'Community',
+                    isMobile: true, isSmallMobile: isSmallMobile),
+                SizedBox(
+                    width:
+                        isSmallMobile ? AppSpacing.medium : AppSpacing.large),
+                _buildFeatureCircle(Icons.graphic_eq, 'Voice',
+                    isMobile: true, isSmallMobile: isSmallMobile),
+                SizedBox(
+                    width:
+                        isSmallMobile ? AppSpacing.medium : AppSpacing.large),
+                _buildFeatureCircle(Icons.videocam_outlined, 'Live',
+                    isMobile: true, isSmallMobile: isSmallMobile),
+                SizedBox(
+                    width:
+                        isSmallMobile ? AppSpacing.medium : AppSpacing.large),
+                _buildFeatureCircle(Icons.music_note, 'Music',
+                    isMobile: true, isSmallMobile: isSmallMobile),
               ],
             ),
           ),
         ],
       );
     }
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -476,10 +503,11 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   }
 
   /// Feature circle button for hero section
-  Widget _buildFeatureCircle(IconData icon, String label, {bool isMobile = false, bool isSmallMobile = false}) {
+  Widget _buildFeatureCircle(IconData icon, String label,
+      {bool isMobile = false, bool isSmallMobile = false}) {
     final size = isSmallMobile ? 60.0 : (isMobile ? 72.0 : 96.0);
     final iconSize = isSmallMobile ? 24.0 : (isMobile ? 32.0 : 42.0);
-    
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -513,14 +541,15 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   }) {
     final height = isSmallMobile ? 42.0 : 50.0;
     final fontSize = isSmallMobile ? 13.0 : 15.0;
-    
+
     return Container(
       width: width,
       height: height,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isOutlined ? Colors.transparent : AppColors.warmBrown,
+          backgroundColor:
+              isOutlined ? Colors.transparent : AppColors.warmBrown,
           foregroundColor: isOutlined ? AppColors.warmBrown : Colors.white,
           elevation: isOutlined ? 0 : 2,
           shadowColor: AppColors.warmBrown.withOpacity(0.3),
@@ -531,7 +560,8 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                 : BorderSide.none,
           ),
           padding: EdgeInsets.symmetric(
-            horizontal: isSmallMobile ? AppSpacing.large : AppSpacing.extraLarge,
+            horizontal:
+                isSmallMobile ? AppSpacing.large : AppSpacing.extraLarge,
             vertical: isSmallMobile ? AppSpacing.small : AppSpacing.medium,
           ),
         ),
@@ -736,7 +766,9 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                 ),
                 child: Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: isTablet ? AppSpacing.extraLarge : AppSpacing.extraLarge * 2.5,
+                    horizontal: isTablet
+                        ? AppSpacing.extraLarge
+                        : AppSpacing.extraLarge * 2.5,
                     vertical: AppSpacing.extraLarge * 2,
                   ),
                   child: Column(
@@ -813,11 +845,11 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
     final screenHeight = MediaQuery.of(context).size.height;
     final isMobile = screenWidth < 600;
     final isTablet = screenWidth >= 600 && screenWidth < 1024;
-    
+
     if (isMobile) {
       return _buildPlatformAvailabilityMobile(screenHeight);
     }
-    
+
     return Container(
       width: double.infinity,
       height: screenHeight * 0.85,
@@ -843,7 +875,9 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
               ),
               child: Padding(
                 padding: EdgeInsets.symmetric(
-                  horizontal: isTablet ? AppSpacing.extraLarge : AppSpacing.extraLarge * 2.5,
+                  horizontal: isTablet
+                      ? AppSpacing.extraLarge
+                      : AppSpacing.extraLarge * 2.5,
                   vertical: AppSpacing.extraLarge * 2,
                 ),
                 child: Column(
@@ -1027,7 +1061,8 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
             borderRadius: BorderRadius.circular(30),
           ),
           padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? AppSpacing.extraLarge : AppSpacing.extraLarge * 1.5,
+            horizontal:
+                isMobile ? AppSpacing.extraLarge : AppSpacing.extraLarge * 1.5,
           ),
         ),
         child: Row(
@@ -1082,7 +1117,8 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
         final index = entry.key;
         final movie = entry.value;
         return Padding(
-          padding: EdgeInsets.only(right: index < moviesToShow.length - 1 ? AppSpacing.large : 0),
+          padding: EdgeInsets.only(
+              right: index < moviesToShow.length - 1 ? AppSpacing.large : 0),
           child: _buildMovieCard(movie, isMobile),
         );
       }).toList(),
@@ -1225,7 +1261,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   }) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 768;
-    
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
@@ -1238,7 +1274,8 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
           // Section header
           Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
+              horizontal:
+                  isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1261,7 +1298,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
             ),
           ),
           SizedBox(height: AppSpacing.extraLarge),
-          
+
           // Content cards
           if (isLoading)
             const Center(
@@ -1288,7 +1325,8 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: EdgeInsets.symmetric(
-                  horizontal: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
+                  horizontal:
+                      isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
                 ),
                 itemCount: items.length,
                 itemBuilder: (context, index) {
@@ -1304,7 +1342,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   /// Individual content card
   Widget _buildContentCard(ContentItem item, bool isMobile) {
     final cardWidth = isMobile ? 160.0 : 220.0;
-    
+
     return Container(
       width: cardWidth,
       margin: EdgeInsets.only(right: AppSpacing.large),
@@ -1407,7 +1445,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   Widget _buildFeaturesSection() {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 768;
-    
+
     final features = [
       {
         'icon': Icons.family_restroom,
@@ -1561,7 +1599,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
             textAlign: TextAlign.center,
           ),
           SizedBox(height: AppSpacing.extraLarge * 2),
-          
+
           // Device icons placeholder - will be replaced with screenshots
           Wrap(
             spacing: AppSpacing.extraLarge * 2,
@@ -1643,7 +1681,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   Widget _buildFooter() {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 768;
-    
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
@@ -1741,7 +1779,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                   ],
                 ),
                 SizedBox(height: AppSpacing.extraLarge),
-                
+
                 // Email field
                 Container(
                   decoration: BoxDecoration(
@@ -1754,7 +1792,8 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                   ),
                   child: TextFormField(
                     controller: _usernameOrEmailController,
-                    style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                    style: AppTypography.body
+                        .copyWith(color: AppColors.textPrimary),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your email';
@@ -1766,7 +1805,8 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                       hintStyle: AppTypography.body.copyWith(
                         color: AppColors.textPlaceholder,
                       ),
-                      prefixIcon: Icon(Icons.email_outlined, color: AppColors.warmBrown),
+                      prefixIcon: Icon(Icons.email_outlined,
+                          color: AppColors.warmBrown),
                       border: InputBorder.none,
                       filled: false,
                       contentPadding: EdgeInsets.all(AppSpacing.medium),
@@ -1774,7 +1814,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                   ),
                 ),
                 SizedBox(height: AppSpacing.large),
-                
+
                 // Password field
                 Container(
                   decoration: BoxDecoration(
@@ -1788,7 +1828,8 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                   child: TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                    style: AppTypography.body
+                        .copyWith(color: AppColors.textPrimary),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your password';
@@ -1800,10 +1841,13 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                       hintStyle: AppTypography.body.copyWith(
                         color: AppColors.textPlaceholder,
                       ),
-                      prefixIcon: Icon(Icons.lock_outline, color: AppColors.warmBrown),
+                      prefixIcon:
+                          Icon(Icons.lock_outline, color: AppColors.warmBrown),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                           color: AppColors.textSecondary,
                         ),
                         onPressed: () {
@@ -1819,7 +1863,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                   ),
                 ),
                 SizedBox(height: AppSpacing.medium),
-                
+
                 // Remember Me checkbox - Netflix style session handling
                 StatefulBuilder(
                   builder: (context, setDialogState) => Row(
@@ -1866,7 +1910,8 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                       ),
                       Spacer(),
                       Tooltip(
-                        message: 'When unchecked, you will be logged out when the browser closes',
+                        message:
+                            'When unchecked, you will be logged out when the browser closes',
                         child: Icon(
                           Icons.info_outline,
                           size: 16,
@@ -1877,7 +1922,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                   ),
                 ),
                 SizedBox(height: AppSpacing.large),
-                
+
                 // Login button
                 StyledPillButton(
                   label: 'Sign In',
@@ -1886,7 +1931,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                   width: double.infinity,
                 ),
                 SizedBox(height: AppSpacing.large),
-                
+
                 // Divider with OR
                 Row(
                   children: [
@@ -1897,7 +1942,8 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: AppSpacing.medium),
                       child: Text(
                         'OR',
                         style: AppTypography.bodySmall.copyWith(
@@ -1914,12 +1960,14 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                   ],
                 ),
                 SizedBox(height: AppSpacing.large),
-                
+
                 // Google Sign-In Button
                 OutlinedButton.icon(
-                  onPressed: _isLoading ? null : () => _handleGoogleLogin(dialogContext),
-                  icon: Image.network(
-                    'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                  onPressed: _isLoading
+                      ? null
+                      : () => _handleGoogleLogin(dialogContext),
+                  icon: Image.asset(
+                    'assets/images/Google__G__logo.svg.png',
                     height: 20,
                     width: 20,
                     errorBuilder: (context, error, stackTrace) => const Icon(
@@ -1947,7 +1995,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                   ),
                 ),
                 SizedBox(height: AppSpacing.large),
-                
+
                 // Register link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,

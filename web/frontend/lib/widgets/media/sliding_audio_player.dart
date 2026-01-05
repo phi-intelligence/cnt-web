@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../providers/audio_player_provider.dart';
 import '../../models/content_item.dart';
 import '../../theme/app_colors.dart';
-import '../../widgets/audio/vinyl_disc.dart';
 import '../../screens/audio/audio_player_full_screen_new.dart';
 import '../../widgets/shared/image_helper.dart';
 

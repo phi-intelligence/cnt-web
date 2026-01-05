@@ -7,7 +7,10 @@ import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
 import '../../widgets/web/section_container.dart';
 import 'audio_preview_screen.dart';
+import '../../widgets/web/section_container.dart';
+import 'audio_preview_screen.dart';
 import '../../utils/web_audio_recorder.dart';
+import '../../utils/unsaved_changes_guard.dart';
 // Conditional imports - mobile only
 import 'package:record/record.dart'
     if (dart.library.html) '../../utils/record_stub.dart' as record;
@@ -340,43 +343,76 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen>
   Widget build(BuildContext context) {
     if (kIsWeb) {
       // Web version with web design system
-      return Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      resizeToAvoidBottomInset: false,
-        body: Container(
-          padding: ResponsiveGridDelegate.getResponsivePadding(context),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Warm brown gradient header section
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(AppSpacing.extraLarge),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.warmBrown,
-                      AppColors.warmBrown.withOpacity(0.85),
-                      AppColors.primaryMain.withOpacity(0.9),
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          if (_isRecording) {
+            final shouldDiscard = await UnsavedChangesGuard.showDiscardConfirmation(
+              context,
+              title: 'Discard Recording?',
+              message: 'Recording in progress. Are you sure you want to discard it?',
+            );
+            if (shouldDiscard && mounted) {
+              _discardRecording();
+            }
+          } else {
+            // No recording in progress, just pop
+            Navigator.pop(context);
+          }
+        },
+        child: Scaffold(
+          backgroundColor: AppColors.backgroundPrimary,
+          resizeToAvoidBottomInset: false,
+          body: Container(
+            padding: ResponsiveGridDelegate.getResponsivePadding(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Warm brown gradient header section
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(AppSpacing.extraLarge),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.warmBrown,
+                        AppColors.warmBrown.withOpacity(0.85),
+                        AppColors.primaryMain.withOpacity(0.9),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.warmBrown.withOpacity(0.3),
+                        blurRadius: 15,
+                        offset: const Offset(0, 6),
+                      ),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.warmBrown.withOpacity(0.3),
-                      blurRadius: 15,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () async {
+                          if (_isRecording) {
+                            final shouldDiscard =
+                                await UnsavedChangesGuard.showDiscardConfirmation(
+                              context,
+                              title: 'Discard Recording?',
+                              message:
+                                  'Recording in progress. Are you sure you want to discard it?',
+                            );
+                            if (shouldDiscard && mounted) {
+                              _discardRecording();
+                            }
+                          } else {
+                            Navigator.pop(context);
+                          }
+                        },
+                      ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -607,6 +643,7 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen>
                 ),
               ),
             ],
+          ),
           ),
         ),
       );

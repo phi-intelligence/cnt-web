@@ -75,7 +75,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
 
               // Category Selector
               DropdownButtonFormField<String>(
-                value: _selectedCategory,
+                initialValue: _selectedCategory,
                 decoration: const InputDecoration(
                   labelText: 'Category',
                   contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),

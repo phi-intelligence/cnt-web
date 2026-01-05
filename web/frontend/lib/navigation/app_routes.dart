@@ -270,7 +270,11 @@ GoRouter createAppRouter(
       ),
       GoRoute(
         path: '/live-stream/start',
-        builder: (context, state) => const LiveStreamSetupScreen(),
+        pageBuilder: (context, state) => _buildPageWithoutTransition(
+          context,
+          state,
+          const WebNavigationLayout(child: LiveStreamSetupScreen()),
+        ),
       ),
       GoRoute(
         path: '/live-streams',

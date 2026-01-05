@@ -4,6 +4,7 @@ import 'dart:html' as html;
 import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
 import '../services/google_auth_service.dart';
+import '../services/web_storage_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -23,12 +24,22 @@ class AuthProvider extends ChangeNotifier {
   String? get error => _error;
 
   AuthProvider() {
+    // Migrate storage on startup to ensure tokens are in correct storage
+    _migrateStorageOnStartup();
     // Start auth check in background - don't block UI
     checkAuthStatus();
     // Start periodic token expiration check
     _startTokenExpirationCheck();
     // Listen for visibility changes (user returns to tab/window)
     _setupVisibilityListener();
+  }
+
+  /// Migrate tokens to appropriate storage based on "Remember Me" preference
+  void _migrateStorageOnStartup() {
+    // Call migrateStorage asynchronously to not block constructor
+    WebStorageService.migrateStorage().catchError((e) {
+      print('Error migrating storage on startup: $e');
+    });
   }
 
   /// Setup listener for when user returns to the app/tab (web)
@@ -145,7 +156,10 @@ class AuthProvider extends ChangeNotifier {
     // Only check auth in background
 
     try {
-      // Quick check - if no token exists, immediately show login screen
+      // Check for refresh token first (more persistent than access token)
+      final refreshToken = await _authService.getRefreshToken();
+      
+      // Quick check - if access token exists and is valid, user is logged in
       final token = await _authService
           .getToken()
           .timeout(const Duration(milliseconds: 300), onTimeout: () => null);
@@ -163,10 +177,9 @@ class AuthProvider extends ChangeNotifier {
         return;
       }
 
-      // Access token expired or missing - try refresh token
-      final refreshToken = await _authService.getRefreshToken();
+      // Access token expired or missing - try refresh token if available
       if (refreshToken != null && refreshToken.isNotEmpty) {
-        print('🔄 Access token expired, attempting refresh...');
+        print('🔄 Access token expired or missing, attempting refresh...');
         _isLoading = true;
         notifyListeners();
 

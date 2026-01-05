@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import '../config/app_config.dart';
 
 /// Platform detection utilities - Web Only Deployment

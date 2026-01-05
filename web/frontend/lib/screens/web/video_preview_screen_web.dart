@@ -15,6 +15,7 @@ import '../../services/api_service.dart';
 import '../../utils/state_persistence.dart';
 import 'video_editor_screen_web.dart';
 import 'package:go_router/go_router.dart';
+import '../../utils/unsaved_changes_guard.dart';
 
 /// Web Video Preview Screen
 /// Shows recorded/uploaded video with playback and controls
@@ -246,14 +247,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
     super.dispose();
   }
 
-  void _handleBack() {
-    // Use GoRouter for consistent navigation
-    if (GoRouter.of(context).canPop()) {
-      GoRouter.of(context).pop();
-    } else {
-      GoRouter.of(context).go('/home');
-    }
-  }
+
 
   Future<void> _handlePlayPause() async {
     if (_controller == null || !_controller!.value.isInitialized) return;
@@ -579,31 +573,58 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
     return '${size.toStringAsFixed(2)} ${sizes[i]}';
   }
 
+
+
+  Future<bool> _confirmDiscard() async {
+    return await UnsavedChangesGuard.showDiscardConfirmation(
+      context,
+      title: 'Discard Video?',
+      message:
+          'Are you sure you want to discard this video? This action cannot be undone.',
+    );
+  }
+
+  void _handleBack() async {
+    final shouldDiscard = await _confirmDiscard();
+    if (shouldDiscard && mounted) {
+      if (GoRouter.of(context).canPop()) {
+        GoRouter.of(context).pop();
+      } else {
+        GoRouter.of(context).go('/home');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: true,
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        if (context.mounted) {
-          _handleBack();
+        final shouldDiscard = await _confirmDiscard();
+        if (shouldDiscard && mounted) {
+          if (GoRouter.of(context).canPop()) {
+            GoRouter.of(context).pop();
+          } else {
+            GoRouter.of(context).go('/home');
+          }
         }
       },
       child: Scaffold(
-      backgroundColor: AppColors.backgroundPrimary,
-      resizeToAvoidBottomInset: false,
-      body: Container(
-        padding: ResponsiveGridDelegate.getResponsivePadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                  onPressed: _handleBack,
-                ),
+        backgroundColor: AppColors.backgroundPrimary,
+        resizeToAvoidBottomInset: false,
+        body: Container(
+          padding: ResponsiveGridDelegate.getResponsivePadding(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                    onPressed: _handleBack,
+                  ),
                 Expanded(
                   child: StyledPageHeader(
                     title: 'Video Preview',

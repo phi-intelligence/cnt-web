@@ -6,7 +6,6 @@ import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
-import 'admin_dashboard.dart';
 import 'user_login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -43,14 +42,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // Generate username from email (part before @)
       final email = _emailController.text.trim();
       if (email.contains('@')) {
-        final username = email.split('@')[0].toLowerCase().replaceAll(RegExp(r'[^a-z0-9_-]'), '');
+        final username = email
+            .split('@')[0]
+            .toLowerCase()
+            .replaceAll(RegExp(r'[^a-z0-9_-]'), '');
         setState(() {
           _generatedUsername = username;
         });
       }
     } else if (_nameController.text.isNotEmpty) {
       // Generate from name
-      final name = _nameController.text.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9_-]'), '');
+      final name = _nameController.text
+          .trim()
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9_-]'), '');
       setState(() {
         _generatedUsername = name;
       });
@@ -93,9 +98,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       email: _emailController.text.trim(),
       password: _passwordController.text,
       name: _nameController.text.trim(),
-      phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+      phone: _phoneController.text.trim().isEmpty
+          ? null
+          : _phoneController.text.trim(),
       dateOfBirth: _selectedDateOfBirth,
-      bio: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
+      bio: _bioController.text.trim().isEmpty
+          ? null
+          : _bioController.text.trim(),
     );
 
     if (mounted) {
@@ -143,7 +152,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
-      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(
           'Create Account',
@@ -184,7 +192,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: AppSpacing.extraLarge),
-                    
+
                     // Name field
                     _buildTextField(
                       controller: _nameController,
@@ -199,7 +207,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                     ),
                     const SizedBox(height: AppSpacing.large),
-                    
+
                     // Email field
                     _buildTextField(
                       controller: _emailController,
@@ -218,19 +226,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                     ),
                     const SizedBox(height: AppSpacing.medium),
-                    
+
                     // Generated username preview
                     if (_generatedUsername != null)
                       Container(
                         padding: const EdgeInsets.all(AppSpacing.medium),
                         decoration: BoxDecoration(
                           color: AppColors.accentMain.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                          border: Border.all(color: AppColors.accentMain.withOpacity(0.3)),
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusMedium),
+                          border: Border.all(
+                              color: AppColors.accentMain.withOpacity(0.3)),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.info_outline, color: AppColors.accentMain, size: 20),
+                            Icon(Icons.info_outline,
+                                color: AppColors.accentMain, size: 20),
                             const SizedBox(width: AppSpacing.small),
                             Expanded(
                               child: Text(
@@ -244,8 +255,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ],
                         ),
                       ),
-                    if (_generatedUsername != null) const SizedBox(height: AppSpacing.large),
-                    
+                    if (_generatedUsername != null)
+                      const SizedBox(height: AppSpacing.large),
+
                     // Password field
                     TextFormField(
                       controller: _passwordController,
@@ -253,11 +265,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       style: AppTypography.body,
                       decoration: InputDecoration(
                         labelText: 'Password',
-                        labelStyle: AppTypography.label.copyWith(color: AppColors.textSecondary),
-                        prefixIcon: Icon(Icons.lock_outline, color: AppColors.primaryMain),
+                        labelStyle: AppTypography.label
+                            .copyWith(color: AppColors.textSecondary),
+                        prefixIcon: Icon(Icons.lock_outline,
+                            color: AppColors.primaryMain),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                            _obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                             color: AppColors.textSecondary,
                           ),
                           onPressed: () {
@@ -269,16 +285,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                          borderSide: BorderSide(color: AppColors.borderPrimary),
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusFull),
+                          borderSide:
+                              BorderSide(color: AppColors.borderPrimary),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                          borderSide: BorderSide(color: AppColors.borderPrimary),
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusFull),
+                          borderSide:
+                              BorderSide(color: AppColors.borderPrimary),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                          borderSide: BorderSide(color: AppColors.primaryMain, width: 2),
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusFull),
+                          borderSide: BorderSide(
+                              color: AppColors.primaryMain, width: 2),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.large,
@@ -296,7 +318,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                     ),
                     const SizedBox(height: AppSpacing.large),
-                    
+
                     // Phone field (optional)
                     _buildTextField(
                       controller: _phoneController,
@@ -305,25 +327,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       keyboardType: TextInputType.phone,
                     ),
                     const SizedBox(height: AppSpacing.large),
-                    
+
                     // Date of birth field (optional)
                     InkWell(
                       onTap: _selectDateOfBirth,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                      borderRadius:
+                          BorderRadius.circular(AppSpacing.radiusFull),
                       child: InputDecorator(
                         decoration: InputDecoration(
                           labelText: 'Date of Birth (Optional)',
-                          labelStyle: AppTypography.label.copyWith(color: AppColors.textSecondary),
-                          prefixIcon: Icon(Icons.calendar_today_outlined, color: AppColors.primaryMain),
+                          labelStyle: AppTypography.label
+                              .copyWith(color: AppColors.textSecondary),
+                          prefixIcon: Icon(Icons.calendar_today_outlined,
+                              color: AppColors.primaryMain),
                           filled: true,
                           fillColor: Colors.white,
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                            borderSide: BorderSide(color: AppColors.borderPrimary),
+                            borderRadius:
+                                BorderRadius.circular(AppSpacing.radiusFull),
+                            borderSide:
+                                BorderSide(color: AppColors.borderPrimary),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                            borderSide: BorderSide(color: AppColors.borderPrimary),
+                            borderRadius:
+                                BorderRadius.circular(AppSpacing.radiusFull),
+                            borderSide:
+                                BorderSide(color: AppColors.borderPrimary),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.large,
@@ -333,15 +362,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         child: Text(
                           _selectedDateOfBirth == null
                               ? 'Select date'
-                              : DateFormat('yyyy-MM-dd').format(_selectedDateOfBirth!),
+                              : DateFormat('yyyy-MM-dd')
+                                  .format(_selectedDateOfBirth!),
                           style: AppTypography.body.copyWith(
-                            color: _selectedDateOfBirth == null ? AppColors.textPlaceholder : AppColors.textPrimary,
+                            color: _selectedDateOfBirth == null
+                                ? AppColors.textPlaceholder
+                                : AppColors.textPrimary,
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.large),
-                    
+
                     // Bio field (optional)
                     TextFormField(
                       controller: _bioController,
@@ -349,21 +381,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       style: AppTypography.body,
                       decoration: InputDecoration(
                         labelText: 'Bio (Optional)',
-                        labelStyle: AppTypography.label.copyWith(color: AppColors.textSecondary),
-                        prefixIcon: Icon(Icons.description_outlined, color: AppColors.primaryMain),
+                        labelStyle: AppTypography.label
+                            .copyWith(color: AppColors.textSecondary),
+                        prefixIcon: Icon(Icons.description_outlined,
+                            color: AppColors.primaryMain),
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMedium), // Less rounded for multiline
-                          borderSide: BorderSide(color: AppColors.borderPrimary),
+                          borderRadius: BorderRadius.circular(AppSpacing
+                              .radiusMedium), // Less rounded for multiline
+                          borderSide:
+                              BorderSide(color: AppColors.borderPrimary),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                          borderSide: BorderSide(color: AppColors.borderPrimary),
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusMedium),
+                          borderSide:
+                              BorderSide(color: AppColors.borderPrimary),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
-                          borderSide: BorderSide(color: AppColors.primaryMain, width: 2),
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusMedium),
+                          borderSide: BorderSide(
+                              color: AppColors.primaryMain, width: 2),
                         ),
                         alignLabelWithHint: true,
                         contentPadding: const EdgeInsets.symmetric(
@@ -373,18 +413,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
-                    
+
                     // Register button
                     Consumer<AuthProvider>(
                       builder: (context, authProvider, _) {
                         return ElevatedButton(
-                          onPressed: authProvider.isLoading ? null : _handleRegister,
+                          onPressed:
+                              authProvider.isLoading ? null : _handleRegister,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.warmBrown,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: AppSpacing.medium),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.medium),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                              borderRadius:
+                                  BorderRadius.circular(AppSpacing.radiusFull),
                             ),
                             elevation: 4,
                           ),
@@ -394,59 +437,79 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
                                   ),
                                 )
                               : Text(
                                   'Create Account',
-                                  style: AppTypography.button.copyWith(color: Colors.white),
+                                  style: AppTypography.button
+                                      .copyWith(color: Colors.white),
                                 ),
                         );
                       },
                     ),
                     const SizedBox(height: AppSpacing.large),
-                    
+
                     // Divider
                     Row(
                       children: [
-                        Expanded(child: Divider(color: AppColors.borderPrimary)),
+                        Expanded(
+                            child: Divider(color: AppColors.borderPrimary)),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.medium),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.medium),
                           child: Text(
                             'OR',
-                            style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                            style: AppTypography.bodySmall
+                                .copyWith(color: AppColors.textSecondary),
                           ),
                         ),
-                        Expanded(child: Divider(color: AppColors.borderPrimary)),
+                        Expanded(
+                            child: Divider(color: AppColors.borderPrimary)),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.large),
-                    
+
                     // Google Sign-In button
                     OutlinedButton.icon(
                       onPressed: _handleGoogleSignIn,
-                      icon: const Icon(Icons.g_mobiledata, size: 24),
+                      icon: Image.asset(
+                        'assets/images/Google__G__logo.svg.png',
+                        height: 24,
+                        width: 24,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(
+                          Icons.g_mobiledata,
+                          size: 24,
+                          color: Color(0xFF4285F4),
+                        ),
+                      ),
                       label: Text(
                         'Continue with Google',
-                        style: AppTypography.button.copyWith(color: AppColors.textPrimary),
+                        style: AppTypography.button
+                            .copyWith(color: AppColors.textPrimary),
                       ),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.medium),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.medium),
                         side: BorderSide(color: AppColors.borderPrimary),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusFull),
                         ),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.large),
-                    
+
                     // Login link
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           'Already have an account? ',
-                          style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                          style: AppTypography.body
+                              .copyWith(color: AppColors.textSecondary),
                         ),
                         TextButton(
                           onPressed: () {
@@ -491,7 +554,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       style: AppTypography.body,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: AppTypography.label.copyWith(color: AppColors.textSecondary),
+        labelStyle:
+            AppTypography.label.copyWith(color: AppColors.textSecondary),
         prefixIcon: Icon(icon, color: AppColors.primaryMain),
         filled: true,
         fillColor: Colors.white,

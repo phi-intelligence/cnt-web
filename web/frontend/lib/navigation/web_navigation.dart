@@ -124,6 +124,8 @@ class _WebNavigationLayoutState extends State<WebNavigationLayout> {
           // Mobile/Tablet Layout: AppBar + Drawer
           return Scaffold(
             key: _scaffoldKey,
+            backgroundColor: AppColors.backgroundPrimary,
+            resizeToAvoidBottomInset: false,
             appBar: ResponsiveAppBar(
               showMenuButton: true,
               onMenuPressed: () {

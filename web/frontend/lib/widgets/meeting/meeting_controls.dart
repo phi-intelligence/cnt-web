@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
-import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
-import '../../theme/app_spacing.dart';
 
 /// Custom meeting controls widget for LiveKit meetings
 class MeetingControls extends StatelessWidget {

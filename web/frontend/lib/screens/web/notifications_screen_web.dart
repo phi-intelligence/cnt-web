@@ -9,6 +9,7 @@ import '../../widgets/shared/empty_state.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../providers/notification_provider.dart';
+import '../../widgets/web/styled_pill_button.dart';
 
 /// Web Notifications Screen
 class NotificationsScreenWeb extends StatefulWidget {
@@ -69,6 +70,16 @@ class _NotificationsScreenWebState extends State<NotificationsScreenWeb> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Back Button
+            Padding(
+              padding: EdgeInsets.only(bottom: AppSpacing.medium),
+              child: StyledPillButton(
+                label: 'Back',
+                icon: Icons.arrow_back,
+                onPressed: () => Navigator.of(context).pop(),
+                variant: StyledPillButtonVariant.outlined,
+              ),
+            ),
             // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
