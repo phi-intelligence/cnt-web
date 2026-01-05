@@ -7,8 +7,6 @@ import '../../widgets/shared/empty_state.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../services/api_service.dart';
 import '../../screens/live/live_stream_viewer.dart';
-import '../../utils/responsive_grid_delegate.dart';
-import '../../utils/dimension_utils.dart';
 import '../../services/logger_service.dart';
 
 /// Web Live Screen - Live streams with tabs
@@ -19,10 +17,11 @@ class LiveScreenWeb extends StatefulWidget {
   State<LiveScreenWeb> createState() => _LiveScreenWebState();
 }
 
-class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProviderStateMixin {
+class _LiveScreenWebState extends State<LiveScreenWeb>
+    with SingleTickerProviderStateMixin {
   final ApiService _api = ApiService();
   late TabController _tabController;
-  
+
   List<Map<String, dynamic>> _liveStreams = [];
   List<Map<String, dynamic>> _upcomingStreams = [];
   List<Map<String, dynamic>> _pastStreams = [];
@@ -47,7 +46,8 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
       final allStreams = await _api.listStreams();
       setState(() {
         _liveStreams = allStreams.where((s) => s['status'] == 'live').toList();
-        _upcomingStreams = allStreams.where((s) => s['status'] == 'scheduled').toList();
+        _upcomingStreams =
+            allStreams.where((s) => s['status'] == 'scheduled').toList();
         _pastStreams = allStreams.where((s) => s['status'] == 'ended').toList();
         _isLoading = false;
       });
@@ -58,6 +58,28 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
   }
 
   void _joinStream(Map<String, dynamic> stream) {
+    // Validate stream status before joining
+    final status = stream['status'];
+    if (status == 'ended') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This stream has ended'),
+          backgroundColor: AppColors.textSecondary,
+        ),
+      );
+      return;
+    }
+
+    if (status == 'scheduled') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This stream has not started yet'),
+          backgroundColor: AppColors.warmBrown,
+        ),
+      );
+      return;
+    }
+
     // TODO: Get proper token and server URL from API
     Navigator.push(
       context,
@@ -100,12 +122,13 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
                   image: DecorationImage(
                     image: const AssetImage('assets/images/jesus-teaching.png'),
                     fit: isMobile ? BoxFit.contain : BoxFit.cover,
-                    alignment: isMobile ? Alignment.topRight : Alignment.centerRight,
+                    alignment:
+                        isMobile ? Alignment.topRight : Alignment.centerRight,
                   ),
                 ),
               ),
             ),
-            
+
             // Gradient overlay from left
             Positioned.fill(
               child: Container(
@@ -136,7 +159,7 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
                 ),
               ),
             ),
-            
+
             // Content positioned centered/right-aligned
             Positioned(
               left: isMobile ? 0 : (screenWidth * 0.15),
@@ -150,8 +173,12 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
                     // Header
                     Padding(
                       padding: EdgeInsets.only(
-                        left: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 2,
-                        right: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                        left: isMobile
+                            ? AppSpacing.large
+                            : AppSpacing.extraLarge * 2,
+                        right: isMobile
+                            ? AppSpacing.large
+                            : AppSpacing.extraLarge * 3,
                         top: isMobile ? 20 : 40,
                       ),
                       child: Row(
@@ -163,18 +190,24 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
                               children: [
                                 Text(
                                   'Live Streams',
-                                  style: AppTypography.getResponsiveHeroTitle(context).copyWith(
+                                  style: AppTypography.getResponsiveHeroTitle(
+                                          context)
+                                      .copyWith(
                                     color: AppColors.primaryDark,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: isMobile ? 28 : (isTablet ? 36 : 42),
+                                    fontSize:
+                                        isMobile ? 28 : (isTablet ? 36 : 42),
                                     height: 1.1,
                                   ),
                                 ),
                                 SizedBox(height: AppSpacing.small),
                                 Text(
                                   'Watch and join live streams',
-                                  style: AppTypography.getResponsiveBody(context).copyWith(
-                                    color: AppColors.primaryDark.withOpacity(0.7),
+                                  style:
+                                      AppTypography.getResponsiveBody(context)
+                                          .copyWith(
+                                    color:
+                                        AppColors.primaryDark.withOpacity(0.7),
                                     fontSize: isMobile ? 14 : 16,
                                   ),
                                 ),
@@ -187,20 +220,23 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
                             icon: Icons.videocam,
                             onPressed: () {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Create stream coming soon')),
+                                const SnackBar(
+                                    content: Text('Create stream coming soon')),
                               );
                             },
                           ),
                         ],
                       ),
                     ),
-                    
+
                     SizedBox(height: AppSpacing.large),
-                    
+
                     // Tabs with brown underline indicator
                     Padding(
                       padding: EdgeInsets.symmetric(
-                        horizontal: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                        horizontal: isMobile
+                            ? AppSpacing.large
+                            : AppSpacing.extraLarge * 3,
                       ),
                       child: Container(
                         decoration: BoxDecoration(
@@ -228,12 +264,14 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
                         ),
                       ),
                     ),
-                    
+
                     // Tab Content
                     Expanded(
                       child: Padding(
                         padding: EdgeInsets.symmetric(
-                          horizontal: isMobile ? AppSpacing.large : AppSpacing.extraLarge * 3,
+                          horizontal: isMobile
+                              ? AppSpacing.large
+                              : AppSpacing.extraLarge * 3,
                           vertical: AppSpacing.medium,
                         ),
                         child: TabBarView(
@@ -266,7 +304,7 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
   }) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
-    
+
     return Container(
       margin: EdgeInsets.only(bottom: AppSpacing.large),
       decoration: BoxDecoration(
@@ -646,4 +684,3 @@ class _LiveScreenWebState extends State<LiveScreenWeb> with SingleTickerProvider
     );
   }
 }
-

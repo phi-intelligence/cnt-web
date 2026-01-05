@@ -14,7 +14,18 @@ import '../../models/content_draft.dart';
 import '../../utils/unsaved_changes_guard.dart';
 
 class CreatePostScreen extends StatefulWidget {
-  const CreatePostScreen({super.key});
+  final int? draftId;
+  final String? initialTitle;
+  final String? initialContent;
+  final String? initialCategory;
+
+  const CreatePostScreen({
+    super.key,
+    this.draftId,
+    this.initialTitle,
+    this.initialContent,
+    this.initialCategory,
+  });
 
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();
@@ -22,7 +33,7 @@ class CreatePostScreen extends StatefulWidget {
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _captionController = TextEditingController();
+  late TextEditingController _captionController;
   final ImagePicker _imagePicker = ImagePicker();
   dynamic _selectedImage; // For mobile (path-based File) or web (not used)
   Uint8List? _selectedImageBytes; // For web (bytes-based)
@@ -30,12 +41,25 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   String? _uploadedImageUrl;
   bool _isSubmitting = false;
   bool _isUploadingImage = false;
-  String _postType = 'image'; // 'image' or 'text'
+  late String _postType; // 'image' or 'text'
 
   // Draft state
   int? _draftId;
   bool _isSavingDraft = false;
   final ApiService _draftApiService = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize from draft parameters if provided
+    _draftId = widget.draftId;
+    _captionController = TextEditingController(text: widget.initialContent ?? '');
+    // If there's initial content but no image, default to text post type
+    _postType = (widget.initialCategory == 'text' || 
+        (widget.initialContent != null && widget.initialContent!.isNotEmpty)) 
+        ? 'text' 
+        : 'image';
+  }
 
   /// Check if there are unsaved changes
   bool _hasUnsavedChanges() {
@@ -147,7 +171,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: $e')),
+          SnackBar(
+            content: Text('Error picking image: $e'),
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }
@@ -196,7 +223,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       setState(() => _isUploadingImage = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error uploading image: $e')),
+          SnackBar(
+            content: Text('Error uploading image: $e'),
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
       return null;
@@ -212,7 +242,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           _captionController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Please add a photo or write a caption')),
+            content: Text('Please add a photo or write a caption'),
+            duration: Duration(seconds: 3),
+          ),
         );
         return;
       }
@@ -220,7 +252,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       // For text posts, must have content
       if (_captionController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please write something to post')),
+          const SnackBar(
+            content: Text('Please write something to post'),
+            duration: Duration(seconds: 3),
+          ),
         );
         return;
       }
@@ -272,7 +307,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to publish post: $e')),
+        SnackBar(
+          content: Text('Unable to publish post: $e'),
+          duration: const Duration(seconds: 5),
+        ),
       );
     } finally {
       if (mounted) {
@@ -293,9 +331,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           icon: const Icon(Icons.close, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'New Post',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          _draftId != null ? 'Edit Draft' : 'New Post',
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         actions: [
           TextButton(

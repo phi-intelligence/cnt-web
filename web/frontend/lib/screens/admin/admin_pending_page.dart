@@ -112,7 +112,9 @@ class _AdminPendingPageState extends State<AdminPendingPage>
       initialIndex: widget.initialTabIndex,
     );
     _tabController.addListener(() {
-      setState(() {}); // Update UI when tab changes
+      if (_tabController.indexIsChanging || _tabController.index != _tabController.previousIndex) {
+        setState(() {}); // Update UI when tab changes
+      }
     });
     _loadAllContent();
   }
@@ -292,53 +294,50 @@ class _AdminPendingPageState extends State<AdminPendingPage>
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0E8), // Cream background match
       resizeToAvoidBottomInset: false,
-      body: Column(
-        children: [
-          // Header
-          _buildHeader(isDesktop),
+      body: RefreshIndicator(
+        onRefresh: _loadAllContent,
+        color: AppColors.warmBrown,
+        child: CustomScrollView(
+          slivers: [
+            // Header
+            SliverToBoxAdapter(
+              child: _buildHeader(isDesktop),
+            ),
 
-          // Tab Bar
-          Container(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
-            color: const Color(0xFFF5F0E8), // Match bg
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildFilterChip('All', _tabController.index == 0, 0),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Podcasts', _tabController.index == 1, 1),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Movies', _tabController.index == 2, 2),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Posts', _tabController.index == 3, 3),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Music', _tabController.index == 4, 4),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Events', _tabController.index == 5, 5),
-                ],
+            // Tab Bar
+            SliverToBoxAdapter(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+                color: const Color(0xFFF5F0E8), // Match bg
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('All', _tabController.index == 0, 0),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Podcasts', _tabController.index == 1, 1),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Movies', _tabController.index == 2, 2),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Posts', _tabController.index == 3, 3),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Music', _tabController.index == 4, 4),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Events', _tabController.index == 5, 5),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
 
-          const SizedBox(height: 16),
-
-          // Tab Content
-          Expanded(
-            child: IndexedStack(
-              index: _tabController.index,
-              children: [
-                _buildContentList(
-                    _getFilteredAllContent(), 'All pending content', isDesktop),
-                _buildPodcastsTab(isDesktop),
-                _buildContentList(_movies, 'movies', isDesktop),
-                _buildContentList(_posts, 'posts', isDesktop),
-                _buildContentList(_music, 'music', isDesktop),
-                _buildContentList(_events, 'events', isDesktop),
-              ],
+            SliverToBoxAdapter(
+              child: const SizedBox(height: 16),
             ),
-          ),
-        ],
+
+            // Tab Content - Use IndexedStack to switch between different sliver content
+            _buildTabContentSliver(isDesktop),
+          ],
+        ),
       ),
     );
   }
@@ -442,31 +441,52 @@ class _AdminPendingPageState extends State<AdminPendingPage>
     );
   }
 
-  Widget _buildPodcastsTab(bool isDesktop) {
+  Widget _buildTabContentSliver(bool isDesktop) {
+    switch (_tabController.index) {
+      case 0: // All
+        return _buildContentListSliver(
+            _getFilteredAllContent(), 'All pending content', isDesktop);
+      case 1: // Podcasts
+        return _buildPodcastsTabSliver(isDesktop);
+      case 2: // Movies
+        return _buildContentListSliver(_movies, 'movies', isDesktop);
+      case 3: // Posts
+        return _buildContentListSliver(_posts, 'posts', isDesktop);
+      case 4: // Music
+        return _buildContentListSliver(_music, 'music', isDesktop);
+      case 5: // Events
+        return _buildContentListSliver(_events, 'events', isDesktop);
+      default:
+        return _buildContentListSliver(
+            _getFilteredAllContent(), 'All pending content', isDesktop);
+    }
+  }
+
+  Widget _buildPodcastsTabSliver(bool isDesktop) {
     final filteredPodcasts = _getFilteredPodcasts();
 
-    return Column(
-      children: [
-        // Filter chips for Podcast Type
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-          child: Row(
-            children: [
-              Text('Type:',
-                  style: AppTypography.bodySmall
-                      .copyWith(color: AppColors.textSecondary)),
-              const SizedBox(width: AppSpacing.small),
-              _buildPodcastTypeChip('All', _podcastFilter == 'All'),
-              const SizedBox(width: 8),
-              _buildPodcastTypeChip('Audio', _podcastFilter == 'Audio'),
-              const SizedBox(width: 8),
-              _buildPodcastTypeChip('Video', _podcastFilter == 'Video'),
-            ],
+    return SliverMainAxisGroup(
+      slivers: [
+        // Filter chips for Podcast Type - Now scrollable
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Row(
+              children: [
+                Text('Type:',
+                    style: AppTypography.bodySmall
+                        .copyWith(color: AppColors.textSecondary)),
+                const SizedBox(width: AppSpacing.small),
+                _buildPodcastTypeChip('All', _podcastFilter == 'All'),
+                const SizedBox(width: 8),
+                _buildPodcastTypeChip('Audio', _podcastFilter == 'Audio'),
+                const SizedBox(width: 8),
+                _buildPodcastTypeChip('Video', _podcastFilter == 'Video'),
+              ],
+            ),
           ),
         ),
-        Expanded(
-          child: _buildContentList(filteredPodcasts, 'podcasts', isDesktop),
-        ),
+        _buildContentListSliver(filteredPodcasts, 'podcasts', isDesktop),
       ],
     );
   }
@@ -494,48 +514,23 @@ class _AdminPendingPageState extends State<AdminPendingPage>
     );
   }
 
-  Widget _buildContentList(
+  Widget _buildContentListSliver(
       List<dynamic> content, String contentType, bool isDesktop) {
     final filtered = _applySearch(content);
 
     if (_isLoading) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(color: AppColors.warmBrown),
-            const SizedBox(height: 16),
-            Text(
-              'Loading content...',
-              style:
-                  AppTypography.body.copyWith(color: AppColors.textSecondary),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.large),
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline,
-                  size: 48, color: AppColors.errorMain),
+              const CircularProgressIndicator(color: AppColors.warmBrown),
               const SizedBox(height: 16),
-              Text('Error loading content', style: AppTypography.heading3),
-              const SizedBox(height: 8),
-              Text(_error!,
-                  style: AppTypography.body
-                      .copyWith(color: AppColors.textSecondary)),
-              const SizedBox(height: 24),
-              StyledPillButton(
-                label: 'Retry',
-                icon: Icons.refresh,
-                onPressed: _loadAllContent,
-                width: 120,
+              Text(
+                'Loading content...',
+                style:
+                    AppTypography.body.copyWith(color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -543,58 +538,96 @@ class _AdminPendingPageState extends State<AdminPendingPage>
       );
     }
 
-    if (filtered.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(AppSpacing.large),
-        child: EmptyState(
-          icon: Icons.check_circle_outline,
-          title: 'No pending $contentType',
-          message: 'All $contentType have been reviewed',
+    if (_error != null) {
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.large),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline,
+                    size: 48, color: AppColors.errorMain),
+                const SizedBox(height: 16),
+                Text('Error loading content', style: AppTypography.heading3),
+                const SizedBox(height: 8),
+                Text(_error!,
+                    style: AppTypography.body
+                        .copyWith(color: AppColors.textSecondary)),
+                const SizedBox(height: 24),
+                StyledPillButton(
+                  label: 'Retry',
+                  icon: Icons.refresh,
+                  onPressed: _loadAllContent,
+                  width: 120,
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadAllContent,
-      color: AppColors.warmBrown,
-      child: isDesktop
-          ? GridView.builder(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+    if (filtered.isEmpty) {
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.large),
+          child: EmptyState(
+            icon: Icons.check_circle_outline,
+            title: 'No pending $contentType',
+            message: 'All $contentType have been reviewed',
+          ),
+        ),
+      );
+    }
+
+    return isDesktop
+        ? SliverPadding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 600, // Wide cards
                 childAspectRatio: 2.5, // Similar ratio to User Management
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
               ),
-              itemCount: filtered.length,
-              itemBuilder: (context, index) {
-                final item = filtered[index];
-                return AdminContentCard(
-                  item: item,
-                  showApproveReject: true,
-                  showDeleteArchive: false,
-                  onApprove: () => _handleApprove(item),
-                  onReject: () => _handleReject(item),
-                );
-              },
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              itemCount: filtered.length,
-              itemBuilder: (context, index) {
-                final item = filtered[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: AdminContentCard(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final item = filtered[index];
+                  return AdminContentCard(
                     item: item,
                     showApproveReject: true,
                     showDeleteArchive: false,
                     onApprove: () => _handleApprove(item),
                     onReject: () => _handleReject(item),
-                  ),
-                );
-              },
+                  );
+                },
+                childCount: filtered.length,
+              ),
             ),
-    );
+          )
+        : SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final item = filtered[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: AdminContentCard(
+                      item: item,
+                      showApproveReject: true,
+                      showDeleteArchive: false,
+                      onApprove: () => _handleApprove(item),
+                      onReject: () => _handleReject(item),
+                    ),
+                  );
+                },
+                childCount: filtered.length,
+              ),
+            ),
+          );
   }
 }

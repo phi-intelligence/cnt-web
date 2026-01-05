@@ -109,12 +109,20 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     
     return Container(
       color: const Color(0xFFF5F0E8),
-      child: Column(
-        children: [
-          _buildHeader(),
-          _buildFilters(),
-          Expanded(child: _buildUsersList(isWideScreen)),
-        ],
+      child: RefreshIndicator(
+        onRefresh: _fetchUsers,
+        color: AppColors.warmBrown,
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: _buildHeader(),
+            ),
+            SliverToBoxAdapter(
+              child: _buildFilters(),
+            ),
+            _buildUsersListSliver(isWideScreen),
+          ],
+        ),
       ),
     );
   }
@@ -346,6 +354,106 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       itemBuilder: (context, index) {
         return _buildUserCard(filteredUsers[index]);
       },
+    );
+  }
+
+  Widget _buildUsersListSliver(bool isWideScreen) {
+    if (_isLoading) {
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: AppColors.warmBrown),
+              const SizedBox(height: 16),
+              Text(
+                'Loading users...',
+                style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: AppColors.errorMain),
+              const SizedBox(height: 16),
+              Text(
+                'Error: $_error',
+                style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _fetchUsers,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.warmBrown,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final filteredUsers = _getFilteredUsers();
+
+    if (filteredUsers.isEmpty) {
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: const EmptyState(
+          icon: Icons.people_outline,
+          title: 'No users found',
+          message: 'Try adjusting your filters or search',
+        ),
+      );
+    }
+
+    // For wide screens, use a grid layout
+    if (isWideScreen) {
+      return SliverPadding(
+        padding: const EdgeInsets.all(24),
+        sliver: SliverGrid(
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 400,
+            childAspectRatio: 2.5,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              return _buildUserCard(filteredUsers[index]);
+            },
+            childCount: filteredUsers.length,
+          ),
+        ),
+      );
+    }
+
+    // For narrow screens, use a list layout
+    return SliverPadding(
+      padding: const EdgeInsets.all(24),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            return _buildUserCard(filteredUsers[index]);
+          },
+          childCount: filteredUsers.length,
+        ),
+      ),
     );
   }
 

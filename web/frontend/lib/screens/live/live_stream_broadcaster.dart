@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:livekit_client/livekit_client.dart' as lk;
 import '../../services/livekit_meeting_service.dart';
 import '../../widgets/meeting/video_track_view.dart';
-import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/responsive_grid_delegate.dart';
@@ -85,7 +84,10 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
           _startTime = null;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to start streaming: $e')),
+          SnackBar(
+            content: Text('Failed to start streaming: $e'),
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }
@@ -105,7 +107,7 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
           _isStreaming = false;
           _startTime = null;
         });
-        
+
         if (widget.onStreamEnded != null) {
           widget.onStreamEnded!();
         }
@@ -124,7 +126,10 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to toggle microphone: $e')),
+        SnackBar(
+          content: Text('Failed to toggle microphone: $e'),
+          duration: const Duration(seconds: 5),
+        ),
       );
     }
   }
@@ -133,7 +138,7 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
     try {
       await _meetingService.toggleCamera();
       final isEnabled = _meetingService.isCameraEnabled();
-      
+
       if (!isEnabled && _localVideoTrack != null) {
         // Camera turned off, stop track
         await _localVideoTrack!.stop();
@@ -155,7 +160,10 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to toggle camera: $e')),
+        SnackBar(
+          content: Text('Failed to toggle camera: $e'),
+          duration: const Duration(seconds: 5),
+        ),
       );
     }
   }
@@ -190,12 +198,14 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
     final room = _meetingService.currentRoom;
 
     return Scaffold(
-      resizeToAvoidBottomInset: false, Colors.black,
+      resizeToAvoidBottomInset: false,
+      Colors.black,
       body: Stack(
         children: [
           // Video preview
           if (_localVideoTrack != null && _isCameraOn)
-            VideoTrackView(track: _localVideoTrack!, isLocal: true, mirror: false)
+            VideoTrackView(
+                track: _localVideoTrack!, isLocal: true, mirror: false)
           else
             Container(
               color: Colors.black,
@@ -222,8 +232,14 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
             child: Container(
               padding: EdgeInsets.only(
                 top: kIsWeb ? AppSpacing.medium : 0,
-                left: kIsWeb ? ResponsiveGridDelegate.getResponsivePadding(context).horizontal : AppSpacing.medium,
-                right: kIsWeb ? ResponsiveGridDelegate.getResponsivePadding(context).horizontal : AppSpacing.medium,
+                left: kIsWeb
+                    ? ResponsiveGridDelegate.getResponsivePadding(context)
+                        .horizontal
+                    : AppSpacing.medium,
+                right: kIsWeb
+                    ? ResponsiveGridDelegate.getResponsivePadding(context)
+                        .horizontal
+                    : AppSpacing.medium,
                 bottom: AppSpacing.medium,
               ),
               decoration: BoxDecoration(
@@ -251,16 +267,19 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
                       ),
                     ),
                     const SizedBox(width: AppSpacing.small),
-                    const Icon(Icons.remove_red_eye, color: Colors.white70, size: 16),
+                    const Icon(Icons.remove_red_eye,
+                        color: Colors.white70, size: 16),
                     const SizedBox(width: 4),
                     Text(
                       '$_viewerCount',
-                      style: AppTypography.bodySmall.copyWith(color: Colors.white70),
+                      style: AppTypography.bodySmall
+                          .copyWith(color: Colors.white70),
                     ),
                     const SizedBox(width: AppSpacing.medium),
                     Text(
                       _getStreamingDuration(),
-                      style: AppTypography.bodySmall.copyWith(color: Colors.white70),
+                      style: AppTypography.bodySmall
+                          .copyWith(color: Colors.white70),
                     ),
                   ] else ...[
                     Expanded(
@@ -290,8 +309,14 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
             right: 0,
             child: Container(
               padding: EdgeInsets.only(
-                left: kIsWeb ? ResponsiveGridDelegate.getResponsivePadding(context).horizontal : AppSpacing.large,
-                right: kIsWeb ? ResponsiveGridDelegate.getResponsivePadding(context).horizontal : AppSpacing.large,
+                left: kIsWeb
+                    ? ResponsiveGridDelegate.getResponsivePadding(context)
+                        .horizontal
+                    : AppSpacing.large,
+                right: kIsWeb
+                    ? ResponsiveGridDelegate.getResponsivePadding(context)
+                        .horizontal
+                    : AppSpacing.large,
                 top: AppSpacing.large,
                 bottom: kIsWeb ? AppSpacing.large : 0,
               ),
@@ -303,7 +328,8 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
                 children: [
                   // Toggle camera
                   IconButton(
-                    icon: Icon(_isCameraOn ? Icons.videocam : Icons.videocam_off),
+                    icon:
+                        Icon(_isCameraOn ? Icons.videocam : Icons.videocam_off),
                     iconSize: 32,
                     color: Colors.white,
                     onPressed: _toggleCamera,

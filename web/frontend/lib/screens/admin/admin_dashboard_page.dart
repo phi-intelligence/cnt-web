@@ -242,6 +242,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         (stats['pending_music'] ?? 0) +
         (stats['pending_posts'] ?? 0) +
         (stats['pending_events'] ?? 0);
+    
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final isMobile = ResponsiveUtils.isMobile(context);
 
     return SectionContainer(
       showShadow: true,
@@ -251,7 +254,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(AppSpacing.small),
+                padding: EdgeInsets.all(isSmallMobile ? AppSpacing.tiny : AppSpacing.small),
                 decoration: BoxDecoration(
                   color: AppColors.warmBrown.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
@@ -259,19 +262,22 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 child: Icon(
                   Icons.pending_actions,
                   color: AppColors.warmBrown,
-                  size: 20,
+                  size: isSmallMobile ? 16 : 20,
                 ),
               ),
-              const SizedBox(width: AppSpacing.small),
-              Text(
-                'Pending Approvals',
-                style: AppTypography.heading3.copyWith(
-                  color: AppColors.textPrimary,
+              SizedBox(width: isSmallMobile ? AppSpacing.tiny : AppSpacing.small),
+              Flexible(
+                child: Text(
+                  'Pending Approvals',
+                  style: AppTypography.heading3.copyWith(
+                    color: AppColors.textPrimary,
+                    fontSize: isSmallMobile ? 16 : (isMobile ? 18 : null),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.large),
+          SizedBox(height: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -280,9 +286,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               desktop: 4,
               tablet: 2,
               mobile: 2,
-              childAspectRatio: 1.2,
-              crossAxisSpacing: AppSpacing.medium,
-              mainAxisSpacing: AppSpacing.medium,
+              childAspectRatio: isSmallMobile ? 1.4 : 1.2,
+              crossAxisSpacing: isSmallMobile ? AppSpacing.small : AppSpacing.medium,
+              mainAxisSpacing: isSmallMobile ? AppSpacing.small : AppSpacing.medium,
             ),
             itemCount: 5,
             itemBuilder: (context, index) {
@@ -351,6 +357,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     final totalApproved = (stats['total_podcasts'] ?? 0) +
         (stats['total_movies'] ?? 0) +
         (stats['total_posts'] ?? 0);
+    
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final isMobile = ResponsiveUtils.isMobile(context);
 
     return SectionContainer(
       showShadow: true,
@@ -360,7 +369,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(AppSpacing.small),
+                padding: EdgeInsets.all(isSmallMobile ? AppSpacing.tiny : AppSpacing.small),
                 decoration: BoxDecoration(
                   color: AppColors.warmBrown.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
@@ -368,19 +377,22 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 child: Icon(
                   Icons.check_circle,
                   color: AppColors.warmBrown,
-                  size: 20,
+                  size: isSmallMobile ? 16 : 20,
                 ),
               ),
-              const SizedBox(width: AppSpacing.small),
-              Text(
-                'Approved Content',
-                style: AppTypography.heading3.copyWith(
-                  color: AppColors.textPrimary,
+              SizedBox(width: isSmallMobile ? AppSpacing.tiny : AppSpacing.small),
+              Flexible(
+                child: Text(
+                  'Approved Content',
+                  style: AppTypography.heading3.copyWith(
+                    color: AppColors.textPrimary,
+                    fontSize: isSmallMobile ? 16 : (isMobile ? 18 : null),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.large),
+          SizedBox(height: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -389,9 +401,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               desktop: 4,
               tablet: 2,
               mobile: 2,
-              childAspectRatio: 1.2,
-              crossAxisSpacing: AppSpacing.medium,
-              mainAxisSpacing: AppSpacing.medium,
+              childAspectRatio: isSmallMobile ? 1.4 : 1.2,
+              crossAxisSpacing: isSmallMobile ? AppSpacing.small : AppSpacing.medium,
+              mainAxisSpacing: isSmallMobile ? AppSpacing.small : AppSpacing.medium,
             ),
             itemCount: 4,
             itemBuilder: (context, index) {
@@ -447,6 +459,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildSupportStats(BuildContext context, Map<String, dynamic> stats) {
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final isMobile = ResponsiveUtils.isMobile(context);
+    
     return SectionContainer(
       showShadow: true,
       child: Column(
@@ -456,9 +471,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             'Support & Inbox',
             style: AppTypography.heading3.copyWith(
               color: AppColors.textPrimary,
+              fontSize: isSmallMobile ? 16 : (isMobile ? 18 : null),
             ),
           ),
-          const SizedBox(height: AppSpacing.large),
+          SizedBox(height: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -467,9 +483,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               desktop: 2,
               tablet: 2,
               mobile: 1,
-              childAspectRatio: 2.2,
-              crossAxisSpacing: AppSpacing.large,
-              mainAxisSpacing: AppSpacing.large,
+              childAspectRatio: isSmallMobile ? 2.5 : 2.2,
+              crossAxisSpacing: isSmallMobile ? AppSpacing.medium : AppSpacing.large,
+              mainAxisSpacing: isSmallMobile ? AppSpacing.medium : AppSpacing.large,
             ),
             itemCount: 2,
             itemBuilder: (context, index) {
@@ -515,6 +531,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildDocumentStats(BuildContext context, Map<String, dynamic> stats) {
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final isMobile = ResponsiveUtils.isMobile(context);
+    
     return SectionContainer(
       showShadow: true,
       child: Column(
@@ -524,9 +543,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             'Documents',
             style: AppTypography.heading3.copyWith(
               color: AppColors.textPrimary,
+              fontSize: isSmallMobile ? 16 : (isMobile ? 18 : null),
             ),
           ),
-          const SizedBox(height: AppSpacing.large),
+          SizedBox(height: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -535,9 +555,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               desktop: 2,
               tablet: 2,
               mobile: 1,
-              childAspectRatio: 1.8,
-              crossAxisSpacing: AppSpacing.large,
-              mainAxisSpacing: AppSpacing.large,
+              childAspectRatio: isSmallMobile ? 2.0 : 1.8,
+              crossAxisSpacing: isSmallMobile ? AppSpacing.medium : AppSpacing.large,
+              mainAxisSpacing: isSmallMobile ? AppSpacing.medium : AppSpacing.large,
             ),
             itemCount: 2,
             itemBuilder: (context, index) {
@@ -583,6 +603,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildCommissionSettings(BuildContext context) {
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final isMobile = ResponsiveUtils.isMobile(context);
+    
     return SectionContainer(
       showShadow: true,
       child: Column(
@@ -591,7 +614,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(AppSpacing.small),
+                padding: EdgeInsets.all(isSmallMobile ? AppSpacing.tiny : AppSpacing.small),
                 decoration: BoxDecoration(
                   color: AppColors.warmBrown.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
@@ -599,26 +622,30 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 child: Icon(
                   Icons.account_balance_wallet,
                   color: AppColors.warmBrown,
-                  size: 20,
+                  size: isSmallMobile ? 16 : 20,
                 ),
               ),
-              const SizedBox(width: AppSpacing.small),
-              Text(
-                'Commission Settings',
-                style: AppTypography.heading3.copyWith(
-                  color: AppColors.textPrimary,
+              SizedBox(width: isSmallMobile ? AppSpacing.tiny : AppSpacing.small),
+              Flexible(
+                child: Text(
+                  'Commission Settings',
+                  style: AppTypography.heading3.copyWith(
+                    color: AppColors.textPrimary,
+                    fontSize: isSmallMobile ? 16 : (isMobile ? 18 : null),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.medium),
+          SizedBox(height: isSmallMobile ? AppSpacing.small : AppSpacing.medium),
           Text(
             'Configure platform commission rates for donations',
             style: AppTypography.body.copyWith(
               color: AppColors.textSecondary,
+              fontSize: isSmallMobile ? 12 : (isMobile ? 13 : null),
             ),
           ),
-          const SizedBox(height: AppSpacing.large),
+          SizedBox(height: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
           StyledPillButton(
             label: 'Manage Commission Settings',
             icon: Icons.settings,

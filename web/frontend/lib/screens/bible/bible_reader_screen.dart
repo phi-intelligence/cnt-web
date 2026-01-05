@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
@@ -31,6 +32,11 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
   double _zoomLevel = 1.0;
   bool _showSettings = false;
   List<int> _bookmarks = [];
+  
+  // Flag to prevent sidebar highlight updates during programmatic navigation
+  bool _isNavigatingProgrammatically = false;
+  // Timer for debouncing page change callbacks
+  Timer? _pageChangeDebounceTimer;
   
   static const double _minZoom = 0.5;
   static const double _maxZoom = 3.0;
@@ -169,10 +175,18 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
 
   void _onPageChanged(int page) {
     // PDF library uses 0-based indexing, convert to 1-based for display
-    setState(() {
-      _currentPage = page + 1;
+    final newPage = page + 1;
+    
+    // Debounce rapid page changes during scroll
+    _pageChangeDebounceTimer?.cancel();
+    _pageChangeDebounceTimer = Timer(const Duration(milliseconds: 150), () {
+      if (mounted && !_isNavigatingProgrammatically) {
+        setState(() {
+          _currentPage = newPage;
+        });
+        _saveLastPage();
+      }
     });
-    _saveLastPage();
   }
 
   void _setZoom(double zoom) {
@@ -185,12 +199,32 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
   void _goToPage(int page) {
     // page is 1-based, convert to 0-based for PDF controller
     if (page >= 1 && page <= _totalPages && _pdfController != null) {
+      // Set flag to prevent sidebar highlight updates during navigation
+      _isNavigatingProgrammatically = true;
+      
+      // Update current page immediately for sidebar highlight
+      setState(() {
+        _currentPage = page;
+      });
+      
+      // Navigate to the page
       _pdfController!.jumpToPage(page - 1);
+      
+      // Reset flag after navigation completes
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          setState(() {
+            _isNavigatingProgrammatically = false;
+          });
+          _saveLastPage();
+        }
+      });
     }
   }
 
   @override
   void dispose() {
+    _pageChangeDebounceTimer?.cancel();
     _pdfController?.dispose();
     super.dispose();
   }
@@ -1111,7 +1145,10 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
                       ),
                       onTap: () {
                         Navigator.pop(context);
-                        _goToPage(page);
+                        // Add delay to ensure dialog dismissal completes before navigation
+                        Future.delayed(const Duration(milliseconds: 100), () {
+                          _goToPage(page);
+                        });
                       },
                     );
                   },

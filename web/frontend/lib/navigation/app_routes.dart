@@ -30,6 +30,7 @@ import '../screens/events/event_create_screen_web.dart';
 import '../screens/events/event_detail_screen_web.dart';
 import '../screens/drafts/my_drafts_screen.dart';
 import '../screens/bible/bible_reader_screen.dart';
+import '../screens/community/create_post_screen.dart';
 import '../screens/web/bank_details_screen_web.dart';
 import '../screens/admin/admin_commission_settings_page.dart';
 import '../screens/web/notifications_screen_web.dart';
@@ -528,6 +529,26 @@ GoRouter createAppRouter(
           state,
           const WebNavigationLayout(child: MyDraftsScreen()),
         ),
+      ),
+      
+      // Create post route (for community posts from drafts)
+      GoRoute(
+        path: '/create-post',
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return _buildPageWithoutTransition(
+            context,
+            state,
+            WebNavigationLayout(
+              child: CreatePostScreen(
+                draftId: extra?['draftId'] as int?,
+                initialTitle: extra?['title'] as String?,
+                initialContent: extra?['content'] as String?,
+                initialCategory: extra?['category'] as String?,
+              ),
+            ),
+          );
+        },
       ),
     ],
   );

@@ -427,12 +427,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             // Form content
             Positioned.fill(
               child: SafeArea(
+                bottom: true,
                 child: SingleChildScrollView(
                   padding: EdgeInsets.only(
                     left: isSmallMobile ? AppSpacing.medium : AppSpacing.large,
                     right: isSmallMobile ? AppSpacing.medium : AppSpacing.large,
                     top: 20,
-                    bottom: AppSpacing.extraLarge,
+                    // Increased bottom padding for better visibility of save button on small screens
+                    bottom: MediaQuery.of(context).padding.bottom + 100,
                   ),
                   child: Form(
                     key: _formKey,
@@ -556,8 +558,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                         SizedBox(height: AppSpacing.extraLarge),
 
-                        // Save button
-                        _buildGradientSaveButton(),
+                        // Save button with SafeArea wrapper for extra protection
+                        SafeArea(
+                          top: false,
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              bottom: isSmallMobile ? AppSpacing.large : AppSpacing.medium,
+                            ),
+                            child: _buildGradientSaveButton(),
+                          ),
+                        ),
                       ],
                     ),
                   ),

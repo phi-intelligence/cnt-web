@@ -94,6 +94,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildMobileLayout() {
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
       resizeToAvoidBottomInset: false,
@@ -102,6 +104,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           _navItems[_currentIndex].label,
           style: AppTypography.heading3.copyWith(
             color: AppColors.textInverse,
+            fontSize: isSmallMobile ? 18 : null,
           ),
         ),
         backgroundColor: AppColors.warmBrown,
@@ -109,7 +112,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: Icon(Icons.logout, size: isSmallMobile ? 20 : 24),
             onPressed: _handleLogout,
             tooltip: 'Logout',
           ),
@@ -135,7 +138,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
         child: SafeArea(
           child: SizedBox(
-            height: 70,
+            height: isSmallMobile ? 60 : 70,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -198,6 +201,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
       );
     } else {
+      final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+      final iconSize = isSmallMobile ? 18.0 : AppSpacing.iconSizeMedium;
+      final fontSize = isSmallMobile ? 10.0 : null;
+      
       return Expanded(
         child: InkWell(
           onTap: () => setState(() => _currentIndex = index),
@@ -209,9 +216,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 color: isActive
                     ? AppColors.primaryMain
                     : AppColors.textSecondary,
-                size: AppSpacing.iconSizeMedium,
+                size: iconSize,
               ),
-              const SizedBox(height: AppSpacing.tiny),
+              SizedBox(height: isSmallMobile ? AppSpacing.tiny * 0.5 : AppSpacing.tiny),
               Text(
                 item.label,
                 style: AppTypography.caption.copyWith(
@@ -219,7 +226,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       ? AppColors.primaryMain
                       : AppColors.textSecondary,
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                  fontSize: fontSize,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),

@@ -76,7 +76,10 @@ class MeetingControls extends StatelessWidget {
                             } catch (e) {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Failed to toggle microphone: $e')),
+                                  SnackBar(
+                                    content: Text('Failed to toggle microphone: $e'),
+                                    duration: const Duration(seconds: 5),
+                                  ),
                                 );
                               }
                             }
@@ -94,7 +97,10 @@ class MeetingControls extends StatelessWidget {
                           } catch (e) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Failed to toggle camera: $e')),
+                                SnackBar(
+                                  content: Text('Failed to toggle camera: $e'),
+                                  duration: const Duration(seconds: 5),
+                                ),
                               );
                             }
                           }
