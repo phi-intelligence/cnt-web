@@ -123,40 +123,64 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
   }
 
   void _openDraft(ContentDraft draft) {
-    // Navigate to appropriate editor based on draft type
-    switch (draft.draftType) {
-      case DraftType.videoPodcast:
-        if (draft.originalMediaUrl != null) {
+    try {
+      // Navigate to appropriate editor based on draft type
+      switch (draft.draftType) {
+        case DraftType.videoPodcast:
+          if (draft.originalMediaUrl == null || draft.originalMediaUrl!.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Video URL is missing. Cannot open draft.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return;
+          }
           context.push('/video-editor', extra: {
             'videoUrl': draft.originalMediaUrl,
             'draftId': draft.id,
             'editingState': draft.editingState,
           });
-        }
-        break;
-      case DraftType.audioPodcast:
-        if (draft.originalMediaUrl != null) {
+          break;
+        case DraftType.audioPodcast:
+          if (draft.originalMediaUrl == null || draft.originalMediaUrl!.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Audio URL is missing. Cannot open draft.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return;
+          }
           context.push('/audio-editor', extra: {
             'audioUrl': draft.originalMediaUrl,
             'draftId': draft.id,
             'editingState': draft.editingState,
           });
-        }
-        break;
-      case DraftType.communityPost:
-        context.push('/create-post', extra: {
-          'draftId': draft.id,
-          'title': draft.title,
-          'content': draft.content,
-          'category': draft.category,
-        });
-        break;
-      case DraftType.quotePost:
-        context.push('/create-quote', extra: {
-          'draftId': draft.id,
-          'content': draft.content,
-        });
-        break;
+          break;
+        case DraftType.communityPost:
+          context.push('/create-post', extra: {
+            'draftId': draft.id,
+            'title': draft.title,
+            'content': draft.content,
+            'category': draft.category,
+          });
+          break;
+        case DraftType.quotePost:
+          context.push('/quote', extra: {
+            'draftId': draft.id,
+            'content': draft.content,
+          });
+          break;
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to open draft: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
     }
   }
 

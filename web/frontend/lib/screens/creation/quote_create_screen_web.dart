@@ -16,7 +16,14 @@ import '../../services/api_service.dart';
 /// Web Quote Creation Screen - Simple text input for creating quotes
 /// Backend automatically generates image with predefined templates
 class QuoteCreateScreenWeb extends StatefulWidget {
-  const QuoteCreateScreenWeb({super.key});
+  final int? draftId;
+  final String? initialContent;
+
+  const QuoteCreateScreenWeb({
+    super.key,
+    this.draftId,
+    this.initialContent,
+  });
 
   @override
   State<QuoteCreateScreenWeb> createState() => _QuoteCreateScreenWebState();
@@ -32,6 +39,11 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
   @override
   void initState() {
     super.initState();
+    // Initialize with draft content if provided
+    if (widget.initialContent != null && widget.initialContent!.isNotEmpty) {
+      _quoteController.text = widget.initialContent!;
+      _hasUnsavedChanges = true;
+    }
     _quoteController.addListener(_onContentChanged);
   }
 

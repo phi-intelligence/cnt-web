@@ -28,7 +28,7 @@ class _AIVoiceAgentScreenState extends State<AIVoiceAgentScreen> {
   String _transcript = '';
   bool _isConnecting = true;
   String? _error;
-  String _connectionStatus = 'Preparing...';
+  String _connectionStatus = 'Connecting to Christ New Tabernacle voice assistant...';
   
   @override
   void initState() {
@@ -42,7 +42,7 @@ class _AIVoiceAgentScreenState extends State<AIVoiceAgentScreen> {
       setState(() {
         _isConnecting = true;
         _error = null;
-        _connectionStatus = 'Preparing connection...';
+        _connectionStatus = 'Connecting to Christ New Tabernacle voice assistant...';
       });
       
       // Generate room name if not provided
@@ -50,7 +50,7 @@ class _AIVoiceAgentScreenState extends State<AIVoiceAgentScreen> {
       
       // Step 1: Create room (mandatory - agent needs room to exist)
       setState(() {
-        _connectionStatus = 'Creating room...';
+        _connectionStatus = 'Connecting to Christ New Tabernacle voice assistant...';
       });
       
       try {
@@ -62,7 +62,7 @@ class _AIVoiceAgentScreenState extends State<AIVoiceAgentScreen> {
         );
         print('✅ Room created: $roomName');
         setState(() {
-          _connectionStatus = 'Room created, connecting...';
+          _connectionStatus = 'Connecting to Christ New Tabernacle voice assistant...';
         });
       } catch (e) {
         // Check if error is because room already exists
@@ -70,7 +70,7 @@ class _AIVoiceAgentScreenState extends State<AIVoiceAgentScreen> {
         if (errorMsg.contains('already exists') || errorMsg.contains('duplicate')) {
           print('ℹ️ Room already exists: $roomName');
           setState(() {
-            _connectionStatus = 'Room exists, connecting...';
+            _connectionStatus = 'Connecting to Christ New Tabernacle voice assistant...';
           });
         } else {
           // Provide more detailed error message
@@ -95,14 +95,14 @@ class _AIVoiceAgentScreenState extends State<AIVoiceAgentScreen> {
       
       // Step 3: Connect to room
       setState(() {
-        _connectionStatus = 'Connecting to LiveKit server...';
+        _connectionStatus = 'Connecting to Christ New Tabernacle voice assistant...';
       });
       
       await _service.connectToRoom(roomName: roomName);
       
       // Step 4: Wait for agent to join
       setState(() {
-        _connectionStatus = 'Waiting for agent to join...';
+        _connectionStatus = 'Connecting to Christ New Tabernacle voice assistant...';
       });
       
       // Wait up to 30 seconds for agent to join
@@ -124,7 +124,7 @@ class _AIVoiceAgentScreenState extends State<AIVoiceAgentScreen> {
         
         if (mounted) {
           setState(() {
-            _connectionStatus = 'Waiting for agent... (${(stopwatch.elapsedMilliseconds / 1000).toStringAsFixed(0)}s)';
+            _connectionStatus = 'Connecting to Christ New Tabernacle voice assistant...';
           });
         }
       }
@@ -179,7 +179,7 @@ class _AIVoiceAgentScreenState extends State<AIVoiceAgentScreen> {
     final errorMsg = error.toString().toLowerCase();
     
     if (errorMsg.contains('timeout')) {
-      return 'Connection timed out. Check your network connection and ensure the LiveKit server is running.';
+      return 'Connection timed out. Please check your network connection and try again.';
     } else if (errorMsg.contains('network') || errorMsg.contains('socket')) {
       return 'Network error. Please check your internet connection.';
     } else if (errorMsg.contains('token')) {
@@ -187,9 +187,9 @@ class _AIVoiceAgentScreenState extends State<AIVoiceAgentScreen> {
     } else if (errorMsg.contains('room')) {
       return 'Failed to create or access room. Please try again.';
     } else if (errorMsg.contains('agent')) {
-      return 'Agent is not available. Please ensure the agent worker is running.';
+      return 'Voice assistant is not available. Please try again.';
     } else if (errorMsg.contains('livekit')) {
-      return 'LiveKit server error. Please check server status.';
+      return 'Unable to connect. Please try again.';
     }
     
     return 'Failed to connect: $error';
@@ -212,7 +212,8 @@ class _AIVoiceAgentScreenState extends State<AIVoiceAgentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false, AppColors.backgroundPrimary,
+      backgroundColor: AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         backgroundColor: AppColors.backgroundPrimary,
         elevation: 0,
@@ -288,14 +289,6 @@ class _AIVoiceAgentScreenState extends State<AIVoiceAgentScreen> {
                   style: AppTypography.body,
                   textAlign: TextAlign.center,
                 ),
-                if (_connectionStatus.contains('Waiting for agent'))
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      'This may take up to 30 seconds...',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ),
               ],
             ),
           );
@@ -338,13 +331,13 @@ class _AIVoiceAgentScreenState extends State<AIVoiceAgentScreen> {
   String _getConnectionStateText(lk.ConnectionState state) {
     switch (state) {
       case lk.ConnectionState.connecting:
-        return 'Connecting...';
+        return 'Connecting to Christ New Tabernacle voice assistant...';
       case lk.ConnectionState.connected:
         return 'Connected';
       case lk.ConnectionState.disconnected:
         return 'Disconnected';
       case lk.ConnectionState.reconnecting:
-        return 'Reconnecting...';
+        return 'Reconnecting to Christ New Tabernacle voice assistant...';
     }
   }
   

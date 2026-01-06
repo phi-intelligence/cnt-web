@@ -539,10 +539,33 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
         _isLoading = false;
       });
 
+      // Hide the "Uploading video..." snackbar first
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      // Extract user-friendly error message
+      String errorMessage = 'Failed to publish podcast';
+      final errorString = e.toString();
+      if (errorString.contains('Failed to upload video:')) {
+        // Extract the actual error message after the colon
+        final parts = errorString.split('Failed to upload video:');
+        if (parts.length > 1) {
+          errorMessage = 'Upload failed: ${parts[1].trim()}';
+        } else {
+          errorMessage = 'Failed to upload video';
+        }
+      } else if (errorString.contains('detail')) {
+        // Extract error detail from exception
+        final detailMatch = RegExp(r'detail[":\s]+([^"]+)').firstMatch(errorString);
+        if (detailMatch != null) {
+          errorMessage = detailMatch.group(1)?.trim() ?? 'Failed to publish podcast';
+        }
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to publish podcast: $e'),
+          content: Text(errorMessage),
           backgroundColor: AppColors.errorMain,
+          duration: const Duration(seconds: 5),
         ),
       );
     }

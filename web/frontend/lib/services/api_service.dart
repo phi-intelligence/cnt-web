@@ -2059,10 +2059,15 @@ class ApiService {
           // Use default filename if extraction fails
         }
 
+        // Detect content type from filename (similar to blob URL handling)
+        http.MediaType? contentType =
+            _detectContentTypeFromFilename(filename);
+
         return http.MultipartFile.fromBytes(
           fieldName,
           response.bodyBytes,
           filename: filename,
+          contentType: contentType,
         );
       } catch (e) {
         throw Exception('Error downloading file from URL: $e');
@@ -3655,8 +3660,24 @@ class ApiService {
 
         return data;
       }
-      throw Exception(
-          'Failed to upload video: HTTP ${streamedResponse.statusCode}');
+      
+      // Read response body for error details
+      final errorResponse = await http.Response.fromStream(streamedResponse);
+      String errorMessage = 'Failed to upload video: HTTP ${streamedResponse.statusCode}';
+      try {
+        final errorData = json.decode(errorResponse.body);
+        if (errorData is Map && errorData.containsKey('detail')) {
+          errorMessage = 'Failed to upload video: ${errorData['detail']}';
+        } else {
+          errorMessage = 'Failed to upload video: HTTP ${streamedResponse.statusCode} - ${errorResponse.body}';
+        }
+      } catch (e) {
+        // If parsing fails, include raw body if available
+        if (errorResponse.body.isNotEmpty) {
+          errorMessage = 'Failed to upload video: HTTP ${streamedResponse.statusCode} - ${errorResponse.body}';
+        }
+      }
+      throw Exception(errorMessage);
     } catch (e) {
       throw Exception('Error uploading video: $e');
     }

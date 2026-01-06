@@ -40,9 +40,12 @@ import '../services/api_service.dart';
 import 'web_navigation.dart';
 import 'package:flutter/material.dart';
 import '../models/content_item.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_typography.dart';
 
 /// Helper function to create a page with no transition animation
-Page<void> _buildPageWithoutTransition(BuildContext context, GoRouterState state, Widget child) {
+Page<void> _buildPageWithoutTransition(
+    BuildContext context, GoRouterState state, Widget child) {
   return NoTransitionPage<void>(
     key: state.pageKey,
     child: child,
@@ -64,12 +67,12 @@ GoRouter createAppRouter(
       final isAuthenticated = authProvider.isAuthenticated;
       final isAdmin = authProvider.isAdmin;
       final isAuthRoute = state.matchedLocation == '/' ||
-                         state.matchedLocation.startsWith('/login') ||
-                         state.matchedLocation.startsWith('/register');
+          state.matchedLocation.startsWith('/login') ||
+          state.matchedLocation.startsWith('/register');
 
       // Define admin-only routes
       final isAdminRoute = state.matchedLocation.startsWith('/admin') ||
-                           state.matchedLocation.startsWith('/bulk-upload');
+          state.matchedLocation.startsWith('/bulk-upload');
 
       // Redirect to login if not authenticated and trying to access protected route
       if (!isAuthenticated && !isAuthRoute) {
@@ -94,7 +97,7 @@ GoRouter createAppRouter(
         path: '/',
         builder: (context, state) => const LandingScreenWeb(),
       ),
-      
+
       // Main navigation routes (wrapped in WebNavigationLayout - NO transitions)
       GoRoute(
         path: '/home',
@@ -170,11 +173,13 @@ GoRouter createAppRouter(
       GoRoute(
         path: '/profile/bank-details',
         pageBuilder: (context, state) {
-          final isFromUpload = state.uri.queryParameters['fromUpload'] == 'true';
+          final isFromUpload =
+              state.uri.queryParameters['fromUpload'] == 'true';
           return _buildPageWithoutTransition(
             context,
             state,
-            WebNavigationLayout(child: BankDetailsScreenWeb(isFromUpload: isFromUpload)),
+            WebNavigationLayout(
+                child: BankDetailsScreenWeb(isFromUpload: isFromUpload)),
           );
         },
       ),
@@ -202,7 +207,7 @@ GoRouter createAppRouter(
           const WebNavigationLayout(child: AboutScreenWeb()),
         ),
       ),
-      
+
       // Bible reader route
       GoRoute(
         path: '/bible',
@@ -212,7 +217,7 @@ GoRouter createAppRouter(
           const WebNavigationLayout(child: BibleReaderScreen()),
         ),
       ),
-      
+
       GoRoute(
         path: '/admin',
         pageBuilder: (context, state) => _buildPageWithoutTransition(
@@ -229,7 +234,7 @@ GoRouter createAppRouter(
           const WebNavigationLayout(child: AdminCommissionSettingsPage()),
         ),
       ),
-      
+
       // Bulk upload route (admin only)
       GoRoute(
         path: '/bulk-upload',
@@ -239,17 +244,25 @@ GoRouter createAppRouter(
           const WebNavigationLayout(child: BulkUploadScreen()),
         ),
       ),
-      
+
       // Quote creation route
       GoRoute(
         path: '/quote',
-        pageBuilder: (context, state) => _buildPageWithoutTransition(
-          context,
-          state,
-          const WebNavigationLayout(child: QuoteCreateScreenWeb()),
-        ),
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return _buildPageWithoutTransition(
+            context,
+            state,
+            WebNavigationLayout(
+              child: QuoteCreateScreenWeb(
+                draftId: extra?['draftId'] as int?,
+                initialContent: extra?['content'] as String?,
+              ),
+            ),
+          );
+        },
       ),
-      
+
       // Meeting routes
       GoRoute(
         path: '/meetings',
@@ -259,7 +272,7 @@ GoRouter createAppRouter(
           const WebNavigationLayout(child: MeetingOptionsScreenWeb()),
         ),
       ),
-      
+
       // Live stream routes
       GoRoute(
         path: '/live-stream/options',
@@ -285,7 +298,7 @@ GoRouter createAppRouter(
           const WebNavigationLayout(child: LiveScreenWeb()),
         ),
       ),
-      
+
       // Editor routes
       GoRoute(
         path: '/edit/video',
@@ -312,54 +325,108 @@ GoRouter createAppRouter(
           return AudioEditorScreen(audioPath: audioPath);
         },
       ),
-      
+
       // Draft editor routes (for My Drafts navigation)
       GoRoute(
         path: '/video-editor',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
           final videoUrl = extra?['videoUrl'] as String?;
-          final draftId = extra?['draftId'] as String?;
-          
+          final draftId = extra?['draftId'];
+
           if (videoUrl == null || videoUrl.isEmpty) {
-            return const Scaffold(
-              body: Center(child: Text('Video URL is required')),
+            return _buildPageWithoutTransition(
+              context,
+              state,
+              WebNavigationLayout(
+                child: Scaffold(
+                  backgroundColor: AppColors.backgroundPrimary,
+                  body: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline,
+                            size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Video URL is required',
+                          style: AppTypography.heading2,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text('Cannot open draft without video URL'),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             );
           }
-          return VideoEditorScreenWeb(
-            videoPath: videoUrl,
-            title: draftId != null ? 'Draft $draftId' : null,
+          return _buildPageWithoutTransition(
+            context,
+            state,
+            VideoEditorScreenWeb(
+              videoPath: videoUrl,
+              title: draftId != null ? 'Draft $draftId' : null,
+            ),
           );
         },
       ),
       GoRoute(
         path: '/audio-editor',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
           final audioUrl = extra?['audioUrl'] as String?;
-          final draftId = extra?['draftId'] as String?;
-          
+          final draftId = extra?['draftId'];
+
           if (audioUrl == null || audioUrl.isEmpty) {
-            return const Scaffold(
-              body: Center(child: Text('Audio URL is required')),
+            return _buildPageWithoutTransition(
+              context,
+              state,
+              WebNavigationLayout(
+                child: Scaffold(
+                  backgroundColor: AppColors.backgroundPrimary,
+                  body: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline,
+                            size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Audio URL is required',
+                          style: AppTypography.heading2,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text('Cannot open draft without audio URL'),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             );
           }
-          return AudioEditorScreen(
-            audioPath: audioUrl,
-            title: draftId != null ? 'Draft $draftId' : null,
+          return _buildPageWithoutTransition(
+            context,
+            state,
+            AudioEditorScreen(
+              audioPath: audioUrl,
+              title: draftId != null ? 'Draft $draftId' : null,
+            ),
           );
         },
       ),
-      
+
       // Preview routes
       GoRoute(
         path: '/preview/video',
         builder: (context, state) {
           final videoUri = state.uri.queryParameters['uri'];
           final source = state.uri.queryParameters['source'] ?? 'camera';
-          final duration = int.tryParse(state.uri.queryParameters['duration'] ?? '0') ?? 0;
-          final fileSize = int.tryParse(state.uri.queryParameters['fileSize'] ?? '0') ?? 0;
-          
+          final duration =
+              int.tryParse(state.uri.queryParameters['duration'] ?? '0') ?? 0;
+          final fileSize =
+              int.tryParse(state.uri.queryParameters['fileSize'] ?? '0') ?? 0;
+
           if (videoUri == null || videoUri.isEmpty) {
             return const Scaffold(
               body: Center(child: Text('Video URI is required')),
@@ -378,9 +445,11 @@ GoRouter createAppRouter(
         builder: (context, state) {
           final audioUri = state.uri.queryParameters['uri'];
           final source = state.uri.queryParameters['source'] ?? 'recording';
-          final duration = int.tryParse(state.uri.queryParameters['duration'] ?? '0') ?? 0;
-          final fileSize = int.tryParse(state.uri.queryParameters['fileSize'] ?? '0') ?? 0;
-          
+          final duration =
+              int.tryParse(state.uri.queryParameters['duration'] ?? '0') ?? 0;
+          final fileSize =
+              int.tryParse(state.uri.queryParameters['fileSize'] ?? '0') ?? 0;
+
           if (audioUri == null || audioUri.isEmpty) {
             return const Scaffold(
               body: Center(child: Text('Audio URI is required')),
@@ -394,7 +463,7 @@ GoRouter createAppRouter(
           );
         },
       ),
-      
+
       // Detail routes
       GoRoute(
         path: '/podcast/:id',
@@ -404,14 +473,15 @@ GoRouter createAppRouter(
             return _buildPageWithoutTransition(
               context,
               state,
-              const Scaffold(body: Center(child: Text('Podcast ID is required'))),
+              const Scaffold(
+                  body: Center(child: Text('Podcast ID is required'))),
             );
           }
-          
+
           final extraItem = state.extra as ContentItem?;
-          
+
           if (extraItem != null) {
-             return _buildPageWithoutTransition(
+            return _buildPageWithoutTransition(
               context,
               state,
               WebNavigationLayout(
@@ -419,7 +489,7 @@ GoRouter createAppRouter(
               ),
             );
           }
-          
+
           // Create a wrapper widget that loads the podcast
           return _buildPageWithoutTransition(
             context,
@@ -441,9 +511,9 @@ GoRouter createAppRouter(
               const Scaffold(body: Center(child: Text('Movie ID is required'))),
             );
           }
-          
+
           final extraItem = state.extra as ContentItem?;
-          
+
           return _buildPageWithoutTransition(
             context,
             state,
@@ -456,7 +526,7 @@ GoRouter createAppRouter(
           );
         },
       ),
-      
+
       // Artist routes - specific paths must come before parameterized paths
       GoRoute(
         path: '/artist/manage',
@@ -474,7 +544,8 @@ GoRouter createAppRouter(
             return _buildPageWithoutTransition(
               context,
               state,
-              const Scaffold(body: Center(child: Text('Artist ID is required'))),
+              const Scaffold(
+                  body: Center(child: Text('Artist ID is required'))),
             );
           }
           return _buildPageWithoutTransition(
@@ -486,14 +557,15 @@ GoRouter createAppRouter(
           );
         },
       ),
-      
+
       // Player routes (full-screen)
       GoRoute(
         path: '/player/audio/:podcastId',
         builder: (context, state) {
           final podcastId = state.pathParameters['podcastId'];
           if (podcastId == null) {
-            return const Scaffold(body: Center(child: Text('Podcast ID is required')));
+            return const Scaffold(
+                body: Center(child: Text('Podcast ID is required')));
           }
           return _PodcastPlayerLoader(
             podcastId: int.parse(podcastId),
@@ -506,12 +578,13 @@ GoRouter createAppRouter(
         builder: (context, state) {
           final podcastId = state.pathParameters['podcastId'];
           if (podcastId == null) {
-            return const Scaffold(body: Center(child: Text('Podcast ID is required')));
+            return const Scaffold(
+                body: Center(child: Text('Podcast ID is required')));
           }
-          
+
           final extraItem = state.extra as ContentItem?;
           if (extraItem != null) {
-             return VideoPodcastDetailScreenWeb(item: extraItem);
+            return VideoPodcastDetailScreenWeb(item: extraItem);
           }
 
           return _PodcastPlayerLoader(
@@ -520,7 +593,7 @@ GoRouter createAppRouter(
           );
         },
       ),
-      
+
       // Events routes
       GoRoute(
         path: '/events',
@@ -558,7 +631,7 @@ GoRouter createAppRouter(
           );
         },
       ),
-      
+
       // My Drafts route
       GoRoute(
         path: '/my-drafts',
@@ -568,7 +641,7 @@ GoRouter createAppRouter(
           const WebNavigationLayout(child: MyDraftsScreen()),
         ),
       ),
-      
+
       // Create post route (for community posts from drafts)
       GoRoute(
         path: '/create-post',
@@ -595,9 +668,9 @@ GoRouter createAppRouter(
 /// Widget to load podcast by ID and display detail screen
 class _PodcastDetailLoader extends StatefulWidget {
   final int podcastId;
-  
+
   const _PodcastDetailLoader({required this.podcastId});
-  
+
   @override
   State<_PodcastDetailLoader> createState() => _PodcastDetailLoaderState();
 }
@@ -606,19 +679,19 @@ class _PodcastDetailLoaderState extends State<_PodcastDetailLoader> {
   bool _isLoading = true;
   String? _error;
   Widget? _content;
-  
+
   @override
   void initState() {
     super.initState();
     _loadPodcast();
   }
-  
+
   Future<void> _loadPodcast() async {
     try {
       final apiService = ApiService();
       final podcast = await apiService.getPodcast(widget.podcastId);
       final item = apiService.podcastToContentItem(podcast);
-      
+
       if (mounted) {
         setState(() {
           _content = VideoPodcastDetailScreenWeb(item: item);
@@ -634,7 +707,7 @@ class _PodcastDetailLoaderState extends State<_PodcastDetailLoader> {
       }
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -644,7 +717,7 @@ class _PodcastDetailLoaderState extends State<_PodcastDetailLoader> {
         ),
       );
     }
-    
+
     if (_error != null) {
       return Scaffold(
         body: Center(
@@ -652,7 +725,7 @@ class _PodcastDetailLoaderState extends State<_PodcastDetailLoader> {
         ),
       );
     }
-    
+
     return _content ?? const SizedBox();
   }
 }
@@ -661,12 +734,12 @@ class _PodcastDetailLoaderState extends State<_PodcastDetailLoader> {
 class _PodcastPlayerLoader extends StatefulWidget {
   final int podcastId;
   final bool isVideo;
-  
+
   const _PodcastPlayerLoader({
     required this.podcastId,
     required this.isVideo,
   });
-  
+
   @override
   State<_PodcastPlayerLoader> createState() => _PodcastPlayerLoaderState();
 }
@@ -675,19 +748,19 @@ class _PodcastPlayerLoaderState extends State<_PodcastPlayerLoader> {
   bool _isLoading = true;
   String? _error;
   Widget? _content;
-  
+
   @override
   void initState() {
     super.initState();
     _loadPodcast();
   }
-  
+
   Future<void> _loadPodcast() async {
     try {
       final apiService = ApiService();
       final podcast = await apiService.getPodcast(widget.podcastId);
       final item = apiService.podcastToContentItem(podcast);
-      
+
       if (mounted) {
         setState(() {
           if (widget.isVideo) {
@@ -711,7 +784,7 @@ class _PodcastPlayerLoaderState extends State<_PodcastPlayerLoader> {
       }
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -721,7 +794,7 @@ class _PodcastPlayerLoaderState extends State<_PodcastPlayerLoader> {
         ),
       );
     }
-    
+
     if (_error != null) {
       return Scaffold(
         body: Center(
@@ -739,8 +812,7 @@ class _PodcastPlayerLoaderState extends State<_PodcastPlayerLoader> {
         ),
       );
     }
-    
+
     return _content ?? const SizedBox();
   }
 }
-
