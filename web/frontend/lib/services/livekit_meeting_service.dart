@@ -212,12 +212,50 @@ class LiveKitMeetingService {
   Future<void> leaveMeeting() async {
     try {
       if (_currentRoom != null) {
-        if (_currentRoom!.localParticipant != null) {
-          await _currentRoom!.localParticipant!.setCameraEnabled(false);
-          await _currentRoom!.localParticipant!.setMicrophoneEnabled(false);
+        final localParticipant = _currentRoom!.localParticipant;
+        
+        if (localParticipant != null) {
+          // Disable camera and microphone first to signal LiveKit to stop publishing
+          try {
+            await localParticipant.setCameraEnabled(false);
+            await localParticipant.setMicrophoneEnabled(false);
+            LoggerService.i('📹 LiveKit: Disabled camera and microphone');
+          } catch (e) {
+            LoggerService.w('⚠️ LiveKit: Error disabling camera/microphone: $e');
+          }
+          
+          // Stop all local tracks explicitly
+          // Stopping tracks will automatically handle unpublishing
+          try {
+            final localTracks = <lk.LocalTrack>[];
+            for (final publication in localParticipant.trackPublications.values) {
+              if (publication.track is lk.LocalTrack) {
+                localTracks.add(publication.track as lk.LocalTrack);
+              }
+            }
+            
+            for (final track in localTracks) {
+              try {
+                await track.stop();
+                LoggerService.i('🛑 LiveKit: Stopped local track: ${track.kind}');
+              } catch (e) {
+                LoggerService.w('⚠️ LiveKit: Error stopping local track: $e');
+              }
+            }
+          } catch (e) {
+            LoggerService.w('⚠️ LiveKit: Error stopping local tracks: $e');
+          }
         }
-        await _currentRoom!.disconnect();
+        
+        // Disconnect from room after all tracks are cleaned up
+        try {
+          await _currentRoom!.disconnect();
+          LoggerService.i('🔌 LiveKit: Disconnected from room');
+        } catch (e) {
+          LoggerService.w('⚠️ LiveKit: Error disconnecting from room: $e');
+        }
       }
+      
       _listener?.dispose();
       _currentRoom = null;
       _listener = null;
@@ -225,6 +263,10 @@ class LiveKitMeetingService {
       _connectionStateController.add(lk.ConnectionState.disconnected);
     } catch (e) {
       LoggerService.e('❌ LiveKit: Error leaving meeting: $e');
+      // Ensure state is reset even on error
+      _currentRoom = null;
+      _listener = null;
+      _isConnected = false;
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:just_audio/just_audio.dart';
+import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -14,6 +15,7 @@ import '../../services/api_service.dart';
 import '../../utils/state_persistence.dart';
 import '../editing/audio_editor_screen.dart';
 import '../../utils/unsaved_changes_guard.dart';
+import '../../providers/auth_provider.dart';
 
 /// Audio Preview Screen
 /// Shows recorded/uploaded audio with playback and metadata form
@@ -316,15 +318,65 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
       // Clear saved state after successful publish
       await StatePersistence.clearAudioPreviewState();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Audio podcast published successfully!'),
-          backgroundColor: Colors.green,
+      // Get admin status for appropriate message
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final isAdmin = authProvider.isAdmin;
+
+      // Wait a moment before showing dialog to ensure UI is ready
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      if (!mounted) return;
+
+      // Show success dialog with admin-aware message
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppColors.backgroundSecondary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  isAdmin ? 'Audio Podcast Published' : 'Audio Podcast Submitted',
+                  style: AppTypography.heading3.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            isAdmin
+                ? 'Your audio podcast has been published and shared with the community!'
+                : 'Your audio podcast has been submitted for admin approval. Once approved, it will appear in the podcasts library.',
+            style: AppTypography.body.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                // Navigate back to create screen or home
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+              child: Text(
+                'OK',
+                style: AppTypography.button.copyWith(
+                  color: AppColors.primaryMain,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
       );
-
-      // Navigate to home
-      Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (!mounted) return;
 

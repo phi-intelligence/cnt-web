@@ -6,6 +6,8 @@ import '../../widgets/meeting/video_track_view.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/responsive_grid_delegate.dart';
+import 'dart:html' as html show window, Event;
+import 'dart:async';
 
 /// Live Stream Broadcaster Screen - Go live and broadcast using LiveKit
 class LiveStreamBroadcaster extends StatefulWidget {
@@ -36,11 +38,23 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
   lk.LocalVideoTrack? _localVideoTrack;
   int _viewerCount = 0;
   DateTime? _startTime;
+  bool _isDisposing = false;
+  StreamSubscription<html.Event>? _beforeUnloadSubscription;
 
   @override
   void initState() {
     super.initState();
     _startStreaming();
+    
+    // Add beforeunload event listener for web to ensure cleanup
+    if (kIsWeb) {
+      _beforeUnloadSubscription = html.window.onBeforeUnload.listen((html.Event event) {
+        if (_isStreaming && !_isDisposing) {
+          _isDisposing = true;
+          _stopStreaming();
+        }
+      });
+    }
   }
 
   Future<void> _startStreaming() async {
@@ -95,11 +109,31 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
 
   Future<void> _stopStreaming() async {
     try {
+      // Stop the video track before leaving the meeting
+      // Stopping the track will automatically handle unpublishing
       if (_localVideoTrack != null) {
-        // Stop the track - room cleanup will handle unpublishing
-        await _localVideoTrack!.stop();
+        final room = _meetingService.currentRoom;
+        final localParticipant = room?.localParticipant;
+        
+        // Disable camera first to signal LiveKit to stop publishing
+        if (localParticipant != null) {
+          try {
+            await localParticipant.setCameraEnabled(false);
+          } catch (e) {
+            print('Warning: Error disabling camera: $e');
+          }
+        }
+        
+        // Stop the track (this will also handle unpublishing)
+        try {
+          await _localVideoTrack!.stop();
+        } catch (e) {
+          print('Warning: Error stopping video track: $e');
+        }
         _localVideoTrack = null;
       }
+      
+      // Leave the meeting after track cleanup
       await _meetingService.leaveMeeting();
 
       if (mounted) {
@@ -115,6 +149,14 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
       }
     } catch (e) {
       print('Error stopping stream: $e');
+      // Ensure cleanup even if there's an error
+      try {
+        _localVideoTrack?.stop();
+        _localVideoTrack = null;
+      } catch (_) {}
+      try {
+        await _meetingService.leaveMeeting();
+      } catch (_) {}
     }
   }
 
@@ -210,15 +252,48 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
 
   @override
   void dispose() {
-    _meetingService.leaveMeeting();
-    _localVideoTrack?.stop();
+    _isDisposing = true;
+    
+    // Cancel beforeunload subscription if it exists
+    if (kIsWeb && _beforeUnloadSubscription != null) {
+      try {
+        _beforeUnloadSubscription?.cancel();
+      } catch (e) {
+        // Ignore errors when canceling subscription
+      }
+      _beforeUnloadSubscription = null;
+    }
+    
+    // Call _stopStreaming() if streaming is active
+    // Note: We can't await in dispose(), but _stopStreaming() handles errors gracefully
+    if (_isStreaming) {
+      _stopStreaming().catchError((e) {
+        print('Error in dispose cleanup: $e');
+        // Fallback cleanup if _stopStreaming fails
+        try {
+          _localVideoTrack?.stop();
+          _localVideoTrack = null;
+        } catch (_) {}
+        try {
+          _meetingService.leaveMeeting();
+        } catch (_) {}
+      });
+    } else {
+      // If not streaming, do minimal cleanup
+      try {
+        _localVideoTrack?.stop();
+        _localVideoTrack = null;
+      } catch (_) {}
+      try {
+        _meetingService.leaveMeeting();
+      } catch (_) {}
+    }
+    
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final room = _meetingService.currentRoom;
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {

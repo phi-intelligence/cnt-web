@@ -84,6 +84,17 @@ class ApiService {
         (mediaBaseUrl.contains('s3.') && url.startsWith(mediaBaseUrl));
   }
 
+  /// Check if a video URL is already uploaded (CloudFront/S3 URL)
+  /// Returns true if the URL is already on S3/CloudFront, false if it's a blob URL or local path
+  static bool isVideoAlreadyUploaded(String videoUri) {
+    // Check if it's a CloudFront/S3 URL (already uploaded)
+    if (videoUri.startsWith('http://') || videoUri.startsWith('https://')) {
+      return _isS3OrCloudFrontUrl(videoUri);
+    }
+    // Blob URLs or local paths need to be uploaded
+    return false;
+  }
+
   /// Validate that baseUrl is configured before making requests
   void _validateBaseUrl() {
     try {
@@ -2032,44 +2043,67 @@ class ApiService {
         // else: Development with S3 URLs - these are actually local /media URLs
 
         LoggerService.d('📥 Fetching from: $downloadUrl');
-        final response = await http
-            .get(
-              Uri.parse(downloadUrl),
-              headers: headers,
-            )
-            .timeout(const Duration(minutes: 5));
-
-        if (response.statusCode != 200) {
-          throw Exception(
-              'Failed to download file from URL: HTTP ${response.statusCode}');
-        }
-
-        // Extract filename from URL or use default
-        String filename = defaultFilename;
         try {
-          final uri = Uri.parse(source);
-          final pathSegments = uri.pathSegments;
-          if (pathSegments.isNotEmpty) {
-            final urlFilename = pathSegments.last;
-            if (urlFilename.isNotEmpty && urlFilename.contains('.')) {
-              filename = urlFilename;
-            }
+          final response = await http
+              .get(
+                Uri.parse(downloadUrl),
+                headers: headers,
+              )
+              .timeout(const Duration(minutes: 5));
+
+          if (response.statusCode != 200) {
+            final errorMsg = isS3OrCloudFront && !isDev
+                ? 'Failed to download video from CloudFront/S3 via proxy: HTTP ${response.statusCode}. The video may have been deleted or access is restricted.'
+                : 'Failed to download file from URL: HTTP ${response.statusCode}';
+            LoggerService.e('❌ $errorMsg');
+            throw Exception(errorMsg);
           }
+
+          // Check if response body is empty
+          if (response.bodyBytes.isEmpty) {
+            throw Exception('Downloaded file is empty. The video file may be corrupted or inaccessible.');
+          }
+
+          // Extract filename from URL or use default
+          String filename = defaultFilename;
+          try {
+            final uri = Uri.parse(source);
+            final pathSegments = uri.pathSegments;
+            if (pathSegments.isNotEmpty) {
+              final urlFilename = pathSegments.last;
+              if (urlFilename.isNotEmpty && urlFilename.contains('.')) {
+                filename = urlFilename;
+              }
+            }
+          } catch (e) {
+            // Use default filename if extraction fails
+          }
+
+          // Detect content type from filename (similar to blob URL handling)
+          http.MediaType? contentType =
+              _detectContentTypeFromFilename(filename);
+
+          return http.MultipartFile.fromBytes(
+            fieldName,
+            response.bodyBytes,
+            filename: filename,
+            contentType: contentType,
+          );
+        } on TimeoutException {
+          final errorMsg = isS3OrCloudFront && !isDev
+              ? 'Timeout downloading video from CloudFront/S3. The video file may be too large or the connection is slow.'
+              : 'Timeout downloading file from URL. Please try again.';
+          LoggerService.e('❌ $errorMsg');
+          throw Exception(errorMsg);
         } catch (e) {
-          // Use default filename if extraction fails
+          final errorMsg = isS3OrCloudFront && !isDev
+              ? 'Error downloading video from CloudFront/S3: $e'
+              : 'Error downloading file from URL: $e';
+          LoggerService.e('❌ $errorMsg');
+          throw Exception(errorMsg);
         }
-
-        // Detect content type from filename (similar to blob URL handling)
-        http.MediaType? contentType =
-            _detectContentTypeFromFilename(filename);
-
-        return http.MultipartFile.fromBytes(
-          fieldName,
-          response.bodyBytes,
-          filename: filename,
-          contentType: contentType,
-        );
       } catch (e) {
+        // Re-throw with more context if not already handled by inner catch
         throw Exception('Error downloading file from URL: $e');
       }
     } else if (source.startsWith('blob:')) {

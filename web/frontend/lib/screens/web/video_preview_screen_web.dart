@@ -399,61 +399,89 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
       _isLoading = true;
     });
 
+    // Store snackbar controller reference to ensure it can be hidden
+    ScaffoldMessengerState? snackbarMessenger;
+    bool uploadSnackbarShown = false;
+
     try {
       // Upload video file first (supports file paths, blob URLs, and http URLs)
       String videoUrl;
       String? thumbnailUrl;
 
-      // Show upload progress
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
+      // Check if video is already uploaded (CloudFront/S3 URL)
+      final isAlreadyUploaded = ApiService.isVideoAlreadyUploaded(widget.videoUri);
+
+      if (isAlreadyUploaded) {
+        // Video is already uploaded, use the URL directly
+        print('✅ Video already uploaded, skipping re-upload: ${widget.videoUri}');
+        videoUrl = widget.videoUri;
+        
+        // Generate thumbnail from the already-uploaded video
+        try {
+          // Use thumbnail service to generate thumbnail from video URL
+          thumbnailUrl = await ApiService().generateThumbnailFromVideo(videoUrl);
+        } catch (e) {
+          print('⚠️ Failed to generate thumbnail from video: $e');
+          // Continue without thumbnail - user can select one manually
+        }
+      } else {
+        // Video needs to be uploaded (blob URL or local path)
+        // Show upload progress
+        if (mounted) {
+          snackbarMessenger = ScaffoldMessenger.of(context);
+          snackbarMessenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text('Uploading video...'),
+                ],
               ),
-              const SizedBox(width: 12),
-              const Text('Uploading video...'),
-            ],
-          ),
-          backgroundColor: AppColors.infoMain,
-          duration: const Duration(seconds: 60),
-        ),
-      );
-
-      // Upload video - ApiService.uploadVideo() handles blob URLs via _createMultipartFileFromSource()
-      final videoUploadResponse = await ApiService().uploadVideo(
-        widget.videoUri,
-        generateThumbnail: true,
-      );
-      videoUrl = videoUploadResponse['url'] as String;
-      thumbnailUrl = videoUploadResponse['thumbnail_url'] as String?;
-
-      // Hide upload progress snackbar immediately
-      if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-        // Show success message immediately after upload completes
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text('Video uploaded successfully!'),
-                ),
-              ],
+              backgroundColor: AppColors.infoMain,
+              duration: const Duration(seconds: 60),
             ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
+          );
+          uploadSnackbarShown = true;
+        }
+
+        // Upload video - ApiService.uploadVideo() handles blob URLs via _createMultipartFileFromSource()
+        final videoUploadResponse = await ApiService().uploadVideo(
+          widget.videoUri,
+          generateThumbnail: true,
         );
+        videoUrl = videoUploadResponse['url'] as String;
+        thumbnailUrl = videoUploadResponse['thumbnail_url'] as String?;
+
+        // Hide upload progress snackbar immediately
+        if (mounted && uploadSnackbarShown) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          uploadSnackbarShown = false;
+
+          // Show success message immediately after upload completes
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text('Video uploaded successfully!'),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
       }
 
       // If auto-generated thumbnail, use it as default
@@ -533,14 +561,17 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
         ),
       );
     } catch (e) {
+      // Ensure snackbar is always hidden, even if exception occurs
+      if (mounted && uploadSnackbarShown) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        uploadSnackbarShown = false;
+      }
+
       if (!mounted) return;
 
       setState(() {
         _isLoading = false;
       });
-
-      // Hide the "Uploading video..." snackbar first
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
       // Extract user-friendly error message
       String errorMessage = 'Failed to publish podcast';
@@ -559,13 +590,20 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
         if (detailMatch != null) {
           errorMessage = detailMatch.group(1)?.trim() ?? 'Failed to publish podcast';
         }
+      } else if (errorString.contains('Failed to create podcast:')) {
+        // Extract error from createPodcast failure
+        final parts = errorString.split('Failed to create podcast:');
+        if (parts.length > 1) {
+          errorMessage = 'Publish failed: ${parts[1].trim()}';
+        }
       }
 
+      // Show error snackbar with longer duration
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMessage),
           backgroundColor: AppColors.errorMain,
-          duration: const Duration(seconds: 5),
+          duration: const Duration(seconds: 10),
         ),
       );
     }
