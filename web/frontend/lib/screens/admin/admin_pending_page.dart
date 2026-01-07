@@ -10,6 +10,7 @@ import '../../widgets/shared/empty_state.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../widgets/web/styled_filter_chip.dart';
 import '../../providers/community_provider.dart';
+import '../../utils/responsive_utils.dart';
 
 /// Reject reason dialog
 class _RejectReasonDialog extends StatefulWidget {
@@ -304,8 +305,8 @@ class _AdminPendingPageState extends State<AdminPendingPage>
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth > 900;
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isDesktop = !isMobile;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F0E8), // Cream background match
@@ -323,22 +324,27 @@ class _AdminPendingPageState extends State<AdminPendingPage>
             // Tab Bar
             SliverToBoxAdapter(
               child: Container(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+                padding: EdgeInsets.fromLTRB(
+                  ResponsiveUtils.getPageHorizontalPadding(context),
+                  0,
+                  ResponsiveUtils.getPageHorizontalPadding(context),
+                  0,
+                ),
                 color: const Color(0xFFF5F0E8), // Match bg
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
                       _buildFilterChip('All', _tabController.index == 0, 0),
-                      const SizedBox(width: 8),
+                      SizedBox(width: ResponsiveUtils.isSmallMobile(context) ? 6 : 8),
                       _buildFilterChip('Podcasts', _tabController.index == 1, 1),
-                      const SizedBox(width: 8),
+                      SizedBox(width: ResponsiveUtils.isSmallMobile(context) ? 6 : 8),
                       _buildFilterChip('Movies', _tabController.index == 2, 2),
-                      const SizedBox(width: 8),
+                      SizedBox(width: ResponsiveUtils.isSmallMobile(context) ? 6 : 8),
                       _buildFilterChip('Posts', _tabController.index == 3, 3),
-                      const SizedBox(width: 8),
+                      SizedBox(width: ResponsiveUtils.isSmallMobile(context) ? 6 : 8),
                       _buildFilterChip('Music', _tabController.index == 4, 4),
-                      const SizedBox(width: 8),
+                      SizedBox(width: ResponsiveUtils.isSmallMobile(context) ? 6 : 8),
                       _buildFilterChip('Events', _tabController.index == 5, 5),
                     ],
                   ),
@@ -369,60 +375,118 @@ class _AdminPendingPageState extends State<AdminPendingPage>
   }
 
   Widget _buildHeader(bool isDesktop) {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final horizontalPadding = ResponsiveUtils.getPageHorizontalPadding(context);
+    final verticalPadding = ResponsiveUtils.getPageVerticalPadding(context);
+    
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        verticalPadding,
+        horizontalPadding,
+        AppSpacing.medium,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Pending Approvals',
-                    style: AppTypography.heading3.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
+          // Stack vertically on mobile, horizontal on desktop
+          isMobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pending Approvals',
+                          style: AppTypography.heading3.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: isSmallMobile ? 18 : 20,
+                          ),
+                        ),
+                        SizedBox(height: isSmallMobile ? 2 : 4),
+                        Text(
+                          '${_allContent.length} pending items',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.textSecondary,
+                            fontSize: isSmallMobile ? 11 : null,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${_allContent.length} pending items',
-                    style: AppTypography.caption.copyWith(
-                      color: AppColors.textSecondary,
+                    SizedBox(height: isSmallMobile ? AppSpacing.small : AppSpacing.medium),
+                    StyledPillButton(
+                      label: 'Refresh',
+                      icon: Icons.refresh,
+                      variant: StyledPillButtonVariant.outlined,
+                      onPressed: _loadAllContent,
+                      width: isSmallMobile ? 100 : 120,
                     ),
-                  ),
-                ],
-              ),
-              StyledPillButton(
-                label: 'Refresh',
-                icon: Icons.refresh,
-                variant: StyledPillButtonVariant.outlined,
-                onPressed: _loadAllContent,
-                width: 120, // compact width
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pending Approvals',
+                          style: AppTypography.heading3.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_allContent.length} pending items',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    StyledPillButton(
+                      label: 'Refresh',
+                      icon: Icons.refresh,
+                      variant: StyledPillButtonVariant.outlined,
+                      onPressed: _loadAllContent,
+                      width: 120,
+                    ),
+                  ],
+                ),
+          SizedBox(height: isSmallMobile ? AppSpacing.small : AppSpacing.medium),
           // Search Field - Pill-shaped white search bar
           Container(
-            constraints: const BoxConstraints(maxWidth: 500),
+            constraints: BoxConstraints(
+              maxWidth: isMobile ? double.infinity : 500,
+            ),
             child: TextField(
               controller: _searchController,
-              style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+              style: AppTypography.body.copyWith(
+                color: AppColors.textPrimary,
+                fontSize: isSmallMobile ? 13 : null,
+              ),
               decoration: InputDecoration(
                 hintText: 'Search by title or creator...',
                 hintStyle: AppTypography.body.copyWith(
                   color: AppColors.textSecondary.withValues(alpha: 0.6),
+                  fontSize: isSmallMobile ? 13 : null,
                 ),
-                prefixIcon:
-                    const Icon(Icons.search, color: AppColors.warmBrown),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: AppColors.warmBrown,
+                  size: isSmallMobile ? 20 : 24,
+                ),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear,
-                            color: AppColors.textSecondary),
+                        icon: Icon(
+                          Icons.clear,
+                          color: AppColors.textSecondary,
+                          size: isSmallMobile ? 20 : 24,
+                        ),
                         onPressed: () {
                           _searchController.clear();
                           setState(() {});
@@ -444,9 +508,9 @@ class _AdminPendingPageState extends State<AdminPendingPage>
                 ),
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.large,
-                  vertical: 14,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: isSmallMobile ? AppSpacing.medium : AppSpacing.large,
+                  vertical: isSmallMobile ? 12 : 14,
                 ),
               ),
               onChanged: (_) => setState(() {}),

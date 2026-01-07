@@ -5,6 +5,7 @@ import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/shared/empty_state.dart';
 import '../../widgets/web/styled_filter_chip.dart';
+import '../../utils/responsive_utils.dart';
 
 /// Redesigned Users management page with cream/brown theme
 class AdminUsersPage extends StatefulWidget {
@@ -73,7 +74,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     if (_selectedFilter != 'All') {
       filtered = filtered.where((user) {
         final isAdmin = user['is_admin'] == true;
-        final isArtist = user['is_artist'] == true;
+        final isArtist = user['has_artist_profile'] == true;
         
         switch (_selectedFilter) {
           case 'Admins':
@@ -128,67 +129,137 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   }
 
   Widget _buildHeader() {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final horizontalPadding = ResponsiveUtils.getPageHorizontalPadding(context);
+    final verticalPadding = ResponsiveUtils.getPageVerticalPadding(context);
+    
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        verticalPadding,
+        horizontalPadding,
+        0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'User Management',
-                    style: AppTypography.heading3.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
+          // Stack vertically on mobile, horizontal on desktop
+          isMobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'User Management',
+                          style: AppTypography.heading3.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: isSmallMobile ? 18 : 20,
+                          ),
+                        ),
+                        SizedBox(height: isSmallMobile ? 2 : 4),
+                        Text(
+                          '${_users.length} total users',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.textSecondary,
+                            fontSize: isSmallMobile ? 11 : null,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${_users.length} total users',
-                    style: AppTypography.caption.copyWith(
-                      color: AppColors.textSecondary,
+                    SizedBox(height: isSmallMobile ? AppSpacing.small : AppSpacing.medium),
+                    // Stats Cards - wrap on mobile
+                    Wrap(
+                      spacing: isSmallMobile ? 8 : 12,
+                      runSpacing: isSmallMobile ? 8 : 12,
+                      children: [
+                        _buildStatBadge(
+                          '${_users.where((u) => u['is_admin'] == true).length} Admins',
+                          Icons.admin_panel_settings,
+                          AppColors.warmBrown,
+                        ),
+                        _buildStatBadge(
+                          '${_users.where((u) => u['has_artist_profile'] == true).length} Artists',
+                          Icons.music_note,
+                          const Color(0xFF8B5CF6),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              // Stats Cards
-              Row(
-                children: [
-                  _buildStatBadge(
-                    '${_users.where((u) => u['is_admin'] == true).length} Admins',
-                    Icons.admin_panel_settings,
-                    AppColors.warmBrown,
-                  ),
-                  const SizedBox(width: 12),
-                  _buildStatBadge(
-                    '${_users.where((u) => u['is_artist'] == true).length} Artists',
-                    Icons.music_note,
-                    const Color(0xFF8B5CF6),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'User Management',
+                          style: AppTypography.heading3.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_users.length} total users',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Stats Cards
+                    Row(
+                      children: [
+                        _buildStatBadge(
+                          '${_users.where((u) => u['is_admin'] == true).length} Admins',
+                          Icons.admin_panel_settings,
+                          AppColors.warmBrown,
+                        ),
+                        const SizedBox(width: 12),
+                        _buildStatBadge(
+                          '${_users.where((u) => u['has_artist_profile'] == true).length} Artists',
+                          Icons.music_note,
+                          const Color(0xFF8B5CF6),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+          SizedBox(height: isSmallMobile ? AppSpacing.small : AppSpacing.medium),
           // Search Field - Pill-shaped white search bar matching approved page
           Container(
-            constraints: const BoxConstraints(maxWidth: 500),
+            constraints: BoxConstraints(
+              maxWidth: isMobile ? double.infinity : 500,
+            ),
             child: TextField(
               controller: _searchController,
-              style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+              style: AppTypography.body.copyWith(
+                color: AppColors.textPrimary,
+                fontSize: isSmallMobile ? 13 : null,
+              ),
               decoration: InputDecoration(
                 hintText: 'Search by name, email, or username...',
                 hintStyle: AppTypography.body.copyWith(
                   color: AppColors.textSecondary.withOpacity(0.6),
+                  fontSize: isSmallMobile ? 13 : null,
                 ),
-                prefixIcon: Icon(Icons.search, color: AppColors.warmBrown),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: AppColors.warmBrown,
+                  size: isSmallMobile ? 20 : 24,
+                ),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: Icon(Icons.clear, color: AppColors.textSecondary),
+                        icon: Icon(
+                          Icons.clear,
+                          color: AppColors.textSecondary,
+                          size: isSmallMobile ? 20 : 24,
+                        ),
                         onPressed: () {
                           _searchController.clear();
                           setState(() {});
@@ -209,9 +280,9 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                 ),
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.large,
-                  vertical: 14,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: isSmallMobile ? AppSpacing.medium : AppSpacing.large,
+                  vertical: isSmallMobile ? 12 : 14,
                 ),
               ),
               onChanged: (_) => setState(() {}),
@@ -223,8 +294,14 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   }
 
   Widget _buildStatBadge(String label, IconData icon, Color color) {
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final isMobile = ResponsiveUtils.isMobile(context);
+    
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallMobile ? 10 : 12,
+        vertical: isSmallMobile ? 6 : 8,
+      ),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
@@ -232,13 +309,18 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
+          Icon(
+            icon,
+            size: isSmallMobile ? 14 : 16,
+            color: color,
+          ),
+          SizedBox(width: isSmallMobile ? 4 : 6),
           Text(
             label,
             style: AppTypography.caption.copyWith(
               color: color,
               fontWeight: FontWeight.w600,
+              fontSize: isSmallMobile ? 10 : (isMobile ? 11 : null),
             ),
           ),
         ],
@@ -247,8 +329,15 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   }
 
   Widget _buildFilters() {
+    final horizontalPadding = ResponsiveUtils.getPageHorizontalPadding(context);
+    
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        AppSpacing.medium,
+        horizontalPadding,
+        AppSpacing.small,
+      ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -462,7 +551,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     final email = user['email'] ?? '';
     final username = user['username'] ?? '';
     final isAdmin = user['is_admin'] == true;
-    final isArtist = user['has_artist_profile'] == true || user['is_artist'] == true;
+    final isArtist = user['has_artist_profile'] == true;
     final avatar = user['avatar'];
 
     return Container(

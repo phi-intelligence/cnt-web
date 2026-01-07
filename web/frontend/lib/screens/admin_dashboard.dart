@@ -208,30 +208,39 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       return Expanded(
         child: InkWell(
           onTap: () => setState(() => _currentIndex = index),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                isActive ? item.activeIcon : item.icon,
-                color: isActive
-                    ? AppColors.primaryMain
-                    : AppColors.textSecondary,
-                size: iconSize,
-              ),
-              SizedBox(height: isSmallMobile ? AppSpacing.tiny * 0.5 : AppSpacing.tiny),
-              Text(
-                item.label,
-                style: AppTypography.caption.copyWith(
+          // Ensure minimum touch target size (44x44)
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              vertical: isSmallMobile ? 8 : 10,
+              horizontal: 4,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isActive ? item.activeIcon : item.icon,
                   color: isActive
                       ? AppColors.primaryMain
                       : AppColors.textSecondary,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                  fontSize: fontSize,
+                  size: iconSize,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+                SizedBox(height: isSmallMobile ? AppSpacing.tiny * 0.5 : AppSpacing.tiny),
+                Text(
+                  item.label,
+                  style: AppTypography.caption.copyWith(
+                    color: isActive
+                        ? AppColors.primaryMain
+                        : AppColors.textSecondary,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                    fontSize: fontSize,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
       );

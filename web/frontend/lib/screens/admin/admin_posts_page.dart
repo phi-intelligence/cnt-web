@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -11,6 +12,7 @@ import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
+import '../../providers/community_provider.dart';
 
 /// Posts management page for approving/rejecting community posts
 class AdminPostsPage extends StatefulWidget {
@@ -130,6 +132,84 @@ class _AdminPostsPageState extends State<AdminPostsPage> {
     }
   }
 
+  Future<void> _handleDelete(int index) async {
+    final item = _content[index];
+    final contentType = item['type'] as String;
+    final contentId = item['id'] as int;
+    final title = item['title'] as String? ?? 'this post';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: Text('Delete Post', style: AppTypography.heading3),
+        content: Text(
+          'Are you sure you want to delete "$title"? This action cannot be undone.',
+          style: AppTypography.body,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        ),
+        actions: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              StyledPillButton(
+                label: 'Cancel',
+                icon: Icons.close,
+                onPressed: () => Navigator.pop(context, false),
+                variant: StyledPillButtonVariant.outlined,
+                width: 100,
+              ),
+              const SizedBox(width: AppSpacing.small),
+              StyledPillButton(
+                label: 'Delete',
+                icon: Icons.delete_outline,
+                onPressed: () => Navigator.pop(context, true),
+                variant: StyledPillButtonVariant.outlined,
+                width: 100,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _api.deleteContent(contentType, contentId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Post deleted successfully'),
+            backgroundColor: AppColors.successMain,
+          ),
+        );
+        _loadContent();
+        // Refresh community feed if a post was deleted
+        if (contentType == 'community_post') {
+          try {
+            final communityProvider = context.read<CommunityProvider>();
+            await communityProvider.clearAndRefresh();
+          } catch (e) {
+            // Silently fail - community refresh is not critical
+            print('Failed to refresh community: $e');
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting post: $e'),
+            backgroundColor: AppColors.errorMain,
+          ),
+        );
+      }
+    }
+  }
+
   List<dynamic> get _filteredContent {
     final searchQuery = _searchController.text.toLowerCase();
     if (searchQuery.isEmpty) return _content;
@@ -156,7 +236,11 @@ class _AdminPostsPageState extends State<AdminPostsPage> {
                   title: 'Community Posts Management',
                   size: StyledPageHeaderSize.h2,
                 ),
-                const SizedBox(height: AppSpacing.extraLarge),
+                SizedBox(
+                  height: ResponsiveUtils.isSmallMobile(context)
+                      ? AppSpacing.large
+                      : AppSpacing.extraLarge,
+                ),
 
                 // Filter and Search Section
                 SectionContainer(
@@ -198,6 +282,9 @@ class _AdminPostsPageState extends State<AdminPostsPage> {
                             icon: Icons.refresh,
                             variant: StyledPillButtonVariant.outlined,
                             onPressed: _loadContent,
+                            width: isMobile
+                                ? (ResponsiveUtils.isSmallMobile(context) ? 100 : 120)
+                                : null,
                           ),
                         ],
                       ),
@@ -393,6 +480,9 @@ class _AdminPostsPageState extends State<AdminPostsPage> {
                       },
                       onApprove: () => _handleApprove(originalIndex),
                       onReject: () => _handleReject(originalIndex),
+                      onDelete: () => _handleDelete(originalIndex),
+                      showApproveReject: true,
+                      showDeleteArchive: true,
                     ),
                   );
                 },

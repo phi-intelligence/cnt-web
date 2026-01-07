@@ -128,6 +128,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildMobileLayout(BuildContext context, Map<String, dynamic> stats) {
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final horizontalPadding = ResponsiveUtils.getPageHorizontalPadding(context);
+    final verticalPadding = ResponsiveUtils.getPageVerticalPadding(context);
+    
     return DefaultTabController(
       length: 3,
       child: Scaffold(
@@ -141,7 +145,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             indicatorColor: AppColors.warmBrown,
             labelColor: AppColors.warmBrown,
             unselectedLabelColor: AppColors.textSecondary,
-            labelStyle: AppTypography.body.copyWith(fontWeight: FontWeight.bold),
+            labelStyle: AppTypography.body.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: isSmallMobile ? 12 : 14,
+            ),
+            unselectedLabelStyle: AppTypography.body.copyWith(
+              fontSize: isSmallMobile ? 12 : 14,
+            ),
+            labelPadding: EdgeInsets.symmetric(
+              horizontal: isSmallMobile ? 8 : 12,
+            ),
             tabs: const [
               Tab(text: 'Pending'),
               Tab(text: 'Approved'),
@@ -156,7 +169,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               onRefresh: _loadStats,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(AppSpacing.medium),
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: verticalPadding,
+                ),
                 child: _buildPendingStats(context, stats),
               ),
             ),
@@ -165,7 +181,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               onRefresh: _loadStats,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(AppSpacing.medium),
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: verticalPadding,
+                ),
                 child: _buildApprovedStats(context, stats),
               ),
             ),
@@ -174,13 +193,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               onRefresh: _loadStats,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(AppSpacing.medium),
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: verticalPadding,
+                ),
                 child: Column(
                   children: [
                     _buildSupportStats(context, stats),
-                    const SizedBox(height: AppSpacing.large),
+                    SizedBox(height: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
                     _buildDocumentStats(context, stats),
-                    const SizedBox(height: AppSpacing.large),
+                    SizedBox(height: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
                     _buildCommissionSettings(context),
                   ],
                 ),
