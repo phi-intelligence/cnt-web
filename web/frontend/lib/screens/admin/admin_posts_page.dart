@@ -137,40 +137,97 @@ class _AdminPostsPageState extends State<AdminPostsPage> {
     final contentType = item['type'] as String;
     final contentId = item['id'] as int;
     final title = item['title'] as String? ?? 'this post';
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
-        title: Text('Delete Post', style: AppTypography.heading3),
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: ResponsiveUtils.getPageHorizontalPadding(context),
+          vertical: ResponsiveUtils.getPageVerticalPadding(context),
+        ),
+        contentPadding: EdgeInsets.all(
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+        ),
+        titlePadding: EdgeInsets.fromLTRB(
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.small),
+        ),
+        actionsPadding: EdgeInsets.all(
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+        ),
+        title: Text(
+          'Delete Post',
+          style: AppTypography.heading3.copyWith(
+            fontSize: isSmallMobile ? 18 : null,
+          ),
+        ),
         content: Text(
           'Are you sure you want to delete "$title"? This action cannot be undone.',
-          style: AppTypography.body,
+          style: AppTypography.body.copyWith(
+            fontSize: isSmallMobile ? 13 : null,
+          ),
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
         ),
         actions: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              StyledPillButton(
-                label: 'Cancel',
-                icon: Icons.close,
-                onPressed: () => Navigator.pop(context, false),
-                variant: StyledPillButtonVariant.outlined,
-                width: 100,
-              ),
-              const SizedBox(width: AppSpacing.small),
-              StyledPillButton(
-                label: 'Delete',
-                icon: Icons.delete_outline,
-                onPressed: () => Navigator.pop(context, true),
-                variant: StyledPillButtonVariant.outlined,
-                width: 100,
-              ),
-            ],
-          ),
+          if (isMobile)
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                StyledPillButton(
+                  label: 'Cancel',
+                  icon: Icons.close,
+                  onPressed: () => Navigator.pop(context, false),
+                  variant: StyledPillButtonVariant.outlined,
+                  width: double.infinity,
+                ),
+                SizedBox(height: ResponsiveUtils.getResponsivePadding(context, AppSpacing.small)),
+                StyledPillButton(
+                  label: 'Delete',
+                  icon: Icons.delete_outline,
+                  onPressed: () => Navigator.pop(context, true),
+                  variant: StyledPillButtonVariant.outlined,
+                  width: double.infinity,
+                ),
+              ],
+            )
+          else
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                StyledPillButton(
+                  label: 'Cancel',
+                  icon: Icons.close,
+                  onPressed: () => Navigator.pop(context, false),
+                  variant: StyledPillButtonVariant.outlined,
+                  width: ResponsiveUtils.getResponsiveValue(
+                    context: context,
+                    mobile: 120.0,
+                    tablet: 120.0,
+                    desktop: 100.0,
+                  ),
+                ),
+                SizedBox(width: ResponsiveUtils.getResponsivePadding(context, AppSpacing.small)),
+                StyledPillButton(
+                  label: 'Delete',
+                  icon: Icons.delete_outline,
+                  onPressed: () => Navigator.pop(context, true),
+                  variant: StyledPillButtonVariant.outlined,
+                  width: ResponsiveUtils.getResponsiveValue(
+                    context: context,
+                    mobile: 120.0,
+                    tablet: 120.0,
+                    desktop: 100.0,
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );

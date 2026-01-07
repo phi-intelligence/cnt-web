@@ -5,6 +5,7 @@ import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/shared/empty_state.dart';
 import '../../widgets/web/styled_filter_chip.dart';
+import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_utils.dart';
 
 /// Redesigned Users management page with cream/brown theme
@@ -1046,36 +1047,99 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   }
 
   Future<void> _deleteUser(Map<String, dynamic> user) async {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: ResponsiveUtils.getPageHorizontalPadding(context),
+          vertical: ResponsiveUtils.getPageVerticalPadding(context),
+        ),
+        contentPadding: EdgeInsets.all(
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+        ),
+        titlePadding: EdgeInsets.fromLTRB(
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.small),
+        ),
+        actionsPadding: EdgeInsets.all(
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        ),
         title: Text(
           'Delete User',
-          style: AppTypography.heading3.copyWith(color: AppColors.textPrimary),
+          style: AppTypography.heading3.copyWith(
+            color: AppColors.textPrimary,
+            fontSize: isSmallMobile ? 18 : null,
+          ),
         ),
         content: Text(
           'Are you sure you want to delete ${user['name']}? This action cannot be undone.',
-          style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+          style: AppTypography.body.copyWith(
+            color: AppColors.textPrimary,
+            fontSize: isSmallMobile ? 13 : null,
+          ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: AppColors.textPrimary),
+          if (isMobile)
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                StyledPillButton(
+                  label: 'Cancel',
+                  icon: Icons.close,
+                  onPressed: () => Navigator.pop(context, false),
+                  variant: StyledPillButtonVariant.outlined,
+                  width: double.infinity,
+                ),
+                SizedBox(height: ResponsiveUtils.getResponsivePadding(context, AppSpacing.small)),
+                StyledPillButton(
+                  label: 'Delete',
+                  icon: Icons.delete_outline,
+                  onPressed: () => Navigator.pop(context, true),
+                  variant: StyledPillButtonVariant.outlined,
+                  width: double.infinity,
+                ),
+              ],
+            )
+          else
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                StyledPillButton(
+                  label: 'Cancel',
+                  icon: Icons.close,
+                  onPressed: () => Navigator.pop(context, false),
+                  variant: StyledPillButtonVariant.outlined,
+                  width: ResponsiveUtils.getResponsiveValue(
+                    context: context,
+                    mobile: 120.0,
+                    tablet: 120.0,
+                    desktop: 100.0,
+                  ),
+                ),
+                SizedBox(width: ResponsiveUtils.getResponsivePadding(context, AppSpacing.small)),
+                StyledPillButton(
+                  label: 'Delete',
+                  icon: Icons.delete_outline,
+                  onPressed: () => Navigator.pop(context, true),
+                  variant: StyledPillButtonVariant.outlined,
+                  width: ResponsiveUtils.getResponsiveValue(
+                    context: context,
+                    mobile: 120.0,
+                    tablet: 120.0,
+                    desktop: 100.0,
+                  ),
+                ),
+              ],
             ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.errorMain,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            ),
-            child: const Text('Delete'),
-          ),
         ],
       ),
     );
