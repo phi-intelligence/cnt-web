@@ -5,8 +5,6 @@ import '../../models/commission_settings.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
-import '../../widgets/web/styled_page_header.dart';
-import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_utils.dart';
 
@@ -283,37 +281,71 @@ class _AdminCommissionSettingsPageState extends State<AdminCommissionSettingsPag
                             ),
                           ],
                         ),
-                        child: Row(
-                          children: [
-                            if (_updatedAt != null)
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Last Updated',
-                                      style: AppTypography.caption.copyWith(
-                                        color: AppColors.textTertiary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                        child: isMobile
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  if (_updatedAt != null) ...[
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Last Updated',
+                                          style: AppTypography.caption.copyWith(
+                                            color: AppColors.textTertiary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          _formatDate(_updatedAt!),
+                                          style: AppTypography.bodySmall.copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    Text(
-                                      _formatDate(_updatedAt!),
-                                      style: AppTypography.bodySmall.copyWith(
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ),
+                                    SizedBox(height: ResponsiveUtils.getResponsivePadding(context, AppSpacing.medium)),
                                   ],
-                                ),
+                                  StyledPillButton(
+                                    label: _isSaving ? 'Saving...' : 'Save Changes',
+                                    icon: Icons.check_circle_outline,
+                                    onPressed: _isSaving ? null : _saveSettings,
+                                    isLoading: _isSaving,
+                                    width: double.infinity,
+                                  ),
+                                ],
+                              )
+                            : Row(
+                                children: [
+                                  if (_updatedAt != null)
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Last Updated',
+                                            style: AppTypography.caption.copyWith(
+                                              color: AppColors.textTertiary,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            _formatDate(_updatedAt!),
+                                            style: AppTypography.bodySmall.copyWith(
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  StyledPillButton(
+                                    label: _isSaving ? 'Saving...' : 'Save Changes',
+                                    icon: Icons.check_circle_outline,
+                                    onPressed: _isSaving ? null : _saveSettings,
+                                    isLoading: _isSaving,
+                                  ),
+                                ],
                               ),
-                            StyledPillButton(
-                              label: _isSaving ? 'Saving...' : 'Save Changes',
-                              icon: Icons.check_circle_outline,
-                              onPressed: _isSaving ? null : _saveSettings,
-                              isLoading: _isSaving,
-                            ),
-                          ],
-                        ),
                       ),
                     ],
                   ),
@@ -389,7 +421,7 @@ class _AdminCommissionSettingsPageState extends State<AdminCommissionSettingsPag
             onChanged: (value) {
               setState(() => _isActive = value);
             },
-            activeColor: Colors.white,
+            activeThumbColor: Colors.white,
             activeTrackColor: Colors.white.withOpacity(0.3),
             inactiveThumbColor: AppColors.textSecondary,
             inactiveTrackColor: AppColors.backgroundSecondary,
@@ -563,7 +595,10 @@ class _AdminCommissionSettingsPageState extends State<AdminCommissionSettingsPag
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: AppColors.warmBrown, width: 2),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: ResponsiveUtils.getResponsivePadding(context, 16),
+              vertical: ResponsiveUtils.getResponsivePadding(context, 16),
+            ),
             isDense: true,
           ),
           onChanged: onChanged,

@@ -6,6 +6,7 @@ import '../theme/app_typography.dart';
 import '../theme/app_spacing.dart';
 import '../utils/platform_helper.dart';
 import '../utils/responsive_utils.dart';
+import '../widgets/web/styled_pill_button.dart';
 import 'user_login_screen.dart';
 import 'web/landing_screen_web.dart';
 import 'admin/admin_dashboard_page.dart';
@@ -248,35 +249,98 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _handleLogout() async {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: ResponsiveUtils.getPageHorizontalPadding(context),
+          vertical: ResponsiveUtils.getPageVerticalPadding(context),
+        ),
+        contentPadding: EdgeInsets.all(
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+        ),
+        titlePadding: EdgeInsets.fromLTRB(
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.small),
+        ),
+        actionsPadding: EdgeInsets.all(
+          ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+        ),
         title: Text(
           'Logout',
-          style: AppTypography.heading3,
+          style: AppTypography.heading3.copyWith(
+            fontSize: isSmallMobile ? 18 : null,
+          ),
         ),
         content: Text(
           'Are you sure you want to logout?',
-          style: AppTypography.body,
+          style: AppTypography.body.copyWith(
+            fontSize: isSmallMobile ? 13 : null,
+          ),
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancel',
-              style: AppTypography.button.copyWith(
-                color: AppColors.textSecondary,
-              ),
+          if (isMobile)
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                StyledPillButton(
+                  label: 'Cancel',
+                  icon: Icons.close,
+                  onPressed: () => Navigator.pop(context, false),
+                  variant: StyledPillButtonVariant.outlined,
+                  width: double.infinity,
+                ),
+                SizedBox(height: ResponsiveUtils.getResponsivePadding(context, AppSpacing.small)),
+                StyledPillButton(
+                  label: 'Logout',
+                  icon: Icons.logout,
+                  onPressed: () => Navigator.pop(context, true),
+                  variant: StyledPillButtonVariant.filled,
+                  width: double.infinity,
+                ),
+              ],
+            )
+          else
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                StyledPillButton(
+                  label: 'Cancel',
+                  icon: Icons.close,
+                  onPressed: () => Navigator.pop(context, false),
+                  variant: StyledPillButtonVariant.outlined,
+                  width: ResponsiveUtils.getResponsiveValue(
+                    context: context,
+                    mobile: 100.0,
+                    tablet: 120.0,
+                    desktop: 100.0,
+                  ),
+                ),
+                SizedBox(width: ResponsiveUtils.getResponsivePadding(context, AppSpacing.small)),
+                StyledPillButton(
+                  label: 'Logout',
+                  icon: Icons.logout,
+                  onPressed: () => Navigator.pop(context, true),
+                  variant: StyledPillButtonVariant.filled,
+                  width: ResponsiveUtils.getResponsiveValue(
+                    context: context,
+                    mobile: 100.0,
+                    tablet: 120.0,
+                    desktop: 100.0,
+                  ),
+                ),
+              ],
             ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.errorMain,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Logout'),
-          ),
         ],
       ),
     );

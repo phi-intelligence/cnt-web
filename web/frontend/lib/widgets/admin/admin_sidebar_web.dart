@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
+import '../../utils/responsive_utils.dart';
 import '../../screens/admin_dashboard.dart';
 
 class AdminSidebarWeb extends StatelessWidget {
@@ -20,8 +21,20 @@ class AdminSidebarWeb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final isMobile = ResponsiveUtils.isMobile(context);
+    
+    // Responsive width - only applies when used in Row (desktop)
+    // When used in Drawer, Drawer width takes precedence
+    final sidebarWidth = ResponsiveUtils.getResponsiveValue(
+      context: context,
+      mobile: 280.0,
+      tablet: 300.0,
+      desktop: 280.0,
+    );
+    
     return Container(
-      width: 280,
+      width: sidebarWidth,
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         border: Border(
@@ -35,15 +48,17 @@ class AdminSidebarWeb extends StatelessWidget {
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.large, 
-              vertical: AppSpacing.extraLarge
+            padding: EdgeInsets.symmetric(
+              horizontal: ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+              vertical: ResponsiveUtils.getResponsivePadding(context, AppSpacing.extraLarge),
             ),
             alignment: Alignment.centerLeft,
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(AppSpacing.small),
+                  padding: EdgeInsets.all(
+                    ResponsiveUtils.getResponsivePadding(context, AppSpacing.small),
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.warmBrown,
                     borderRadius: BorderRadius.circular(12),
@@ -55,18 +70,22 @@ class AdminSidebarWeb extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.admin_panel_settings,
                     color: Colors.white,
-                    size: 24,
+                    size: ResponsiveUtils.getResponsiveIconSize(context, 24),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.medium),
-                Text(
-                  'Admin',
-                  style: AppTypography.heading3.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
+                SizedBox(width: ResponsiveUtils.getResponsivePadding(context, AppSpacing.medium)),
+                Flexible(
+                  child: Text(
+                    'Admin',
+                    style: AppTypography.heading3.copyWith(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                      fontSize: isSmallMobile ? 18 : null,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -78,9 +97,13 @@ class AdminSidebarWeb extends StatelessWidget {
           // Navigation Items
           Expanded(
             child: ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.medium),
+              padding: EdgeInsets.all(
+                ResponsiveUtils.getResponsivePadding(context, AppSpacing.medium),
+              ),
               itemCount: navItems.length,
-              separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.small),
+              separatorBuilder: (_, __) => SizedBox(
+                height: ResponsiveUtils.getResponsivePadding(context, AppSpacing.small),
+              ),
               itemBuilder: (context, index) {
                 final item = navItems[index];
                 final isActive = currentIndex == index;
@@ -99,7 +122,9 @@ class AdminSidebarWeb extends StatelessWidget {
 
           // Logout Button
           Container(
-            padding: const EdgeInsets.all(AppSpacing.medium),
+            padding: EdgeInsets.all(
+              ResponsiveUtils.getResponsivePadding(context, AppSpacing.medium),
+            ),
             child: _SidebarItem(
               icon: Icons.logout,
               label: 'Logout',
@@ -131,6 +156,8 @@ class _SidebarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    final isMobile = ResponsiveUtils.isMobile(context);
     final color = isDestructive 
         ? AppColors.warmBrown 
         : isActive 
@@ -142,9 +169,14 @@ class _SidebarItem extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.medium,
-          vertical: 12, // Comfortable hit area
+        padding: EdgeInsets.symmetric(
+          horizontal: ResponsiveUtils.getResponsivePadding(context, AppSpacing.medium),
+          vertical: ResponsiveUtils.getResponsiveValue(
+            context: context,
+            mobile: 14.0, // Larger touch target for mobile
+            tablet: 12.0,
+            desktop: 12.0,
+          ),
         ),
         decoration: BoxDecoration(
           color: isActive 
@@ -160,22 +192,26 @@ class _SidebarItem extends StatelessWidget {
             Icon(
               icon,
               color: color,
-              size: 20,
+              size: ResponsiveUtils.getResponsiveIconSize(context, 20),
             ),
-            const SizedBox(width: AppSpacing.medium),
-            Text(
-              label,
-              style: AppTypography.body.copyWith(
-                color: color,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+            SizedBox(width: ResponsiveUtils.getResponsivePadding(context, AppSpacing.medium)),
+            Flexible(
+              child: Text(
+                label,
+                style: AppTypography.body.copyWith(
+                  color: color,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: isSmallMobile ? 13 : null,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             if (isActive) ...[
               const Spacer(),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
                 color: Colors.white,
-                size: 16,
+                size: ResponsiveUtils.getResponsiveIconSize(context, 16),
               )
             ],
           ],

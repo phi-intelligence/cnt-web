@@ -10,6 +10,7 @@ import '../../widgets/web/styled_pill_button.dart';
 import '../../widgets/web/styled_filter_chip.dart';
 import '../../providers/community_provider.dart';
 import '../../utils/responsive_utils.dart';
+import '../../utils/responsive_grid_delegate.dart';
 
 /// Admin Approved Page - Shows all approved content with tabs
 /// Tabs: All, Podcasts, Movies, Posts
@@ -165,6 +166,7 @@ class _AdminApprovedPageState extends State<AdminApprovedPage>
           if (isMobile)
             Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 StyledPillButton(
                   label: 'Cancel',
@@ -698,17 +700,46 @@ class _AdminApprovedPageState extends State<AdminApprovedPage>
       );
     }
 
+    final isMobile = ResponsiveUtils.isMobile(context);
+    
     return RefreshIndicator(
       onRefresh: _loadAllContent,
       color: AppColors.warmBrown,
-      child: isDesktop
-          ? GridView.builder(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 600, // Wide cards
-                childAspectRatio: 2.5, // Similar ratio to User Management
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
+      child: isMobile
+          ? ListView.builder(
+              padding: ResponsiveGridDelegate.getResponsivePadding(context),
+              itemCount: filtered.length,
+              itemBuilder: (context, index) {
+                final item = filtered[index];
+                return Padding(
+                  padding: EdgeInsets.only(
+                    bottom: ResponsiveUtils.getResponsivePadding(context, 12),
+                  ),
+                  child: AdminContentCard(
+                    item: item,
+                    showApproveReject: false,
+                    showDeleteArchive: true,
+                    onDelete: () => _handleDelete(item),
+                    // onArchive: () => _handleArchive(item),
+                  ),
+                );
+              },
+            )
+          : GridView.builder(
+              padding: ResponsiveGridDelegate.getResponsivePadding(context),
+              gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+                context,
+                mobile: 1,
+                tablet: 2,
+                desktop: 3,
+                childAspectRatio: ResponsiveUtils.getResponsiveValue(
+                  context: context,
+                  mobile: 2.5,
+                  tablet: 2.5,
+                  desktop: 2.5,
+                ),
+                crossAxisSpacing: ResponsiveUtils.getResponsivePadding(context, 16),
+                mainAxisSpacing: ResponsiveUtils.getResponsivePadding(context, 16),
               ),
               itemCount: filtered.length,
               itemBuilder: (context, index) {
@@ -719,23 +750,6 @@ class _AdminApprovedPageState extends State<AdminApprovedPage>
                   showDeleteArchive: true,
                   onDelete: () => _handleDelete(item),
                   // onArchive: () => _handleArchive(item),
-                );
-              },
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              itemCount: filtered.length,
-              itemBuilder: (context, index) {
-                final item = filtered[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: AdminContentCard(
-                    item: item,
-                    showApproveReject: false,
-                    showDeleteArchive: true,
-                    onDelete: () => _handleDelete(item),
-                    // onArchive: () => _handleArchive(item),
-                  ),
                 );
               },
             ),
@@ -811,51 +825,67 @@ class _AdminApprovedPageState extends State<AdminApprovedPage>
       );
     }
 
-    return isDesktop
-        ? SliverPadding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 600, // Wide cards
-                childAspectRatio: 2.5, // Similar ratio to User Management
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final item = filtered[index];
-                  return AdminContentCard(
-                    item: item,
-                    showApproveReject: false,
-                    showDeleteArchive: true,
-                    onDelete: () => _handleDelete(item),
-                    // onArchive: () => _handleArchive(item),
-                  );
-                },
-                childCount: filtered.length,
-              ),
-            ),
-          )
-        : SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final item = filtered[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: AdminContentCard(
-                      item: item,
-                      showApproveReject: false,
-                      showDeleteArchive: true,
-                      onDelete: () => _handleDelete(item),
-                      // onArchive: () => _handleArchive(item),
-                    ),
-                  );
-                },
-                childCount: filtered.length,
-              ),
-            ),
-          );
+    final isMobile = ResponsiveUtils.isMobile(context);
+    
+    // For mobile, use list layout
+    if (isMobile) {
+      return SliverPadding(
+        padding: ResponsiveGridDelegate.getResponsivePadding(context),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final item = filtered[index];
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: ResponsiveUtils.getResponsivePadding(context, 12),
+                ),
+                child: AdminContentCard(
+                  item: item,
+                  showApproveReject: false,
+                  showDeleteArchive: true,
+                  onDelete: () => _handleDelete(item),
+                  // onArchive: () => _handleArchive(item),
+                ),
+              );
+            },
+            childCount: filtered.length,
+          ),
+        ),
+      );
+    }
+    
+    // For tablet and desktop, use grid layout
+    return SliverPadding(
+      padding: ResponsiveGridDelegate.getResponsivePadding(context),
+      sliver: SliverGrid(
+        gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+          context,
+          mobile: 1,
+          tablet: 2,
+          desktop: 3,
+          childAspectRatio: ResponsiveUtils.getResponsiveValue(
+            context: context,
+            mobile: 2.5,
+            tablet: 2.5,
+            desktop: 2.5,
+          ),
+          crossAxisSpacing: ResponsiveUtils.getResponsivePadding(context, 16),
+          mainAxisSpacing: ResponsiveUtils.getResponsivePadding(context, 16),
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final item = filtered[index];
+            return AdminContentCard(
+              item: item,
+              showApproveReject: false,
+              showDeleteArchive: true,
+              onDelete: () => _handleDelete(item),
+              // onArchive: () => _handleArchive(item),
+            );
+          },
+          childCount: filtered.length,
+        ),
+      ),
+    );
   }
 }

@@ -33,11 +33,35 @@ class _RejectReasonDialogState extends State<_RejectReasonDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    
     return AlertDialog(
       backgroundColor: Colors.white,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: ResponsiveUtils.getPageHorizontalPadding(context),
+        vertical: ResponsiveUtils.getPageVerticalPadding(context),
+      ),
+      contentPadding: EdgeInsets.all(
+        ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+      ),
+      titlePadding: EdgeInsets.fromLTRB(
+        ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+        ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+        ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+        ResponsiveUtils.getResponsivePadding(context, AppSpacing.small),
+      ),
+      actionsPadding: EdgeInsets.all(
+        ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+      ),
       title: Text(
         'Reject Content',
-        style: AppTypography.heading3,
+        style: AppTypography.heading3.copyWith(
+          fontSize: isSmallMobile ? 18 : null,
+        ),
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
       ),
       content: TextField(
         controller: _controller,
@@ -52,15 +76,59 @@ class _RejectReasonDialogState extends State<_RejectReasonDialog> {
         maxLines: 3,
       ),
       actions: [
-        AdminOutlinedButton(
-          label: 'Cancel',
-          onPressed: () => Navigator.pop(context),
-        ),
-        AdminErrorButton(
-          label: 'Reject',
-          icon: Icons.close,
-          onPressed: () => Navigator.pop(context, _controller.text),
-        ),
+        if (isMobile)
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              StyledPillButton(
+                label: 'Cancel',
+                icon: Icons.close,
+                onPressed: () => Navigator.pop(context),
+                variant: StyledPillButtonVariant.outlined,
+                width: double.infinity,
+              ),
+              SizedBox(height: ResponsiveUtils.getResponsivePadding(context, AppSpacing.small)),
+              StyledPillButton(
+                label: 'Reject',
+                icon: Icons.close,
+                onPressed: () => Navigator.pop(context, _controller.text),
+                variant: StyledPillButtonVariant.filled,
+                width: double.infinity,
+              ),
+            ],
+          )
+        else
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              StyledPillButton(
+                label: 'Cancel',
+                icon: Icons.close,
+                onPressed: () => Navigator.pop(context),
+                variant: StyledPillButtonVariant.outlined,
+                width: ResponsiveUtils.getResponsiveValue(
+                  context: context,
+                  mobile: 100.0,
+                  tablet: 120.0,
+                  desktop: 100.0,
+                ),
+              ),
+              SizedBox(width: ResponsiveUtils.getResponsivePadding(context, AppSpacing.small)),
+              StyledPillButton(
+                label: 'Reject',
+                icon: Icons.close,
+                onPressed: () => Navigator.pop(context, _controller.text),
+                variant: StyledPillButtonVariant.filled,
+                width: ResponsiveUtils.getResponsiveValue(
+                  context: context,
+                  mobile: 100.0,
+                  tablet: 120.0,
+                  desktop: 100.0,
+                ),
+              ),
+            ],
+          ),
       ],
     );
   }

@@ -11,6 +11,7 @@ import '../../widgets/web/styled_pill_button.dart';
 import '../../widgets/web/styled_filter_chip.dart';
 import '../../providers/community_provider.dart';
 import '../../utils/responsive_utils.dart';
+import '../../utils/responsive_grid_delegate.dart';
 
 /// Reject reason dialog
 class _RejectReasonDialog extends StatefulWidget {
@@ -29,9 +30,33 @@ class _RejectReasonDialogState extends State<_RejectReasonDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
+    
     return AlertDialog(
       backgroundColor: Colors.white,
-      title: Text('Reject Content', style: AppTypography.heading3),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: ResponsiveUtils.getPageHorizontalPadding(context),
+        vertical: ResponsiveUtils.getPageVerticalPadding(context),
+      ),
+      contentPadding: EdgeInsets.all(
+        ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+      ),
+      titlePadding: EdgeInsets.fromLTRB(
+        ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+        ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+        ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+        ResponsiveUtils.getResponsivePadding(context, AppSpacing.small),
+      ),
+      actionsPadding: EdgeInsets.all(
+        ResponsiveUtils.getResponsivePadding(context, AppSpacing.large),
+      ),
+      title: Text(
+        'Reject Content',
+        style: AppTypography.heading3.copyWith(
+          fontSize: isSmallMobile ? 18 : null,
+        ),
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
       ),
@@ -48,26 +73,59 @@ class _RejectReasonDialogState extends State<_RejectReasonDialog> {
         maxLines: 3,
       ),
       actions: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            StyledPillButton(
-              label: 'Cancel',
-              icon: Icons.close,
-              onPressed: () => Navigator.pop(context),
-              variant: StyledPillButtonVariant.outlined,
-              width: 100,
-            ),
-            const SizedBox(width: AppSpacing.small),
-            StyledPillButton(
-              label: 'Reject',
-              icon: Icons.check,
-              onPressed: () => Navigator.pop(context, _controller.text),
-              variant: StyledPillButtonVariant.filled,
-              width: 100,
-            ),
-          ],
-        ),
+        if (isMobile)
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              StyledPillButton(
+                label: 'Cancel',
+                icon: Icons.close,
+                onPressed: () => Navigator.pop(context),
+                variant: StyledPillButtonVariant.outlined,
+                width: double.infinity,
+              ),
+              SizedBox(height: ResponsiveUtils.getResponsivePadding(context, AppSpacing.small)),
+              StyledPillButton(
+                label: 'Reject',
+                icon: Icons.check,
+                onPressed: () => Navigator.pop(context, _controller.text),
+                variant: StyledPillButtonVariant.filled,
+                width: double.infinity,
+              ),
+            ],
+          )
+        else
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              StyledPillButton(
+                label: 'Cancel',
+                icon: Icons.close,
+                onPressed: () => Navigator.pop(context),
+                variant: StyledPillButtonVariant.outlined,
+                width: ResponsiveUtils.getResponsiveValue(
+                  context: context,
+                  mobile: 100.0,
+                  tablet: 120.0,
+                  desktop: 100.0,
+                ),
+              ),
+              SizedBox(width: ResponsiveUtils.getResponsivePadding(context, AppSpacing.small)),
+              StyledPillButton(
+                label: 'Reject',
+                icon: Icons.check,
+                onPressed: () => Navigator.pop(context, _controller.text),
+                variant: StyledPillButtonVariant.filled,
+                width: ResponsiveUtils.getResponsiveValue(
+                  context: context,
+                  mobile: 100.0,
+                  tablet: 120.0,
+                  desktop: 100.0,
+                ),
+              ),
+            ],
+          ),
       ],
     );
   }
@@ -663,51 +721,67 @@ class _AdminPendingPageState extends State<AdminPendingPage>
       );
     }
 
-    return isDesktop
-        ? SliverPadding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 600, // Wide cards
-                childAspectRatio: 2.5, // Similar ratio to User Management
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final item = filtered[index];
-                  return AdminContentCard(
-                    item: item,
-                    showApproveReject: true,
-                    showDeleteArchive: false,
-                    onApprove: () => _handleApprove(item),
-                    onReject: () => _handleReject(item),
-                  );
-                },
-                childCount: filtered.length,
-              ),
-            ),
-          )
-        : SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final item = filtered[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: AdminContentCard(
-                      item: item,
-                      showApproveReject: true,
-                      showDeleteArchive: false,
-                      onApprove: () => _handleApprove(item),
-                      onReject: () => _handleReject(item),
-                    ),
-                  );
-                },
-                childCount: filtered.length,
-              ),
-            ),
-          );
+    final isMobile = ResponsiveUtils.isMobile(context);
+    
+    // For mobile, use list layout
+    if (isMobile) {
+      return SliverPadding(
+        padding: ResponsiveGridDelegate.getResponsivePadding(context),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final item = filtered[index];
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: ResponsiveUtils.getResponsivePadding(context, 12),
+                ),
+                child: AdminContentCard(
+                  item: item,
+                  showApproveReject: true,
+                  showDeleteArchive: false,
+                  onApprove: () => _handleApprove(item),
+                  onReject: () => _handleReject(item),
+                ),
+              );
+            },
+            childCount: filtered.length,
+          ),
+        ),
+      );
+    }
+    
+    // For tablet and desktop, use grid layout
+    return SliverPadding(
+      padding: ResponsiveGridDelegate.getResponsivePadding(context),
+      sliver: SliverGrid(
+        gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+          context,
+          mobile: 1,
+          tablet: 2,
+          desktop: 3,
+          childAspectRatio: ResponsiveUtils.getResponsiveValue(
+            context: context,
+            mobile: 2.5,
+            tablet: 2.5,
+            desktop: 2.5,
+          ),
+          crossAxisSpacing: ResponsiveUtils.getResponsivePadding(context, 16),
+          mainAxisSpacing: ResponsiveUtils.getResponsivePadding(context, 16),
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final item = filtered[index];
+            return AdminContentCard(
+              item: item,
+              showApproveReject: true,
+              showDeleteArchive: false,
+              onApprove: () => _handleApprove(item),
+              onReject: () => _handleReject(item),
+            );
+          },
+          childCount: filtered.length,
+        ),
+      ),
+    );
   }
 }

@@ -7,6 +7,7 @@ import '../../widgets/shared/empty_state.dart';
 import '../../widgets/web/styled_filter_chip.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_utils.dart';
+import '../../utils/responsive_grid_delegate.dart';
 
 /// Redesigned Users management page with cream/brown theme
 class AdminUsersPage extends StatefulWidget {
@@ -122,7 +123,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             SliverToBoxAdapter(
               child: _buildFilters(),
             ),
-            _buildUsersListSliver(isWideScreen),
+            _buildUsersListSliver(),
           ],
         ),
       ),
@@ -364,7 +365,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     );
   }
 
-  Widget _buildUsersList(bool isWideScreen) {
+  Widget _buildUsersList() {
     if (_isLoading) {
       return Center(
         child: Column(
@@ -420,26 +421,38 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       );
     }
 
-    // For wide screens, use a grid layout
-    if (isWideScreen) {
-      return GridView.builder(
-        padding: const EdgeInsets.all(24),
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 400,
-          childAspectRatio: 2.5,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-        ),
+    // Use responsive grid layout
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final isTablet = ResponsiveUtils.isTablet(context);
+    
+    // For mobile, use list layout
+    if (isMobile) {
+      return ListView.builder(
+        padding: ResponsiveGridDelegate.getResponsivePadding(context),
         itemCount: filteredUsers.length,
         itemBuilder: (context, index) {
           return _buildUserCard(filteredUsers[index]);
         },
       );
     }
-
-    // For narrow screens, use a list layout
-    return ListView.builder(
-      padding: const EdgeInsets.all(24),
+    
+    // For tablet and desktop, use grid layout
+    return GridView.builder(
+      padding: ResponsiveGridDelegate.getResponsivePadding(context),
+      gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+        context,
+        mobile: 1,
+        tablet: 2,
+        desktop: 3,
+        childAspectRatio: ResponsiveUtils.getResponsiveValue(
+          context: context,
+          mobile: 2.5,
+          tablet: 2.5,
+          desktop: 2.5,
+        ),
+        crossAxisSpacing: ResponsiveUtils.getResponsivePadding(context, 16),
+        mainAxisSpacing: ResponsiveUtils.getResponsivePadding(context, 16),
+      ),
       itemCount: filteredUsers.length,
       itemBuilder: (context, index) {
         return _buildUserCard(filteredUsers[index]);
@@ -447,7 +460,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     );
   }
 
-  Widget _buildUsersListSliver(bool isWideScreen) {
+  Widget _buildUsersListSliver() {
     if (_isLoading) {
       return SliverFillRemaining(
         hasScrollBody: false,
@@ -512,31 +525,40 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       );
     }
 
-    // For wide screens, use a grid layout
-    if (isWideScreen) {
+    // Use responsive grid layout
+    final isMobile = ResponsiveUtils.isMobile(context);
+    
+    // For mobile, use list layout
+    if (isMobile) {
       return SliverPadding(
-        padding: const EdgeInsets.all(24),
-        sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 400,
-            childAspectRatio: 2.5,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-          ),
+        padding: ResponsiveGridDelegate.getResponsivePadding(context),
+        sliver: SliverList(
           delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              return _buildUserCard(filteredUsers[index]);
-            },
+            (context, index) => _buildUserCard(filteredUsers[index]),
             childCount: filteredUsers.length,
           ),
         ),
       );
     }
-
-    // For narrow screens, use a list layout
+    
+    // For tablet and desktop, use grid layout
     return SliverPadding(
-      padding: const EdgeInsets.all(24),
-      sliver: SliverList(
+      padding: ResponsiveGridDelegate.getResponsivePadding(context),
+      sliver: SliverGrid(
+        gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
+          context,
+          mobile: 1,
+          tablet: 2,
+          desktop: 3,
+          childAspectRatio: ResponsiveUtils.getResponsiveValue(
+            context: context,
+            mobile: 2.5,
+            tablet: 2.5,
+            desktop: 2.5,
+          ),
+          crossAxisSpacing: ResponsiveUtils.getResponsivePadding(context, 16),
+          mainAxisSpacing: ResponsiveUtils.getResponsivePadding(context, 16),
+        ),
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             return _buildUserCard(filteredUsers[index]);
@@ -1012,22 +1034,59 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
           style: AppTypography.body.copyWith(color: AppColors.textPrimary),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: AppColors.textPrimary),
+          if (ResponsiveUtils.isMobile(context))
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                StyledPillButton(
+                  label: 'Cancel',
+                  icon: Icons.close,
+                  onPressed: () => Navigator.pop(context, false),
+                  variant: StyledPillButtonVariant.outlined,
+                  width: double.infinity,
+                ),
+                SizedBox(height: ResponsiveUtils.getResponsivePadding(context, AppSpacing.small)),
+                StyledPillButton(
+                  label: isAdmin ? 'Remove' : 'Grant',
+                  icon: isAdmin ? Icons.remove_circle_outline : Icons.add_circle_outline,
+                  onPressed: () => Navigator.pop(context, true),
+                  variant: StyledPillButtonVariant.filled,
+                  width: double.infinity,
+                ),
+              ],
+            )
+          else
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                StyledPillButton(
+                  label: 'Cancel',
+                  icon: Icons.close,
+                  onPressed: () => Navigator.pop(context, false),
+                  variant: StyledPillButtonVariant.outlined,
+                  width: ResponsiveUtils.getResponsiveValue(
+                    context: context,
+                    mobile: 100.0,
+                    tablet: 120.0,
+                    desktop: 100.0,
+                  ),
+                ),
+                SizedBox(width: ResponsiveUtils.getResponsivePadding(context, AppSpacing.small)),
+                StyledPillButton(
+                  label: isAdmin ? 'Remove' : 'Grant',
+                  icon: isAdmin ? Icons.remove_circle_outline : Icons.add_circle_outline,
+                  onPressed: () => Navigator.pop(context, true),
+                  variant: StyledPillButtonVariant.filled,
+                  width: ResponsiveUtils.getResponsiveValue(
+                    context: context,
+                    mobile: 100.0,
+                    tablet: 120.0,
+                    desktop: 100.0,
+                  ),
+                ),
+              ],
             ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isAdmin ? AppColors.errorMain : AppColors.successMain,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            ),
-            child: Text(isAdmin ? 'Remove' : 'Grant'),
-          ),
         ],
       ),
     );
@@ -1091,6 +1150,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
           if (isMobile)
             Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 StyledPillButton(
                   label: 'Cancel',
@@ -1099,12 +1159,12 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                   variant: StyledPillButtonVariant.outlined,
                   width: double.infinity,
                 ),
-                SizedBox(height: ResponsiveUtils.getResponsivePadding(context, AppSpacing.small)),
+                SizedBox(height: ResponsiveUtils.getResponsivePadding(context, AppSpacing.medium)),
                 StyledPillButton(
                   label: 'Delete',
                   icon: Icons.delete_outline,
                   onPressed: () => Navigator.pop(context, true),
-                  variant: StyledPillButtonVariant.outlined,
+                  variant: StyledPillButtonVariant.filled,
                   width: double.infinity,
                 ),
               ],
@@ -1112,6 +1172,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
           else
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 StyledPillButton(
                   label: 'Cancel',
@@ -1122,20 +1183,20 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                     context: context,
                     mobile: 120.0,
                     tablet: 120.0,
-                    desktop: 100.0,
+                    desktop: 120.0,
                   ),
                 ),
-                SizedBox(width: ResponsiveUtils.getResponsivePadding(context, AppSpacing.small)),
+                SizedBox(width: ResponsiveUtils.getResponsivePadding(context, AppSpacing.medium)),
                 StyledPillButton(
                   label: 'Delete',
                   icon: Icons.delete_outline,
                   onPressed: () => Navigator.pop(context, true),
-                  variant: StyledPillButtonVariant.outlined,
+                  variant: StyledPillButtonVariant.filled,
                   width: ResponsiveUtils.getResponsiveValue(
                     context: context,
                     mobile: 120.0,
                     tablet: 120.0,
-                    desktop: 100.0,
+                    desktop: 120.0,
                   ),
                 ),
               ],

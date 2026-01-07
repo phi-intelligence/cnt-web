@@ -179,6 +179,7 @@ class _AdminPostsPageState extends State<AdminPostsPage> {
           if (isMobile)
             Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 StyledPillButton(
                   label: 'Cancel',
