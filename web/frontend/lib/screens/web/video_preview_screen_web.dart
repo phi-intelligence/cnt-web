@@ -62,6 +62,9 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
       text: 'A wonderful video podcast about faith and spirituality');
   String? _selectedThumbnail;
   String? _videoUrl; // Will be set after upload
+  
+  // Track snackbar state for cleanup
+  bool _uploadSnackbarShown = false;
 
   @override
   void initState() {
@@ -241,6 +244,15 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
 
   @override
   void dispose() {
+    // Hide upload snackbar if still showing
+    if (_uploadSnackbarShown && mounted) {
+      try {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      } catch (e) {
+        // Ignore errors during dispose
+      }
+    }
+    
     _hideControlsTimer?.cancel();
     _controller?.removeListener(_videoListener);
     _controller?.dispose();
@@ -401,7 +413,6 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
 
     // Store snackbar controller reference to ensure it can be hidden
     ScaffoldMessengerState? snackbarMessenger;
-    bool uploadSnackbarShown = false;
 
     try {
       // Upload video file first (supports file paths, blob URLs, and http URLs)
@@ -446,10 +457,10 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
                 ],
               ),
               backgroundColor: AppColors.infoMain,
-              duration: const Duration(seconds: 60),
+              duration: const Duration(seconds: 10), // Maximum 10 seconds
             ),
           );
-          uploadSnackbarShown = true;
+          _uploadSnackbarShown = true;
         }
 
         // Upload video - ApiService.uploadVideo() handles blob URLs via _createMultipartFileFromSource()
@@ -461,9 +472,9 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
         thumbnailUrl = videoUploadResponse['thumbnail_url'] as String?;
 
         // Hide upload progress snackbar immediately
-        if (mounted && uploadSnackbarShown) {
+        if (mounted && _uploadSnackbarShown) {
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          uploadSnackbarShown = false;
+          _uploadSnackbarShown = false;
 
           // Show success message immediately after upload completes
           ScaffoldMessenger.of(context).showSnackBar(
@@ -562,9 +573,9 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
       );
     } catch (e) {
       // Ensure snackbar is always hidden, even if exception occurs
-      if (mounted && uploadSnackbarShown) {
+      if (mounted && _uploadSnackbarShown) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        uploadSnackbarShown = false;
+        _uploadSnackbarShown = false;
       }
 
       if (!mounted) return;

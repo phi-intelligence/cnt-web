@@ -57,7 +57,10 @@ class StyledPillButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSmallMobile = ResponsiveUtils.isSmallMobile(context);
-    final horizontalPadding = isSmallMobile ? AppSpacing.large : AppSpacing.extraLarge;
+    // Reduce padding when width is constrained to ensure text fits
+    final horizontalPadding = width != null 
+        ? (isSmallMobile ? AppSpacing.medium : AppSpacing.large)
+        : (isSmallMobile ? AppSpacing.large : AppSpacing.extraLarge);
     final verticalPadding = isSmallMobile ? AppSpacing.medium : AppSpacing.medium + 4;
 
     if (variant == StyledPillButtonVariant.outlined || variant == StyledPillButtonVariant.outlinedLight) {
@@ -73,6 +76,8 @@ class StyledPillButton extends StatelessWidget {
               horizontal: horizontalPadding,
               vertical: verticalPadding,
             ),
+            minimumSize: Size.zero, // Remove default minimum size
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap, // Reduce tap target to content size
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
             ),
@@ -84,7 +89,10 @@ class StyledPillButton extends StatelessWidget {
         );
       
       if (width != null) {
-        return SizedBox(width: width, child: button);
+        return SizedBox(
+          width: width,
+          child: button,
+        );
       }
       return IntrinsicWidth(child: button);
     }
@@ -98,6 +106,8 @@ class StyledPillButton extends StatelessWidget {
             horizontal: horizontalPadding,
             vertical: verticalPadding,
           ),
+          minimumSize: Size.zero, // Remove default minimum size
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap, // Reduce tap target to content size
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radiusMedium),
           ),
@@ -109,7 +119,10 @@ class StyledPillButton extends StatelessWidget {
       );
     
     if (width != null) {
-      return SizedBox(width: width, child: button);
+      return SizedBox(
+        width: width,
+        child: button,
+      );
     }
     return IntrinsicWidth(child: button);
   }
@@ -145,6 +158,7 @@ class StyledPillButton extends StatelessWidget {
     if (iconLeading) {
       return Row(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             icon,
@@ -152,15 +166,16 @@ class StyledPillButton extends StatelessWidget {
             color: _foregroundColor,
           ),
           const SizedBox(width: 8),
-          Flexible(child: textWidget),
+          textWidget,
         ],
       );
     }
 
     return Row(
       mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Flexible(child: textWidget),
+        textWidget,
         const SizedBox(width: 8),
         Icon(
           icon,
