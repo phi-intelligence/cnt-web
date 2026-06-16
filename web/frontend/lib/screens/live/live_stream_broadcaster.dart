@@ -46,12 +46,20 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
     super.initState();
     _startStreaming();
     
-    // Add beforeunload event listener for web to ensure cleanup
+    // Release camera/mic when the tab closes (async cleanup may not finish).
     if (kIsWeb) {
       _beforeUnloadSubscription = html.window.onBeforeUnload.listen((html.Event event) {
-        if (_isStreaming && !_isDisposing) {
+        if (!_isDisposing) {
           _isDisposing = true;
-          _stopStreaming();
+          _localVideoTrack?.stop();
+          _meetingService.releaseMediaDevicesSync();
+        }
+      });
+      html.window.onPageHide.listen((html.Event event) {
+        if (!_isDisposing) {
+          _isDisposing = true;
+          _localVideoTrack?.stop();
+          _meetingService.releaseMediaDevicesSync();
         }
       });
     }
@@ -269,23 +277,23 @@ class _LiveStreamBroadcasterState extends State<LiveStreamBroadcaster> {
     if (_isStreaming) {
       _stopStreaming().catchError((e) {
         print('Error in dispose cleanup: $e');
-        // Fallback cleanup if _stopStreaming fails
+        if (kIsWeb) {
+          _meetingService.releaseMediaDevicesSync();
+        }
         try {
           _localVideoTrack?.stop();
           _localVideoTrack = null;
         } catch (_) {}
-        try {
-          _meetingService.leaveMeeting();
-        } catch (_) {}
       });
     } else {
-      // If not streaming, do minimal cleanup
+      if (kIsWeb) {
+        _meetingService.releaseMediaDevicesSync();
+      } else {
+        _meetingService.leaveMeeting();
+      }
       try {
         _localVideoTrack?.stop();
         _localVideoTrack = null;
-      } catch (_) {}
-      try {
-        _meetingService.leaveMeeting();
       } catch (_) {}
     }
     

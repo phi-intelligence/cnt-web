@@ -6,6 +6,8 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/responsive_utils.dart';
+import '../../widgets/shared/web_safe_password_field.dart';
+import '../../widgets/shared/web_safe_text_field.dart';
 import 'register_screen_web.dart';
 
 class UserLoginScreenWeb extends StatefulWidget {
@@ -19,7 +21,6 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
   final _formKey = GlobalKey<FormState>();
   final _usernameOrEmailController = TextEditingController(text: 'samuel@christtabernacle.com');
   final _passwordController = TextEditingController(text: 'user123');
-  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -62,7 +63,8 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
     final isMobile = ResponsiveUtils.isMobile(context);
     
     return Scaffold(
-      resizeToAvoidBottomInset: false, AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
+      backgroundColor: AppColors.backgroundPrimary,
       body: Center(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(isSmallMobile ? 12.0 : 24.0),
@@ -120,7 +122,7 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
                       SizedBox(height: isSmallMobile ? AppSpacing.large : AppSpacing.extraLarge),
                       
                       // Username or Email Field
-                      TextFormField(
+                      WebSafeTextField(
                         controller: _usernameOrEmailController,
                         keyboardType: TextInputType.text,
                         style: AppTypography.body.copyWith(color: AppColors.textPrimary),
@@ -143,7 +145,6 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
                           ),
                           filled: true,
                           fillColor: AppColors.backgroundSecondary,
-                          // Adjust styling for small mobile
                           contentPadding: isSmallMobile ? EdgeInsets.symmetric(horizontal: 12, vertical: 12) : null,
                         ),
                         validator: (value) {
@@ -156,25 +157,14 @@ class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
                       SizedBox(height: isSmallMobile ? AppSpacing.medium : AppSpacing.large),
                       
                       // Password Field
-                      TextFormField(
+                      WebSafePasswordField(
                         controller: _passwordController,
-                        obscureText: _obscurePassword,
                         style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                        toggleIconColor: AppColors.textSecondary,
                         decoration: InputDecoration(
                           labelText: 'Password',
                           labelStyle: TextStyle(color: AppColors.textSecondary),
                           prefixIcon: Icon(Icons.lock, color: AppColors.primaryMain),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                              color: AppColors.textSecondary,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide(color: AppColors.borderPrimary),

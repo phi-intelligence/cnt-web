@@ -68,6 +68,29 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <link rel="manifest" href="manifest.json">
+
+  <!-- Flutter Web renders inputs in two layers (canvas + HTML). Hide HTML text; canvas paints it. -->
+  <style>
+    textarea,
+    input[type="text"],
+    input[type="password"],
+    input[type="email"],
+    input[type="search"],
+    input[type="tel"],
+    input[type="url"],
+    input[type="number"] {
+      color: transparent !important;
+      -webkit-text-fill-color: transparent !important;
+      caret-color: transparent !important;
+      background: transparent !important;
+    }
+
+    textarea::selection,
+    input::selection {
+      color: transparent !important;
+      -webkit-text-fill-color: transparent !important;
+    }
+  </style>
 </head>
 <body>
   <script src='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.min.mjs' type='module'></script>

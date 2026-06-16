@@ -720,223 +720,39 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
     _startControlsTimer();
   }
 
-  Future<void> _seekTo(int seconds) async {
-    // Wait for controller to be initialized (with retry for temporary uninitialization)
-    if (_controller == null) {
-      debugPrint('VideoPlayer: Cannot seek - controller is null');
+  Future<void> _seekTo(double seconds) async {
+    if (_controller == null || !_controller!.value.isInitialized) {
+      debugPrint('VideoPlayer: Cannot seek - controller not ready');
       return;
     }
 
-    // Retry logic for temporary uninitialization during buffering
-    // On web, the video_player package can temporarily lose initialization state during network buffering
-    int retryAttempts = 0;
-    const maxRetryAttempts = 10; // Increased from 5
-    const retryDelay = Duration(milliseconds: 500); // Increased from 200ms
-
-    while (
-        !_controller!.value.isInitialized && retryAttempts < maxRetryAttempts) {
-      debugPrint(
-          'VideoPlayer: Controller temporarily uninitialized, waiting... (attempt ${retryAttempts + 1}/$maxRetryAttempts)');
-      await Future.delayed(retryDelay);
-      retryAttempts++;
-    }
-
-    if (!_controller!.value.isInitialized) {
-      debugPrint(
-          'VideoPlayer: Cannot seek - controller not initialized after retries');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Video is not ready for seeking'),
-            duration: Duration(seconds: 2),
-            backgroundColor: AppColors.errorMain,
-          ),
-        );
-      }
+    final durationToUse = _getDurationForSeeking();
+    final maxMs = durationToUse?.inMilliseconds ??
+        _controller!.value.duration.inMilliseconds;
+    if (maxMs <= 0) {
+      debugPrint('VideoPlayer: Cannot seek - duration not available');
       return;
     }
 
-    // NEW: Wait for buffering to complete before seeking
-    if (_controller!.value.isBuffering) {
-      debugPrint('VideoPlayer: Video is buffering, waiting for buffering to complete...');
-      int bufferingWaitAttempts = 0;
-      const maxBufferingWaitAttempts = 20; // 10 seconds max wait
-      while (_controller!.value.isBuffering && bufferingWaitAttempts < maxBufferingWaitAttempts) {
-        await Future.delayed(const Duration(milliseconds: 500));
-        bufferingWaitAttempts++;
-        // Re-check initialization in case it was lost during buffering
-        if (!_controller!.value.isInitialized) {
-          debugPrint('VideoPlayer: Controller lost initialization during buffering wait');
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Video is not ready for seeking'),
-                duration: Duration(seconds: 2),
-                backgroundColor: AppColors.errorMain,
-              ),
-            );
-          }
-          return;
-        }
-      }
-      if (_controller!.value.isBuffering) {
-        debugPrint('VideoPlayer: Buffering took too long, but proceeding with seek');
-      }
-    }
+    final targetMs = (seconds * 1000).round().clamp(0, maxMs);
+    debugPrint(
+        'VideoPlayer: Seeking to ${targetMs}ms (requested: ${seconds}s, max: ${maxMs}ms)');
 
-    // Get duration specifically for seeking (prioritizes controller duration)
-    Duration? durationToUse = _getDurationForSeeking();
-
-    // NEW: Wait for duration if not available (similar to audio player)
-    if (durationToUse == null) {
-      debugPrint('VideoPlayer: Duration not available, waiting...');
-      await Future.delayed(const Duration(milliseconds: 500));
-      durationToUse = _getDurationForSeeking();
-      
-      if (durationToUse == null) {
-        debugPrint('VideoPlayer: Cannot seek - no valid duration available');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Seeking is not available for this video'),
-              duration: Duration(seconds: 2),
-              backgroundColor: AppColors.errorMain,
-            ),
-          );
-        }
-        return;
-      }
-    }
-
-    // Set seeking flag synchronously to prevent listener from interfering
-    setState(() {
-      _isSeeking = true;
-    });
+    setState(() => _isSeeking = true);
 
     try {
-      // Use the actual video duration for clamping
-      final maxSeconds = durationToUse.inSeconds;
-      final clamped = seconds.clamp(0, maxSeconds);
-      debugPrint(
-          'VideoPlayer: Seeking to ${clamped}s (requested: ${seconds}s, max: ${maxSeconds}s)');
+      await _controller!.seekTo(Duration(milliseconds: targetMs));
 
-      // Store current position before seek (to detect if seek fails and resets)
-      final positionBeforeSeek = _controller!.value.position.inSeconds;
-
-      // Perform the seek operation
-      await _controller!.seekTo(Duration(seconds: clamped));
-
-      // Wait for seek to complete (increased delay for better reliability)
-      await Future.delayed(const Duration(milliseconds: 500)); // Increased from 200ms
-
-      // Re-check initialization after seek (controller may lose initialization during seek)
-      if (!_controller!.value.isInitialized) {
-        debugPrint('VideoPlayer: Controller lost initialization after seek, waiting for re-initialization...');
-        int reinitAttempts = 0;
-        const maxReinitAttempts = 10;
-        while (!_controller!.value.isInitialized && reinitAttempts < maxReinitAttempts) {
-          await Future.delayed(const Duration(milliseconds: 500));
-          reinitAttempts++;
-        }
-        if (!_controller!.value.isInitialized) {
-          debugPrint('VideoPlayer: Controller did not re-initialize after seek');
-          if (mounted) {
-            setState(() {
-              _currentTime = positionBeforeSeek;
-              _isSeeking = false;
-            });
-          }
-          return;
-        }
-      }
-
-      // Get the actual position after seek
-      final actualPosition = _controller!.value.position.inSeconds;
-      debugPrint(
-          'VideoPlayer: Seek completed - actual position: ${actualPosition}s (requested: ${clamped}s)');
-
-      // Validate seek result: if we requested a position > 0 but got 0, the seek failed
-      // Also check if the actual position is significantly different from requested (reduced threshold from 5 to 3 seconds)
-      final seekFailed = (clamped > 0 && actualPosition == 0) ||
-          (clamped > 3 && (actualPosition - clamped).abs() > 3); // Changed from 5 seconds to 3 seconds
-
-      if (seekFailed) {
-        debugPrint(
-            'VideoPlayer: Seek failed - requested ${clamped}s but got ${actualPosition}s. Attempting recovery...');
-
-        // Try to seek to a position slightly before the requested position (within actual duration)
-        // This helps when seeking near the end of the video
-        final recoveryPosition = (clamped - 1).clamp(0, maxSeconds);
-        if (recoveryPosition > 0 && recoveryPosition < maxSeconds) {
-          await _controller!.seekTo(Duration(seconds: recoveryPosition));
-          await Future.delayed(const Duration(milliseconds: 500)); // Increased from 200ms
-          
-          // Re-check initialization after recovery seek
-          if (!_controller!.value.isInitialized) {
-            debugPrint('VideoPlayer: Controller lost initialization after recovery seek');
-            if (mounted) {
-              setState(() {
-                _currentTime = positionBeforeSeek;
-                _isSeeking = false;
-              });
-            }
-            return;
-          }
-          
-          final recoveredPosition = _controller!.value.position.inSeconds;
-          debugPrint(
-              'VideoPlayer: Recovery seek to ${recoveryPosition}s resulted in ${recoveredPosition}s');
-
-          if (mounted) {
-            setState(() {
-              _currentTime = recoveredPosition;
-              _isSeeking = false;
-            });
-          }
-          return;
-        }
-
-        // If recovery failed, restore to position before seek
-        debugPrint(
-            'VideoPlayer: Recovery failed, restoring to position before seek: ${positionBeforeSeek}s');
-        await _controller!.seekTo(Duration(seconds: positionBeforeSeek));
-        await Future.delayed(const Duration(milliseconds: 500)); // Increased from 200ms
-
-        if (mounted) {
-          setState(() {
-            _currentTime = positionBeforeSeek;
-            _isSeeking = false;
-          });
-        }
-        return;
-      }
-
-      // Update state once with final values
       if (mounted) {
         setState(() {
-          _currentTime = actualPosition;
+          _currentTime = (targetMs / 1000).round();
           _isSeeking = false;
-
-          // Update _validDuration if controller now has a valid duration
-          // Always prefer controller duration when available
-          if (_controller!.value.duration != Duration.zero &&
-              _controller!.value.duration.inMilliseconds > 0 &&
-              _controller!.value.duration.inSeconds.isFinite) {
-            final controllerDuration = _controller!.value.duration;
-            _validDuration = controllerDuration;
-            _durationError = false;
-            _durationErrorMessage = null;
-            debugPrint(
-                'VideoPlayer: Updated _validDuration from controller: ${controllerDuration.inSeconds}s');
-          }
         });
       }
     } catch (e) {
       debugPrint('VideoPlayer: Error during seek: $e');
       if (mounted) {
-        setState(() {
-          _isSeeking = false;
-        });
+        setState(() => _isSeeking = false);
       }
     }
   }
@@ -1420,8 +1236,7 @@ class _VideoPlayerFullScreenState extends State<VideoPlayerFullScreen> {
                                                           });
                                                           return;
                                                         }
-                                                        await _seekTo(
-                                                            value.toInt());
+                                                        await _seekTo(value);
                                                         setState(() {
                                                           _isScrubbing = false;
                                                         });

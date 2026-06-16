@@ -5,6 +5,8 @@ import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
+import '../../widgets/shared/web_safe_password_field.dart';
+import '../../widgets/shared/web_safe_text_field.dart';
 
 class AdminLoginScreenWeb extends StatefulWidget {
   const AdminLoginScreenWeb({super.key});
@@ -17,7 +19,6 @@ class _AdminLoginScreenWebState extends State<AdminLoginScreenWeb> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController(text: 'admin@christtabernacle.com');
   final _passwordController = TextEditingController(text: 'admin123');
-  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -64,7 +65,8 @@ class _AdminLoginScreenWebState extends State<AdminLoginScreenWeb> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false, AppColors.backgroundPrimary,
+      resizeToAvoidBottomInset: false,
+      backgroundColor: AppColors.backgroundPrimary,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -111,7 +113,7 @@ class _AdminLoginScreenWebState extends State<AdminLoginScreenWeb> {
                       const SizedBox(height: AppSpacing.extraLarge),
                       
                       // Email Field
-                      TextFormField(
+                      WebSafeTextField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         style: AppTypography.body.copyWith(color: AppColors.textPrimary),
@@ -147,25 +149,14 @@ class _AdminLoginScreenWebState extends State<AdminLoginScreenWeb> {
                       const SizedBox(height: AppSpacing.large),
                       
                       // Password Field
-                      TextFormField(
+                      WebSafePasswordField(
                         controller: _passwordController,
-                        obscureText: _obscurePassword,
                         style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                        toggleIconColor: AppColors.textSecondary,
                         decoration: InputDecoration(
                           labelText: 'Password',
                           labelStyle: TextStyle(color: AppColors.textSecondary),
                           prefixIcon: Icon(Icons.lock, color: AppColors.errorMain),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                              color: AppColors.textSecondary,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide(color: AppColors.borderPrimary),

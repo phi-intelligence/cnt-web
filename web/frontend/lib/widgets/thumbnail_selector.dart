@@ -75,6 +75,7 @@ class _ThumbnailSelectorState extends State<ThumbnailSelector> {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
         allowMultiple: false,
+        withData: kIsWeb,
       );
 
       if (result == null || result.files.isEmpty) {

@@ -103,18 +103,15 @@ class _InstagramPostCardState extends State<InstagramPostCard>
 
   String _getImageUrl() {
     final imageUrl = widget.post['image_url'];
-    if (imageUrl == null) return '';
-    
-    // If image_url starts with 'images/', treat as asset path
-    // Otherwise, treat as full media URL
-    if (imageUrl.toString().startsWith('images/')) {
-      // Use asset path for images in assets folder
-      return imageUrl.toString().replaceFirst('images/', 'assets/images/');
+    if (imageUrl == null || imageUrl.isEmpty) return '';
+
+    final url = imageUrl.toString().trim();
+  if (url.startsWith('assets/')) {
+      return url;
     }
-    
-    // Otherwise, use API service to get media URL
-    final apiService = ApiService();
-    return apiService.getMediaUrl(imageUrl.toString());
+
+    // Server media paths (e.g. images/quotes/quote_12_abc.jpg) — not Flutter assets
+    return ApiService().getMediaUrl(url);
   }
 
   Widget _buildProfilePicture(String? avatarUrl, String userName) {
@@ -243,13 +240,17 @@ class _InstagramPostCardState extends State<InstagramPostCard>
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                      // Main image - reduced size on web
+                      // Quote images are square with centered text — show full image
                       AspectRatio(
-                        aspectRatio: 1.2, // Wider aspect ratio to leave room for buttons
-                        child: imageUrl.toString().startsWith('assets/')
+                        aspectRatio: isTextPost ? 1.0 : 1.2,
+                        child: Container(
+                          color: isTextPost
+                              ? AppColors.backgroundSecondary
+                              : Colors.transparent,
+                          child: imageUrl.toString().startsWith('assets/')
                             ? Image.asset(
                                 imageUrl.toString(),
-                                fit: BoxFit.cover,
+                                fit: isTextPost ? BoxFit.contain : BoxFit.cover,
                                 width: double.infinity,
                                 errorBuilder: (context, error, stackTrace) {
                                   return Container(
@@ -264,7 +265,7 @@ class _InstagramPostCardState extends State<InstagramPostCard>
                               )
                             : Image.network(
                                 _getImageUrl(),
-                                fit: BoxFit.cover,
+                                fit: isTextPost ? BoxFit.contain : BoxFit.cover,
                                 width: double.infinity,
                                 loadingBuilder: (context, child, loadingProgress) {
                                   if (loadingProgress == null) return child;
@@ -293,6 +294,7 @@ class _InstagramPostCardState extends State<InstagramPostCard>
                                   );
                                 },
                               ),
+                        ),
                       ),
                     // Animated heart overlay on double tap
                     if (_isAnimating)

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:async';
 import 'package:cross_file/cross_file.dart';
 import '../services/logger_service.dart';
+import 'browser_media_cleanup.dart';
 
 /// Web-compatible video recorder using browser MediaDevices API
 /// Provides camera access and video recording functionality for web
@@ -92,6 +93,7 @@ class WebVideoRecorder {
   Future<html.VideoElement> initializeCamera({
     String? deviceId,
     String facingMode = 'user',
+    bool includeAudio = true,
   }) async {
     try {
       // Check secure context first
@@ -124,11 +126,15 @@ class WebVideoRecorder {
       }
 
       LoggerService.i('📹 Requesting camera access...');
-      // Get media stream
-      _mediaStream = await mediaDevices.getUserMedia({
+      final mediaConstraints = <String, dynamic>{
         'video': videoConstraints,
-        'audio': true,
-      }).catchError((error) {
+      };
+      if (includeAudio) {
+        mediaConstraints['audio'] = true;
+      }
+
+      // Get media stream
+      _mediaStream = await mediaDevices.getUserMedia(mediaConstraints).catchError((error) {
         LoggerService.e('❌ getUserMedia error: $error');
         // Provide user-friendly error messages
         final errorStr = error.toString();
@@ -161,6 +167,8 @@ class WebVideoRecorder {
       });
 
       LoggerService.i('✅ Camera access granted');
+
+      registerBrowserMediaStream(_mediaStream);
 
       // Create video element
       _videoElement = html.VideoElement()
@@ -651,7 +659,8 @@ class WebVideoRecorder {
         LoggerService.e('Error stopping recorder on dispose: $e');
       }
     }
-    
+
+    unregisterBrowserMediaStream(_mediaStream);
     _mediaStream?.getTracks().forEach((track) => track.stop());
     _mediaStream = null;
     _mediaRecorder = null;

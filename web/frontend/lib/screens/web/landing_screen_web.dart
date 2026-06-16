@@ -9,6 +9,8 @@ import '../../widgets/web/styled_pill_button.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/content_item.dart';
+import '../../widgets/shared/web_safe_password_field.dart';
+import '../../widgets/shared/web_safe_text_field.dart';
 import 'register_screen_web.dart';
 
 /// Modern landing page following Living Scriptures design structure
@@ -25,7 +27,6 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   final _usernameOrEmailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  bool _obscurePassword = true;
   bool _isLoading = false;
   bool _isLoadingContent = true;
   bool _rememberMe = false; // Netflix-style: default to session-only login
@@ -1790,7 +1791,7 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                       width: 1,
                     ),
                   ),
-                  child: TextFormField(
+                  child: WebSafeTextField(
                     controller: _usernameOrEmailController,
                     style: AppTypography.body
                         .copyWith(color: AppColors.textPrimary),
@@ -1825,11 +1826,11 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                       width: 1,
                     ),
                   ),
-                  child: TextFormField(
+                  child: WebSafePasswordField(
                     controller: _passwordController,
-                    obscureText: _obscurePassword,
                     style: AppTypography.body
                         .copyWith(color: AppColors.textPrimary),
+                    toggleIconColor: AppColors.textSecondary,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your password';
@@ -1843,19 +1844,6 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
                       ),
                       prefixIcon:
                           Icon(Icons.lock_outline, color: AppColors.warmBrown),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: AppColors.textSecondary,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
                       border: InputBorder.none,
                       filled: false,
                       contentPadding: EdgeInsets.all(AppSpacing.medium),

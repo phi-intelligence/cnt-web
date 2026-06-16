@@ -209,7 +209,11 @@ class _LiveStreamViewerState extends State<LiveStreamViewer> {
 
   @override
   void dispose() {
-    _meetingService.leaveMeeting();
+    if (kIsWeb) {
+      _meetingService.releaseMediaDevicesSync();
+    } else {
+      _meetingService.leaveMeeting();
+    }
     super.dispose();
   }
 

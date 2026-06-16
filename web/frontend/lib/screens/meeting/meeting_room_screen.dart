@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../services/livekit_meeting_service.dart';
 import '../../services/websocket_service.dart';
 import '../../widgets/meeting/video_track_view.dart';
@@ -557,11 +558,11 @@ class _MeetingRoomScreenState extends State<MeetingRoomScreen> {
   void dispose() {
     _participantSubscription?.cancel();
     _permissionRequestSubscription?.cancel();
+    if (kIsWeb) {
+      _meetingService.releaseMediaDevicesSync();
+    }
     _meetingService.leaveMeeting();
-
-    // Clear saved meeting state on dispose (if not already cleared by _leaveMeeting)
     StatePersistence.clearMeetingState();
-
     super.dispose();
   }
 

@@ -1,7 +1,10 @@
 import 'package:livekit_client/livekit_client.dart' as lk;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'api_service.dart';
 import 'dart:async';
+import 'dart:html' if (dart.library.io) '../utils/html_stub.dart' as html;
 import '../services/logger_service.dart';
+import '../utils/browser_media_cleanup.dart';
 
 /// Response model for meeting join token
 class MeetingJoinResponse {
@@ -27,6 +30,9 @@ class LiveKitMeetingService {
   lk.Room? _currentRoom;
   lk.EventsListener<lk.RoomEvent>? _listener;
   bool _isConnected = false;
+  bool _isLeaving = false;
+  StreamSubscription<html.Event>? _pageHideSubscription;
+  StreamSubscription<html.Event>? _beforeUnloadSubscription;
 
   // Streams for UI updates
   final _connectionStateController = StreamController<lk.ConnectionState>.broadcast();
@@ -153,6 +159,7 @@ class LiveKitMeetingService {
 
       _isConnected = true;
       _connectionStateController.add(_currentRoom!.connectionState);
+      _registerTabCloseHandlers();
       
     } catch (e) {
       _isConnected = false;
@@ -208,54 +215,112 @@ class LiveKitMeetingService {
     }
   }
 
+  void _registerTabCloseHandlers() {
+    if (!kIsWeb) return;
+    _unregisterTabCloseHandlers();
+    _pageHideSubscription = html.window.onPageHide.listen((_) {
+      releaseMediaDevicesSync();
+    });
+    _beforeUnloadSubscription = html.window.onBeforeUnload.listen((_) {
+      releaseMediaDevicesSync();
+    });
+  }
+
+  void _unregisterTabCloseHandlers() {
+    _pageHideSubscription?.cancel();
+    _beforeUnloadSubscription?.cancel();
+    _pageHideSubscription = null;
+    _beforeUnloadSubscription = null;
+  }
+
+  /// Synchronously release camera/mic on tab close (async cleanup may not finish).
+  void releaseMediaDevicesSync() {
+    try {
+      final room = _currentRoom;
+      final localParticipant = room?.localParticipant;
+      if (localParticipant != null) {
+        for (final publication in localParticipant.trackPublications.values) {
+          final track = publication.track;
+          if (track is lk.LocalTrack) {
+            track.stop();
+          }
+        }
+      }
+      room?.disconnect();
+      try {
+        room?.dispose();
+      } catch (_) {}
+    } catch (e) {
+      LoggerService.w('⚠️ LiveKit: Sync media release error: $e');
+    } finally {
+      stopAllBrowserMediaTracksSync();
+      _listener?.dispose();
+      _currentRoom = null;
+      _listener = null;
+      _isConnected = false;
+      _unregisterTabCloseHandlers();
+    }
+  }
+
+  Future<void> _stopLocalTracks(lk.LocalParticipant localParticipant) async {
+    try {
+      await localParticipant.setCameraEnabled(false);
+      await localParticipant.setMicrophoneEnabled(false);
+    } catch (e) {
+      LoggerService.w('⚠️ LiveKit: Error disabling camera/microphone: $e');
+    }
+
+    try {
+      await localParticipant.unpublishAllTracks(stopOnUnpublish: true);
+      LoggerService.i('📹 LiveKit: Unpublished all local tracks');
+    } catch (e) {
+      LoggerService.w('⚠️ LiveKit: Error unpublishing tracks: $e');
+    }
+
+    final localTracks = <lk.LocalTrack>[];
+    for (final publication in localParticipant.trackPublications.values) {
+      if (publication.track is lk.LocalTrack) {
+        localTracks.add(publication.track as lk.LocalTrack);
+      }
+    }
+
+    for (final track in localTracks) {
+      try {
+        await track.stop();
+        LoggerService.i('🛑 LiveKit: Stopped local track: ${track.kind}');
+      } catch (e) {
+        LoggerService.w('⚠️ LiveKit: Error stopping local track: $e');
+      }
+    }
+  }
+
   /// Leave the current meeting
   Future<void> leaveMeeting() async {
+    if (_isLeaving) return;
+    _isLeaving = true;
+
     try {
       if (_currentRoom != null) {
         final localParticipant = _currentRoom!.localParticipant;
-        
+
         if (localParticipant != null) {
-          // Disable camera and microphone first to signal LiveKit to stop publishing
-          try {
-            await localParticipant.setCameraEnabled(false);
-            await localParticipant.setMicrophoneEnabled(false);
-            LoggerService.i('📹 LiveKit: Disabled camera and microphone');
-          } catch (e) {
-            LoggerService.w('⚠️ LiveKit: Error disabling camera/microphone: $e');
-          }
-          
-          // Stop all local tracks explicitly
-          // Stopping tracks will automatically handle unpublishing
-          try {
-            final localTracks = <lk.LocalTrack>[];
-            for (final publication in localParticipant.trackPublications.values) {
-              if (publication.track is lk.LocalTrack) {
-                localTracks.add(publication.track as lk.LocalTrack);
-              }
-            }
-            
-            for (final track in localTracks) {
-              try {
-                await track.stop();
-                LoggerService.i('🛑 LiveKit: Stopped local track: ${track.kind}');
-              } catch (e) {
-                LoggerService.w('⚠️ LiveKit: Error stopping local track: $e');
-              }
-            }
-          } catch (e) {
-            LoggerService.w('⚠️ LiveKit: Error stopping local tracks: $e');
-          }
+          await _stopLocalTracks(localParticipant);
         }
-        
-        // Disconnect from room after all tracks are cleaned up
+
         try {
           await _currentRoom!.disconnect();
           LoggerService.i('🔌 LiveKit: Disconnected from room');
         } catch (e) {
           LoggerService.w('⚠️ LiveKit: Error disconnecting from room: $e');
         }
+
+        try {
+          _currentRoom!.dispose();
+        } catch (e) {
+          LoggerService.w('⚠️ LiveKit: Error disposing room: $e');
+        }
       }
-      
+
       _listener?.dispose();
       _currentRoom = null;
       _listener = null;
@@ -263,10 +328,13 @@ class LiveKitMeetingService {
       _connectionStateController.add(lk.ConnectionState.disconnected);
     } catch (e) {
       LoggerService.e('❌ LiveKit: Error leaving meeting: $e');
-      // Ensure state is reset even on error
       _currentRoom = null;
       _listener = null;
       _isConnected = false;
+    } finally {
+      stopAllBrowserMediaTracksSync();
+      _unregisterTabCloseHandlers();
+      _isLeaving = false;
     }
   }
 

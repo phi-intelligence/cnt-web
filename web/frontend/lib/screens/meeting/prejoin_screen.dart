@@ -83,7 +83,11 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
     super.dispose();
   }
 
-  void _onJoin() {
+  void _onJoin() async {
+    await _disposeCamera();
+
+    if (!mounted) return;
+
     final userProvider = context.read<UserProvider>();
     final authProvider = context.read<AuthProvider>();
     final profileUser = userProvider.user ?? authProvider.user;
@@ -137,7 +141,9 @@ class _PrejoinScreenState extends State<PrejoinScreen> {
       }
 
       // Initialize camera
-      _videoElement = await _cameraRecorder!.initializeCamera();
+      _videoElement = await _cameraRecorder!.initializeCamera(
+        includeAudio: false,
+      );
 
       // Register video element for HtmlElementView
       _videoElementViewId =

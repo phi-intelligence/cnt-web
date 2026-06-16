@@ -1,0 +1,7 @@
+.git
+.gitignore
+build/
+.dart_tool/
+.idea/
+.vscode/
+*.md

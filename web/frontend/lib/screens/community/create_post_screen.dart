@@ -33,7 +33,9 @@ class CreatePostScreen extends StatefulWidget {
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _captionController;
+  late TextEditingController _imageCaptionController;
+  late TextEditingController _quoteController;
+  final FocusNode _quoteFocusNode = FocusNode();
   final ImagePicker _imagePicker = ImagePicker();
   dynamic _selectedImage; // For mobile (path-based File) or web (not used)
   Uint8List? _selectedImageBytes; // For web (bytes-based)
@@ -53,17 +55,34 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     super.initState();
     // Initialize from draft parameters if provided
     _draftId = widget.draftId;
-    _captionController = TextEditingController(text: widget.initialContent ?? '');
+    final initialContent = widget.initialContent ?? '';
     // If there's initial content but no image, default to text post type
-    _postType = (widget.initialCategory == 'text' || 
-        (widget.initialContent != null && widget.initialContent!.isNotEmpty)) 
-        ? 'text' 
+    _postType = (widget.initialCategory == 'text' ||
+            (widget.initialContent != null &&
+                widget.initialContent!.isNotEmpty))
+        ? 'text'
         : 'image';
+    // Separate controllers: sharing one controller caused Flutter Web to keep
+    // the image caption's white text color when switching to quote mode.
+    _imageCaptionController = TextEditingController(
+      text: _postType == 'image' ? initialContent : '',
+    );
+    _quoteController = TextEditingController(
+      text: _postType == 'text' ? initialContent : '',
+    );
+    if (kIsWeb) {
+      _quoteFocusNode.addListener(() {
+        if (mounted) setState(() {});
+      });
+    }
   }
+
+  String get _activeText =>
+      _postType == 'text' ? _quoteController.text : _imageCaptionController.text;
 
   /// Check if there are unsaved changes
   bool _hasUnsavedChanges() {
-    return _captionController.text.trim().isNotEmpty ||
+    return _activeText.trim().isNotEmpty ||
         _selectedImage != null ||
         _selectedImageBytes != null ||
         _uploadedImageUrl != null;
@@ -80,7 +99,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     try {
       final draftData = {
         'draft_type': DraftType.communityPost.value,
-        'content': _captionController.text.trim(),
+        'content': _activeText.trim(),
         'original_media_url': _uploadedImageUrl,
         'category': _postType,
         'status': DraftStatus.editing.value,
@@ -135,7 +154,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   @override
   void dispose() {
-    _captionController.dispose();
+    _quoteFocusNode.dispose();
+    _imageCaptionController.dispose();
+    _quoteController.dispose();
     super.dispose();
   }
 
@@ -239,7 +260,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       // For image posts, must have either image or caption
       if (_selectedImage == null &&
           _selectedImageBytes == null &&
-          _captionController.text.trim().isEmpty) {
+          _imageCaptionController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Please add a photo or write a caption'),
@@ -250,7 +271,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       }
     } else {
       // For text posts, must have content
-      if (_captionController.text.trim().isEmpty) {
+      if (_quoteController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Please write something to post'),
@@ -279,12 +300,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         }
       }
 
+      final postText = _activeText.trim();
+
       // Create post
       await context.read<CommunityProvider>().createPost(
-            title: _captionController.text.trim().isEmpty
+            title: postText.isEmpty
                 ? (_postType == 'image' ? 'Photo' : 'Quote')
-                : _captionController.text.trim().split('\n').first,
-            content: _captionController.text.trim(),
+                : postText.split('\n').first,
+            content: postText,
             category: 'General', // Default category
             imageUrl: imageUrl,
             postType: _postType,
@@ -317,6 +340,237 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         setState(() => _isSubmitting = false);
       }
     }
+  }
+
+  Widget _quoteCardShell({
+    required String title,
+    required IconData icon,
+    required Widget child,
+  }) {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 260),
+      padding: EdgeInsets.all(AppSpacing.large),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.warmBrown.withOpacity(0.25),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: AppColors.warmBrown),
+              const SizedBox(width: AppSpacing.small),
+              Text(
+                title,
+                style: AppTypography.heading4.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.medium),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuoteTypingCard() {
+    // On web, hide canvas text while focused so only the HTML input layer renders.
+    final hideCanvasTextWhileFocused = kIsWeb && _quoteFocusNode.hasFocus;
+
+    return _quoteCardShell(
+      title: 'Write your quote',
+      icon: Icons.edit_outlined,
+      child: TextField(
+        key: const ValueKey('quote-text-input'),
+        controller: _quoteController,
+        focusNode: _quoteFocusNode,
+        minLines: 8,
+        maxLines: 14,
+        keyboardType: TextInputType.multiline,
+        textInputAction: TextInputAction.newline,
+        keyboardAppearance: Brightness.light,
+        cursorColor: Colors.black,
+        style: TextStyle(
+          color: hideCanvasTextWhileFocused
+              ? Colors.transparent
+              : const Color(0xFF000000),
+          fontSize: 18,
+          height: 1.5,
+          decoration: TextDecoration.none,
+        ),
+        decoration: InputDecoration(
+          hintText: "What's on your mind?",
+          hintStyle: TextStyle(
+            color: hideCanvasTextWhileFocused
+                ? Colors.transparent
+                : AppColors.textPlaceholder,
+            fontSize: 18,
+          ),
+          filled: true,
+          fillColor: AppColors.backgroundPrimary,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: AppColors.borderPrimary),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: AppColors.borderPrimary),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppColors.warmBrown, width: 2),
+          ),
+          contentPadding: EdgeInsets.all(AppSpacing.medium),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuotePreviewContent(String quoteText) {
+    final trimmed = quoteText.trim();
+    if (trimmed.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.format_quote,
+              size: 48,
+              color: AppColors.warmBrown.withOpacity(0.35),
+            ),
+            const SizedBox(height: AppSpacing.medium),
+            Text(
+              'Your quote preview will appear here',
+              textAlign: TextAlign.center,
+              style: AppTypography.body.copyWith(
+                color: AppColors.textTertiary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(AppSpacing.large),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.warmBrown.withOpacity(0.1),
+              AppColors.accentMain.withOpacity(0.05),
+              Colors.white,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.warmBrown.withOpacity(0.4),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Icon(
+              Icons.format_quote,
+              color: AppColors.warmBrown,
+              size: 32,
+            ),
+            const SizedBox(height: AppSpacing.medium),
+            Text(
+              trimmed,
+              textAlign: TextAlign.center,
+              style: AppTypography.heading4.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+                fontStyle: FontStyle.italic,
+                height: 1.6,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.medium),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Transform.rotate(
+                angle: 3.14159,
+                child: Icon(
+                  Icons.format_quote,
+                  color: AppColors.warmBrown,
+                  size: 32,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuotePreviewCard() {
+    return _quoteCardShell(
+      title: 'Preview',
+      icon: Icons.visibility_outlined,
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: _quoteController,
+        builder: (context, value, _) =>
+            _buildQuotePreviewContent(value.text),
+      ),
+    );
+  }
+
+  Widget _buildQuotePostLayout() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const minCardHeight = 320.0;
+        final isWide = constraints.maxWidth >= 768;
+
+        if (isWide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: minCardHeight,
+                  child: _buildQuoteTypingCard(),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.large),
+              Expanded(
+                child: SizedBox(
+                  height: minCardHeight,
+                  child: _buildQuotePreviewCard(),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          children: [
+            SizedBox(height: minCardHeight, child: _buildQuoteTypingCard()),
+            const SizedBox(height: AppSpacing.large),
+            SizedBox(height: minCardHeight, child: _buildQuotePreviewCard()),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -413,6 +667,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
+                      FocusManager.instance.primaryFocus?.unfocus();
                       setState(() {
                         _postType = 'text';
                         _selectedImage = null;
@@ -571,7 +826,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         ],
                       ),
                       child: TextField(
-                        controller: _captionController,
+                        key: const ValueKey('image-caption-input'),
+                        controller: _imageCaptionController,
                         maxLines: null,
                         textInputAction: TextInputAction.newline,
                         decoration: InputDecoration(
@@ -602,31 +858,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
             ),
           ] else ...[
-            // Text post input (Facebook-style)
             Expanded(
-              child: Container(
-                padding: EdgeInsets.all(AppSpacing.large),
-                color: AppColors.primaryDark,
-                child: TextField(
-                  controller: _captionController,
-                  maxLines: null,
-                  expands: true,
-                  textAlignVertical: TextAlignVertical.top,
-                  textInputAction: TextInputAction.newline,
-                  decoration: InputDecoration(
-                    hintText: "What's on your mind?",
-                    hintStyle: AppTypography.body.copyWith(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 18,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  style: AppTypography.body.copyWith(
-                    fontSize: 18,
-                    color: Colors.white,
-                  ),
-                ),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(AppSpacing.medium),
+                child: _buildQuotePostLayout(),
               ),
             ),
           ],

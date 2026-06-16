@@ -8,6 +8,7 @@ import '../../widgets/shared/loading_shimmer.dart';
 import '../../widgets/shared/empty_state.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/responsive_grid_delegate.dart';
+import '../../utils/responsive_utils.dart';
 import '../../providers/notification_provider.dart';
 import '../../widgets/web/styled_pill_button.dart';
 
@@ -81,58 +82,7 @@ class _NotificationsScreenWebState extends State<NotificationsScreenWeb> {
               ),
             ),
             // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Notifications',
-                  style: AppTypography.heading1.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Row(
-                  children: _filters.map((filter) {
-                    final isSelected = filter == _filter;
-                    return Padding(
-                      padding: EdgeInsets.only(left: AppSpacing.small),
-                      child: FilterChip(
-                        label: Text(
-                          filter,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: isSelected
-                                ? Colors.white
-                                : AppColors.textSecondary,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
-                        ),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setState(() => _filter = filter);
-                          final provider = context.read<NotificationProvider>();
-                          provider.fetchNotifications(
-                            unreadOnly: filter == 'Unread',
-                            refresh: true,
-                          );
-                        },
-                        selectedColor: AppColors.primaryMain,
-                        backgroundColor: AppColors.cardBackground,
-                        checkmarkColor: Colors.white,
-                        side: BorderSide(
-                          color: isSelected
-                              ? AppColors.primaryMain
-                              : AppColors.borderPrimary,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
+            _buildHeader(context),
             const SizedBox(height: AppSpacing.large),
 
             // Notifications List
@@ -298,6 +248,76 @@ class _NotificationsScreenWebState extends State<NotificationsScreenWeb> {
         ),
       ),
     );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final title = Text(
+      'Notifications',
+      style: AppTypography.heading1.copyWith(
+        fontWeight: FontWeight.bold,
+      ),
+    );
+    final filters = _buildFilterChips();
+
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          title,
+          const SizedBox(height: AppSpacing.medium),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: filters),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        title,
+        Row(mainAxisSize: MainAxisSize.min, children: filters),
+      ],
+    );
+  }
+
+  List<Widget> _buildFilterChips() {
+    return _filters.map((filter) {
+      final isSelected = filter == _filter;
+      return Padding(
+        padding: const EdgeInsets.only(right: AppSpacing.small),
+        child: FilterChip(
+          label: Text(
+            filter,
+            style: AppTypography.bodySmall.copyWith(
+              color: isSelected ? Colors.white : AppColors.textSecondary,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+          selected: isSelected,
+          onSelected: (selected) {
+            setState(() => _filter = filter);
+            final provider = context.read<NotificationProvider>();
+            provider.fetchNotifications(
+              unreadOnly: filter == 'Unread',
+              refresh: true,
+            );
+          },
+          selectedColor: AppColors.primaryMain,
+          backgroundColor: AppColors.cardBackground,
+          checkmarkColor: Colors.white,
+          side: BorderSide(
+            color: isSelected ? AppColors.primaryMain : AppColors.borderPrimary,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+      );
+    }).toList();
   }
 
   IconData _getNotificationIcon(String? type) {

@@ -305,11 +305,19 @@ class EventProvider with ChangeNotifier {
     notifyListeners();
     
     try {
-      await _api.deleteEvent(eventId);
+      final success = await _api.deleteEvent(eventId);
+      if (!success) {
+        throw Exception('Failed to delete event');
+      }
       
       // Remove from local lists
       _events.removeWhere((e) => e.id == eventId);
       _myHostedEvents.removeWhere((e) => e.id == eventId);
+      _pastEvents.removeWhere((e) => e.id == eventId);
+      if (_selectedEvent?.id == eventId) {
+        _selectedEvent = null;
+        _selectedEventAttendees = [];
+      }
       
       return true;
     } catch (e) {

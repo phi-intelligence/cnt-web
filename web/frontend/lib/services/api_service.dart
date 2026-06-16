@@ -1972,6 +1972,27 @@ class ApiService {
     }
   }
 
+  /// Detect image MIME type from filename (web uploads often omit multipart content-type).
+  http.MediaType _detectImageContentTypeFromFilename(String filename) {
+    final lowerFileName = filename.toLowerCase();
+    if (lowerFileName.endsWith('.jpg') || lowerFileName.endsWith('.jpeg')) {
+      return http.MediaType('image', 'jpeg');
+    }
+    if (lowerFileName.endsWith('.png')) {
+      return http.MediaType('image', 'png');
+    }
+    if (lowerFileName.endsWith('.gif')) {
+      return http.MediaType('image', 'gif');
+    }
+    if (lowerFileName.endsWith('.webp')) {
+      return http.MediaType('image', 'webp');
+    }
+    if (lowerFileName.endsWith('.bmp')) {
+      return http.MediaType('image', 'bmp');
+    }
+    return http.MediaType('image', 'jpeg');
+  }
+
   /// Helper function to detect content type from filename extension
   http.MediaType? _detectContentTypeFromFilename(String filename) {
     final extension = filename.toLowerCase().split('.').last;
@@ -3032,7 +3053,12 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 10));
 
-      return response.statusCode == 200 || response.statusCode == 204;
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return true;
+      }
+      final body = response.body.isNotEmpty ? response.body : 'No details';
+      throw Exception(
+          'Failed to delete content: HTTP ${response.statusCode} - $body');
     } catch (e) {
       throw Exception('Error deleting content: $e');
     }
@@ -3512,7 +3538,12 @@ class ApiService {
       // Add file - handle both file path and bytes (for web)
       if (bytes != null && fileName != null) {
         request.files.add(
-          http.MultipartFile.fromBytes('file', bytes, filename: fileName),
+          http.MultipartFile.fromBytes(
+            'file',
+            bytes,
+            filename: fileName,
+            contentType: _detectImageContentTypeFromFilename(fileName),
+          ),
         );
       } else {
         final file = await http.MultipartFile.fromPath('file', filePath);
@@ -4443,7 +4474,7 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 10));
 
-      return response.statusCode == 200;
+      return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
       throw Exception('Error deleting event: $e');
     }

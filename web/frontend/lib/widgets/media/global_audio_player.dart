@@ -276,31 +276,11 @@ class GlobalAudioPlayer extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSpacing.small),
                   Expanded(
-                    child: SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        trackHeight: 4,
-                        thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 6,
-                        ),
-                        overlayShape: const RoundSliderOverlayShape(
-                          overlayRadius: 12,
-                        ),
-                      ),
-                      child: Slider(
-                        value: audioPlayer.duration.inSeconds > 0
-                            ? audioPlayer.position.inSeconds / audioPlayer.duration.inSeconds
-                            : 0.0,
-                        onChanged: audioPlayer.isLoading
-                            ? null
-                            : (value) {
-                                final newPosition = Duration(
-                                  seconds: (value * audioPlayer.duration.inSeconds).toInt(),
-                                );
-                                audioPlayer.seek(newPosition);
-                              },
-                        activeColor: AppColors.warmBrown,
-                        inactiveColor: AppColors.borderPrimary,
-                      ),
+                    child: _AudioSeekSlider(
+                      audioPlayer: audioPlayer,
+                      trackHeight: 4,
+                      thumbRadius: 6,
+                      overlayRadius: 12,
                     ),
                   ),
                   const SizedBox(width: AppSpacing.small),
@@ -523,31 +503,11 @@ class GlobalAudioPlayer extends StatelessWidget {
             Expanded(
               child: GestureDetector(
                 onTap: () {}, // Consume tap
-                child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 3,
-                    thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 5,
-                    ),
-                    overlayShape: const RoundSliderOverlayShape(
-                      overlayRadius: 10,
-                    ),
-                  ),
-                  child: Slider(
-                    value: audioPlayer.duration.inSeconds > 0
-                        ? audioPlayer.position.inSeconds / audioPlayer.duration.inSeconds
-                        : 0.0,
-                    onChanged: audioPlayer.isLoading
-                        ? null
-                        : (value) {
-                            final newPosition = Duration(
-                              seconds: (value * audioPlayer.duration.inSeconds).toInt(),
-                            );
-                            audioPlayer.seek(newPosition);
-                          },
-                    activeColor: AppColors.warmBrown,
-                    inactiveColor: AppColors.borderPrimary,
-                  ),
+                child: _AudioSeekSlider(
+                  audioPlayer: audioPlayer,
+                  trackHeight: 3,
+                  thumbRadius: 5,
+                  overlayRadius: 10,
                 ),
               ),
             ),
@@ -689,6 +649,76 @@ class _ControlButton extends StatelessWidget {
           minWidth: 36,
           minHeight: 36,
         ),
+      ),
+    );
+  }
+}
+
+/// Seek slider that only commits a seek when the user releases the thumb.
+class _AudioSeekSlider extends StatefulWidget {
+  final AudioPlayerState audioPlayer;
+  final double trackHeight;
+  final double thumbRadius;
+  final double overlayRadius;
+
+  const _AudioSeekSlider({
+    required this.audioPlayer,
+    required this.trackHeight,
+    required this.thumbRadius,
+    required this.overlayRadius,
+  });
+
+  @override
+  State<_AudioSeekSlider> createState() => _AudioSeekSliderState();
+}
+
+class _AudioSeekSliderState extends State<_AudioSeekSlider> {
+  bool _isSeeking = false;
+  double _seekValue = 0.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final audioPlayer = widget.audioPlayer;
+    final durationMs = audioPlayer.duration.inMilliseconds;
+    final isValidDuration = durationMs > 0;
+    final progress = isValidDuration
+        ? audioPlayer.position.inMilliseconds / durationMs
+        : 0.0;
+    final displayProgress = _isSeeking ? _seekValue : progress;
+
+    return SliderTheme(
+      data: SliderTheme.of(context).copyWith(
+        trackHeight: widget.trackHeight,
+        thumbShape: RoundSliderThumbShape(
+          enabledThumbRadius: widget.thumbRadius,
+        ),
+        overlayShape: RoundSliderOverlayShape(
+          overlayRadius: widget.overlayRadius,
+        ),
+      ),
+      child: Slider(
+        value: displayProgress.clamp(0.0, 1.0),
+        onChanged: audioPlayer.isLoading || !isValidDuration
+            ? null
+            : (value) {
+                setState(() {
+                  _isSeeking = true;
+                  _seekValue = value;
+                });
+              },
+        onChangeEnd: audioPlayer.isLoading || !isValidDuration
+            ? null
+            : (value) async {
+                final newPosition = Duration(
+                  milliseconds: (value * durationMs).round(),
+                );
+                await audioPlayer.seek(newPosition);
+                if (mounted) {
+                  setState(() => _isSeeking = false);
+                }
+              },
+        activeColor: AppColors.warmBrown,
+        inactiveColor: AppColors.borderPrimary,
       ),
     );
   }
