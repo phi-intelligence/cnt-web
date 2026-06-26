@@ -61,10 +61,8 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
   bool _wasPlayingBeforeScrub = false;
 
   // Form fields
-  final TextEditingController _titleController =
-      TextEditingController(text: 'My Video Podcast');
-  final TextEditingController _descriptionController = TextEditingController(
-      text: 'A wonderful video podcast about faith and spirituality');
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
   String? _selectedThumbnail;
   String? _videoUrl; // Will be set after upload
   

@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_typography.dart';
 import '../utils/platform_helper.dart';
@@ -31,6 +33,7 @@ class _CarouselItem {
   final String? title;
   final int postId; // For navigation
   final String postType; // 'image' or 'text' (quote)
+  bool showInCarousel; // Admin-controlled visibility in the hero carousel
 
   _CarouselItem({
     required this.id,
@@ -38,13 +41,17 @@ class _CarouselItem {
     this.title,
     required this.postId,
     required this.postType,
+    this.showInCarousel = true,
   });
 }
 
 class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
-  List<_CarouselItem> _items = [];
+  List<_CarouselItem> _items = []; // Items currently displayed in the carousel
+  List<_CarouselItem> _allItems = []; // All approved image posts (admin editing source)
+  bool _isAdmin = false;
+  bool _didInit = false;
   bool _isLoading = true;
   Timer? _autoScrollTimer;
   bool _isUserInteracting = false;
@@ -58,7 +65,17 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadItems();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Read admin status from context (not available in initState) and load once.
+    if (!_didInit) {
+      _didInit = true;
+      _isAdmin = context.read<AuthProvider>().isAdmin;
+      _loadItems();
+    }
   }
 
   @override
@@ -113,6 +130,9 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
       final posts = await apiService.getCommunityPosts(
         limit: 20,
         approvedOnly: true,  // Only show approved posts
+        // Admins fetch every approved image post so they can re-enable hidden
+        // ones in the editor; regular users only get carousel-flagged posts.
+        carouselOnly: !_isAdmin,
       );
       LoggerService.d('🖼️ Hero Carousel: Fetched ${posts.length} approved community posts');
       
@@ -124,6 +144,7 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
         final postId = post['id'] as int;
         final isApproved = post['is_approved'] ?? false;
         final postType = post['post_type'] as String? ?? 'image';
+        final showInCarousel = (post['show_in_carousel'] ?? true) == true;
         
         // Backend already filters by image_url, but double-check for safety
         // This includes both: post_type='image' posts AND post_type='text' posts converted to quote images
@@ -178,6 +199,7 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
             title: post['title'] as String?,
             postId: postId,
             postType: postType,
+            showInCarousel: showInCarousel,
           ));
           
           // Limit to 10-12 items for carousel
@@ -191,7 +213,11 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
       
       if (mounted) {
         setState(() {
-          _items = items;
+          _allItems = items;
+          // Admins fetch hidden posts too; only display the enabled ones.
+          _items = _isAdmin
+              ? items.where((i) => i.showInCarousel).toList()
+              : items;
           _isLoading = false;
           _currentIndex = 0;
           _lastLoadTime = DateTime.now(); // Update last load time
@@ -295,7 +321,9 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
       );
     }
     
-    if (_items.isEmpty) {
+    // Admins with content available (but all hidden) should still reach the
+    // editor, so don't short-circuit to the empty placeholder in that case.
+    if (_items.isEmpty && !(_isAdmin && _allItems.isNotEmpty)) {
       return Container(
         height: carouselHeight,
         decoration: BoxDecoration(
@@ -401,9 +429,71 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
               child: _buildIndicators(),
             ),
           ),
+
+          // Admin-only edit button to curate which images appear
+          if (_isAdmin)
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Material(
+                color: Colors.black.withOpacity(0.55),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: _openCarouselEditor,
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Tooltip(
+                      message: 'Edit carousel images',
+                      child: Icon(Icons.edit, color: Colors.white, size: 22),
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  /// Admin-only: open a panel to toggle which images appear in the carousel.
+  void _openCarouselEditor() {
+    _stopAutoScroll();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return _CarouselEditorSheet(
+          items: _allItems,
+          onToggle: (item, value) async {
+            final api = ApiService();
+            final ok = await api.setCarouselVisibility(item.postId, value);
+            if (ok) {
+              item.showInCarousel = value;
+              if (mounted) {
+                setState(() {
+                  _items =
+                      _allItems.where((i) => i.showInCarousel).toList();
+                  if (_currentIndex >= _items.length) {
+                    _currentIndex = _items.isEmpty ? 0 : _items.length - 1;
+                  }
+                });
+              }
+            }
+            return ok;
+          },
+        );
+      },
+    ).whenComplete(() {
+      // Resume auto-scroll once the editor closes.
+      if (mounted && _items.isNotEmpty) {
+        _startAutoScroll();
+      }
+    });
   }
 
   Widget _buildCarouselItem(int index, double height) {
@@ -550,7 +640,7 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
   }
 
   Widget _buildIndicators() {
-    if (_items.length <= 1) return const SizedBox();
+    if (_items.isEmpty || _items.length <= 1) return const SizedBox();
     
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -570,4 +660,141 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
     );
   }
 
+}
+
+/// Admin-only bottom sheet for choosing which posts appear in the hero carousel.
+class _CarouselEditorSheet extends StatefulWidget {
+  final List<_CarouselItem> items;
+  // Returns true if the change was persisted successfully.
+  final Future<bool> Function(_CarouselItem item, bool value) onToggle;
+
+  const _CarouselEditorSheet({
+    required this.items,
+    required this.onToggle,
+  });
+
+  @override
+  State<_CarouselEditorSheet> createState() => _CarouselEditorSheetState();
+}
+
+class _CarouselEditorSheetState extends State<_CarouselEditorSheet> {
+  final Set<int> _saving = {}; // postIds currently being saved
+
+  @override
+  Widget build(BuildContext context) {
+    final maxHeight = MediaQuery.of(context).size.height * 0.7;
+
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Edit carousel images',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Toggle which approved posts appear in the home carousel.',
+                  style: TextStyle(fontSize: 13, color: Colors.black54),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Divider(height: 1),
+            Flexible(
+              child: widget.items.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Text('No approved posts with images yet.'),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: widget.items.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final item = widget.items[index];
+                        final isSaving = _saving.contains(item.postId);
+                        return ListTile(
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image(
+                              image: ImageHelper.getImageProvider(item.imageUrl),
+                              width: 56,
+                              height: 56,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 56,
+                                height: 56,
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.image_not_supported,
+                                    size: 20, color: Colors.black38),
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            item.title?.isNotEmpty == true
+                                ? item.title!
+                                : 'Post #${item.postId}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            item.postType == 'text' ? 'Quote' : 'Image',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          trailing: isSaving
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2),
+                                )
+                              : Switch(
+                                  value: item.showInCarousel,
+                                  onChanged: (value) =>
+                                      _handleToggle(item, value),
+                                ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleToggle(_CarouselItem item, bool value) async {
+    setState(() => _saving.add(item.postId));
+    final ok = await widget.onToggle(item, value);
+    if (mounted) {
+      setState(() => _saving.remove(item.postId));
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to update. Please try again.')),
+        );
+      }
+    }
+  }
 }

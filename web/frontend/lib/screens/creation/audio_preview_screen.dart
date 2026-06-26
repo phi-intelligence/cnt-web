@@ -46,12 +46,9 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
 
-  final TextEditingController _titleController =
-      TextEditingController(text: 'My Audio Podcast');
-  final TextEditingController _descriptionController = TextEditingController(
-      text: 'A wonderful audio podcast about faith and spirituality');
-  final TextEditingController _tagsController =
-      TextEditingController(text: 'podcast, faith, spirituality');
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _tagsController = TextEditingController();
   String? _selectedThumbnail;
 
   @override

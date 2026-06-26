@@ -644,6 +644,7 @@ class ApiService {
     int limit = 20,
     bool approvedOnly = true, // Default to true - only show approved posts
     String? postType, // Optional filter by post type ('image' or 'text')
+    bool carouselOnly = false, // Only posts flagged to show in the hero carousel
   }) async {
     try {
       Uri uri = Uri.parse('$baseUrl/community/posts');
@@ -651,6 +652,7 @@ class ApiService {
         'skip': skip.toString(),
         'limit': limit.toString(),
         'approved_only': approvedOnly.toString(),
+        'carousel_only': carouselOnly.toString(),
       };
       if (category != null && category != 'All' && category.isNotEmpty) {
         queryParams['category'] = category.toLowerCase();
@@ -699,6 +701,24 @@ class ApiService {
     } catch (e) {
       LoggerService.w('⚠️ Error fetching carousel image for post $postId: $e');
       return null;
+    }
+  }
+
+  /// Toggle whether a community post appears in the hero carousel (admin only)
+  Future<bool> setCarouselVisibility(int postId, bool showInCarousel) async {
+    try {
+      final response = await http
+          .patch(
+            Uri.parse('$baseUrl/community/posts/$postId/carousel-visibility'),
+            headers: await _getHeaders(),
+            body: json.encode({'show_in_carousel': showInCarousel}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      return response.statusCode == 200;
+    } catch (e) {
+      LoggerService.w('⚠️ Error updating carousel visibility for post $postId: $e');
+      return false;
     }
   }
 

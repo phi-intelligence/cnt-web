@@ -514,7 +514,7 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
   // Centered desktop layout - removes sidebar tips
   Widget _buildCenteredDesktopLayout() {
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 800), // Slightly wider width
+      constraints: const BoxConstraints(maxWidth: 480),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -523,9 +523,105 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
             label: 'Back to Options',
             onPressed: () => GoRouter.of(context).pop(),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 28),
 
-          Center(child: _buildMeetingDetailsCard()),
+          // Page heading
+          Text(
+            'Your meeting is ready',
+            style: AppTypography.heading3.copyWith(
+              color: AppColors.primaryDark,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Share the link below or jump straight in.',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          _buildMeetingDetailsCard(),
+          const SizedBox(height: 24),
+          _buildInfoCard(),
+        ],
+      ),
+    );
+  }
+
+  // Helpful info / next steps card to give the page substance
+  Widget _buildInfoCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.warmBrown.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.warmBrown.withOpacity(0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lightbulb_outline,
+                  color: AppColors.warmBrown, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Before you start',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.primaryDark,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildInfoTip(
+            Icons.link,
+            'Anyone with the link can join this meeting.',
+          ),
+          _buildInfoTip(
+            Icons.shield_outlined,
+            'You join as the host and can manage participants.',
+          ),
+          _buildInfoTip(
+            Icons.mic_none,
+            'Check your camera and microphone on the next screen.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoTip(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.warmBrown.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 16, color: AppColors.warmBrown),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                text,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
