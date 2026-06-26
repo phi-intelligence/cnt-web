@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/web/compact_page_header.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../services/livekit_meeting_service.dart';
@@ -267,38 +268,12 @@ class _JoinMeetingScreenState extends State<JoinMeetingScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Header with back button
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.arrow_back,
-                                  color: AppColors.primaryDark),
-                              onPressed: _handleBack,
-                            ),
-                            Expanded(
-                              child: Text(
-                                'Join Meeting',
-                                style: AppTypography.getResponsiveHeroTitle(
-                                        context)
-                                    .copyWith(
-                                  color: AppColors.primaryDark,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize:
-                                      isMobile ? 28 : (isTablet ? 36 : 42),
-                                  height: 1.1,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: AppSpacing.small),
-                        Text(
-                          'Enter the meeting ID or paste the meeting link to join',
-                          style:
-                              AppTypography.getResponsiveBody(context).copyWith(
-                            color: AppColors.primaryDark.withOpacity(0.7),
-                            fontSize: isMobile ? 14 : 16,
-                          ),
+                        // Compact header (image backdrop already present)
+                        CompactPageHeader(
+                          title: 'Join Meeting',
+                          subtitle:
+                              'Enter the meeting ID or paste the meeting link to join',
+                          onBack: _handleBack,
                         ),
                         SizedBox(height: AppSpacing.extraLarge * 1.5),
 

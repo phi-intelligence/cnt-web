@@ -28,6 +28,9 @@ class MoviePreviewScreenWeb extends StatefulWidget {
   final int fileSize;
   final String?
       movieType; // 'movie' or 'kids_movie' (for pre-selecting category)
+  // Mirror playback for front-camera recordings to match the recording
+  // preview (display only; saved file stays un-mirrored).
+  final bool isFrontCamera;
 
   const MoviePreviewScreenWeb({
     super.key,
@@ -36,6 +39,7 @@ class MoviePreviewScreenWeb extends StatefulWidget {
     this.duration = 0,
     this.fileSize = 0,
     this.movieType,
+    this.isFrontCamera = false,
   });
 
   @override
@@ -293,6 +297,7 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
         builder: (context) => VideoEditorScreenWeb(
           videoPath: videoPathToUse,
           duration: durationToUse > 0 ? Duration(seconds: durationToUse) : null,
+          isFrontCamera: widget.isFrontCamera,
         ),
       ),
     );
@@ -749,7 +754,13 @@ class _MoviePreviewScreenWebState extends State<MoviePreviewScreenWeb> {
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              VideoPlayer(_controller!),
+                              widget.isFrontCamera
+                                  ? Transform(
+                                      alignment: Alignment.center,
+                                      transform: Matrix4.rotationY(3.14159265359),
+                                      child: VideoPlayer(_controller!),
+                                    )
+                                  : VideoPlayer(_controller!),
                               AnimatedOpacity(
                                 opacity: _showControls ? 1.0 : 0.0,
                                 duration: const Duration(milliseconds: 300),

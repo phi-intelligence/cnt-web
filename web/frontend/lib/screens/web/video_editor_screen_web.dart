@@ -15,6 +15,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
+import '../../widgets/web/page_background.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/responsive_utils.dart';
@@ -1849,7 +1850,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb>
     if (_isInitializing) {
       return Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
-        body: Container(
+        body: PageBackground(
+          child: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),
           child: Center(
             child: Column(
@@ -1867,13 +1869,15 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb>
             ),
           ),
         ),
+        ),
       );
     }
 
     if (_hasError) {
       return Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
-        body: Container(
+        body: PageBackground(
+          child: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),
           child: Column(
             children: [
@@ -1928,6 +1932,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb>
             ],
           ),
         ),
+        ),
       );
     }
 
@@ -1945,7 +1950,8 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb>
       },
       child: Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
-        body: Container(
+        body: PageBackground(
+          child: Container(
           padding:
               EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
           child: Column(
@@ -1985,6 +1991,7 @@ class _VideoEditorScreenWebState extends State<VideoEditorScreenWeb>
               ),
             ],
           ),
+        ),
         ),
       ),
     );

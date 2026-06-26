@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'dart:html' if (dart.library.io) '../utils/html_stub.dart' as html;
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/web/compact_page_header.dart';
 import '../../theme/app_typography.dart';
 import '../../services/api_service.dart';
 import '../../providers/auth_provider.dart';
@@ -395,46 +396,15 @@ class _BulkUploadScreenState extends State<BulkUploadScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                      // Header with back button
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.arrow_back, color: AppColors.primaryDark),
-                            onPressed: () => GoRouter.of(context).pop(),
-                          ),
-                          Expanded(
-                            child: Text(
-                              'Bulk Upload',
-                              style: AppTypography.getResponsiveHeroTitle(context).copyWith(
-                                color: AppColors.primaryDark,
-                                fontWeight: FontWeight.bold,
-                                fontSize: ResponsiveUtils.getResponsiveValue(
-                                  context: context,
-                                  mobile: 28.0,
-                                  tablet: 36.0,
-                                  desktop: 42.0,
-                                ),
-                                height: 1.1,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: AppSpacing.small),
-                      Text(
-                        'Upload multiple audio and video files at once',
-                        style: AppTypography.getResponsiveBody(context).copyWith(
-                          color: AppColors.primaryDark.withOpacity(0.7),
-                          fontSize: ResponsiveUtils.getResponsiveValue(
-                            context: context,
-                            mobile: 14.0,
-                            tablet: 15.0,
-                            desktop: 16.0,
-                          ),
-                        ),
+                      // Compact header (image backdrop already present)
+                      CompactPageHeader(
+                        title: 'Bulk Upload',
+                        subtitle:
+                            'Upload multiple audio and video files at once',
+                        onBack: () => GoRouter.of(context).pop(),
                       ),
                       SizedBox(height: AppSpacing.extraLarge * 1.5),
-                      
+
                       // Stepper indicator
                       _buildStepperIndicator(),
                       SizedBox(height: AppSpacing.large),

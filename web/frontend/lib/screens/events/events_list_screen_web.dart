@@ -328,8 +328,11 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb>
           );
         },
         child: Container(
-          height:
-              isMobile ? 90 : (isLargeScreen ? 110 : 100), // Responsive height
+          // Min height (not fixed) so a status badge + title + time row can
+          // grow without overflowing on small screens.
+          constraints: BoxConstraints(
+            minHeight: isMobile ? 90 : (isLargeScreen ? 110 : 100),
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24), // Less drastic than 50
@@ -345,11 +348,13 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb>
               width: 1,
             ),
           ),
-          child: Row(
+          child: IntrinsicHeight(
+            child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Date Indicator
               Container(
-                width: isMobile ? 70 : (isLargeScreen ? 90 : 80),
+                width: isMobile ? 64 : (isLargeScreen ? 90 : 80),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
@@ -396,8 +401,8 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb>
               // Content
               Expanded(
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 12 : 20, vertical: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -476,7 +481,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb>
 
               // Attendees & Arrow
               Padding(
-                padding: const EdgeInsets.only(right: 24),
+                padding: EdgeInsets.only(right: isMobile ? 12 : 24),
                 child: Row(
                   children: [
                     Container(
@@ -502,7 +507,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb>
                         ],
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: isMobile ? 8 : 16),
                     Icon(
                       Icons.arrow_forward_ios_rounded,
                       color: AppColors.warmBrown.withOpacity(0.5),
@@ -512,6 +517,7 @@ class _EventsListScreenWebState extends State<EventsListScreenWeb>
                 ),
               ),
             ],
+          ),
           ),
         ),
       ),

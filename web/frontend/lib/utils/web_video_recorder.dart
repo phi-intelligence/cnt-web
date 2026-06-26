@@ -24,6 +24,10 @@ class WebVideoRecorder {
   /// Get video element for preview
   html.VideoElement? get videoElement => _videoElement;
 
+  /// True when using the front ('user') camera, whose live preview is
+  /// mirrored. Used so preview/edit screens can mirror playback to match.
+  bool get isFrontCamera => _facingMode == 'user';
+
   /// Check if we're in a secure context (HTTPS or localhost)
   bool _isSecureContext() {
     try {

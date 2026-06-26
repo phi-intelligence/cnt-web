@@ -7,8 +7,8 @@ import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/bank_details_helper.dart';
-import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
+import '../../widgets/web/page_background.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../widgets/thumbnail_selector.dart';
 import '../../services/api_service.dart';
@@ -436,34 +436,83 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
         child: Scaffold(
           backgroundColor: AppColors.backgroundPrimary,
           resizeToAvoidBottomInset: false,
-          body: Container(
+          body: PageBackground(
+            child: Container(
             padding: ResponsiveGridDelegate.getResponsivePadding(context),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                      onPressed: _handleBack,
+                // Branded gradient header
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(
+                    MediaQuery.of(context).size.width < 600
+                        ? AppSpacing.large
+                        : AppSpacing.extraLarge,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.warmBrown,
+                        AppColors.warmBrown.withOpacity(0.85),
+                        AppColors.primaryMain.withOpacity(0.9),
+                      ],
                     ),
-                    Expanded(
-                      child: StyledPageHeader(
-                        title: 'Preview Audio Podcast',
-                        size: StyledPageHeaderSize.h2,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.warmBrown.withOpacity(0.3),
+                        blurRadius: 15,
+                        offset: const Offset(0, 6),
                       ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: AppColors.errorMain),
-                      onPressed: () async {
-                         final shouldDiscard = await _confirmDiscard();
-                         if (shouldDiscard && mounted) {
-                           Navigator.pop(context);
-                         }
-                      },
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: _handleBack,
+                        tooltip: 'Back',
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Preview Audio Podcast',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.heading2.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: AppSpacing.tiny),
+                            Text(
+                              'Review your audio, then publish to the community',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.body.copyWith(
+                                color: Colors.white.withOpacity(0.9),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.white),
+                        tooltip: 'Discard',
+                        onPressed: () async {
+                          final shouldDiscard = await _confirmDiscard();
+                          if (shouldDiscard && mounted) {
+                            Navigator.pop(context);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.extraLarge),
   
@@ -524,6 +573,7 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
                 ),
               ],
             ),
+          ),
           ),
         ),
       );
@@ -837,9 +887,48 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
     }
   }
 
+  Widget _buildMetaChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.medium,
+        vertical: AppSpacing.extraSmall,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.warmBrown.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+        border: Border.all(color: AppColors.warmBrown.withOpacity(0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: AppColors.warmBrown),
+          const SizedBox(width: AppSpacing.tiny),
+          Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAudioPlayer() {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.extraLarge),
+      padding: const EdgeInsets.all(AppSpacing.xxl),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.warmBrown.withOpacity(0.06),
+            Colors.white,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -889,88 +978,127 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
               ],
             )
           else ...[
-            // Audio Icon
+            // Album art with layered glow rings
             Container(
-              width: 120,
-              height: 120,
+              width: 200,
+              height: 200,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.warmBrown,
-                    AppColors.accentMain,
-                  ],
-                ),
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.warmBrown.withOpacity(0.3),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
+                color: AppColors.warmBrown.withOpacity(0.04),
               ),
-              child: Icon(
-                Icons.audiotrack,
-                size: 60,
-                color: Colors.white,
+              child: Container(
+                width: 168,
+                height: 168,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.warmBrown.withOpacity(0.08),
+                ),
+                child: Container(
+                  width: 130,
+                  height: 130,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.warmBrown,
+                        AppColors.accentMain,
+                      ],
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.warmBrown.withOpacity(0.35),
+                        blurRadius: 28,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.music_note_rounded,
+                    size: 60,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.large),
             Text(
-              'Audio Podcast',
+              _titleController.text.trim().isNotEmpty
+                  ? _titleController.text.trim()
+                  : 'Audio Podcast',
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: AppTypography.heading2.copyWith(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: AppSpacing.small),
-            Text(
-              _duration != Duration.zero
-                  ? '${_formatTime(_duration.inSeconds)} • ${_formatFileSize(widget.fileSize)}'
-                  : '${_formatTime(widget.duration)} • ${_formatFileSize(widget.fileSize)}',
-              style: AppTypography.body.copyWith(
-                color: AppColors.textSecondary,
-              ),
+            const SizedBox(height: AppSpacing.medium),
+            // Metadata chips
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: AppSpacing.small,
+              runSpacing: AppSpacing.small,
+              children: [
+                _buildMetaChip(
+                  Icons.schedule_rounded,
+                  _formatTime((_duration != Duration.zero
+                          ? _duration
+                          : Duration(seconds: widget.duration))
+                      .inSeconds),
+                ),
+                _buildMetaChip(
+                  Icons.audio_file_outlined,
+                  _formatFileSize(widget.fileSize),
+                ),
+              ],
             ),
-            const SizedBox(height: AppSpacing.extraLarge),
+            const SizedBox(height: AppSpacing.xxl),
 
             // Play/Pause Button
-            GestureDetector(
-              onTap: _handlePlayPause,
-              child: Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.warmBrown,
-                      AppColors.accentMain,
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.warmBrown.withOpacity(0.4),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                      spreadRadius: 2,
+            StreamBuilder<bool>(
+              stream: _audioPlayer.playingStream,
+              builder: (context, snapshot) {
+                final isPlaying = snapshot.data ?? false;
+                return GestureDetector(
+                  onTap: _handlePlayPause,
+                  child: Container(
+                    width: 88,
+                    height: 88,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.warmBrown,
+                          AppColors.accentMain,
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.warmBrown.withOpacity(0.45),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                          spreadRadius: 1,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: StreamBuilder<bool>(
-                  stream: _audioPlayer.playingStream,
-                  builder: (context, snapshot) {
-                    final isPlaying = snapshot.data ?? false;
-                    return Icon(
-                      isPlaying ? Icons.pause : Icons.play_arrow,
+                    child: Icon(
+                      isPlaying
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
                       size: 48,
                       color: Colors.white,
-                    );
-                  },
-                ),
-              ),
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: AppSpacing.large),
 
@@ -1055,37 +1183,45 @@ class _AudioPreviewScreenState extends State<AudioPreviewScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Action buttons
-          Row(
-            children: [
-              Expanded(
-                child: StyledPillButton(
-                  label: 'Edit Audio',
-                  icon: Icons.edit,
-                  onPressed: _handleEdit,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.medium),
+          // Primary action: Publish
           SizedBox(
             width: double.infinity,
             child: StyledPillButton(
-              label: _isLoading ? 'Publishing...' : 'Publish',
-              icon: Icons.publish,
+              label: _isLoading ? 'Publishing...' : 'Publish Podcast',
+              icon: Icons.publish_rounded,
               onPressed: _isLoading ? null : _handlePublish,
               isLoading: _isLoading,
             ),
           ),
-          const SizedBox(height: AppSpacing.extraLarge),
+          const SizedBox(height: AppSpacing.small),
+          // Secondary action: Edit
+          SizedBox(
+            width: double.infinity,
+            child: StyledPillButton(
+              label: 'Edit Audio',
+              icon: Icons.tune_rounded,
+              variant: StyledPillButtonVariant.outlined,
+              onPressed: _handleEdit,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.large),
+          Divider(color: AppColors.borderPrimary.withOpacity(0.6), height: 1),
+          const SizedBox(height: AppSpacing.large),
 
           // Podcast Details Section
-          Text(
-            'Podcast Details',
-            style: AppTypography.heading3.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            children: [
+              Icon(Icons.article_outlined,
+                  size: 20, color: AppColors.warmBrown),
+              const SizedBox(width: AppSpacing.small),
+              Text(
+                'Podcast Details',
+                style: AppTypography.heading3.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.large),
 

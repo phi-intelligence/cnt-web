@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/web/compact_page_header.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
@@ -516,38 +517,12 @@ class _ScheduleMeetingScreenState extends State<ScheduleMeetingScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Header with back button
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.arrow_back,
-                                  color: AppColors.primaryDark),
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                            Expanded(
-                              child: Text(
-                                'Schedule Meeting',
-                                style: AppTypography.getResponsiveHeroTitle(
-                                        context)
-                                    .copyWith(
-                                  color: AppColors.primaryDark,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize:
-                                      isMobile ? 28 : (isTablet ? 36 : 42),
-                                  height: 1.1,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: AppSpacing.small),
-                        Text(
-                          'Set up a meeting time and invite participants',
-                          style:
-                              AppTypography.getResponsiveBody(context).copyWith(
-                            color: AppColors.primaryDark.withOpacity(0.7),
-                            fontSize: isMobile ? 14 : 16,
-                          ),
+                        // Compact header (image backdrop already present)
+                        CompactPageHeader(
+                          title: 'Schedule Meeting',
+                          subtitle:
+                              'Set up a meeting time and invite participants',
+                          onBack: () => Navigator.pop(context),
                         ),
                         SizedBox(height: AppSpacing.extraLarge * 1.5),
 

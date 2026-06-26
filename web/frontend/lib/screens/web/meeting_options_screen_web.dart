@@ -332,6 +332,7 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
         borderRadius: BorderRadius.circular(24),
         child: Container(
           width: 240, // Increased width for better layout
+          height: 190, // Fixed height so all cards match regardless of label lines
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -346,7 +347,7 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
             ],
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
                 padding: const EdgeInsets.all(20), // Increased padding
@@ -358,9 +359,11 @@ class _MeetingOptionsScreenWebState extends State<MeetingOptionsScreenWeb> {
                     size: 40,
                     color: AppColors.primaryMain), // Increased icon size
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               Text(
                 title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: AppTypography.heading4.copyWith(
                   fontWeight: FontWeight.bold,
                   fontSize: 18, // Slightly larger font

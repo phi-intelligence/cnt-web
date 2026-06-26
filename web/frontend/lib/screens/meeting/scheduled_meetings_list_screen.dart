@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
+import '../../widgets/web/page_background.dart';
+import '../../widgets/web/compact_page_header.dart';
 import '../../services/api_service.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -351,32 +353,21 @@ class _ScheduledMeetingsListScreenState extends State<ScheduledMeetingsListScree
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
       resizeToAvoidBottomInset: false,
-      body: SafeArea(
+      body: PageBackground(
+        child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Back Button
-              TextButton.icon(
-                onPressed: () => Navigator.pop(context),
-                icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                label: Text('Back', style: AppTypography.body.copyWith(color: AppColors.textPrimary)),
-                style: TextButton.styleFrom(padding: EdgeInsets.zero),
+              // Compact header
+              CompactPageHeader(
+                title: 'My Scheduled Meetings',
+                subtitle: 'View and manage your upcoming meetings',
+                onBack: () => Navigator.pop(context),
               ),
               const SizedBox(height: AppSpacing.large),
-              
-              // Title
-              Text(
-                'My Scheduled Meetings',
-                style: AppTypography.heading1.copyWith(
-                  color: AppColors.textPrimary,
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.medium),
-              
+
               // Content
               Expanded(
                 child: _loadingScheduledMeetings
@@ -394,6 +385,7 @@ class _ScheduledMeetingsListScreenState extends State<ScheduledMeetingsListScree
             ],
           ),
         ),
+      ),
       ),
     );
   }

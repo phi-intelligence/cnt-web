@@ -284,11 +284,16 @@ class _CommunityScreenWebState extends State<CommunityScreenWeb> {
                               desktop: 3,
                               tablet: 2,
                               mobile: 1,
+                              // Single-column (mobile) cells must fit the
+                              // worst case: a square quote image plus header,
+                              // action row, like count, 2-line caption and
+                              // timestamp. Taller cells never overflow — they
+                              // only add a little spacing for short text posts.
                               childAspectRatio: ResponsiveUtils.isSmallMobile(
                                       context)
-                                  ? 0.65 // Taller cards for small mobile to prevent overflow
+                                  ? 0.55
                                   : (ResponsiveUtils.isMobile(context)
-                                      ? 0.7
+                                      ? 0.6
                                       : 0.72),
                               crossAxisSpacing:
                                   ResponsiveUtils.isSmallMobile(context)

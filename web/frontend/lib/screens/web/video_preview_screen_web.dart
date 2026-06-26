@@ -7,8 +7,8 @@ import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/bank_details_helper.dart';
-import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
+import '../../widgets/web/page_background.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../widgets/thumbnail_selector.dart';
 import '../../services/api_service.dart';
@@ -25,6 +25,10 @@ class VideoPreviewScreenWeb extends StatefulWidget {
   final String source; // 'camera' or 'gallery'
   final int duration;
   final int fileSize;
+  // Front-camera recordings have a mirrored live preview; mirror playback
+  // here too so it matches what the user saw while recording (display only —
+  // the saved/published file is left un-mirrored).
+  final bool isFrontCamera;
 
   const VideoPreviewScreenWeb({
     super.key,
@@ -32,6 +36,7 @@ class VideoPreviewScreenWeb extends StatefulWidget {
     required this.source,
     this.duration = 0,
     this.fileSize = 0,
+    this.isFrontCamera = false,
   });
 
   @override
@@ -322,6 +327,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
         builder: (context) => VideoEditorScreenWeb(
           videoPath: videoPathToUse,
           duration: durationToUse > 0 ? Duration(seconds: durationToUse) : null,
+          isFrontCamera: widget.isFrontCamera,
         ),
       ),
     );
@@ -685,30 +691,79 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
       child: Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
         resizeToAvoidBottomInset: false,
-        body: Container(
+        body: PageBackground(
+          child: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
-              Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                    onPressed: _handleBack,
-                  ),
-                Expanded(
-                  child: StyledPageHeader(
-                    title: 'Video Preview',
-                    size: StyledPageHeaderSize.h2,
-                  ),
+              // Branded gradient header
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(
+                  MediaQuery.of(context).size.width < 600
+                      ? AppSpacing.large
+                      : AppSpacing.extraLarge,
                 ),
-                IconButton(
-                  icon: Icon(Icons.delete, color: AppColors.errorMain),
-                  onPressed: _handleDelete,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.warmBrown,
+                      AppColors.warmBrown.withOpacity(0.85),
+                      AppColors.primaryMain.withOpacity(0.9),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.warmBrown.withOpacity(0.3),
+                      blurRadius: 15,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: _handleBack,
+                      tooltip: 'Back',
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Video Preview',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.heading2.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: AppSpacing.tiny),
+                          Text(
+                            'Review your video, then publish to the community',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.body.copyWith(
+                              color: Colors.white.withOpacity(0.9),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.white),
+                      tooltip: 'Discard',
+                      onPressed: _handleDelete,
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: AppSpacing.extraLarge),
 
             // Main Content: Horizontal Layout
@@ -768,6 +823,7 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
             ),
           ],
         ),
+      ),
       ),
     ),
     );
@@ -832,7 +888,15 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
                 ),
               )
             : _controller != null && _controller!.value.isInitialized
-                ? MouseRegion(
+                ? Container(
+                    constraints: const BoxConstraints(maxHeight: 560),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF14100D),
+                      borderRadius:
+                          BorderRadius.circular(AppSpacing.radiusLarge),
+                    ),
+                    child: Center(
+                    child: MouseRegion(
                     onEnter: (_) => _onMouseEnter(),
                     onExit: (_) => _onMouseExit(),
                     onHover: (_) => _onMouseMove(),
@@ -846,8 +910,15 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              // Video Player
-                              VideoPlayer(_controller!),
+                              // Video Player (mirror display for front-camera
+                              // recordings to match the recording preview).
+                              widget.isFrontCamera
+                                  ? Transform(
+                                      alignment: Alignment.center,
+                                      transform: Matrix4.rotationY(3.14159265359),
+                                      child: VideoPlayer(_controller!),
+                                    )
+                                  : VideoPlayer(_controller!),
 
                               // Controls Overlay
                               AnimatedOpacity(
@@ -1109,6 +1180,8 @@ class _VideoPreviewScreenWebState extends State<VideoPreviewScreenWeb> {
                           ),
                         ),
                       ),
+                    ),
+                  ),
                     ),
                   )
                 : Container(

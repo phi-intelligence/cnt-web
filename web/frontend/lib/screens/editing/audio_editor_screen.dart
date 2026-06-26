@@ -8,8 +8,8 @@ import '../../theme/app_typography.dart';
 import '../../utils/responsive_utils.dart';
 import '../../utils/responsive_grid_delegate.dart';
 import '../../utils/editor_responsive.dart';
-import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
+import '../../widgets/web/page_background.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../services/audio_editing_service.dart';
 import '../../services/api_service.dart';
@@ -1015,7 +1015,8 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
         },
         child: Scaffold(
         backgroundColor: AppColors.backgroundPrimary,
-        body: Container(
+        body: PageBackground(
+          child: Container(
           padding: ResponsiveGridDelegate.getResponsivePadding(context),
           child: SingleChildScrollView(
             child: ConstrainedBox(
@@ -1025,62 +1026,111 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header with back button
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                        onPressed: () async {
-                          final shouldPop = await _handleBackPressed();
-                          if (shouldPop && mounted) {
-                            GoRouter.of(context).pop();
-                          }
-                        },
-                        tooltip: 'Back',
+                  // Branded gradient header
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(
+                      MediaQuery.of(context).size.width < 600
+                          ? AppSpacing.large
+                          : AppSpacing.extraLarge,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.warmBrown,
+                          AppColors.warmBrown.withOpacity(0.85),
+                          AppColors.primaryMain.withOpacity(0.9),
+                        ],
                       ),
-                      Expanded(
-                        child: StyledPageHeader(
-                          title: widget.title ?? 'Edit Audio',
-                          size: StyledPageHeaderSize.h2,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.warmBrown.withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 6),
                         ),
-                      ),
-                      // Save Draft button
-                      Padding(
-                        padding: const EdgeInsets.only(right: AppSpacing.small),
-                        child: IntrinsicWidth(
-                          child: OutlinedButton.icon(
-                            onPressed: (_isSavingDraft || _isEditing) ? null : _saveDraft,
-                            icon: _isSavingDraft
-                                ? SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AppColors.warmBrown,
-                                    ),
-                                  )
-                                : Icon(Icons.bookmark_border, size: 18),
-                            label: Text(_isSavingDraft ? 'Saving...' : 'Save Draft'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.warmBrown,
-                              side: BorderSide(color: AppColors.warmBrown),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: () async {
+                            final shouldPop = await _handleBackPressed();
+                            if (shouldPop && mounted) {
+                              GoRouter.of(context).pop();
+                            }
+                          },
+                          tooltip: 'Back',
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.title ?? 'Edit Audio',
+                                style: AppTypography.heading2.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              SizedBox(height: AppSpacing.tiny),
+                              Text(
+                                'Trim and merge your audio before publishing',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.body.copyWith(
+                                  color: Colors.white.withOpacity(0.9),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Save Draft button
+                        Padding(
+                          padding: const EdgeInsets.only(left: AppSpacing.small),
+                          child: IntrinsicWidth(
+                            child: OutlinedButton.icon(
+                              onPressed: (_isSavingDraft || _isEditing) ? null : _saveDraft,
+                              icon: _isSavingDraft
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(Icons.bookmark_border, size: 18),
+                              label: Text(_isSavingDraft ? 'Saving...' : 'Save Draft'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: const BorderSide(color: Colors.white),
+                                disabledForegroundColor: Colors.white.withOpacity(0.5),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      if (_editedAudioPath != null)
-                        Flexible(
-                          child: StyledPillButton(
-                            label: 'Export',
-                            icon: Icons.download,
-                            onPressed: _handleExport,
+                        if (_editedAudioPath != null)
+                          Padding(
+                            padding: const EdgeInsets.only(left: AppSpacing.small),
+                            child: StyledPillButton(
+                              label: 'Export',
+                              icon: Icons.download,
+                              variant: StyledPillButtonVariant.outlinedLight,
+                              onPressed: _handleExport,
+                            ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.extraLarge),
                   
@@ -1121,6 +1171,7 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
                 ],
               ),
             ),
+          ),
           ),
         ),
       ),
@@ -1464,35 +1515,65 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
       showShadow: true,
       child: Container(
         padding: EditorResponsive.getSectionPadding(context),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.warmBrown.withOpacity(0.06),
+              Colors.white,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Audio Icon - Responsive size
+            // Album art with layered glow rings - Responsive size
             Container(
-              width: iconSize.toDouble(),
-              height: iconSize.toDouble(),
+              width: iconSize * 1.55,
+              height: iconSize * 1.55,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.warmBrown,
-                    AppColors.accentMain,
-                  ],
-                ),
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.warmBrown.withOpacity(0.3),
-                    blurRadius: iconSize * 0.15,
-                    spreadRadius: iconSize * 0.04,
-                  ),
-                ],
+                color: AppColors.warmBrown.withOpacity(0.04),
               ),
-              child: Icon(
-                Icons.audiotrack,
-                size: iconSize * 0.5,
-                color: Colors.white,
+              child: Container(
+                width: iconSize * 1.3,
+                height: iconSize * 1.3,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.warmBrown.withOpacity(0.08),
+                ),
+                child: Container(
+                  width: iconSize.toDouble(),
+                  height: iconSize.toDouble(),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.warmBrown,
+                        AppColors.accentMain,
+                      ],
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.warmBrown.withOpacity(0.35),
+                        blurRadius: iconSize * 0.22,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.music_note_rounded,
+                    size: iconSize * 0.5,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
             SizedBox(height: EditorResponsive.isMobile(context) ? AppSpacing.medium : AppSpacing.large),
@@ -1504,13 +1585,34 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
                 fontSize: textSize + 4,
               ),
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: AppSpacing.small),
-            Text(
-              _formatDuration(_audioDuration),
-              style: AppTypography.body.copyWith(
-                color: AppColors.textSecondary,
-                fontSize: textSize,
+            const SizedBox(height: AppSpacing.medium),
+            // Duration chip
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.medium,
+                vertical: AppSpacing.extraSmall,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.warmBrown.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                border: Border.all(color: AppColors.warmBrown.withOpacity(0.18)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.schedule_rounded, size: 15, color: AppColors.warmBrown),
+                  const SizedBox(width: AppSpacing.tiny),
+                  Text(
+                    _formatDuration(_audioDuration),
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
             SizedBox(height: EditorResponsive.isMobile(context) ? AppSpacing.large : AppSpacing.extraLarge),
@@ -1529,6 +1631,8 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
                 height: buttonSize,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                     colors: [
                       AppColors.warmBrown,
                       AppColors.accentMain,
@@ -1537,15 +1641,15 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.warmBrown.withOpacity(0.4),
-                      blurRadius: buttonSize * 0.2,
-                      offset: const Offset(0, 4),
-                      spreadRadius: buttonSize * 0.025,
+                      color: AppColors.warmBrown.withOpacity(0.45),
+                      blurRadius: buttonSize * 0.22,
+                      offset: const Offset(0, 8),
+                      spreadRadius: 1,
                     ),
                   ],
                 ),
                 child: Icon(
-                  (_player?.playing ?? false) ? Icons.pause : Icons.play_arrow,
+                  (_player?.playing ?? false) ? Icons.pause_rounded : Icons.play_arrow_rounded,
                   size: buttonSize * 0.5,
                   color: Colors.white,
                 ),
@@ -1628,18 +1732,20 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
     
     return SectionContainer(
       showShadow: true,
+      padding: EdgeInsets.zero,
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Panel Header
             Container(
+              width: double.infinity,
               padding: EditorResponsive.getSectionPadding(context),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.warmBrown.withOpacity(0.1),
-                    AppColors.accentMain.withOpacity(0.05),
+                    AppColors.warmBrown.withOpacity(0.18),
+                    AppColors.accentMain.withOpacity(0.10),
                   ],
                 ),
                 borderRadius: const BorderRadius.vertical(
@@ -1835,7 +1941,7 @@ class _AudioEditorScreenState extends State<AudioEditorScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.warmBrown.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+                      borderRadius: BorderRadius.circular(30),
                       border: Border.all(color: AppColors.warmBrown.withOpacity(0.3)),
                     ),
                     child: Text(

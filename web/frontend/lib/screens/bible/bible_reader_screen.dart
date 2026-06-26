@@ -304,16 +304,20 @@ class _BibleReaderScreenState extends State<BibleReaderScreen> {
               onPressed: () => Navigator.pop(context),
             ),
           ),
-          const SizedBox(width: 16),
-          Container(
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              shape: BoxShape.circle,
+          SizedBox(width: isMobile ? 8 : 16),
+          // Decorative book icon — hidden on mobile to save horizontal space
+          // for the action buttons (prevents toolbar overflow on small screens).
+          if (!isMobile) ...[
+            Container(
+              padding: EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.menu_book, color: Colors.white, size: 24),
             ),
-            child: Icon(Icons.menu_book, color: Colors.white, size: 24),
-          ),
-          const SizedBox(width: 12),
+            const SizedBox(width: 12),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

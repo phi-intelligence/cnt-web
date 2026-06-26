@@ -6,8 +6,8 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/responsive_grid_delegate.dart';
-import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
+import '../../widgets/web/page_background.dart';
 import '../../services/logger_service.dart';
 import '../../utils/web_video_recorder.dart';
 import 'video_preview_screen_web.dart';
@@ -272,6 +272,7 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
                 duration: _recordingDuration,
                 fileSize: fileSize,
                 movieType: widget.movieType ?? 'movie',
+                isFrontCamera: _recorder?.isFrontCamera ?? false,
               ),
             ),
           );
@@ -284,6 +285,7 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
                 source: 'camera',
                 duration: _recordingDuration,
                 fileSize: fileSize,
+                isFrontCamera: _recorder?.isFrontCamera ?? false,
               ),
             ),
           );
@@ -396,25 +398,75 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
       resizeToAvoidBottomInset: false,
-      body: Container(
+      body: PageBackground(
+        child: Container(
         padding: ResponsiveGridDelegate.getResponsivePadding(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                  onPressed: () => Navigator.pop(context),
+            // Branded gradient header
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(
+                MediaQuery.of(context).size.width < 600
+                    ? AppSpacing.large
+                    : AppSpacing.extraLarge,
+              ),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.warmBrown,
+                    AppColors.warmBrown.withOpacity(0.85),
+                    AppColors.primaryMain.withOpacity(0.9),
+                  ],
                 ),
-                Expanded(
-                  child: StyledPageHeader(
-                    title: 'Record Video Podcast',
-                    size: StyledPageHeaderSize.h2,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.warmBrown.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 6),
                   ),
-                ),
-              ],
+                ],
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                    tooltip: 'Back',
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.previewType == 'movie'
+                              ? 'Record Movie'
+                              : 'Record Video Podcast',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.heading2.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: AppSpacing.tiny),
+                        Text(
+                          'Lights, camera — share your message',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.body.copyWith(
+                            color: Colors.white.withOpacity(0.9),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: AppSpacing.extraLarge),
 
@@ -422,6 +474,7 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
             Expanded(
               child: SectionContainer(
                 showShadow: true,
+                padding: EdgeInsets.all(AppSpacing.medium),
                 child: _isInitializing
                     ? Center(
                         child: Column(
@@ -489,7 +542,15 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
                                   : constraints.maxHeight;
                               final previewWidth = previewHeight * (16 / 9);
                               
-                              return Stack(
+                              return Container(
+                                width: double.infinity,
+                                clipBehavior: Clip.antiAlias,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF14100D),
+                                  borderRadius: BorderRadius.circular(
+                                      AppSpacing.radiusLarge),
+                                ),
+                                child: Stack(
                                 children: [
                                   // Camera Preview - HTML Video Element
                                   if (_videoElementViewId != null)
@@ -695,6 +756,7 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
                                 ),
                               ),
                                 ],
+                                ),
                               );
                             },
                           ),
@@ -702,6 +764,7 @@ class _VideoRecordingScreenWebState extends State<VideoRecordingScreenWeb> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

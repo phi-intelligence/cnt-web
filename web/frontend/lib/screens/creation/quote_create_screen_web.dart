@@ -5,8 +5,8 @@ import '../../providers/community_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/web/compact_page_header.dart';
 import '../../theme/app_typography.dart';
-import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
 import '../../widgets/web/styled_pill_button.dart';
 import '../../utils/responsive_grid_delegate.dart';
@@ -419,53 +419,22 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Header with decorative quote icon
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                              onPressed: () async {
-                                if (_hasUnsavedChanges) {
-                                  final shouldPop = await _handleWillPop();
-                                  if (shouldPop && context.mounted) {
-                                    context.pop();
-                                  }
-                                } else {
-                                  context.pop();
-                                }
-                              },
-                            ),
-                            Expanded(
-                              child: Row(
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.all(AppSpacing.small),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        AppColors.warmBrown,
-                                        AppColors.accentMain,
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Icon(
-                                    Icons.format_quote,
-                                    color: Colors.white,
-                                    size: 24,
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.medium),
-                                Expanded(
-                                  child: StyledPageHeader(
-                                    title: 'Create Quote',
-                                    size: StyledPageHeaderSize.h2,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                            // Save Draft button
+                        // Compact header (subtle background already present)
+                        CompactPageHeader(
+                          title: 'Create Quote',
+                          subtitle:
+                              'Share an inspiring quote with the community',
+                          onBack: () async {
+                            if (_hasUnsavedChanges) {
+                              final shouldPop = await _handleWillPop();
+                              if (shouldPop && context.mounted) {
+                                context.pop();
+                              }
+                            } else {
+                              context.pop();
+                            }
+                          },
+                          actions: [
                             if (_hasUnsavedChanges)
                               TextButton.icon(
                                 onPressed: _isSavingDraft ? null : _saveDraft,
@@ -478,14 +447,15 @@ class _QuoteCreateScreenWebState extends State<QuoteCreateScreenWeb> {
                                           color: AppColors.warmBrown,
                                         ),
                                       )
-                                    : Icon(Icons.save_outlined, color: AppColors.warmBrown),
+                                    : Icon(Icons.save_outlined,
+                                        color: AppColors.warmBrown),
                                 label: Text(
                                   _isSavingDraft ? 'Saving...' : 'Save Draft',
                                   style: TextStyle(color: AppColors.warmBrown),
                                 ),
                               ),
-                        ],
-                      ),
+                          ],
+                        ),
                       const SizedBox(height: AppSpacing.extraLarge),
 
                       // Two-column layout: Input and Preview (responsive)

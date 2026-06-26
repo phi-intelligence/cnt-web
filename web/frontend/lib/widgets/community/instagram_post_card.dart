@@ -106,7 +106,7 @@ class _InstagramPostCardState extends State<InstagramPostCard>
     if (imageUrl == null || imageUrl.isEmpty) return '';
 
     final url = imageUrl.toString().trim();
-  if (url.startsWith('assets/')) {
+    if (url.startsWith('assets/')) {
       return url;
     }
 

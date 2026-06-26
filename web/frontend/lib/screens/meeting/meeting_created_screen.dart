@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/web/styled_back_button.dart';
 import '../../theme/app_typography.dart';
 import '../../services/livekit_meeting_service.dart';
 import 'package:go_router/go_router.dart';
@@ -518,12 +519,9 @@ class _MeetingCreatedScreenState extends State<MeetingCreatedScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Back button
-          TextButton.icon(
+          StyledBackButton(
+            label: 'Back to Options',
             onPressed: () => GoRouter.of(context).pop(),
-            icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-            label: Text('Back to Options',
-                style:
-                    AppTypography.body.copyWith(color: AppColors.textPrimary)),
           ),
           const SizedBox(height: 32),
 

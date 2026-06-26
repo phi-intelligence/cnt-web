@@ -5,6 +5,7 @@ import '../../theme/app_typography.dart';
 import 'package:go_router/go_router.dart';
 import '../../screens/web/live_screen_web.dart';
 import '../../utils/responsive_grid_delegate.dart';
+import '../../utils/responsive_utils.dart';
 import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
 
@@ -81,15 +82,29 @@ class _LiveStreamOptionsScreenWebState extends State<LiveStreamOptionsScreenWeb>
             Expanded(
               child: SectionContainer(
                 showShadow: true,
+                padding: EdgeInsets.all(
+                    ResponsiveUtils.isMobile(context)
+                        ? AppSpacing.medium
+                        : AppSpacing.extraLarge),
                 child: Padding(
-                  padding: EdgeInsets.all(AppSpacing.large),
+                  padding: EdgeInsets.all(
+                      ResponsiveUtils.isMobile(context)
+                          ? AppSpacing.small
+                          : AppSpacing.large),
                   child: GridView.builder(
                     gridDelegate: ResponsiveGridDelegate.getResponsiveGridDelegate(
                       context,
                       desktop: 3,
                       tablet: 2,
                       mobile: 1,
-                      childAspectRatio: 1.2,
+                      // Single-column vertical cards need tall cells; a wide
+                      // ratio (1.2) clipped the icon + title + description.
+                      childAspectRatio: ResponsiveUtils.getResponsiveValue(
+                        context: context,
+                        mobile: 0.95,
+                        tablet: 1.0,
+                        desktop: 1.2,
+                      ),
                       crossAxisSpacing: AppSpacing.large,
                       mainAxisSpacing: AppSpacing.large,
                     ),
@@ -201,7 +216,9 @@ class _OptionCardState extends State<_OptionCard> {
                     ),
                   ],
           ),
-          padding: const EdgeInsets.all(AppSpacing.extraLarge),
+          padding: EdgeInsets.all(ResponsiveUtils.isMobile(context)
+              ? AppSpacing.large
+              : AppSpacing.extraLarge),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

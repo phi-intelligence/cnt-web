@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/web/compact_page_header.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/responsive_utils.dart';
 import 'package:file_picker/file_picker.dart';
@@ -313,33 +314,12 @@ class MovieCreateScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header with back button
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.arrow_back, color: AppColors.primaryDark),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                          Expanded(
-                            child: Text(
-                              'Upload Movies',
-                              style: AppTypography.getResponsiveHeroTitle(context).copyWith(
-                                color: AppColors.primaryDark,
-                                fontWeight: FontWeight.bold,
-                                fontSize: isMobile ? (ResponsiveUtils.isSmallMobile(context) ? 24 : 28) : (isTablet ? 36 : 42),
-                                height: 1.1,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: AppSpacing.small),
-                      Text(
-                        'Upload and share movies with the community. Choose the type of movie you want to upload.',
-                        style: AppTypography.getResponsiveBody(context).copyWith(
-                          color: AppColors.primaryDark.withOpacity(0.7),
-                          fontSize: isMobile ? 14 : 16,
-                        ),
+                      // Compact header (image backdrop already present)
+                      CompactPageHeader(
+                        title: 'Upload Movies',
+                        subtitle:
+                            'Upload and share movies with the community. Choose the type of movie you want to upload.',
+                        onBack: () => Navigator.pop(context),
                       ),
                       SizedBox(height: AppSpacing.extraLarge * 1.5),
                       // Options Grid - centered

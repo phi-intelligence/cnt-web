@@ -5,8 +5,9 @@ import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
-import '../../widgets/web/styled_page_header.dart';
 import '../../widgets/web/section_container.dart';
+import '../../widgets/web/page_background.dart';
+import '../../widgets/web/compact_page_header.dart';
 import '../../utils/responsive_grid_delegate.dart';
 
 /// My Drafts Screen - Shows all user's saved drafts for videos, audio, posts, and quotes
@@ -191,12 +192,13 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
 
     return SectionContainer(
       showShadow: true,
+      // Use compact padding instead of the default extraLarge so the fixed
+      // thumbnail + action buttons leave enough room on small screens.
+      padding: EdgeInsets.all(AppSpacing.medium),
       child: InkWell(
         onTap: () => _openDraft(draft),
         borderRadius: BorderRadius.circular(24),
-        child: Padding(
-          padding: EdgeInsets.all(AppSpacing.medium),
-          child: Row(
+        child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Thumbnail or icon
@@ -316,7 +318,6 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
               ),
             ],
           ),
-        ),
       ),
     );
   }
@@ -471,7 +472,8 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
     return Scaffold(
       backgroundColor: AppColors.backgroundPrimary,
       resizeToAvoidBottomInset: false,
-      body: Container(
+      body: PageBackground(
+        child: Container(
         padding: ResponsiveGridDelegate.getResponsivePadding(context),
         child: Center(
           child: ConstrainedBox(
@@ -479,31 +481,12 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    const SizedBox(width: AppSpacing.small),
-                    Container(
-                      padding: EdgeInsets.all(AppSpacing.small),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [AppColors.warmBrown, AppColors.accentMain],
-                        ),
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: Icon(Icons.drafts_outlined, color: Colors.white, size: 24),
-                    ),
-                    const SizedBox(width: AppSpacing.medium),
-                    Expanded(
-                      child: StyledPageHeader(
-                        title: 'My Drafts',
-                        size: StyledPageHeaderSize.h2,
-                      ),
-                    ),
+                // Compact header
+                CompactPageHeader(
+                  title: 'My Drafts',
+                  subtitle: 'Continue editing your saved work',
+                  onBack: () => Navigator.of(context).pop(),
+                  actions: [
                     IconButton(
                       icon: Icon(Icons.refresh, color: AppColors.warmBrown),
                       onPressed: _loadDrafts,
@@ -626,6 +609,7 @@ class _MyDraftsScreenState extends State<MyDraftsScreen> with SingleTickerProvid
             ),
           ),
         ),
+      ),
       ),
     );
   }

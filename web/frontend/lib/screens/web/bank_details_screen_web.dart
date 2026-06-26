@@ -365,9 +365,13 @@ class _BankDetailsScreenWebState extends State<BankDetailsScreenWeb> {
               ),
               borderRadius: BorderRadius.circular(AppSpacing.radiusLarge),
             ),
-            child: Row(
-              children: [
-                Container(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Stack the icon above the text on narrow screens so the copy
+                // gets the full width instead of squeezing into a thin column.
+                final bool stack = constraints.maxWidth < 480;
+
+                final Widget iconBox = Container(
                   width: isDesktop ? 100 : 80,
                   height: isDesktop ? 100 : 80,
                   decoration: BoxDecoration(
@@ -379,30 +383,50 @@ class _BankDetailsScreenWebState extends State<BankDetailsScreenWeb> {
                     color: Colors.white,
                     size: isDesktop ? 50 : 40,
                   ),
-                ),
-                const SizedBox(width: AppSpacing.large),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                );
+
+                final Widget textBlock = Column(
+                  crossAxisAlignment: stack
+                      ? CrossAxisAlignment.center
+                      : CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Set Up Payouts',
+                      textAlign: stack ? TextAlign.center : TextAlign.start,
+                      style: AppTypography.heading2.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.small),
+                    Text(
+                      'Connect your Stripe account to start receiving donations and payments. This is a secure process handled by Stripe.',
+                      textAlign: stack ? TextAlign.center : TextAlign.start,
+                      style: AppTypography.body.copyWith(
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
+                );
+
+                if (stack) {
+                  return Column(
                     children: [
-                      Text(
-                        'Set Up Payouts',
-                        style: AppTypography.heading2.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.small),
-                      Text(
-                        'Connect your Stripe account to start receiving donations and payments. This is a secure process handled by Stripe.',
-                        style: AppTypography.body.copyWith(
-                          color: Colors.white.withOpacity(0.9),
-                        ),
-                      ),
+                      iconBox,
+                      const SizedBox(height: AppSpacing.large),
+                      textBlock,
                     ],
-                  ),
-                ),
-              ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    iconBox,
+                    const SizedBox(width: AppSpacing.large),
+                    Expanded(child: textBlock),
+                  ],
+                );
+              },
             ),
           ),
         ),

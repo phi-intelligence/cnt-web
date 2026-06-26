@@ -8,6 +8,7 @@ import '../../utils/responsive_utils.dart';
 import '../../widgets/web/section_container.dart';
 import 'audio_preview_screen.dart';
 import '../../widgets/web/section_container.dart';
+import '../../widgets/web/page_background.dart';
 import 'audio_preview_screen.dart';
 import '../../utils/web_audio_recorder.dart';
 import '../../utils/unsaved_changes_guard.dart';
@@ -364,7 +365,8 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen>
         child: Scaffold(
           backgroundColor: AppColors.backgroundPrimary,
           resizeToAvoidBottomInset: false,
-          body: Container(
+          body: PageBackground(
+            child: Container(
             padding: ResponsiveGridDelegate.getResponsivePadding(context),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -372,7 +374,11 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen>
                 // Warm brown gradient header section
                 Container(
                   width: double.infinity,
-                  padding: EdgeInsets.all(AppSpacing.extraLarge),
+                  padding: EdgeInsets.all(
+                    MediaQuery.of(context).size.width < 600
+                        ? AppSpacing.large
+                        : AppSpacing.extraLarge,
+                  ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -419,6 +425,8 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen>
                         children: [
                           Text(
                             'Record Audio Podcast',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: AppTypography.heading2.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -427,6 +435,8 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen>
                           SizedBox(height: AppSpacing.tiny),
                           Text(
                             'Create inspiring audio content',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: AppTypography.body.copyWith(
                               color: Colors.white.withOpacity(0.9),
                             ),
@@ -441,11 +451,55 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen>
 
               // Recording Section
               Expanded(
-                child: SectionContainer(
+                child: Center(
+                  child: SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 720),
+                      child: SectionContainer(
                   showShadow: true,
+                  padding: EdgeInsets.all(AppSpacing.xxl),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Idle prompt when not recording
+                      if (!_isRecording) ...[
+                        Container(
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.warmBrown.withOpacity(0.08),
+                            border: Border.all(
+                              color: AppColors.warmBrown.withOpacity(0.2),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.graphic_eq_rounded,
+                            size: 44,
+                            color: AppColors.warmBrown.withOpacity(0.7),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.large),
+                        Text(
+                          'Ready to record',
+                          style: AppTypography.heading3.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.small),
+                        Text(
+                          'Find a quiet space and tap the microphone below to begin capturing your podcast.',
+                          textAlign: TextAlign.center,
+                          style: AppTypography.body.copyWith(
+                            color: AppColors.textSecondary,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.extraLarge),
+                      ],
                       // Recording status badge with brown styling
                       if (_isRecording)
                         Container(
@@ -495,23 +549,29 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen>
                       if (_isRecording)
                         const SizedBox(height: AppSpacing.large),
 
-                      // Timer display
-                      Text(
-                        _formatDuration(_recordingDuration),
-                        style: AppTypography.heading1.copyWith(
-                          color: AppColors.warmBrown,
-                          fontWeight: FontWeight.bold,
+                      // Timer + waveform only while recording
+                      if (_isRecording) ...[
+                        // Timer display
+                        Text(
+                          _formatDuration(_recordingDuration),
+                          style: AppTypography.heading1.copyWith(
+                            color: AppColors.warmBrown,
+                            fontWeight: FontWeight.bold,
+                            fontFeatures: const [
+                              FontFeature.tabularFigures(),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.extraLarge),
+                        const SizedBox(height: AppSpacing.extraLarge),
 
-                      // Brown soundbar visualization
-                      _buildSoundbar(
-                        isRecording: _isRecording,
-                        isPaused: _isPaused,
-                      ),
+                        // Brown soundbar visualization
+                        _buildSoundbar(
+                          isRecording: _isRecording,
+                          isPaused: _isPaused,
+                        ),
 
-                      const SizedBox(height: AppSpacing.extraLarge * 1.5),
+                        const SizedBox(height: AppSpacing.extraLarge * 1.5),
+                      ],
 
                       // Control buttons with brown pill design
                       Builder(
@@ -638,11 +698,28 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen>
                           );
                         },
                       ),
+                      const SizedBox(height: AppSpacing.large),
+                      // Contextual helper hint
+                      Text(
+                        _isRecording
+                            ? (_isPaused
+                                ? 'Recording paused — resume or save when ready.'
+                                : 'Tap pause to take a break, or the check to save.')
+                            : 'Your recording stays private until you publish it.',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
                     ],
+                  ),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ],
+          ),
           ),
           ),
         ),

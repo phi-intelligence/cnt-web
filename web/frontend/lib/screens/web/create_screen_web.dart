@@ -94,11 +94,14 @@ class CreateScreenWeb extends StatelessWidget {
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: AppSpacing.medium,
                   mainAxisSpacing: AppSpacing.medium,
-                  childAspectRatio: 0.9,
+                  // Slightly taller cards on very small screens so titles that
+                  // wrap to two lines (e.g. "Live Stream") don't overflow.
+                  childAspectRatio:
+                      ResponsiveUtils.isSmallMobile(context) ? 0.82 : 0.9,
                 ),
                 itemCount: optionCards.length,
                 itemBuilder: (context, index) => optionCards[index],
@@ -293,11 +296,14 @@ class CreateScreenWeb extends StatelessWidget {
     bool isAdminFeature = false,
   }) {
     final cardColor = isAdminFeature ? Colors.red.shade700 : AppColors.warmBrown;
-    
+    final bool isSmall = ResponsiveUtils.isSmallMobile(context);
+    final double iconBoxPad = isSmall ? 9 : 12;
+    final double iconSize = isSmall ? 24 : 28;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.large),
+        padding: EdgeInsets.all(isSmall ? AppSpacing.medium : AppSpacing.large),
         decoration: BoxDecoration(
           color: cardColor.withOpacity(0.95),
           borderRadius: BorderRadius.circular(20),
@@ -318,12 +324,12 @@ class CreateScreenWeb extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(iconBoxPad),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(icon, color: Colors.white, size: 28),
+                  child: Icon(icon, color: Colors.white, size: iconSize),
                 ),
                 if (isAdminFeature)
                   Container(
@@ -345,9 +351,12 @@ class CreateScreenWeb extends StatelessWidget {
             ),
             Text(
               title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: AppTypography.heading3.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
+                fontSize: isSmall ? 16 : null,
               ),
             ),
           ],
