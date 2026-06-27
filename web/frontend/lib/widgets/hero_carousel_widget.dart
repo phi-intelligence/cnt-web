@@ -430,31 +430,21 @@ class HeroCarouselWidgetState extends State<HeroCarouselWidget> with AutomaticKe
             ),
           ),
 
-          // Admin-only edit button to curate which images appear
-          if (_isAdmin)
-            Positioned(
-              top: 12,
-              right: 12,
-              child: Material(
-                color: Colors.black.withOpacity(0.55),
-                shape: const CircleBorder(),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: _openCarouselEditor,
-                  child: const Padding(
-                    padding: EdgeInsets.all(10),
-                    child: Tooltip(
-                      message: 'Edit carousel images',
-                      child: Icon(Icons.edit, color: Colors.white, size: 22),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          // NOTE: the admin edit button is rendered by the parent screen in its
+          // foreground layer (above the scrollable card) so it is reliably
+          // clickable on web. See HomeScreenWeb._buildHeroSection / openEditor().
         ],
       ),
     );
   }
+
+  /// Public entry point so the page's foreground layer can open the editor.
+  /// (An in-carousel button sits beneath the scroll overlay and isn't reliably
+  /// clickable on Flutter web, so the button lives in the page foreground.)
+  void openEditor() => _openCarouselEditor();
+
+  /// Whether the current user is an admin (drives the foreground edit button).
+  bool get isAdmin => _isAdmin;
 
   /// Admin-only: open a panel to toggle which images appear in the carousel.
   void _openCarouselEditor() {

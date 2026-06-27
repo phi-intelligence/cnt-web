@@ -12,6 +12,7 @@ import '../../providers/audio_player_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/playlist_provider.dart';
 import '../../providers/favorites_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../models/content_item.dart';
 import '../../models/api_models.dart';
 import '../video/video_player_full_screen.dart';
@@ -979,6 +980,30 @@ class _HomeScreenWebState extends State<HomeScreenWeb> {
               ),
             ),
           ),
+
+          // Admin-only carousel edit button in the FOREGROUND layer so it sits
+          // above the scrollable white card and is reliably clickable on web.
+          if (context.watch<AuthProvider>().isAdmin &&
+              _calculateCarouselOpacity() > 0.5)
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Material(
+                color: Colors.black.withOpacity(0.55),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => _heroCarouselKey.currentState?.openEditor(),
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Tooltip(
+                      message: 'Edit carousel images',
+                      child: Icon(Icons.edit, color: Colors.white, size: 22),
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
