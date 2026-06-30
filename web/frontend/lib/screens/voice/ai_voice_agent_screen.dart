@@ -266,10 +266,14 @@ class _Header extends StatelessWidget {
             tooltip: 'Back',
           ),
           const SizedBox(width: 4),
-          Image.asset(
-            'assets/images/cnt-dove-logo.png',
-            height: 26,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          ClipOval(
+            child: Image.asset(
+              'assets/images/cnt-dove-logo.png',
+              height: 30,
+              width: 30,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
           ),
           const SizedBox(width: 10),
           Text(
@@ -477,38 +481,33 @@ class _VoiceOrbState extends State<VoiceOrb> with TickerProviderStateMixin {
               height: s,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.primaryLight,
-                    AppColors.primaryMain,
-                    AppColors.primaryDark,
-                  ],
+                color: Colors.white,
+                border: Border.all(
+                  color: widget.accent.withOpacity(0.5),
+                  width: 4,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: widget.accent.withOpacity(0.35),
+                    color: widget.accent.withOpacity(0.30),
                     blurRadius: 40,
                     spreadRadius: _active ? 6 : 0,
                   ),
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.18),
+                    color: Colors.black.withOpacity(0.15),
                     blurRadius: 24,
                     offset: const Offset(0, 12),
                   ),
                 ],
               ),
-              child: Padding(
-                padding: EdgeInsets.all(s * 0.22),
+              child: ClipOval(
                 child: Image.asset(
                   'assets/images/cnt-dove-logo.png',
-                  fit: BoxFit.contain,
-                  color: Colors.white,
-                  colorBlendMode: BlendMode.srcIn,
+                  fit: BoxFit.cover,
+                  width: s,
+                  height: s,
                   errorBuilder: (_, __, ___) => Icon(
                     Icons.mic_rounded,
-                    color: Colors.white,
+                    color: AppColors.primaryMain,
                     size: s * 0.4,
                   ),
                 ),
