@@ -9,6 +9,7 @@ frontend:
           export PATH="$PATH:$PWD/flutter/bin"
           flutter doctor
         - cd web/frontend
+        - test -f .env || cp env.example .env
         - flutter pub get
         - flutter clean
     build:
