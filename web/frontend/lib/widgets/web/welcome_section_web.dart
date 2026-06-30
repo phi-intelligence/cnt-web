@@ -3,7 +3,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../voice/voice_bubble.dart';
-import '../../screens/web/voice_agent_screen_web.dart';
+import '../../screens/voice/ai_voice_agent_screen.dart';
 import '../../utils/responsive_utils.dart';
 
 class WelcomeSectionWeb extends StatelessWidget {
@@ -131,7 +131,7 @@ class WelcomeSectionWeb extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const VoiceAgentScreenWeb(),
+                  builder: (context) => const AIVoiceAgentScreen(),
                 ),
               );
             },
