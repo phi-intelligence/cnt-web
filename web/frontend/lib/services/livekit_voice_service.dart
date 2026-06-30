@@ -5,6 +5,21 @@ import 'package:livekit_client/livekit_client.dart' as lk;
 import 'api_service.dart';
 import 'logger_service.dart';
 
+/// A single line of conversation transcript (from the user or the assistant).
+class TranscriptTurn {
+  final String id;
+  final bool isAgent;
+  String text;
+  bool isFinal;
+
+  TranscriptTurn({
+    required this.id,
+    required this.isAgent,
+    required this.text,
+    this.isFinal = false,
+  });
+}
+
 /// Service for managing LiveKit voice agent connections
 class LiveKitVoiceService {
   lk.Room? _room;
@@ -17,11 +32,20 @@ class LiveKitVoiceService {
       StreamController<lk.ConnectionState>.broadcast();
   final _agentStateController = StreamController<String>.broadcast();
   final _transcriptController = StreamController<String>.broadcast();
+  final _turnsController =
+      StreamController<List<TranscriptTurn>>.broadcast();
+
+  // Structured transcript state (keyed by transcription segment id)
+  final Map<String, TranscriptTurn> _turnsById = {};
+  final List<TranscriptTurn> _turns = [];
 
   Stream<lk.ConnectionState> get connectionState =>
       _connectionStateController.stream;
   Stream<String> get agentState => _agentStateController.stream;
   Stream<String> get transcript => _transcriptController.stream;
+
+  /// Ordered list of conversation turns (user + assistant), updated live.
+  Stream<List<TranscriptTurn>> get transcriptTurns => _turnsController.stream;
 
   bool get isConnected => _isConnected;
   lk.Room? get room => _room;
@@ -190,6 +214,29 @@ class LiveKitVoiceService {
           } else
             _handleAgentData(Uint8List.fromList(data));
         }
+      })
+      ..on<lk.TranscriptionEvent>((event) {
+        // Real-time speech-to-text for both the user and the agent.
+        final isAgent =
+            event.participant.kind == lk.ParticipantKind.AGENT;
+        for (final seg in event.segments) {
+          if (seg.text.trim().isEmpty) continue;
+          final existing = _turnsById[seg.id];
+          if (existing != null) {
+            existing.text = seg.text;
+            existing.isFinal = seg.isFinal;
+          } else {
+            final turn = TranscriptTurn(
+              id: seg.id,
+              isAgent: isAgent,
+              text: seg.text,
+              isFinal: seg.isFinal,
+            );
+            _turnsById[seg.id] = turn;
+            _turns.add(turn);
+          }
+        }
+        _turnsController.add(List.unmodifiable(_turns));
       })
       ..on<lk.RoomDisconnectedEvent>((_) {
         LoggerService.i('🎤 LiveKit: Room disconnected');
@@ -374,5 +421,6 @@ class LiveKitVoiceService {
     _connectionStateController.close();
     _agentStateController.close();
     _transcriptController.close();
+    _turnsController.close();
   }
 }
