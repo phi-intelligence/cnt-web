@@ -62,7 +62,11 @@ local.db
 *.zip
 
 .playwright-mcp/
-.env
 docs/
+# Environment (never commit secrets)
+.env
+.env.*
+!.env.example
 web/frontend/.env
-web/frontend/.env
+web/frontend/.env.*
+!web/frontend/env.example
