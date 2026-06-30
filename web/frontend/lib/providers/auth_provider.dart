@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
 import '../services/google_auth_service.dart';
 import '../services/web_storage_service.dart';
+import '../services/api_service.dart';
 import '../services/logger_service.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -274,6 +275,30 @@ class AuthProvider extends ChangeNotifier {
 
   Future<Map<String, String>> getAuthHeaders() async {
     return await _authService.getAuthHeaders();
+  }
+
+  /// Re-fetch /users/me and update cached user (including is_admin) from server.
+  Future<bool> refreshAdminStatusFromServer() async {
+    if (!_isAuthenticated) return false;
+
+    try {
+      final userData = await ApiService().getCurrentUser();
+      final isAdmin = userData['is_admin'] == true;
+      _user = {
+        ...?_user,
+        'id': userData['id'] ?? _user?['id'],
+        'username': userData['username'] ?? _user?['username'],
+        'email': userData['email'] ?? _user?['email'],
+        'name': userData['name'] ?? _user?['name'],
+        'is_admin': isAdmin,
+      };
+      await _authService.updateStoredUser(_user!);
+      notifyListeners();
+      return isAdmin;
+    } catch (e) {
+      LoggerService.e('Failed to verify admin status from server', e);
+      return false;
+    }
   }
 
   Future<bool> register({

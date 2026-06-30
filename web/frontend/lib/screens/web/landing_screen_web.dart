@@ -128,10 +128,6 @@ class _LandingScreenWebState extends State<LandingScreenWeb> {
   Future<void> _handleGoogleLogin(BuildContext dialogContext) async {
     setState(() => _isLoading = true);
 
-    // Auto-enable "Remember Me" for Google OAuth logins
-    // Google users expect to stay logged in across browser sessions
-    AuthService.setRememberMe(true);
-
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.googleLogin();
 

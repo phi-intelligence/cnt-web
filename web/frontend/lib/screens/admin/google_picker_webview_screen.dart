@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../services/api_service.dart';
+import '../../services/logger_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 
@@ -50,7 +52,7 @@ class _GooglePickerWebViewScreenState extends State<GooglePickerWebViewScreen> {
             });
           },
           onWebResourceError: (WebResourceError error) {
-            print('WebView error: ${error.description}');
+            LoggerService.e('WebView error: ${error.description}');
             setState(() {
               _isLoading = false;
             });
@@ -70,7 +72,7 @@ class _GooglePickerWebViewScreenState extends State<GooglePickerWebViewScreen> {
               Navigator.pop(context);
             }
           } catch (e) {
-            print('Error parsing file selection: $e');
+            LoggerService.e('Error parsing file selection', e);
           }
         },
       )
@@ -118,6 +120,9 @@ class _GooglePickerWebViewScreenState extends State<GooglePickerWebViewScreen> {
       viewType = 'google.picker.ViewId.VIDEOS';
     }
 
+    final oauthTokenJs = jsonEncode(accessToken);
+    final clientIdJs = jsonEncode(clientId);
+
     return '''
 <!DOCTYPE html>
 <html>
@@ -162,8 +167,15 @@ class _GooglePickerWebViewScreenState extends State<GooglePickerWebViewScreen> {
 
   <script>
     let pickerApiLoaded = false;
-    const oauthToken = '$accessToken';
-    const clientId = '$clientId';
+    const oauthToken = $oauthTokenJs;
+    const clientId = $clientIdJs;
+
+    function setStatus(message) {
+      const statusEl = document.getElementById('status');
+      if (statusEl) {
+        statusEl.textContent = message;
+      }
+    }
 
     function onApiLoad() {
       gapi.load('picker', {'callback': onPickerApiLoad});
@@ -177,13 +189,13 @@ class _GooglePickerWebViewScreenState extends State<GooglePickerWebViewScreen> {
 
     function loadPicker() {
       if (!pickerApiLoaded) {
-        document.getElementById('status').innerHTML = 'Loading picker...';
+        setStatus('Loading picker...');
         setTimeout(loadPicker, 100);
         return;
       }
 
       if (!oauthToken) {
-        document.getElementById('status').innerHTML = 'Error: No access token available';
+        setStatus('Error: No access token available');
         return;
       }
 
@@ -203,7 +215,7 @@ class _GooglePickerWebViewScreenState extends State<GooglePickerWebViewScreen> {
         // Send file info to Flutter
         FilePicker.postMessage(file.id + '|' + file.name + '|' + (file.mimeType || ''));
       } else if (data.action === google.picker.Action.CANCEL) {
-        document.getElementById('status').innerHTML = 'Selection cancelled';
+        setStatus('Selection cancelled');
         // Close after a delay
         setTimeout(() => {
           window.close();

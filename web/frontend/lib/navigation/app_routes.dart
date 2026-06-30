@@ -60,12 +60,12 @@ GoRouter createAppRouter(
 ) {
   return GoRouter(
     initialLocation: '/',
-    redirect: (context, state) {
+    refreshListenable: authProvider,
+    redirect: (context, state) async {
       // Initialize navigation history with current route
       navHistoryProvider.initializeWithRoute(state.matchedLocation);
 
       final isAuthenticated = authProvider.isAuthenticated;
-      final isAdmin = authProvider.isAdmin;
       final isAuthRoute = state.matchedLocation == '/' ||
           state.matchedLocation.startsWith('/login') ||
           state.matchedLocation.startsWith('/register');
@@ -73,6 +73,12 @@ GoRouter createAppRouter(
       // Define admin-only routes
       final isAdminRoute = state.matchedLocation.startsWith('/admin') ||
           state.matchedLocation.startsWith('/bulk-upload');
+
+      // Re-verify admin status from server when entering admin routes
+      bool isAdmin = authProvider.isAdmin;
+      if (isAuthenticated && isAdminRoute) {
+        isAdmin = await authProvider.refreshAdminStatusFromServer();
+      }
 
       // Redirect to login if not authenticated and trying to access protected route
       if (!isAuthenticated && !isAuthRoute) {

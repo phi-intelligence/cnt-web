@@ -16,45 +16,17 @@ import 'logger_service.dart';
 /// API Service for connecting Flutter to backend
 class ApiService {
   final AuthService _authService = AuthService();
-  // Web deployment - uses AppConfig for URLs
-  // Configure via --dart-define=API_BASE_URL=https://api.yourdomain.com/api/v1
+  // Web deployment - uses AppConfig (dart-define > .env > dev defaults)
   static String get baseUrl {
-    const envUrl = String.fromEnvironment('API_BASE_URL');
-    if (envUrl.isNotEmpty) {
-      LoggerService.i('🌐 API Base URL (from env): $envUrl');
-      return envUrl;
-    }
-
-    // Return config URL (will be placeholder if not set via --dart-define)
-    // User should set API_BASE_URL via --dart-define when running locally
-    final configUrl = AppConfig.apiBaseUrl;
-    if (configUrl.isEmpty) {
-      LoggerService.e(
-          '❌ ERROR: API_BASE_URL is not set! Set it via --dart-define=API_BASE_URL=<your-api-url>');
-      throw Exception(
-          'API_BASE_URL is not configured. Please set it via --dart-define during build.');
-    }
-    if (configUrl.contains('yourdomain.com')) {
-      LoggerService.w(
-          '⚠️ API Base URL: Placeholder URL detected. Set API_BASE_URL via --dart-define when running locally.');
-    }
-
-    return configUrl;
+    final url = AppConfig.apiBaseUrl;
+    LoggerService.i('API Base URL: $url');
+    return url;
   }
 
   static String get mediaBaseUrl {
-    const envUrl = String.fromEnvironment('MEDIA_BASE_URL');
-    if (envUrl.isNotEmpty) {
-      return envUrl;
-    }
-    final configUrl = AppConfig.mediaBaseUrl;
-    if (configUrl.isEmpty) {
-      LoggerService.e(
-          '❌ ERROR: MEDIA_BASE_URL is not set! Set it via --dart-define=MEDIA_BASE_URL=<your-media-url>');
-      throw Exception(
-          'MEDIA_BASE_URL is not configured. Please set it via --dart-define during build.');
-    }
-    return configUrl;
+    final url = AppConfig.mediaBaseUrl;
+    LoggerService.i('Media Base URL: $url');
+    return url;
   }
 
   static final ApiService _instance = ApiService._internal();
@@ -177,6 +149,10 @@ class ApiService {
     };
     final authHeaders = await _authService.getAuthHeaders();
     headers.addAll(authHeaders);
+    // ngrok free tier returns an HTML interstitial without CORS headers unless skipped
+    if (baseUrl.contains('ngrok')) {
+      headers['ngrok-skip-browser-warning'] = 'true';
+    }
     return headers;
   }
 

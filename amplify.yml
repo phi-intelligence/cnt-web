@@ -20,6 +20,7 @@ frontend:
     postBuild:
       commands:
         - echo "Build completed successfully"
+        - echo "Security headers configured via customHttp.yml at repo root"
   artifacts:
     baseDirectory: web/frontend/build/web
     files:

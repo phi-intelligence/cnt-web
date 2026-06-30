@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 // Conditional import for web-specific code
 import 'dart:html' if (dart.library.io) '../utils/html_stub.dart' as html;
+import 'logger_service.dart';
 
 /// Web storage service that supports both session storage and local storage
 /// For Netflix-style behavior: session storage logs out on browser close,
@@ -16,19 +17,17 @@ class WebStorageService {
   static bool get isWeb => kIsWeb;
 
   /// Check if "Remember Me" is enabled
-  /// Defaults to true (localStorage) if preference not set, matching user expectations
+  /// Defaults to false (sessionStorage) if preference not set
   static bool get rememberMeEnabled {
     if (!isWeb) return true; // On non-web, always persist
     try {
       // Check localStorage for remember me preference (always stored in localStorage)
       final value = html.window.localStorage[_rememberMeKey];
-      // Default to true if key doesn't exist (persist sessions by default)
-      if (value == null) return true;
+      if (value == null) return false;
       return value == 'true';
     } catch (e) {
-      print('Error reading remember me preference: $e');
-      // Default to true on error (safer default)
-      return true;
+      LoggerService.e('Error reading remember me preference', e);
+      return false;
     }
   }
 
@@ -39,7 +38,7 @@ class WebStorageService {
       // Always store this in localStorage so we know the preference on page load
       html.window.localStorage[_rememberMeKey] = value.toString();
     } catch (e) {
-      print('Error setting remember me preference: $e');
+      LoggerService.e('Error setting remember me preference', e);
     }
   }
 
@@ -63,7 +62,7 @@ class WebStorageService {
         _storage[key] = value;
       }
     } catch (e) {
-      print('WebStorageService: Error writing $key: $e');
+      LoggerService.e('WebStorageService: Error writing $key', e);
     }
   }
 
@@ -87,7 +86,7 @@ class WebStorageService {
 
       return value;
     } catch (e) {
-      print('WebStorageService: Error reading $key: $e');
+      LoggerService.e('WebStorageService: Error reading $key', e);
       return null;
     }
   }
@@ -99,7 +98,7 @@ class WebStorageService {
       html.window.localStorage.remove(key);
       html.window.sessionStorage.remove(key);
     } catch (e) {
-      print('WebStorageService: Error deleting $key: $e');
+      LoggerService.e('WebStorageService: Error deleting $key', e);
     }
   }
 
@@ -114,7 +113,7 @@ class WebStorageService {
       }
       // Keep remember_me preference - only in localStorage
     } catch (e) {
-      print('WebStorageService: Error clearing auth data: $e');
+      LoggerService.e('WebStorageService: Error clearing auth data', e);
     }
   }
 
@@ -133,7 +132,7 @@ class WebStorageService {
           if (value != null) {
             html.window.sessionStorage[key] = value;
             html.window.localStorage.remove(key);
-            print('Migrated $key from localStorage to sessionStorage');
+            LoggerService.d('Migrated $key from localStorage to sessionStorage');
           }
         }
       }
@@ -144,12 +143,12 @@ class WebStorageService {
           if (value != null) {
             html.window.localStorage[key] = value;
             html.window.sessionStorage.remove(key);
-            print('Migrated $key from sessionStorage to localStorage');
+            LoggerService.d('Migrated $key from sessionStorage to localStorage');
           }
         }
       }
     } catch (e) {
-      print('WebStorageService: Error migrating storage: $e');
+      LoggerService.e('WebStorageService: Error migrating storage', e);
     }
   }
 }

@@ -64,3 +64,5 @@ local.db
 .playwright-mcp/
 .env
 docs/
+web/frontend/.env
+web/frontend/.env

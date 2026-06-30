@@ -1,5 +1,6 @@
 import 'package:google_sign_in/google_sign_in.dart';
 import 'api_service.dart';
+import 'logger_service.dart';
 
 class GoogleAuthService {
   final ApiService _apiService = ApiService();
@@ -50,7 +51,7 @@ class GoogleAuthService {
           clientId = await _apiService.getGoogleClientId();
           _cachedClientId = clientId;
         } catch (e) {
-          print('⚠️  Could not fetch Google Client ID from backend: $e');
+          LoggerService.w('Could not fetch Google Client ID from backend: $e');
         }
       }
       
@@ -61,13 +62,13 @@ class GoogleAuthService {
           scopes: ['openid', 'email', 'profile'],
           clientId: clientId,
         );
-        print('✅ Google Sign-In initialized with Client ID from ${_getClientIdFromEnv() != null ? 'environment' : 'backend'}');
+        LoggerService.i('Google Sign-In initialized with Client ID from ${_getClientIdFromEnv() != null ? 'environment' : 'backend'}');
       } else {
         // Fallback: will try to read from meta tag on web
         _googleSignInInstance = GoogleSignIn(
           scopes: ['openid', 'email', 'profile'],
         );
-        print('⚠️  Google Sign-In initialized without Client ID. Make sure it\'s set in index.html meta tag or backend config.');
+        LoggerService.w('Google Sign-In initialized without Client ID. Set index.html meta tag or backend config.');
       }
     } finally {
       _isInitializing = false;
@@ -105,14 +106,14 @@ class GoogleAuthService {
       
       // Try ID token first (preferred), fall back to access token
       if (auth.idToken != null && auth.idToken!.isNotEmpty) {
-        print('✅ Got Google ID token');
+        LoggerService.i('Got Google ID token');
         return {
           'token': auth.idToken!,
           'token_type': 'id_token',
         };
       } else if (auth.accessToken != null && auth.accessToken!.isNotEmpty) {
         // Fallback to access token (common on web with deprecated signIn method)
-        print('⚠️ ID token not available, using access token instead');
+        LoggerService.w('ID token not available, using access token instead');
         return {
           'token': auth.accessToken!,
           'token_type': 'access_token',
@@ -125,7 +126,7 @@ class GoogleAuthService {
       }
     } catch (e) {
       final errorMessage = e.toString();
-      print('❌ Error signing in with Google: $errorMessage');
+      LoggerService.e('Error signing in with Google: $errorMessage');
       
       // Provide helpful error messages
       if (errorMessage.contains('invalid_client') || errorMessage.contains('OAuth client was not found')) {

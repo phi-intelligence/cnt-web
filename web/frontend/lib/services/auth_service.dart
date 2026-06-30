@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import '../utils/platform_helper.dart';
+import '../config/app_config.dart';
 import 'web_storage_service.dart';
 import 'logger_service.dart';
 
@@ -47,22 +47,13 @@ class AuthService {
   /// Get "Remember Me" preference (web only)
   static bool get rememberMeEnabled => WebStorageService.rememberMeEnabled;
   
-  static String get baseUrl {
-    // Check for dart-define first (for USB-connected devices)
-    const envUrl = String.fromEnvironment('API_BASE');
-    if (envUrl.isNotEmpty) {
-      return envUrl;
-    }
-    // Fallback to PlatformHelper
-    return PlatformHelper.getApiBaseUrl();
-  }
+  static String get baseUrl => AppConfig.apiBaseUrl;
   
   /// Login with username or email and password
   Future<Map<String, dynamic>> login(String usernameOrEmail, String password) async {
     try {
-      LoggerService.i('🔐 Attempting login to: $baseUrl/auth/login');
-      LoggerService.i('👤 Username/Email: $usernameOrEmail');
-      
+      LoggerService.i('Attempting login');
+
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
@@ -77,18 +68,12 @@ class AuthService {
         },
       );
       
-      LoggerService.i('📡 Login response status: ${response.statusCode}');
-      LoggerService.d('📄 Login response body: ${response.body}');
+      LoggerService.i('Login response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
-        // Enable remember me by default for email/password login (matches user expectations)
-        if (kIsWeb) {
-          setRememberMe(true);
-        }
-        
-        // Store token, refresh token, and user data
+        // Store token, refresh token, and user data (never log token values)
         await _write(key: _tokenKey, value: data['access_token']);
         if (data['refresh_token'] != null) {
           await _write(key: _refreshTokenKey, value: data['refresh_token']);
@@ -272,15 +257,9 @@ class AuthService {
       );
       
       LoggerService.d('📡 Registration response status: ${response.statusCode}');
-      LoggerService.d('📄 Registration response body: ${response.body}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
-        // Enable remember me by default for registration (matches user expectations)
-        if (kIsWeb) {
-          setRememberMe(true);
-        }
         
         // Store token, refresh token, and user data
         await _write(key: _tokenKey, value: data['access_token']);
@@ -353,15 +332,9 @@ class AuthService {
       );
       
       LoggerService.d('📡 Google login response status: ${response.statusCode}');
-      LoggerService.d('📄 Google login response body: ${response.body}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
-        // Enable remember me for Google login (users expect session persistence)
-        if (kIsWeb) {
-          WebStorageService.setRememberMe(true);
-        }
         
         // Store token, refresh token, and user data
         await _write(key: _tokenKey, value: data['access_token']);
@@ -529,11 +502,6 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
-        // Enable remember me by default for registration (matches user expectations)
-        if (kIsWeb) {
-          setRememberMe(true);
-        }
-        
         // Store token, refresh token, and user data
         await _write(key: _tokenKey, value: data['access_token']);
         if (data['refresh_token'] != null) {
@@ -678,7 +646,6 @@ class AuthService {
       return {};
     }
     
-    LoggerService.d('🔑 Auth token retrieved: ${token.substring(0, 20)}...');
     return {'Authorization': 'Bearer $token'};
   }
 

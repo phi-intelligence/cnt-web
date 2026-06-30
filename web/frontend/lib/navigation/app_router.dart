@@ -16,6 +16,7 @@ import '../providers/artist_provider.dart';
 import '../providers/event_provider.dart';
 import '../providers/navigation_history_provider.dart';
 import '../services/websocket_service.dart';
+import '../services/logger_service.dart';
 import '../theme/app_theme.dart';
 import '../config/app_config.dart';
 import 'app_routes.dart';
@@ -33,7 +34,7 @@ class _AppRouterState extends State<AppRouter> {
   @override
   void initState() {
     super.initState();
-    print('✅ AppRouter initState');
+    LoggerService.i('AppRouter initState');
     // Initialize WebSocket connection asynchronously after first frame
     // This prevents blocking the build method and handles errors gracefully
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -45,14 +46,13 @@ class _AppRouterState extends State<AppRouter> {
 
   void _initializeWebSocket() async {
     try {
-      print('✅ AppRouter: Initializing WebSocket...');
+      LoggerService.i('AppRouter: Initializing WebSocket...');
       await WebSocketService().connect();
-      print('✅ AppRouter: WebSocket connected');
+      LoggerService.i('AppRouter: WebSocket connected');
     } catch (e, stackTrace) {
       // Log error but don't crash the app
       // WebSocket connection is non-critical for app functionality
-      print('❌ AppRouter: WebSocket connection failed (non-critical): $e');
-      print('Stack trace: $stackTrace');
+      LoggerService.e('AppRouter: WebSocket connection failed (non-critical)', e, stackTrace);
     }
   }
 
@@ -64,19 +64,18 @@ class _AppRouterState extends State<AppRouter> {
       if (AppConfig.stripePublishableKey.isNotEmpty) {
         Stripe.publishableKey = AppConfig.stripePublishableKey;
         Stripe.merchantIdentifier = 'merchant.com.cnt.media';
-        print('✅ AppRouter: Stripe SDK initialized with publishable key');
+        LoggerService.i('AppRouter: Stripe SDK initialized with publishable key');
       } else {
-        print('ℹ️  AppRouter: Stripe publishable key not set, will be fetched from backend');
+        LoggerService.i('AppRouter: Stripe publishable key not set, will be fetched from backend');
       }
     } catch (e, stackTrace) {
-      print('❌ AppRouter: Stripe initialization failed (non-critical): $e');
-      print('Stack trace: $stackTrace');
+      LoggerService.e('AppRouter: Stripe initialization failed (non-critical)', e, stackTrace);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    print('✅ AppRouter: Building navigation...');
+    LoggerService.d('AppRouter: Building navigation...');
     // Always use web navigation - no platform detection needed
     return MultiProvider(
       providers: [

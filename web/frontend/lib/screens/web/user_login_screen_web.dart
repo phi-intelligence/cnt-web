@@ -19,8 +19,8 @@ class UserLoginScreenWeb extends StatefulWidget {
 
 class _UserLoginScreenWebState extends State<UserLoginScreenWeb> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameOrEmailController = TextEditingController(text: 'samuel@christtabernacle.com');
-  final _passwordController = TextEditingController(text: 'user123');
+  final _usernameOrEmailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   @override
   void dispose() {

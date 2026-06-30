@@ -17,8 +17,8 @@ class AdminLoginScreenWeb extends StatefulWidget {
 
 class _AdminLoginScreenWebState extends State<AdminLoginScreenWeb> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'admin@christtabernacle.com');
-  final _passwordController = TextEditingController(text: 'admin123');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   @override
   void dispose() {

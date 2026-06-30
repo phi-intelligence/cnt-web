@@ -11,6 +11,7 @@ import '../../config/app_config.dart';
 import 'package:go_router/go_router.dart';
 import '../../utils/responsive_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../utils/safe_url_launcher.dart';
 
 class ArtistProfileScreen extends StatefulWidget {
   final int artistId;
@@ -80,7 +81,7 @@ class _ArtistProfileScreenState extends State<ArtistProfileScreen> with SingleTi
   }
 
   Future<void> _launchUrl(String url) async {
-    if (!await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) {
+    if (!await launchAllowedUrl(url, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not open URL')),

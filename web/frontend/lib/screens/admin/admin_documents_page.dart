@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../utils/safe_url_launcher.dart';
 import '../../providers/documents_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
@@ -330,7 +331,7 @@ class _AdminDocumentsPageState extends State<AdminDocumentsPage> {
       downloadUrl: downloadUrl,
       onOpen: downloadUrl == null
           ? null
-          : () => launchUrl(Uri.parse(downloadUrl)),
+          : () => launchAllowedUrl(downloadUrl!),
       onDelete: () async {
         await provider.deleteDocument(document.id);
         if (!mounted) return;

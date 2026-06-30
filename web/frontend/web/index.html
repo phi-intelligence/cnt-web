@@ -19,6 +19,11 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+
+  <!-- Security headers (meta fallbacks; prefer HTTP headers from nginx/Amplify in production) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://apis.google.com https://accounts.google.com https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https: wss: ws:; frame-src https://accounts.google.com https://js.stripe.com; worker-src 'self' blob: https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self';">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   
   <!-- Primary SEO Meta Tags -->
   <title>Christ New Tabernacle Media Platform</title>
@@ -93,7 +98,7 @@
   </style>
 </head>
 <body>
-  <script src='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.min.mjs' type='module'></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.min.mjs" type="module" integrity="sha384-DGfXL3Vw9YhOEK33FiDLr/Mu/Dbg18E0QJqJ5XUrkQrDPBohqNH4DSIVWD2KC45I" crossorigin="anonymous"></script>
   <script type='module'>
   var { pdfjsLib } = globalThis;
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.worker.mjs';

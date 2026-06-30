@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../config/app_config.dart';
+import 'auth_service.dart';
 import '../services/logger_service.dart';
 
 class WebSocketService {
@@ -10,6 +11,7 @@ class WebSocketService {
   
   IO.Socket? _socket;
   bool _isConnected = false;
+  bool _authFailed = false;
   
   // Stream controllers for different event types
   final _liveStreamStartedController = StreamController<Map<String, dynamic>>.broadcast();
@@ -26,7 +28,7 @@ class WebSocketService {
   Stream<Map<String, dynamic>> get newNotification => _newNotificationController.stream;
   
   Future<void> connect() async {
-    if (_isConnected) return;
+    if (_isConnected || _authFailed) return;
     try {
       // Use AppConfig.websocketUrl directly for Socket.io connection
       // This URL should be the base URL (e.g., wss://api.christnewtabernacle.com)
@@ -96,7 +98,12 @@ class WebSocketService {
       finalUrl = finalUrl.replaceAll(RegExp(r':0(?=/|$)'), '');
       
       LoggerService.i('🔌 WebSocket: Original: $url, Cleaned: $finalUrl');
-      
+
+      final token = await AuthService().getToken();
+      final authPayload = (token != null && token.isNotEmpty)
+          ? <String, dynamic>{'token': token}
+          : <String, dynamic>{};
+
       // Use socket_io_client with explicit options to prevent port inference
       // Add reconnection: false initially to prevent multiple connection attempts with wrong URL
       _socket = IO.io(finalUrl, <String, dynamic>{
@@ -106,8 +113,12 @@ class WebSocketService {
         'forceNew': true,
         'reconnection': false, // Disable auto-reconnection to prevent repeated :0 attempts
         'timeout': 20000, // 20 second timeout
+        'auth': authPayload,
       });
 
+      _socket!.on('connect_error', (data) {
+        LoggerService.e('WebSocket connect_error: $data');
+      });
       _socket!.on('connect', (_) {
         _isConnected = true;
         LoggerService.i('✅ WebSocket connected');
@@ -168,15 +179,33 @@ class WebSocketService {
       // Add connect_error handler to catch connection failures
       _socket!.on('connect_error', (error) {
         _isConnected = false;
+        final errorText = error?.toString() ?? '';
         LoggerService.e('❌ WebSocket connection error: $error');
+        if (_isAuthError(errorText)) {
+          _authFailed = true;
+          _socket?.disconnect();
+          _socket?.dispose();
+          _socket = null;
+          LoggerService.w('⚠️ WebSocket: Authentication failed, not retrying');
+          return;
+        }
         // Check if error is related to port :0
-        if (error != null && error.toString().contains(':0')) {
+        if (errorText.contains(':0')) {
           LoggerService.w('⚠️ WebSocket: Port :0 detected in connection error. Attempted URL: $finalUrl');
         }
       });
     } catch (_) {
       _isConnected = false;
     }
+  }
+
+  bool _isAuthError(String errorText) {
+    final lower = errorText.toLowerCase();
+    return lower.contains('unauthorized') ||
+        lower.contains('authentication') ||
+        lower.contains('invalid token') ||
+        lower.contains('jwt') ||
+        lower.contains('forbidden');
   }
   
   void disconnect() {

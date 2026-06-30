@@ -1,18 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../utils/platform_helper.dart';
+import '../config/app_config.dart';
 import 'auth_service.dart';
 
 class DonationService {
   final AuthService _authService = AuthService();
   
-  static String get baseUrl {
-    const envUrl = String.fromEnvironment('API_BASE');
-    if (envUrl.isNotEmpty) {
-      return envUrl;
-    }
-    return PlatformHelper.getApiBaseUrl();
-  }
+  static String get baseUrl => AppConfig.apiBaseUrl;
   
   /// Create a Stripe PaymentIntent for donation
   /// Returns payment intent details including client_secret and publishable_key

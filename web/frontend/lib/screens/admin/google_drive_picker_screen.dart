@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
+import '../../utils/safe_url_launcher.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -55,19 +56,16 @@ class _GoogleDrivePickerScreenState extends State<GoogleDrivePickerScreen> {
     try {
       final authUrl = await _api.getGoogleDriveAuthUrl();
       
-      // Open URL in browser
-      final uri = Uri.parse(authUrl);
-      if (await url_launcher.canLaunchUrl(uri)) {
-        await url_launcher.launchUrl(uri, mode: url_launcher.LaunchMode.externalApplication);
-        
-        // Show dialog with instructions
-        if (mounted) {
-          _showConnectionDialog();
-        }
-      } else {
+      // Open URL in browser (https only)
+      if (!await launchAllowedUrl(authUrl, mode: url_launcher.LaunchMode.externalApplication)) {
         setState(() {
-          _error = 'Cannot open browser. Please check your device settings.';
+          _error = 'Cannot open browser. URL must use https.';
         });
+        return;
+      }
+
+      if (mounted) {
+        _showConnectionDialog();
       }
     } catch (e) {
       String errorMessage = 'Failed to connect: $e';

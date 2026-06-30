@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'config/environment.dart';
 import 'navigation/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Environment.initialize();
   
   // Preload Inter font synchronously for CanvasKit
   // This ensures fonts are available when CanvasKit initializes
